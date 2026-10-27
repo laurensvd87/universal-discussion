@@ -23,6 +23,7 @@ ENTRY = OWN + 'semantic-native-check.js'
 SEMANTIC_LEDGER = 'apps/local-service/portable/test/semantic-native-cases.json'
 RUNS_ROOT = REPO / 'apps/local-service/portable/data/hierarchy-native-runs'
 PRIVATE_ENTRY = OWN + 'owner-restore-native-check.js'
+HTTP_ENTRY = OWN + 'owner-http-native-check.js'
 BACKUP_ROOT = REPO / 'apps/local-service/data/canonical-migration-backups'
 PRIVATE_RUNS_ROOT = BACKUP_ROOT / 'hierarchy-private-restore-runs'
 PRIVATE_RECEIPT = REPO / 'apps/local-service/data/postgres-hierarchy-backup-receipt-20261027.json'
@@ -39,16 +40,29 @@ PRIVATE_PHASES = ('callback-enter','archive-hash-start','archive-hash-complete',
     'archive-authenticated','empty-target-verified','restore-dispatched','restore-retired',
     'schema-verified','grants-verified') + tuple('table-'+name+'-verified' for name in RESTORED_TABLES) + (
     'sequences-verified','scratch-a-retired','scratch-b-retired','inputs-closed')
+HTTP_CASES = ('hierarchy17-http-health','independent-semantic-directory','saved-page-canonical-read',
+    'normal-login-unavailable','named-private-session','human-root-and-reply',
+    'cross-actor-edit-withdraw-denied','human-edit-and-withdraw','forged-session-denied',
+    'demo-actor-denied','reserved-ai-names-denied','host-origin-pairing-denied',
+    'owner-policy-refresh','bounded-concurrent-public-reads','revoked-session-denied','provider-unavailable')
 MAP_KEY = OWN + 'hierarchy-native-reviewed-sources.json'
 NORMAL_SCOPE_ABSENCES = frozenset([
     'apps/local-service/src/http/package.json',
     'apps/local-service/test/package.json',
     'apps/local-service/src/ai/package.json',
     'apps/local-service/src/ops/package.json',
+    'apps/local-service/src/crawler/package.json',
+    'apps/local-service/src/discovery/package.json',
+    'apps/local-service/src/metrics/package.json',
+    'apps/local-service/src/private/package.json',
+    'apps/topic-dashboard/src/data/package.json',
+    'apps/topic-dashboard/src/package.json',
+    'spikes/topic-resolution/browser/fixtures/package.json',
 ])
 MIB = 1048576
 CREATE_FLAGS = 0x8040C
 NORMAL_KEYS = frozenset([
+    'apps/topic-dashboard/package.json',
     'apps/local-service/portable/canonical-v4/hierarchy-schema-source.js',
     'apps/local-service/portable/canonical-v4/hierarchy-repository.js',
     'apps/local-service/portable/test/hierarchy-schema-source.test.js',
@@ -141,6 +155,46 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/portable/src/windows-dpapi-password.js',
     OWN + 'hierarchy-private-retire-pgdata.ps1',
     OWN + 'hierarchy-private-retire-pgdata.test.ps1',
+    HTTP_ENTRY,OWN + 'owner-http-native-check.test.js',
+    OWN + 'private-application-rehearsal.js',OWN + 'private-application-rehearsal.test.js',
+    'apps/local-service/src/accounts/account-lifecycle.js',
+    'apps/local-service/src/accounts/account-repository.js',
+    'apps/local-service/src/accounts/account-service.js',
+    'apps/local-service/src/accounts/protected-account-key.js',
+    'apps/local-service/src/adapters/fixture-catalog.js',
+    'apps/local-service/src/adapters/fixture-ranking.js',
+    'apps/local-service/src/adapters/sqlite-repository.js',
+    'apps/local-service/src/application/canonical-pages.js',
+    'apps/local-service/src/application/canonical-read-queue.js',
+    'apps/local-service/src/application/create-sqlite-demo-service.js',
+    'apps/local-service/src/application/discussion-service.js',
+    'apps/local-service/src/application/hierarchy-worker-resources.js',
+    'apps/local-service/src/application/ingestion-worker-queue.js',
+    'apps/local-service/src/application/installed-hierarchy-runtime.js',
+    'apps/local-service/src/application/matching-precompute.js',
+    'apps/local-service/src/application/owner-topic-configuration.js',
+    'apps/local-service/src/application/postgres-ingestion-worker-loop.js',
+    'apps/local-service/src/application/postgres-interactive-ingestion.js',
+    'apps/local-service/src/application/stored-hierarchy-coordinator.js',
+    'apps/local-service/src/application/topic-space-discovery.js',
+    'apps/local-service/src/application/topic-space-policy.js',
+    'apps/local-service/src/crawler/packaged-e5.js',
+    'apps/local-service/src/discovery/public-index.js',
+    'apps/local-service/src/domain/incremental-adaptive-topics.js',
+    'apps/local-service/src/domain/prior-discussions.js',
+    'apps/local-service/src/domain/topic-space-grouping.js',
+    'apps/local-service/src/http/loopback-listener.js',
+    'apps/local-service/src/http/pairing-store.js',
+    'apps/local-service/src/http/startup-config.js',
+    'apps/local-service/src/metrics/catalog-growth.js',
+    'apps/local-service/src/ops/backup-image.js',
+    'apps/local-service/src/ops/backup-retention.js',
+    'apps/local-service/src/ops/canonical-backup-worker.js',
+    'apps/local-service/src/ops/canonical-backup.js',
+    'apps/local-service/src/private/private-repository.js',
+    'apps/local-service/src/private/private-service.js',
+    'apps/local-service/src/startup.js',
+    'spikes/topic-resolution/browser/fixtures/related-source-fixtures.js',
 ])
 PINS = {
     'inventory': (OLD+'inventory.py', '3dfc2dcdb0c09a46d6215b5cf0781829f27a70f03c8106e6bb70db18bf28f385'),
@@ -621,6 +675,75 @@ class PrivatePhases:
         self.i.require(len(self.closed) == len(PRIVATE_PHASES),'private-phase-incomplete')
 
 
+class PrivateHttpProof:
+    """Additional mandatory HTTP evidence; never aliases the restore ledger."""
+    def __init__(self,inventory,run):
+        self.i,self.root,self.digest = inventory,run.output,None
+        self.identity = None
+
+    def _read(self):
+        I = self.i
+        directory_info(self.root,I)
+        final,pending = self.root/'application-proof.json',self.root/'application-proof.pending.json'
+        a,b = final.lstat(),pending.lstat()
+        I.require(I.no_reparse(a) and I.no_reparse(b) and stat.S_ISREG(a.st_mode) and stat.S_ISREG(b.st_mode)
+            and 0 < a.st_size <= 32768 and a.st_nlink == b.st_nlink == 2
+            and (a.st_dev,a.st_ino,a.st_size) == (b.st_dev,b.st_ino,b.st_size),'http-proof-link')
+        with final.open('rb') as stream:
+            raw = stream.read(32769)
+        digest = hashlib.sha256(raw).hexdigest()
+        I.require(len(raw) == a.st_size and I.hash_regular_file(self.root,final.name,a.st_size) == digest
+            and I.hash_regular_file(self.root,pending.name,b.st_size) == digest,'http-proof-pin')
+        try:
+            value = json.loads(raw,object_pairs_hook=I._unique_pairs,
+                parse_constant=lambda _: (_ for _ in ()).throw(I.Refusal('http-proof-json')))
+        except (ValueError,UnicodeError,RecursionError):
+            raise I.Refusal('http-proof-json') from None
+        return value,digest,(a.st_dev,a.st_ino,a.st_size)
+
+    def complete(self):
+        I = self.i
+        value,digest,identity = self._read()
+        def shape(item,fields):
+            return type(item) is dict and set(item) == set(fields.split())
+        def bounded(item,low,high):
+            return type(item) is int and low <= item <= high
+        I.require(shape(value,'schema status cases pendingCases server counts cleanup scope failure elapsedMs upgrade')
+            and value['schema'] == 'private-application-http-proof/v1' and value['status'] == 'passed'
+            and value['failure'] is None and type(value['pendingCases']) is int and value['pendingCases'] == 0
+            and bounded(value['elapsedMs'],0,300000),'http-proof-shape')
+        I.require(type(value['cases']) is list and len(value['cases']) == len(HTTP_CASES)
+            and value['cases'] == [{'name':name,'status':'passed'} for name in HTTP_CASES],'http-proof-cases')
+        server,counts,upgrade = value['server'],value['counts'],value['upgrade']
+        I.require(shape(server,'destinationPort canonicalHost loopbackOnly')
+            and type(server['destinationPort']) is int and server['destinationPort'] == 4185
+            and server['canonicalHost'] == '127.0.0.1:4174' and server['loopbackOnly'] is True,'http-proof-server')
+        I.require(shape(upgrade,'schemaVersion preservedLegacyTables legacyRowsUnchanged')
+            and type(upgrade['schemaVersion']) is int and upgrade['schemaVersion'] == 17
+            and type(upgrade['preservedLegacyTables']) is int and upgrade['preservedLegacyTables'] == 18
+            and upgrade['legacyRowsUnchanged'] is True,'http-proof-upgrade')
+        I.require(shape(counts,'httpRequests maximumConcurrentHttp fixtureActors')
+            and bounded(counts['httpRequests'],1,512) and bounded(counts['maximumConcurrentHttp'],1,4)
+            and counts['maximumConcurrentHttp'] <= counts['httpRequests']
+            and type(counts['fixtureActors']) is int and counts['fixtureActors'] == 2,'http-proof-counts')
+        cleanup,scope = value['cleanup'],value['scope']
+        I.require(shape(cleanup,'serverClosed applicationClosed appClientClosed urlClientClosed pendingHttp pendingDatabase')
+            and all(cleanup[key] is True for key in ('serverClosed','applicationClosed','appClientClosed','urlClientClosed'))
+            and all(type(cleanup[key]) is int and cleanup[key] == 0 for key in ('pendingHttp','pendingDatabase')),'http-proof-cleanup')
+        I.require(shape(scope,'realHttp realDatabase browser encoder provider externalLoginVerified productionCapacityValidated testComposition')
+            and scope['realHttp'] is True and scope['realDatabase'] is True
+            and all(scope[key] is False for key in ('browser','encoder','provider','externalLoginVerified',
+                'productionCapacityValidated','testComposition')),'http-proof-scope')
+        if self.digest is not None:
+            I.require(self.digest == digest and self.identity == identity,'http-proof-changed')
+        self.digest = digest
+        self.identity = identity
+
+    def check(self):
+        if self.digest is not None:
+            self.complete()
+
+
 def load_pinned(name):
     key, expected = PINS[name]
     path = REPO/key
@@ -655,10 +778,10 @@ def native_api_type(windows, run):
     require = windows.require
     wintypes = windows.wintypes
     TEMP = run.output / 'temp'
-    # A closed mode chooses between two reviewed entries and supplies the one
+    # A closed mode chooses between reviewed fixed entries and supplies the one
     # fixed private metadata variable. Removing that explicit prefix restores
     # the frozen suspended-launch AST; default environment bytes stay exact.
-    ENTRY = PRIVATE_ENTRY if getattr(run, 'private', False) else globals()['ENTRY']
+    ENTRY = HTTP_ENTRY if getattr(run,'http',False) else PRIVATE_ENTRY if getattr(run, 'private', False) else globals()['ENTRY']
     ENV_PREFIX = 'LOCALAPPDATA=C:\\Users\\Laurens\\AppData\\Local\0' if getattr(run, 'private', False) else ''
 
     class NativeAPI(windows._WinAPI):
@@ -721,10 +844,11 @@ class OwnedRun:
     Output512KiB and cluster512MiB remain separately bounded. Control metadata
     (one catalog snapshot, marker and permanent child claim) is capped at1MiB.
     """
-    def __init__(self, inventory, private=False):
-        inventory.require(type(private) is bool, 'run-purpose')
+    def __init__(self, inventory, private=False, http=False):
+        inventory.require(type(private) is bool and type(http) is bool and (not http or private), 'run-purpose')
         self.i = inventory
         self.private = private
+        self.http = http
         self.runs_root = PRIVATE_RUNS_ROOT if private else RUNS_ROOT
         self.marker_schema = 'private-hierarchy-native-owned-run' if private else 'hierarchy-native-owned-run'
         self.claim_schema = 'private-hierarchy-native-child-claim' if private else 'hierarchy-native-child-claim'
@@ -909,20 +1033,21 @@ def cluster_tree_type(supervisor, inventory, run):
     return ClusterTree
 
 
-def execute(external_sha, private=False):
+def execute(external_sha, private=False, http=False):
     S = load_pinned('supervisor')
     I = S.I  # Keep the controller's exact refusal type and authenticated helper.
-    I.require(type(private) is bool,'run-purpose')
+    I.require(type(private) is bool and type(http) is bool and (not http or private),'run-purpose')
     I.require(sys.flags.isolated and sys.flags.no_site and sys.flags.dont_write_bytecode, 'python-flags')
     I.require(sys.platform == 'win32' and Path(sys.executable).resolve() == I.RUNTIME_PINS['@python'][0].resolve(), 'python-path')
     I.require(str(REPO).replace(chr(92), '/').casefold() == 'd:/gitprojekts/universal-discussion-bootstrap', 'fixed-repo')
     catalog = catalog_type(I)(external_sha)
-    run = OwnedRun(I,private)
+    run = OwnedRun(I,private,http)
     publisher = publisher_type(S, I, run)()
     tree = cluster_tree_type(S, I, run)()
     modules, host_native = {'windows':load_pinned('windows')}, []
     inputs = PrivateInputs(I) if private else None
     phases = PrivatePhases(I,run) if private else None
+    application = PrivateHttpProof(I,run) if http else None
 
     def authenticate():
         catalog.authenticate()
@@ -950,6 +1075,8 @@ def execute(external_sha, private=False):
             inputs.check()
         if phases is not None:
             phases.check()
+        if application is not None:
+            application.check()
 
     def boundary():
         W, B = modules['windows'], modules['baseline']
@@ -959,6 +1086,8 @@ def execute(external_sha, private=False):
         catalog.end_pins()
         if phases is not None:
             phases.check()
+        if application is not None:
+            application.check()
         if inputs is not None:
             if not inputs.closed:
                 inputs.finish(controller.normal_deadline if controller.normal_deadline is not None else STARTED+380)
@@ -968,6 +1097,8 @@ def execute(external_sha, private=False):
         value = private_completion(stdout,stderr,exit_code) if private else semantic_completion(stdout,stderr,exit_code)
         if private and value['accepted']:
             phases.complete()
+            if http:
+                application.complete()
         return value
 
     controller = diagnostic_controller_type(S, modules['windows'],private=private)(authenticate=authenticate, end_pins=end_pins,
@@ -998,15 +1129,16 @@ def execute(external_sha, private=False):
 
 def main(argv=None):
     args = sys.argv[1:] if argv is None else argv
-    private = type(args) is list and len(args) == 2 and args[0] == 'private-restore'
+    private = type(args) is list and len(args) == 2 and args[0] in ('private-restore','private-http')
+    http = private and args[0] == 'private-http'
     if private:
         args = args[1:]
     if (type(args) is not list or len(args) != 1 or type(args[0]) is not str
             or len(args[0]) != 64 or any(c not in '0123456789abcdef' for c in args[0])):
-        sys.stderr.write('Expected reviewed catalog SHA256 or private-restore followed by that SHA256.\n')
+        sys.stderr.write('Expected reviewed catalog SHA256, or private-restore/private-http followed by that SHA256.\n')
         return 2
     try:
-        result = execute(args[0],private)
+        result = execute(args[0],private,http)
         sys.stdout.write(json.dumps({'schema':'native-hierarchy-postgres-invocation/v2',
             'accepted':result['accepted']}, sort_keys=True, separators=(',', ':'))+'\n')
         return 0 if result['accepted'] else 1

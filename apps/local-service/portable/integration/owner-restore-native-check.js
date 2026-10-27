@@ -118,6 +118,15 @@ const SEQUENCES=Object.freeze({import_ledger_import_id_seq:['import_ledger','imp
 const TEXT_PKS=Object.freeze(['id_registry.id','topics.id','discussions.id','sources.id','embeddings.source_id','source_links.source_id','topic_memberships.source_id','topic_memberships.topic_id',
  'fixed_references.topic_id','contributions.id','revisions.contribution_id','operation_receipts.source_id','command_receipts.actor_id','command_receipts.request_id','runtime_source_stamps.source_id','ingestion_jobs.operation_id'].sort());
 const decimal=value=>{requireThat(typeof value==='string'&&/^(0|[1-9][0-9]{0,18})$/u.test(value)&&BigInt(value)<=9223372036854775807n,'RESTORE_SEQUENCE');return BigInt(value);};
+async function fingerprintTable(tx,table,order){
+ const extra=table==='embeddings'||table==='fixed_references'?" || coalesce(array_send(t.values_double),''::bytea)":'';
+ await tx.query(`DECLARE backup_rows NO SCROLL CURSOR FOR SELECT encode(sha256(convert_to(to_jsonb(t)::text,'UTF8')${extra}),'hex') AS row_sha FROM canonical_v4.${table} t ORDER BY ${order}`);
+ const digest=createHash('sha256');let rows=0,failed=false,primary;
+ try{for(;;){const result=await tx.query('FETCH FORWARD 128 FROM backup_rows');requireThat(result.rows.length<=128,'RESTORE_FINGERPRINT_ROWS');
+  for(const row of result.rows){requireThat(typeof row.row_sha==='string'&&SHA.test(row.row_sha),'RESTORE_FINGERPRINT_HASH');digest.update(row.row_sha+'\n');rows++;integer(rows);}if(result.rows.length<128)break;}
+ }catch(e){failed=true;primary=e;throw e;}finally{try{await tx.query('CLOSE backup_rows');}catch(e){if(!failed)throw e;}if(failed)void primary;}
+ return {table,rows,sha256:digest.digest('hex')};
+}
 
 async function verifyDatabase(db,receipt,manifest,checks,check,phase){
  return db.transaction(async raw=>{const tx={query:async(sql,args=[])=>{check();const result=await raw.query(sql,args);check();return result;}};
@@ -178,13 +187,7 @@ async function verifyDatabase(db,receipt,manifest,checks,check,phase){
   });
   const observed=[];
   await checks.test(GROUPS[1].name,async t=>{for(const [i,[table,order]]of Object.entries(TABLES).entries())await t.test(GROUPS[1].children[i],async()=>{
-   const extra=table==='embeddings'||table==='fixed_references'?" || coalesce(array_send(t.values_double),''::bytea)":'';
-   await tx.query(`DECLARE backup_rows NO SCROLL CURSOR FOR SELECT encode(sha256(convert_to(to_jsonb(t)::text,'UTF8')${extra}),'hex') AS row_sha FROM canonical_v4.${table} t ORDER BY ${order}`);
-   const digest=createHash('sha256');let rows=0,failed=false,primary;
-   try{for(;;){const result=await tx.query('FETCH FORWARD 128 FROM backup_rows');requireThat(result.rows.length<=128,'RESTORE_FINGERPRINT_ROWS');
-    for(const row of result.rows){requireThat(typeof row.row_sha==='string'&&SHA.test(row.row_sha),'RESTORE_FINGERPRINT_HASH');digest.update(row.row_sha+'\n');rows++;integer(rows);}if(result.rows.length<128)break;}
-   }catch(e){failed=true;primary=e;throw e;}finally{try{await tx.query('CLOSE backup_rows');}catch(e){if(!failed)throw e;}if(failed)void primary;}
-   const fingerprint={table,rows,sha256:digest.digest('hex')};requireThat(isDeepStrictEqual(fingerprint,receipt.currentRowsFingerprint.tables[i]),'RESTORE_TABLE_FINGERPRINT');observed.push(fingerprint);
+   const fingerprint=await fingerprintTable(tx,table,order);requireThat(isDeepStrictEqual(fingerprint,receipt.currentRowsFingerprint.tables[i]),'RESTORE_TABLE_FINGERPRINT');observed.push(fingerprint);
    await phase('table-'+table+'-verified');
   });requireThat(hash(JSON.stringify(observed))===receipt.currentRowsFingerprint.sha256,'RESTORE_COMPOSITE_FINGERPRINT');});
   await checks.test(GROUPS[2].name,async t=>{await t.test(GROUPS[2].children[0],async()=>{
@@ -201,7 +204,7 @@ async function verifyDatabase(db,receipt,manifest,checks,check,phase){
  });
 }
 
-function buildCheck(deps,inputs){return async()=>deps.lifecycle(async capability=>{
+function buildCheck(deps,inputs,afterVerified=null){return async()=>deps.lifecycle(async capability=>{
  const {connectFixedRole,restoreArchive,deadline,checkDeadline}=capability;requireThat(typeof connectFixedRole==='function'&&typeof restoreArchive==='function'&&typeof checkDeadline==='function'&&Number.isFinite(deadline),'RESTORE_CAPABILITY');
  const epoch=deps.now();requireThat(Number.isFinite(epoch)&&epoch>=0,'RESTORE_PHASE_CLOCK');
  let openScope=true,originalClient=null,db=null,data=null,receiptBound=false,archiveAuthenticated=false,completeInput=false,restoreVerified=false,hadPrimary=false,primary;
@@ -229,6 +232,7 @@ function buildCheck(deps,inputs){return async()=>deps.lifecycle(async capability
     return verifyDatabase(db,receipt,manifest,checks,check,phase);},
   };
   await phase('backup-auth-start');const result=await deps.restore(inputs.filename,port);check();requireThat(result.restored===true&&result.dumpSha256===inputs.dumpSha256&&result.targetDatabase===NAMES[0]&&result.targetOid===target.oid,'RESTORE_RESULT');restoreVerified=true;
+  if(afterVerified!==null){await afterVerified({database:db,receipt,connectFixedRole,getOwnedIdentity:deps.getOwnedIdentity,checkDeadline:check,deadline});check();}
   await db.close();db=null;check();await phase('scratch-a-retired');const second=await controller.acquire();check();await emptySchema(second);await second.close();check();await phase('scratch-b-retired');
  }catch(e){hadPrimary=true;primary=e;}
  finally{
@@ -245,6 +249,35 @@ function buildCheck(deps,inputs){return async()=>deps.lifecycle(async capability
 // Trusted fake-port seam only. Normal invocation never accepts dependencies,
 // alternate data pins, callbacks, credentials, filenames or target selectors.
 export function createOwnerRestoreCheckForTest(dependencies,inputs){return buildCheck(dependencies,inputs);}
+const INSTALLED_MATCHER='eead1b2dcd6508ebf3d5c45358c71be95e81363da7c0b8325f7466ce487ed21c';
+async function afterVerifiedApplication(context,ports){
+ const {database,receipt,checkDeadline:check}=context;check();const directories=await ports.directories(database,check);check();
+ let hadPrimary=false,primary;
+ try{
+  await database.exec('SET ROLE murmingle_owner');check();
+  const installed=await ports.install({database,expectedHeadRevision:0,expectedPolicyRevision:0,policy:{defaultMaxDepth:1,overrides:[]}});check();
+  requireThat(installed.schemaVersion===17&&installed.matcherIdentityHash===INSTALLED_MATCHER&&installed.headRevision===1&&
+   isDeepStrictEqual(installed.policy,{revision:1,defaultMaxDepth:1,overrides:[]}),'RESTORE_APPLICATION_INSTALLATION');
+  const manifest=await ports.manifest();check();requireThat(manifest.length===17&&isDeepStrictEqual(manifest.slice(0,9).map(row=>row.hash),receipt.migrations),'RESTORE_APPLICATION_MIGRATIONS');
+  await database.transaction(async raw=>{const tx={query:async(sql,args=[])=>{check();const result=await raw.query(sql,args);check();return result;}};
+   await tx.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');await tx.query('SET LOCAL search_path=pg_catalog');
+   await tx.query("SET LOCAL TimeZone='UTC'");await tx.query("SET LOCAL DateStyle='ISO, YMD'");await tx.query('SET LOCAL extra_float_digits=3');
+   const {rows}=await tx.query('SELECT version,hash FROM canonical_v4.schema_migrations ORDER BY version');
+   requireThat(rows.length===17&&rows.every((row,i)=>Number(row.version)===i+1&&row.hash===manifest[i].hash),'RESTORE_APPLICATION_MIGRATIONS');
+   for(const [i,[table,order]]of Object.entries(TABLES).entries())if(table!=='schema_migrations'){
+    requireThat(isDeepStrictEqual(await fingerprintTable(tx,table,order),receipt.currentRowsFingerprint.tables[i]),'RESTORE_TABLE_FINGERPRINT');
+   }
+  });check();
+  const result=await ports.application({connectFixedRole:context.connectFixedRole,ownerDatabase:database,getOwnedIdentity:context.getOwnedIdentity,
+   clusterDirectory:directories.clusterDirectory,outputDirectory:directories.outputDirectory,checkDeadline:check,deadline:context.deadline,
+   upgrade:Object.freeze({schemaVersion:17,preservedLegacyTables:18,legacyRowsUnchanged:true})});check();
+  requireThat(field(result,'status')==='passed'&&Reflect.ownKeys(result).length===3&&typeof field(result,'proofSha256')==='string'&&SHA.test(result.proofSha256)&&
+   Number.isSafeInteger(field(result,'proofBytes'))&&result.proofBytes>0&&result.proofBytes<=32768,'RESTORE_APPLICATION_CHECKS');
+ }catch(e){hadPrimary=true;primary=e;throw e;}
+ finally{try{await database.exec('RESET ROLE');}catch(e){if(!hadPrimary)throw e;}if(hadPrimary)void primary;}
+}
+/** Trusted invented SQL/application ports only; no real callback selector. */
+export function createOwnerHttpCheckForTest(dependencies,inputs){return buildCheck(dependencies,inputs,context=>afterVerifiedApplication(context,dependencies.http));}
 function requiredBoolean(value){requireThat(typeof value==='boolean','RESTORE_PROJECTION');return value;}
 export function projectOwnerRestoreResult(lifecycle){
  const server=field(lifecycle,'server'),retirement=field(lifecycle,'cleanup'),proof=field(lifecycle,'checks'),dbCleanup=field(proof,'cleanup');
@@ -284,13 +317,28 @@ async function openFixedPhases({epoch,checkDeadline}){
  return createPhaseWriter({fs:{open,link,lstat,realpath},output:path.win32.join(binding.runDirectory,'output'),now:()=>performance.now(),epoch,checkDeadline});
 }
 let used=false;
-export async function runOwnerRestoreNativeCheck(){
- requireThat(arguments.length===0&&!used,'RESTORE_ONESHOT');used=true;
+async function runFixed(application){
+ requireThat(!used,'RESTORE_ONESHOT');used=true;
  const [{runWithPrivateOwnedScopedPostgres},{restorePostgresBackupToOwnedFixture}]=await Promise.all([import('./hierarchy-native-cluster.js'),import('../../src/ops/postgres-backup-operator.js')]);
  const run=buildCheck({lifecycle:runWithPrivateOwnedScopedPostgres,controller:createFixtureController,getOwnedIdentity,manifest:()=>readCanonicalV4MigrationManifest(),readData:readFixedData,
-  openPhases:openFixedPhases,now:()=>performance.now(),restore:restorePostgresBackupToOwnedFixture},INPUTS);
+  openPhases:openFixedPhases,now:()=>performance.now(),restore:restorePostgresBackupToOwnedFixture},INPUTS,application?fixedApplicationHook:null);
  return projectOwnerRestoreResult(await run());
 }
+async function fixedApplicationDirectories(database,check){
+ check();const binding=await readOwnedPrivateRunBinding();check();const row=await one(database,"SELECT current_setting('data_directory') AS data_directory");check();
+ const dataDirectory=typeof row.data_directory==='string'&&path.win32.isAbsolute(row.data_directory)?path.win32.normalize(row.data_directory):null,
+  clusterDirectory=dataDirectory===null?null:path.win32.dirname(dataDirectory),outputDirectory=path.win32.join(binding.runDirectory,'output');
+ requireThat(clusterDirectory!==null&&path.win32.dirname(clusterDirectory)===binding.clusterParent&&/^nhpg-[A-Za-z0-9]+$/u.test(path.win32.basename(clusterDirectory))&&
+  path.win32.join(clusterDirectory,'pgdata')===dataDirectory,'RESTORE_APPLICATION_DIRECTORY');
+ for(const directory of [clusterDirectory,outputDirectory]){const stat=await lstat(directory);check();requireThat(stat.isDirectory()&&!stat.isSymbolicLink()&&await realpath(directory)===directory,'RESTORE_APPLICATION_DIRECTORY');check();}
+ return {clusterDirectory,outputDirectory};
+}
+async function fixedApplicationHook(context){
+ const [{installInstalledHierarchy},{runPrivateApplicationRehearsal}]=await Promise.all([import('../canonical-v4/hierarchy-installation.js'),import('./private-application-rehearsal.js')]);context.checkDeadline();
+ return afterVerifiedApplication(context,{install:installInstalledHierarchy,manifest:()=>readCanonicalV4MigrationManifest('hierarchy17'),directories:fixedApplicationDirectories,application:runPrivateApplicationRehearsal});
+}
+export async function runOwnerRestoreNativeCheck(){requireThat(arguments.length===0,'RESTORE_ONESHOT');return runFixed(false);}
+export async function runOwnerHttpNativeCheck(){requireThat(arguments.length===0,'RESTORE_ONESHOT');return runFixed(true);}
 export async function main(args=process.argv.slice(2)){
  if(!Array.isArray(args)||args.length)return 2;
  try{const result=await runOwnerRestoreNativeCheck();process.stdout.write(JSON.stringify(result)+'\n');return result.accepted?0:1;}

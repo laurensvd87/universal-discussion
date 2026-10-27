@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {OWNER_RESTORE_CASES,OWNER_RESTORE_PHASES,createOwnerRestoreCheckForTest,createOwnerRestorePhaseWriterForTest,projectOwnerRestoreResult,main,runOwnerRestoreNativeCheck} from './owner-restore-native-check.js';
+import {OWNER_RESTORE_CASES,OWNER_RESTORE_PHASES,createOwnerRestoreCheckForTest,createOwnerHttpCheckForTest,createOwnerRestorePhaseWriterForTest,projectOwnerRestoreResult,main,runOwnerRestoreNativeCheck} from './owner-restore-native-check.js';
 import {PRIVATE_RUN_ROOT} from './private-owner-storage.js';
 
 const sha=value=>createHash('sha256').update(value).digest('hex');
@@ -32,14 +32,14 @@ function fixture({fault=null}={}){
   migrations:header.migrations,currentRowsFingerprint:fingerprint,fingerprintBinding:{dumpSha256:sha(plaintext),headerSha256:sha(JSON.stringify(header)),currentRowsFingerprintSha256:fingerprint.sha256,version,migrations:header.migrations}};
  const receiptRaw=Buffer.from(JSON.stringify(receipt)),inputs={receiptSha256:sha(receiptRaw),archiveSha256:sha('invented encrypted bytes'),headerSha256:receipt.headerSha256,
   dumpSha256:receipt.dumpSha256,dumpBytes:plaintext.length,filename:receipt.filename};
- let expired=false,controller,activeTable=null,restored=false,invocations=0;
+ let expired=false,controller,activeTable=null,restored=false,invocations=0,activeManifest=manifest;
  async function query(index,sql,args=[]){queries.push(sql);events.push('query');
   if(fault?.query){const outcome=fault.query(sql,args);if(outcome?.throw)throw outcome.value;}
   let rows;
   if(sql.includes('AS database,session_user'))rows=[{database:names[index],role:'postgres',address:'127.0.0.1',port:55433,version:'170011',started:'123.5',oid:String(17001+index)}];
   else if(sql.includes('pg_depend'))rows=[{owner:'postgres',objects:'0'}];
   else if(sql==='DROP SCHEMA canonical_v4'){assert.equal(index,0);assert.equal(restored,false);events.push('drop-empty');rows=[];}
-  else if(sql.includes('SELECT version,hash'))rows=manifest;
+  else if(sql.includes('SELECT version,hash'))rows=activeManifest;
   else if(sql.includes('SELECT generation,revision::text'))rows=[{generation:version.generation,revision:String(version.revision)}];
   else if(sql.includes('SELECT extversion'))rows=[{extversion:'0.8.2'}];
   else if(sql.includes('SELECT datcollate'))rows=[{datcollate:'German_Germany.1252',datctype:'German_Germany.1252'}];
@@ -64,7 +64,7 @@ function fixture({fault=null}={}){
   else if(sql.includes('JOIN pg_sequence'))rows=sequences.map(name=>({name,owner:'murmingle_owner',increment:'1',cycle:false}));
   else if(sql.startsWith('SELECT last_value'))rows=[{last_value:fault?.unsafeSequence?'8':fault?.bigSequence?'9007199254740993':'10',is_called:!fault?.uncalledSequence}];
   else if(sql.startsWith('SELECT max('))rows=[{maximum:fault?.bigSequence?'9007199254740992':'9'}];
-  else if(sql.startsWith('SET ')||sql==='CLOSE backup_rows')rows=[];
+  else if(sql.startsWith('SET ')||sql==='RESET ROLE'||sql==='CLOSE backup_rows')rows=[];
   else assert.fail('Unexpected SQL in invented adapter: '+sql);
   return {rows};
  }
@@ -92,7 +92,20 @@ function fixture({fault=null}={}){
    await port.restore({identity,dump:(async function*(){yield plaintext;})(),dumpBytes:plaintext.length,dumpSha256:sha(plaintext)});
    await port.verifyRestored({identity,header});return {restored:true,targetDatabase:names[0],targetOid:identity.oid,dumpSha256:sha(plaintext)};},
  };
- return {deps,inputs,events,queries,phases,receiptRaw,header,get invocations(){return invocations;},run:()=>createOwnerRestoreCheckForTest(deps,inputs)()};
+ return {deps,inputs,events,queries,phases,receiptRaw,header,manifest,setManifest:value=>{activeManifest=value;},get invocations(){return invocations;},run:()=>createOwnerRestoreCheckForTest(deps,inputs)()};
+}
+const applicationResult=()=>({status:'passed',proofSha256:sha('invented closed application proof'),proofBytes:123});
+function httpPorts(f,{application=async()=>applicationResult(),installFailure=null}={}){
+ const manifest=[...f.manifest,...Array.from({length:8},(_,i)=>({version:i+10,hash:sha('added-migration-'+i)}))];
+ f.deps.http={manifest:async()=>manifest,directories:async()=>({clusterDirectory:'invented-private-cluster',outputDirectory:'invented-private-output'}),
+  install:async value=>{f.events.push('install');assert.deepEqual(value.policy,{defaultMaxDepth:1,overrides:[]});assert.equal(value.expectedHeadRevision,0);assert.equal(value.expectedPolicyRevision,0);
+   assert.equal(f.queries.filter(sql=>sql.startsWith('DECLARE')).length,19);if(installFailure)throw installFailure;f.setManifest(manifest);
+   return {schemaVersion:17,matcherIdentityHash:'eead1b2dcd6508ebf3d5c45358c71be95e81363da7c0b8325f7466ce487ed21c',headRevision:1,policy:{revision:1,defaultMaxDepth:1,overrides:[]}};},
+  application:async context=>{f.events.push('application-enter');assert.equal(f.queries.filter(sql=>sql.startsWith('DECLARE')).length,37);assert.equal(context.deadline,195000);
+   assert.deepEqual(context.upgrade,{schemaVersion:17,preservedLegacyTables:18,legacyRowsUnchanged:true});assert.ok(Object.isFrozen(context.upgrade));
+   const result=await application(context);f.events.push('application-retired');return result;},
+ };
+ return ()=>createOwnerHttpCheckForTest(f.deps,f.inputs)();
 }
 
 test('private entry imports inert, exposes distinct fixed25 ledger and rejects all CLI selectors',async()=>{
@@ -109,6 +122,35 @@ test('all19 fingerprints, schema/grants/sequences and AthenB retirement compose 
  assert.ok(f.queries.filter(sql=>sql.startsWith('DECLARE')&&sql.includes('array_send')).length===2);
  assert.ok(!f.queries.some(sql=>/nextval\(|setval\(/u.test(sql)));assert.ok(f.events.includes('rr-commit'));
  assert.deepEqual(f.phases,OWNER_RESTORE_PHASES);assert.equal(f.phases.length,33);
+});
+test('HTTP hook installs only after verified restore, proves18 unchanged tables before application and preserves original25/33',async()=>{
+ const f=fixture(),run=httpPorts(f),result=projectOwnerRestoreResult(await run());assert.equal(result.accepted,true);
+ assert.equal(result.proof.cases.length,25);assert.deepEqual(f.phases,OWNER_RESTORE_PHASES);assert.equal(f.queries.filter(sql=>sql.startsWith('DECLARE')).length,37);
+ assert.equal(f.queries.filter(sql=>sql.startsWith('DECLARE')&&sql.includes('FROM canonical_v4.schema_migrations ')).length,1);
+ assert.ok(f.queries.includes('SET ROLE murmingle_owner'));assert.ok(f.queries.includes('RESET ROLE'));
+ assert.ok(f.events.indexOf('application-retired')<f.events.indexOf('retire-0'));assert.ok(f.events.indexOf('retire-0')<f.events.indexOf('retire-1'));
+});
+test('HTTP install failure or changed post-upgrade canonical row cannot reach the application or pass restoration',async()=>{
+ const a=fixture(),installFailure=Object.assign(new Error('invented install refusal'),{code:'INSTALL_REFUSED'}),installRun=httpPorts(a,{installFailure});
+ const refused=projectOwnerRestoreResult(await installRun());assert.equal(refused.accepted,false);assert.equal(refused.primary,'INSTALL_REFUSED');assert.ok(!a.events.includes('application-enter'));assert.ok(a.queries.includes('RESET ROLE'));
+ const fault={},b=fixture({fault}),run=httpPorts(b),originalInstall=b.deps.http.install;b.deps.http.install=async value=>{const result=await originalInstall(value);fault.fingerprint='sources';return result;};
+ const changed=projectOwnerRestoreResult(await run());assert.equal(changed.accepted,false);assert.equal(changed.primary,'RESTORE_TABLE_FINGERPRINT');
+ assert.equal(changed.proof.cases.length,25);assert.ok(!b.events.includes('application-enter'));assert.ok(b.queries.includes('RESET ROLE'));
+ assert.ok(b.events.includes('finish-controller'));assert.equal(b.events.at(-1),'close-held-data');
+});
+test('pending original HTTP hook delays A/B and input closure; falsy failure survives RESET ROLE cleanup failure',async()=>{
+ const f=fixture();let release,entered=false;const run=httpPorts(f,{application:async()=>{entered=true;return new Promise(resolve=>{release=resolve;});}}),pending=run();
+ while(!entered)await new Promise(resolve=>setImmediate(resolve));assert.ok(!f.events.includes('retire-0'));assert.ok(!f.events.includes('finish-controller'));assert.ok(!f.events.includes('close-held-data'));
+ release(applicationResult());assert.equal(projectOwnerRestoreResult(await pending).accepted,true);
+ const g=fixture({fault:{query:sql=>sql==='RESET ROLE'?{throw:true,value:Object.assign(new Error('secondary'),{code:'RESET_SECONDARY'})}:null}}),fail=httpPorts(g,{application:async()=>{throw false;}});
+ const failed=projectOwnerRestoreResult(await fail());assert.equal(failed.accepted,false);assert.equal(failed.primary,'PRIVATE_RESTORE_FAILURE');assert.ok(g.events.includes('finish-controller'));assert.equal(g.events.at(-1),'close-held-data');
+});
+test('failed or missing application proof envelope cannot pass the HTTP-mode restore proof',async()=>{
+ for(const envelope of [{status:'failed',proofSha256:sha('failed'),proofBytes:123},{status:'passed'},{status:'passed',proofSha256:'unsafe',proofBytes:123}]){
+  const f=fixture(),run=httpPorts(f,{application:async()=>envelope}),result=projectOwnerRestoreResult(await run());assert.equal(result.accepted,false);
+  assert.equal(result.primary,'RESTORE_APPLICATION_CHECKS');
+  assert.ok(f.queries.includes('RESET ROLE'));assert.ok(f.events.includes('close-held-data'));
+ }
 });
 test('receipt and archive bindings refuse before any restore or fixture acquisition',async()=>{
  const f=fixture();f.inputs.receiptSha256='0'.repeat(64);const result=projectOwnerRestoreResult(await f.run());assert.equal(result.accepted,false);

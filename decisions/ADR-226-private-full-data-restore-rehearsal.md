@@ -252,6 +252,23 @@ text or user data. No DDL, production permissions, resource limits, old output,
 or checkpoint grammar changes. Fresh source/catalog review and a separate
 one-attempt decision are required before another full-data rehearsal.
 
+## Actual acceptance
+
+The separately decided corrected run79937 closed exit0. Run
+`run-99a8da6bcdb0ca78105a789df77f42f471e4d2b620fc97ec` at source `004f3b3e`
+completed all25 ordered ledger records, including all19 genuine restored-table
+fingerprints, schema/collations, function/role security and sequence safety.
+All33 closed phase records completed; A16384/B264394 dropped, PostgreSQL37840
+smart-stopped, and parent normal/empty Job/handles/EOFs/end pins passed without
+emergency retirement. No data or permission discrepancy remained.
+
+Root fully read/authenticated independent actual audit SHA256
+`0fa1694bc822b02ed071d4d27c124a105e74444b800de34c519fa4e9da029b8e`.
+This accepts the fixed schema9 snapshot within the stated checks. It does not
+establish combined application/provider/UI/load readiness or arbitrary future
+recoverability. The173677ms lifecycle is not page latency. No further actual
+restore, new fixture mode, live migration or activation is granted here.
+
 Source grant (2026-10-27): implement only the maintained driver/test and catalog,
 maintained run-binding/cluster and their tests, new private-owner-storage helper
 and test, and new owner-restore-native-check entry and test. Reviews resolved

@@ -1,6 +1,38 @@
 # Project status
 
-## Current: runtime package, dashboard SQL and live-data backup verified
+## Current: actual full-data recovery rehearsal passed
+
+The complete encrypted production snapshot restored successfully in the private
+owned PostgreSQL fixture (session79937, source `004f3b3e`). All19 table
+fingerprints match the retained same-snapshot receipt, including55,954 Sources,
+97 contributions, binary64 embeddings, receipts and ingestion jobs. Schema9,
+collations, function/role security and sequence safety passed. All33 durable
+phases completed; both scratch databases dropped and PostgreSQL smart-stopped
+normally. The25 ledger records include3 outer groups and22 child checks.
+
+Independent audit `hierarchy-private-restore-function-config-actual-audit-20261027.json`
+has SHA256 `0fa1694bc822b02ed071d4d27c124a105e74444b800de34c519fa4e9da029b8e`;
+Root fully read and authenticated it. The173677ms lifecycle is a data-recovery
+test, not a page-latency measurement. Earlier failed attempts led to an isolated
+launch-environment correction, a separately reviewed full-data CPU policy and a
+verifier fix matching migration004's extra_float_digits setting. No production
+permissions or live data were changed. The audited partial fixture duplicate
+was removed with its inventory preserved; original backup and reports remain.
+
+Live services and crawler remain on schema9. Combined browser/database/provider
+checks, real user/crawler latency, migration integration, existing-page processing,
+broader child-topic coverage and live cutover remain unfinished. The current
+model has16 roots plus one GTA detail head, without Animals/Koalas coverage.
+
+The next real-application rehearsal is implemented and independently source-reviewed (ADR227).
+It will restore the same snapshot, install hierarchy17, verify18 unchanged legacy
+table fingerprints, and then exercise16 named HTTP cases. Its40 pure Python and
+34 guarded Node tests pass; no actual HTTP/database run is claimed. Review found
+and fixed missing saved-URL selection coverage in the existing saved-page case.
+A metadata-only Games/Animals/Koalas corpus plan was accepted as prospective input;
+no new capture, training or fine-topic coverage has been validated.
+
+## Previous checkpoint: runtime package, dashboard SQL and backup authentication
 
 Production source is pushed: tracked runtime operator `bf7bdefe`, protected
 dashboard aggregate/exact hierarchy17 profile `15cc009f`, visible semantic

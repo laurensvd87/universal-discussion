@@ -1,5 +1,32 @@
 # Implementation handoff: local-service discussion MVP
 
+Current27Oct: full actual schema9 snapshot restore PASSED, session79937 exit0,
+run99a8da6bcdb0ca78105a789df77f42f471e4d2b620fc97ec/cluster nhpg-yF6m8x.
+Source004f3b3e pushed/catalog0055306b...cb57/2435files275025080B/97NORMAL/196Git.
+All19 genuine table fingerprints +schema/grants/sequence safety PASS;25 ledger
+records=3outer+22children. All33 phases close; A16384/B264394 dropped, PG37840
+smart-stop; parentnormal/noemergency/emptyJob/handles/2EOF/endpins. Parent862B
+0df1c7dd...234c/stdout2955B6badc9b0...9cd7/stderr0. Independent15899B audit
+0fa1694bc822b02ed071d4d27c124a105e74444b800de34c519fa4e9da029b8e RootFULLread/
+auth. Lifecycle173677ms is notpage/model latency. Same779MB archive+6249Breceipt
+unchanged; actual19-table compositeac161b77...3a6. Earlier failednormal/CPU/
+functionconfig attempts preserved; failed2a5PGdata770759531B separately retired
+with inventory/exacttarget checks; audit9401f5ff...b94f5 RootFULLread/auth.
+Live9/API19868/worker36616/dashboard6644/crawler4060 originals preserved; crawler
+6174advancing/stderr0/55433+4185absent. Next must satisfyADR225 combinedapp/browser/
+provider/user+crawler load BEFOREactivation, thenbackfill/adoption/cutover.
+ADR227 boundedSOURCE independentlyaccepted: private-http fixed entry and additional
+strict16-case proof, real9->17 upgrade/18 preservedfingerprints beforeHTTPwrites;
+original25/33/caps/epochs unchanged. Root40purePythonPASS2.046s/34guardedNodePASS
+210.7ms; notactualSQL/HTTP. Literalimports closed140NORMAL/11absentpackageScopes.
+IndependentURLselectioncoverage finding fixed with realroute+negativeassertions.
+Catalog547e3a4a...a885d/2478files275417597B/379237B authenticates+endpins.
+Noactualgrant yet.
+Source+candidate-onlycorpusreview04fb5469...708fa RootFULLread/auth; nofiteligibility/
+independentsampleclaim, nocapture/fit. Finalcommittedcatalog/rawGitcheckpending.
+GoalACTIVE; current18-node model finecoverageonlyGTA, owner controls
+and fullapp latency stillopen. Old notes below historical where superseded.
+
 LATEST27Oct sourcebf7bdefe operator/15cc009f schema17+protectedcounts/bd322cfa
 dashboardcards+refresh/6c652709 streamingbackup/3aeae3ca native017 allPUSHED.
 Actual78979 CLOSEDexit0/25orderedPASS, runc0983e17c19084d749b7200aa878d4d0b6dcb5082a233f17,

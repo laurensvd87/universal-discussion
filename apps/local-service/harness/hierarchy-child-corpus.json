@@ -1,0 +1,2373 @@
+{
+  "schema": "hierarchy-child-label-candidates/v1",
+  "status": "curated-source-only-awaiting-independent-review",
+  "curatedOn": "2026-10-27",
+  "scope": {
+    "tasks": [
+      "video-games",
+      "animals",
+      "koalas"
+    ],
+    "classificationOrFitExecuted": false,
+    "newChildPredictionsSeen": false,
+    "historicalRootAndGtaResultsAlreadyKnown": true,
+    "vectorFeaturesInspectedForCuration": false,
+    "collectorExecuted": false,
+    "testBodiesRead": false,
+    "newAssetsCreated": false,
+    "rootRetuned": false,
+    "existingGtaArtifactChanged": false,
+    "productionValidated": false,
+    "assignmentAuthority": false,
+    "nativeObservation": false,
+    "representativePopulation": false,
+    "statisticalIndependenceClaim": false
+  },
+  "taskDefinitions": [
+    {
+      "nodeId": "video-games",
+      "canonicalPath": [
+        "games",
+        "video-games"
+      ],
+      "positive": "Mainly an electronic game, electronic-game title or genre, or its design/guidance.",
+      "negative": "Mainly board, card, tabletop or physical games, or another explicitly reviewed non-electronic-game subject.",
+      "unknown": "A Games root label alone never establishes membership or exclusion."
+    },
+    {
+      "nodeId": "animals",
+      "canonicalPath": [
+        "nature",
+        "animals"
+      ],
+      "positive": "Mainly a nonhuman animal, species, behaviour, conservation or care.",
+      "negative": "Mainly plants, general biological processes, ecosystems with passing animal mentions, or another explicitly reviewed non-animal subject.",
+      "unknown": "A Nature root label alone never establishes membership or exclusion."
+    },
+    {
+      "nodeId": "koalas",
+      "canonicalPath": [
+        "nature",
+        "animals",
+        "koalas"
+      ],
+      "positive": "Mainly koala biology, ecology, conservation or care.",
+      "negative": "Another animal, generic wildlife with incidental koala mentions, or a brand/software meaning; explicit central-subject review is required.",
+      "unknown": "Animals or Nature alone never imply a koala negative or positive."
+    }
+  ],
+  "minimums": {
+    "knownTrainingPositiveGroups": 2,
+    "knownTrainingNegativeGroups": 2,
+    "knownCalibrationPositiveGroups": 3,
+    "knownCalibrationNegativeGroups": 3,
+    "minimumAcceptedKnownCalibrationPositives": 3,
+    "maximumAcceptedKnownCalibrationNegatives": 0,
+    "lambda": 0.1,
+    "unknownLabelsOmittedNotNegative": true,
+    "noMinimumWaiverOnUnavailableOrInseparableData": true
+  },
+  "frozenNumericInputs": {
+    "rootModel": {
+      "path": "apps/local-service/assets/hierarchy/root-model.json",
+      "sha256": "442ceb797e071f13ea4bc25df701846d2f167a7deb3e60de31711da8bdec7451"
+    },
+    "rootPolicy": {
+      "path": "apps/local-service/assets/hierarchy/root-policy.json",
+      "sha256": "309afc18b29695640f4f15d8138d75ad002768f4e0b13d47df902e3d8bb6b546"
+    },
+    "inputDefinition": {
+      "path": "apps/local-service/assets/hierarchy/input-definition.json",
+      "sha256": "2ec96c1244761b9688e5fea2a2dec168df1ac961aa2d440fcd42bdb085e6096c"
+    },
+    "existingGtaDetail": {
+      "path": "apps/local-service/assets/hierarchy/gta-detail.json",
+      "sha256": "0233a7b624b646c2060495935f53bee6901e7068cedbda9352bf85945c1b54ea"
+    },
+    "bodyWeight": 0.75,
+    "titleWeight": 0.25,
+    "encoderHash": "76332323c22d9523de1c54e45bbec0ea762b9c259b10775f5ccb4cbad13a9cd3"
+  },
+  "metadataBindings": {
+    "trainingGold": {
+      "path": "apps/local-service/data/hierarchy-real-root-training-gold-adr136.json",
+      "bytes": 39418,
+      "sha256": "62ff96d3b98d197c4c90ea2db7f5a9adb7615bf8e18fce7f66c3c1681b1f53e8"
+    },
+    "calibrationGold": {
+      "path": "apps/local-service/data/hierarchy-real-root-calibration-gold-adr136.json",
+      "bytes": 32372,
+      "sha256": "8b755d8ae214de78f51005f547cb074655382cd2fb0fc0cf99b8f2e9bba76cfc"
+    },
+    "eligibility": {
+      "path": "apps/local-service/experiments/topic-encoder/hierarchical-e5-capacity-real-root-v1/output/training-eligibility.json",
+      "bytes": 27005,
+      "sha256": "ef73b44936579c39ec054031f79864abb9f15c9dfce86eca0450d724341dd6cd"
+    },
+    "expansionMetadata": {
+      "path": "apps/local-service/data/hierarchy-root-expansion-candidates-adr141.json",
+      "bytes": 119011,
+      "sha256": "4c74ade125605bb41f3073803279ff9f96eb143d88b97f4ea373677b3b30aeca"
+    },
+    "traincalEncoding": {
+      "path": "apps/local-service/experiments/topic-encoder/hierarchical-e5-real-root-v3/output/encoding-traincal.json",
+      "bytes": 28922,
+      "sha256": "1df069f65ebfcba7b8f67dcafe2e401718704bcb55cd7aa3396e20375a18b687"
+    },
+    "gtaFit": {
+      "path": "apps/local-service/data/hierarchy-gta-detail-fit-parser-repair-20261026/fit-result.json",
+      "bytes": 6682,
+      "sha256": "9ae931e18992cf83a0a0d541e30f5f46c13142f813c37f76c29fe2a8f553feb5"
+    },
+    "gtaInputs": {
+      "path": "apps/local-service/data/hierarchy-gta-detail-fit-parser-repair-20261026/inputs.json",
+      "bytes": 12006,
+      "sha256": "86e78b1fe692e2544256671d7add8371625ff827ca0f4f6dda32fb2646abd3f9"
+    },
+    "gtaCalibration": {
+      "path": "apps/local-service/data/hierarchy-gta-detail-fit-parser-repair-20261026/calibration.json",
+      "bytes": 4637,
+      "sha256": "7dbbc7de668db5bd0e4e2ad0a9103780f11e88f45b03e182b36f04967782fbc8"
+    },
+    "oldWebGold": {
+      "path": "apps/local-service/data/hierarchy-curated-web-gold-adr134.json",
+      "bytes": 26459,
+      "sha256": "4119a66986e9d73fd564eb83637ba92f7c5305c316037b7c609b27ca78488933"
+    },
+    "oldMetadataGold": {
+      "path": "apps/local-service/data/hierarchy-metadata-gold-adr133.json",
+      "bytes": 33315,
+      "sha256": "d614b04be2faf03519449ebcb9c38e442b5d9f6303236da63e2ac99e0355030e"
+    }
+  },
+  "archivedRoster": {
+    "totalPairedRows": 190,
+    "eligibleRootTrainingRows": 127,
+    "rootCalibrationRows": 48,
+    "gtaScoredFitRows": 15,
+    "preservedSplits": true,
+    "archivedPairedCaptureProvenance": "public-static; not native browser evidence",
+    "sourceBodiesAndVectorsReopenedForCuration": false,
+    "rootOnlyLabelsPromoted": false
+  },
+  "rationales": {
+    "video-game": {
+      "videoGames": "Explicit main subject is a named electronic game or franchise; this is not inferred from a Games root label.",
+      "animals": "Main subject is a game, not nonhuman-animal biology, behaviour, conservation or care.",
+      "koalas": "Main subject is a game, not koala biology, ecology, conservation or care."
+    },
+    "video-game-genre": {
+      "videoGames": "Explicit main subject is an electronic-game genre, included by the task definition.",
+      "animals": "An electronic-game genre is not an animal topic.",
+      "koalas": "An electronic-game genre is not a koala topic."
+    },
+    "board-game": {
+      "videoGames": "Main subject is a traditional physical board game; existence of software versions is insufficient.",
+      "animals": "Main subject is a game rather than an animal.",
+      "koalas": "Main subject is a game rather than koala care or biology."
+    },
+    "card-game": {
+      "videoGames": "Main subject is a traditional card-game family, not mainly an electronic game.",
+      "animals": "Main subject is a card game rather than an animal.",
+      "koalas": "Main subject is a card game rather than koalas."
+    },
+    "tabletop-game": {
+      "videoGames": "Main subject is tabletop role-playing, expressly excluded from the electronic-game task.",
+      "animals": "Main subject is tabletop play, not real nonhuman-animal biology or care.",
+      "koalas": "Fictional creatures in tabletop play do not establish koala membership."
+    },
+    "physical-game": {
+      "videoGames": "Main subject is physical playground play, not an electronic game.",
+      "animals": "Playground activity is not a mainly nonhuman-animal topic.",
+      "koalas": "Playground activity is not a koala topic."
+    },
+    "animal-taxon": {
+      "videoGames": "Main subject is a real nonhuman animal taxon, not a game.",
+      "animals": "Public article identity explicitly names a nonhuman animal species or order.",
+      "koalas": "Identified animal taxon is not koalas; shared animal traits are insufficient."
+    },
+    "plant": {
+      "videoGames": "Main subject is a plant species, not a game.",
+      "animals": "Plant species is central; animal mentions would be contextual.",
+      "koalas": "Plant subject is not a koala subject, including plants that could provide habitat."
+    },
+    "ecosystem": {
+      "videoGames": "Main subject is a biome or ecosystem, not a game.",
+      "animals": "Task excludes general ecosystem pages with contextual animal mentions; this is a main-subject judgment.",
+      "koalas": "Main subject is a general ecosystem or vegetation community, not koalas."
+    },
+    "general-process": {
+      "videoGames": "Main subject is a biological process, not a game.",
+      "animals": "Task excludes general biological processes rather than mainly nonhuman-animal topics.",
+      "koalas": "General biological process is not specifically koala-centred."
+    },
+    "non-animal-symbiosis": {
+      "videoGames": "Main subject is a fungal/photosynthetic association, not a game.",
+      "animals": "Central association is not a nonhuman animal or animal-care topic.",
+      "koalas": "Central association is not specifically about koalas."
+    }
+  },
+  "reviewedArchivedRows": [
+    {
+      "id": "real-train-01",
+      "groupId": "tetris-game",
+      "split": "training",
+      "url": "https://en.wikipedia.org/wiki/Tetris",
+      "title": "Tetris",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": "aba50dd9302b5448b0e5b4f14792e681810e6238d45d7b524c772a21c4fd5115",
+      "cohort": "eligible-root-training-127",
+      "mainSubject": "Tetris electronic puzzle game",
+      "rationaleId": "video-game",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "tetris-game"
+    },
+    {
+      "id": "real-train-02",
+      "groupId": "chess-board-game",
+      "split": "training",
+      "url": "https://de.wikipedia.org/wiki/Schach",
+      "title": "Schach",
+      "language": "de",
+      "expectedRootId": "games",
+      "sourceInputHash": "9ccee09baa3da66fb64ad9e64e155695f6c0e926a301c5219dd26efd66e1c2f9",
+      "cohort": "eligible-root-training-127",
+      "mainSubject": "Chess played on a physical board",
+      "rationaleId": "board-game",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "chess-board-game"
+    },
+    {
+      "id": "real-train-03",
+      "groupId": "go-board-game",
+      "split": "training",
+      "url": "https://nl.wikipedia.org/wiki/Go_(bordspel)",
+      "title": "Go (bordspel)",
+      "language": "nl",
+      "expectedRootId": "games",
+      "sourceInputHash": "121f781b22fde8866b52941d54e0afc0fba6be6a48febf3b7b7546cf37e06765",
+      "cohort": "eligible-root-training-127",
+      "mainSubject": "Go as the traditional board game",
+      "rationaleId": "board-game",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "go-board-game"
+    },
+    {
+      "id": "real-train-04",
+      "groupId": "octopoda-animal-order",
+      "split": "training",
+      "url": "https://fr.wikipedia.org/wiki/Octopoda",
+      "title": "Octopoda",
+      "language": "fr",
+      "expectedRootId": "nature",
+      "sourceInputHash": "4c89c4fe4490894cd7877790a4d4021c8a1babd5accf91be0212411c7952b3ff",
+      "cohort": "eligible-root-training-127",
+      "mainSubject": "Octopoda nonhuman animal order",
+      "rationaleId": "animal-taxon",
+      "labels": {
+        "video-games": false,
+        "animals": true,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "octopoda-animal-order"
+    },
+    {
+      "id": "real-train-05",
+      "groupId": "giant-sequoia-species",
+      "split": "training",
+      "url": "https://es.wikipedia.org/wiki/Sequoiadendron_giganteum",
+      "title": "Sequoiadendron giganteum",
+      "language": "es",
+      "expectedRootId": "nature",
+      "sourceInputHash": "0887d9f948829907c19c996a7596094add5f26bb5b1f9e332090029da18f837b",
+      "cohort": "eligible-root-training-127",
+      "mainSubject": "Giant sequoia tree species",
+      "rationaleId": "plant",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "giant-sequoia-species"
+    },
+    {
+      "id": "real-train-06",
+      "groupId": "coral-reef-ecosystem",
+      "split": "training",
+      "url": "https://en.wikipedia.org/wiki/Coral_reef",
+      "title": "Coral reef",
+      "language": "en",
+      "expectedRootId": "nature",
+      "sourceInputHash": "1f9f4a25e6e0ec65dd40c0d9d9d01e5058680aa7678406548302b8e8b45eb41a",
+      "cohort": "eligible-root-training-127",
+      "mainSubject": "Coral reef ecosystem rather than an animal species or care topic",
+      "rationaleId": "ecosystem",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "coral-reef-ecosystem"
+    },
+    {
+      "id": "root-expansion-train-001",
+      "groupId": "dungeons-and-dragons-tabletop-rpg",
+      "split": "training",
+      "url": "https://en.wikipedia.org/wiki/Dungeons_&_Dragons",
+      "title": "Dungeons & Dragons",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": "8165c5069b675e24f9959b53ff13b00ccaf628e91ffb9eeacf3d5e05967ffde0",
+      "cohort": "eligible-root-training-127",
+      "mainSubject": "Dungeons & Dragons tabletop role-playing game",
+      "rationaleId": "tabletop-game",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "dungeons-and-dragons-tabletop-rpg"
+    },
+    {
+      "id": "root-expansion-train-002",
+      "groupId": "catan-settlement-board-game",
+      "split": "training",
+      "url": "https://de.wikipedia.org/wiki/Die_Siedler_von_Catan",
+      "title": "Die Siedler von Catan",
+      "language": "de",
+      "expectedRootId": "games",
+      "sourceInputHash": "a212b4978efdc3dac88d3ba6ad97c6959197abb42c3de14d00830a895d3384e3",
+      "cohort": "eligible-root-training-127",
+      "mainSubject": "Catan physical board game",
+      "rationaleId": "board-game",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "catan-settlement-board-game"
+    },
+    {
+      "id": "root-expansion-train-003",
+      "groupId": "patience-solitaire-card-game",
+      "split": "training",
+      "url": "https://nl.wikipedia.org/wiki/Patience_(kaartspel)",
+      "title": "Patience (kaartspel)",
+      "language": "nl",
+      "expectedRootId": "games",
+      "sourceInputHash": "3f6b80de2307266b0804a480015240973e60cb2a0e7399d178119a35f3bc26b3",
+      "cohort": "eligible-root-training-127",
+      "mainSubject": "Patience traditional card-game family",
+      "rationaleId": "card-game",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "patience-solitaire-card-game"
+    },
+    {
+      "id": "root-expansion-train-004",
+      "groupId": "platform-video-game-genre",
+      "split": "training",
+      "url": "https://fr.wikipedia.org/wiki/Jeu_de_plateforme",
+      "title": "Jeu de plateforme",
+      "language": "fr",
+      "expectedRootId": "games",
+      "sourceInputHash": "7889e1bd0aa0e4b37d6d21386af88757d07f5f0ee3061aa6c6560477d75fb161",
+      "cohort": "eligible-root-training-127",
+      "mainSubject": "Platform electronic-game genre",
+      "rationaleId": "video-game-genre",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "platform-video-game-genre"
+    },
+    {
+      "id": "root-expansion-train-005",
+      "groupId": "hopscotch-playground-game",
+      "split": "training",
+      "url": "https://es.wikipedia.org/wiki/Rayuela_(juego)",
+      "title": "Rayuela (juego)",
+      "language": "es",
+      "expectedRootId": "games",
+      "sourceInputHash": "29480f1e4bf8e371606563bc4791dde1414e37646a130e422a20163d575ea3d5",
+      "cohort": "eligible-root-training-127",
+      "mainSubject": "Hopscotch playground activity",
+      "rationaleId": "physical-game",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "hopscotch-playground-game"
+    },
+    {
+      "id": "root-expansion-train-006",
+      "groupId": "photosynthesis-biological-process",
+      "split": "training",
+      "url": "https://en.wikipedia.org/wiki/Photosynthesis",
+      "title": "Photosynthesis",
+      "language": "en",
+      "expectedRootId": "nature",
+      "sourceInputHash": "eb48085986d3fba120213eb743152752f234f7c35cda968b01309b9d16dabd0f",
+      "cohort": "eligible-root-training-127",
+      "mainSubject": "Photosynthesis across photosynthetic organisms",
+      "rationaleId": "general-process",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "photosynthesis-biological-process"
+    },
+    {
+      "id": "root-expansion-train-007",
+      "groupId": "lichen-fungal-photobiont-symbiosis",
+      "split": "training",
+      "url": "https://de.wikipedia.org/wiki/Flechte",
+      "title": "Flechte",
+      "language": "de",
+      "expectedRootId": "nature",
+      "sourceInputHash": "e16be9db589591f9248a508759c58c5c0e4c5d5533a59e7f1c9b0c9046bf393f",
+      "cohort": "eligible-root-training-127",
+      "mainSubject": "Lichen fungal and photosynthetic symbiosis",
+      "rationaleId": "non-animal-symbiosis",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "lichen-fungal-photobiont-symbiosis"
+    },
+    {
+      "id": "root-expansion-train-008",
+      "groupId": "whale-shark-rhincodon-typus",
+      "split": "training",
+      "url": "https://nl.wikipedia.org/wiki/Walvishaai",
+      "title": "Walvishaai",
+      "language": "nl",
+      "expectedRootId": "nature",
+      "sourceInputHash": "84d39245157db8609115242377ff4bb6b94d8cbd3685f6d8b5184f9e32e1fa4e",
+      "cohort": "eligible-root-training-127",
+      "mainSubject": "Whale shark animal species",
+      "rationaleId": "animal-taxon",
+      "labels": {
+        "video-games": false,
+        "animals": true,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "whale-shark-rhincodon-typus"
+    },
+    {
+      "id": "root-expansion-train-009",
+      "groupId": "tropical-moist-broadleaf-forest-biome",
+      "split": "training",
+      "url": "https://fr.wikipedia.org/wiki/For%C3%AAts_d%C3%A9cidues_humides_tropicales_et_subtropicales",
+      "title": "Forêts décidues humides tropicales et subtropicales",
+      "language": "fr",
+      "expectedRootId": "nature",
+      "sourceInputHash": "c33d5723cb95ae4522f63eae3dce4bccff78a9ae21a10f4903f6685965cf14c8",
+      "cohort": "eligible-root-training-127",
+      "mainSubject": "Tropical moist broadleaf forest biome",
+      "rationaleId": "ecosystem",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "tropical-moist-broadleaf-forest-biome"
+    },
+    {
+      "id": "root-expansion-train-010",
+      "groupId": "natural-selection-evolutionary-process",
+      "split": "training",
+      "url": "https://es.wikipedia.org/wiki/Selecci%C3%B3n_natural",
+      "title": "Selección natural",
+      "language": "es",
+      "expectedRootId": "nature",
+      "sourceInputHash": "62e39379f6f9d2fe695ea638a357b5a0f94f3dcfc329ab7dab36833b61bf8835",
+      "cohort": "eligible-root-training-127",
+      "mainSubject": "Natural selection as a general evolutionary process",
+      "rationaleId": "general-process",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "natural-selection-evolutionary-process"
+    },
+    {
+      "id": "real-cal-001",
+      "groupId": "pac-man-video-game-franchise",
+      "split": "calibration",
+      "url": "https://en.wikipedia.org/wiki/Pac-Man",
+      "title": "Pac-Man",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": "f4388a636bd156030cc6d747d0ca718acbef26014bc39691619c3f733c658b35",
+      "cohort": "real-root-calibration-48",
+      "mainSubject": "Pac-Man electronic game and franchise",
+      "rationaleId": "video-game",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "pac-man-video-game-franchise"
+    },
+    {
+      "id": "real-cal-002",
+      "groupId": "poker-card-game-family",
+      "split": "calibration",
+      "url": "https://de.wikipedia.org/wiki/Poker",
+      "title": "Poker",
+      "language": "de",
+      "expectedRootId": "games",
+      "sourceInputHash": "03f9076039e0ac88cac16eb24d6cc6204ee5beb2a6001a40a92e7eff9bd9f927",
+      "cohort": "real-root-calibration-48",
+      "mainSubject": "Poker traditional card-game family",
+      "rationaleId": "card-game",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "poker-card-game-family"
+    },
+    {
+      "id": "real-cal-003",
+      "groupId": "backgammon-board-game",
+      "split": "calibration",
+      "url": "https://nl.wikipedia.org/wiki/Backgammon",
+      "title": "Backgammon",
+      "language": "nl",
+      "expectedRootId": "games",
+      "sourceInputHash": "a3a64fde12dd9e0efaf959cd97d0fdf4553ab51237758cb353502d3055e6d325",
+      "cohort": "real-root-calibration-48",
+      "mainSubject": "Backgammon traditional board game",
+      "rationaleId": "board-game",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "backgammon-board-game"
+    },
+    {
+      "id": "real-cal-004",
+      "groupId": "penguin-order-sphenisciformes",
+      "split": "calibration",
+      "url": "https://fr.wikipedia.org/wiki/Manchot",
+      "title": "Sphenisciformes",
+      "language": "fr",
+      "expectedRootId": "nature",
+      "sourceInputHash": "50a64acb251c275cd3b1f969146ae213f40a1f1e25f503f09ec628ef1e8ef120",
+      "cohort": "real-root-calibration-48",
+      "mainSubject": "Penguin nonhuman animal order",
+      "rationaleId": "animal-taxon",
+      "labels": {
+        "video-games": false,
+        "animals": true,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "penguin-order-sphenisciformes"
+    },
+    {
+      "id": "real-cal-005",
+      "groupId": "mangrove-biome",
+      "split": "calibration",
+      "url": "https://es.wikipedia.org/wiki/Manglar",
+      "title": "Manglar",
+      "language": "es",
+      "expectedRootId": "nature",
+      "sourceInputHash": "dd8ebc359a7d75782d6882930014c52cc779fed195bf8ba86984bb3cb7770640",
+      "cohort": "real-root-calibration-48",
+      "mainSubject": "Mangrove vegetation and biome",
+      "rationaleId": "ecosystem",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "mangrove-biome"
+    },
+    {
+      "id": "real-cal-006",
+      "groupId": "pollination-biological-process",
+      "split": "calibration",
+      "url": "https://en.wikipedia.org/wiki/Pollination",
+      "title": "Pollination",
+      "language": "en",
+      "expectedRootId": "nature",
+      "sourceInputHash": "eb41cdffab94bbc124ba0628611ebccbe33f3e85e6296ee14312a3ca635e04cd",
+      "cohort": "real-root-calibration-48",
+      "mainSubject": "Pollination as a plant reproductive process",
+      "rationaleId": "general-process",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "pollination-biological-process"
+    },
+    {
+      "id": "gta-train-01",
+      "groupId": "grand-theft-auto-iii-2001",
+      "split": "training",
+      "url": "https://en.wikipedia.org/wiki/Grand_Theft_Auto_III",
+      "title": "Grand Theft Auto III",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": null,
+      "cohort": "gta-repaired-fit",
+      "casePin": {
+        "file": "gta-train-01.json",
+        "bytes": 25892,
+        "sha256": "668d8457fa9cb658e3cfb4d9abb2d2215902807a484600d14233a2007a5a8241"
+      },
+      "mainSubject": "Grand Theft Auto III named electronic-game article",
+      "rationaleId": "video-game",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "grand-theft-auto-iii-2001"
+    },
+    {
+      "id": "gta-train-02",
+      "groupId": "grand-theft-auto-vice-city-2002",
+      "split": "training",
+      "url": "https://en.wikipedia.org/wiki/Grand_Theft_Auto:_Vice_City",
+      "title": "Grand Theft Auto: Vice City",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": null,
+      "cohort": "gta-repaired-fit",
+      "casePin": {
+        "file": "gta-train-02.json",
+        "bytes": 25874,
+        "sha256": "d4adf3471c35e3d1e8dd87dc720e01f996bfe005b642119e203fce7e36e0f707"
+      },
+      "mainSubject": "Grand Theft Auto: Vice City named electronic-game article",
+      "rationaleId": "video-game",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "grand-theft-auto-vice-city-2002"
+    },
+    {
+      "id": "gta-train-03",
+      "groupId": "grand-theft-auto-iv-2008",
+      "split": "training",
+      "url": "https://en.wikipedia.org/wiki/Grand_Theft_Auto_IV",
+      "title": "Grand Theft Auto IV",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": null,
+      "cohort": "gta-repaired-fit",
+      "casePin": {
+        "file": "gta-train-03.json",
+        "bytes": 25877,
+        "sha256": "195929146ad68b086aa12b6758a0a0e28e656819d71eb0104db6dca52790f7d6"
+      },
+      "mainSubject": "Grand Theft Auto IV named electronic-game article",
+      "rationaleId": "video-game",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": false,
+      "heldoutDocumentCollisions": [
+        {
+          "id": "root-expansion-final-001",
+          "groupId": "grand-theft-auto-iv-game",
+          "cohort": "root-expansion-final",
+          "role": "historical-test"
+        }
+      ],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "grand-theft-auto-iv-2008"
+    },
+    {
+      "id": "gta-train-04",
+      "groupId": "grand-theft-auto-v-2013",
+      "split": "training",
+      "url": "https://en.wikipedia.org/wiki/Grand_Theft_Auto_V",
+      "title": "Grand Theft Auto V",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": null,
+      "cohort": "gta-repaired-fit",
+      "casePin": {
+        "file": "gta-train-04.json",
+        "bytes": 25912,
+        "sha256": "6343fec651826ef6f2c7d549674677a7f0d2176c73d4df2fdfcf9889ec2515bb"
+      },
+      "mainSubject": "Grand Theft Auto V named electronic-game article",
+      "rationaleId": "video-game",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "grand-theft-auto-v-2013"
+    },
+    {
+      "id": "gta-train-05",
+      "groupId": "saints-row-2006",
+      "split": "training",
+      "url": "https://en.wikipedia.org/wiki/Saints_Row_(2006_video_game)",
+      "title": "Saints Row (2006 video game)",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": null,
+      "cohort": "gta-repaired-fit",
+      "casePin": {
+        "file": "gta-train-05.json",
+        "bytes": 25827,
+        "sha256": "8f4a109d6aca19ab0aad10ce5df4f64bdb20e68ddf91860ee1fe6af080163e43"
+      },
+      "mainSubject": "Saints Row (2006 video game) named electronic-game article",
+      "rationaleId": "video-game",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "saints-row-2006"
+    },
+    {
+      "id": "gta-train-06",
+      "groupId": "watch-dogs-2014",
+      "split": "training",
+      "url": "https://en.wikipedia.org/wiki/Watch_Dogs_(video_game)",
+      "title": "Watch Dogs (video game)",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": null,
+      "cohort": "gta-repaired-fit",
+      "casePin": {
+        "file": "gta-train-06.json",
+        "bytes": 25887,
+        "sha256": "5605ea2cbeab9d3fc08561cd2597ec4e731f370503491357e1a01d29701104e1"
+      },
+      "mainSubject": "Watch Dogs (video game) named electronic-game article",
+      "rationaleId": "video-game",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "watch-dogs-2014"
+    },
+    {
+      "id": "gta-train-07",
+      "groupId": "mafia-2002",
+      "split": "training",
+      "url": "https://en.wikipedia.org/wiki/Mafia_(video_game)",
+      "title": "Mafia (video game)",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": null,
+      "cohort": "gta-repaired-fit",
+      "casePin": {
+        "file": "gta-train-07.json",
+        "bytes": 25882,
+        "sha256": "ebb9fe70956622981ce392ffd1cabe38038688ed207c250de676d60000798625"
+      },
+      "mainSubject": "Mafia (video game) named electronic-game article",
+      "rationaleId": "video-game",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "mafia-2002"
+    },
+    {
+      "id": "gta-cal-01",
+      "groupId": "grand-theft-auto-original-1997",
+      "split": "calibration",
+      "url": "https://en.wikipedia.org/wiki/Grand_Theft_Auto_(video_game)",
+      "title": "Grand Theft Auto (video game)",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": null,
+      "cohort": "gta-repaired-fit",
+      "casePin": {
+        "file": "gta-cal-01.json",
+        "bytes": 25940,
+        "sha256": "f511e17c1b95845b7af352f638797200725ac4123e40ce714814c772980c33d2"
+      },
+      "mainSubject": "Grand Theft Auto (video game) named electronic-game article",
+      "rationaleId": "video-game",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "grand-theft-auto-original-1997"
+    },
+    {
+      "id": "gta-cal-02",
+      "groupId": "grand-theft-auto-2-1999",
+      "split": "calibration",
+      "url": "https://en.wikipedia.org/wiki/Grand_Theft_Auto_2",
+      "title": "Grand Theft Auto 2",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": null,
+      "cohort": "gta-repaired-fit",
+      "casePin": {
+        "file": "gta-cal-02.json",
+        "bytes": 25842,
+        "sha256": "796cbc1e37cd58ee72b0f631f9ee9b5ed27349990c13cf48ac42b71d23c5e2f4"
+      },
+      "mainSubject": "Grand Theft Auto 2 named electronic-game article",
+      "rationaleId": "video-game",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "grand-theft-auto-2-1999"
+    },
+    {
+      "id": "gta-cal-03",
+      "groupId": "grand-theft-auto-san-andreas-2004",
+      "split": "calibration",
+      "url": "https://en.wikipedia.org/wiki/Grand_Theft_Auto:_San_Andreas",
+      "title": "Grand Theft Auto: San Andreas",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": null,
+      "cohort": "gta-repaired-fit",
+      "casePin": {
+        "file": "gta-cal-03.json",
+        "bytes": 25918,
+        "sha256": "72475e10b3673a076b90feb4b3337577ffa3234dcf010e51ea975aa524179ba8"
+      },
+      "mainSubject": "Grand Theft Auto: San Andreas named electronic-game article",
+      "rationaleId": "video-game",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "grand-theft-auto-san-andreas-2004"
+    },
+    {
+      "id": "gta-cal-04",
+      "groupId": "grand-theft-auto-advance-2004",
+      "split": "calibration",
+      "url": "https://en.wikipedia.org/wiki/Grand_Theft_Auto_Advance",
+      "title": "Grand Theft Auto Advance",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": null,
+      "cohort": "gta-repaired-fit",
+      "casePin": {
+        "file": "gta-cal-04.json",
+        "bytes": 25870,
+        "sha256": "8f005f9582ea8689620486302211c27830e298ef798e34dcf47e5a7c54377fff"
+      },
+      "mainSubject": "Grand Theft Auto Advance named electronic-game article",
+      "rationaleId": "video-game",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "grand-theft-auto-advance-2004"
+    },
+    {
+      "id": "gta-cal-05",
+      "groupId": "sleeping-dogs-2012",
+      "split": "calibration",
+      "url": "https://en.wikipedia.org/wiki/Sleeping_Dogs_(video_game)",
+      "title": "Sleeping Dogs (video game)",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": null,
+      "cohort": "gta-repaired-fit",
+      "casePin": {
+        "file": "gta-cal-05.json",
+        "bytes": 25875,
+        "sha256": "874881c173ced25aa76af32f744952409adc897107489bfe00a3d29cb34e1fcc"
+      },
+      "mainSubject": "Sleeping Dogs (video game) named electronic-game article",
+      "rationaleId": "video-game",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "sleeping-dogs-2012"
+    },
+    {
+      "id": "gta-cal-06",
+      "groupId": "just-cause-2006",
+      "split": "calibration",
+      "url": "https://en.wikipedia.org/wiki/Just_Cause_(video_game)",
+      "title": "Just Cause (video game)",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": null,
+      "cohort": "gta-repaired-fit",
+      "casePin": {
+        "file": "gta-cal-06.json",
+        "bytes": 25873,
+        "sha256": "d8e5ee5055303222362d80e96eb1ceb6552365f20b8100c18f2883e82fde241a"
+      },
+      "mainSubject": "Just Cause (video game) named electronic-game article",
+      "rationaleId": "video-game",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "just-cause-2006"
+    },
+    {
+      "id": "gta-cal-07",
+      "groupId": "far-cry-3-2012",
+      "split": "calibration",
+      "url": "https://en.wikipedia.org/wiki/Far_Cry_3",
+      "title": "Far Cry 3",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": null,
+      "cohort": "gta-repaired-fit",
+      "casePin": {
+        "file": "gta-cal-07.json",
+        "bytes": 25844,
+        "sha256": "6d5e23455da6247f639ee624adebf0769dc892730ef3f627531db4423a22d9a2"
+      },
+      "mainSubject": "Far Cry 3 named electronic-game article",
+      "rationaleId": "video-game",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "far-cry-3-2012"
+    },
+    {
+      "id": "gta-cal-08",
+      "groupId": "la-noire-2011",
+      "split": "calibration",
+      "url": "https://en.wikipedia.org/wiki/L.A._Noire",
+      "title": "L.A. Noire",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": null,
+      "cohort": "gta-repaired-fit",
+      "casePin": {
+        "file": "gta-cal-08.json",
+        "bytes": 25829,
+        "sha256": "c990f50c798670a31a97b853aaa8b49712f31496c57e470507fb107ea399d7be"
+      },
+      "mainSubject": "L.A. Noire named electronic-game article",
+      "rationaleId": "video-game",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "evidenceKind": "reviewed-public-main-subject-metadata",
+      "reuseEligible": true,
+      "heldoutDocumentCollisions": [],
+      "sourceFamily": "wikimedia",
+      "documentFamily": "la-noire-2011"
+    }
+  ],
+  "unknownArchivedRoster": {
+    "labels": {
+      "video-games": null,
+      "animals": null,
+      "koalas": null
+    },
+    "reason": "Not reviewed for these child tasks. Broad root annotations remain broad and never become child negatives.",
+    "training": [
+      {
+        "id": "real-train-07",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-08",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-09",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-10",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-11",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-12",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-13",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-14",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-15",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-16",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-17",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-18",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-19",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-20",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-21",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-22",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-23",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-24",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-25",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-26",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-27",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-28",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-29",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-30",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-31",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-32",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-33",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-34",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-35",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-36",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-37",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-38",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-39",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-40",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-41",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-42",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-43",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-44",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-45",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-46",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-47",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "real-train-48",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-011",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-012",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-013",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-014",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-015",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-016",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-017",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-018",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-019",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-020",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-021",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-022",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-023",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-024",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-025",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-026",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-027",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-028",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-029",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-030",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-031",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-032",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-033",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-034",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-035",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-036",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-037",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-038",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-040",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-041",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-042",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-043",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-044",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-045",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-046",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-047",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-048",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-049",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-050",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-051",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-052",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-053",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-054",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-055",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-056",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-057",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-058",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-059",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-060",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-061",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-062",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-063",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-064",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-065",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-066",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-067",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-068",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-069",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-070",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-071",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-072",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-073",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-074",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-075",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-076",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-077",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-078",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-079",
+        "cohort": "eligible-root-training-127"
+      },
+      {
+        "id": "root-expansion-train-080",
+        "cohort": "eligible-root-training-127"
+      }
+    ],
+    "calibration": [
+      {
+        "id": "real-cal-007",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-008",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-009",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-010",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-011",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-012",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-013",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-014",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-015",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-016",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-017",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-018",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-019",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-020",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-021",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-022",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-023",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-024",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-025",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-026",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-027",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-028",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-029",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-030",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-031",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-032",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-033",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-034",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-035",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-036",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-037",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-038",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-039",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-040",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-041",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-042",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-043",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-044",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-045",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-046",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-047",
+        "cohort": "real-root-calibration-48"
+      },
+      {
+        "id": "real-cal-048",
+        "cohort": "real-root-calibration-48"
+      }
+    ]
+  },
+  "unavailableArchivedRows": [
+    {
+      "id": "gta-train-08",
+      "groupId": "red-dead-redemption-2010",
+      "split": "training",
+      "url": "https://en.wikipedia.org/wiki/Red_Dead_Redemption",
+      "title": "Red Dead Redemption",
+      "language": "en",
+      "expectedRootId": "games",
+      "sourceInputHash": null,
+      "cohort": "gta-repaired-fit",
+      "casePin": {
+        "file": "gta-train-08.json",
+        "bytes": 406,
+        "sha256": "9b8048b82ac802e286d61fb69d2e9d9731b46e0028396132834fe254c51d742f"
+      },
+      "reason": "Original repaired-fit capture was pace-unavailable; no paired sample can support fitting.",
+      "labels": {
+        "video-games": null,
+        "animals": null,
+        "koalas": null
+      },
+      "reuseEligible": false,
+      "noRetry": true
+    }
+  ],
+  "freshCandidates": [
+    {
+      "id": "child-train-01",
+      "split": "training",
+      "title": "Koala diet and digestion",
+      "url": "https://savethekoala.com/about-koalas/koalas-diet-digestion/",
+      "groupId": "akf-koala-diet-digestion-document",
+      "sourceFamily": "australian-koala-foundation",
+      "documentFamily": "koala-diet-and-digestion",
+      "expectedRootId": "nature",
+      "labels": {
+        "video-games": false,
+        "animals": true,
+        "koalas": true
+      },
+      "rationale": "Mainly koala feeding and digestive adaptation, not merely eucalyptus or an incidental wildlife mention.",
+      "language": "en",
+      "origin": "https://savethekoala.com",
+      "reviewMode": "primary-title-and-public-excerpt",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false
+    },
+    {
+      "id": "child-train-02",
+      "split": "training",
+      "title": "Koala distribution",
+      "url": "https://savethekoala.com/about-koalas/distribution/",
+      "groupId": "akf-koala-distribution-document",
+      "sourceFamily": "australian-koala-foundation",
+      "documentFamily": "koala-geographic-distribution",
+      "expectedRootId": "nature",
+      "labels": {
+        "video-games": false,
+        "animals": true,
+        "koalas": true
+      },
+      "rationale": "Mainly koala range, populations and conservation; a separate document from the diet article.",
+      "language": "en",
+      "origin": "https://savethekoala.com",
+      "reviewMode": "primary-title-and-public-excerpt",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false
+    },
+    {
+      "id": "child-cal-01",
+      "split": "calibration",
+      "title": "Koala facts",
+      "url": "https://www.qld.gov.au/environment/plants-animals/animals/living-with/koalas/koala-information/koala-facts",
+      "groupId": "qld-koala-facts-document",
+      "sourceFamily": "queensland-government",
+      "documentFamily": "koala-species-facts",
+      "expectedRootId": "nature",
+      "labels": {
+        "video-games": false,
+        "animals": true,
+        "koalas": true
+      },
+      "rationale": "Government species information centrally describes koalas, rather than a general forest topic.",
+      "language": "en",
+      "origin": "https://www.qld.gov.au",
+      "reviewMode": "primary-title-and-public-excerpt",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false
+    },
+    {
+      "id": "child-cal-02",
+      "split": "calibration",
+      "title": "Koala breeding season",
+      "url": "https://www.qld.gov.au/environment/plants-animals/animals/living-with/koalas/helping-koalas-in-the-community/koala-breeding-season",
+      "groupId": "qld-koala-breeding-document",
+      "sourceFamily": "queensland-government",
+      "documentFamily": "koala-breeding-and-community-care",
+      "expectedRootId": "nature",
+      "labels": {
+        "video-games": false,
+        "animals": true,
+        "koalas": true
+      },
+      "rationale": "Mainly koala mating-season behaviour and reducing risks to these animals; distinct guidance document.",
+      "language": "en",
+      "origin": "https://www.qld.gov.au",
+      "reviewMode": "primary-title-and-public-excerpt",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false
+    },
+    {
+      "id": "child-cal-03",
+      "split": "calibration",
+      "title": "Sick, injured, orphaned or dead koalas",
+      "url": "https://www.qld.gov.au/environment/plants-animals/animals/living-with/koalas/koala-rescue-and-rehabilitation/sick%2C-injured%2C-orphaned-or-dead-koalas",
+      "groupId": "qld-koala-rescue-document",
+      "sourceFamily": "queensland-government",
+      "documentFamily": "koala-rescue-and-rehabilitation",
+      "expectedRootId": "nature",
+      "labels": {
+        "video-games": false,
+        "animals": true,
+        "koalas": true
+      },
+      "rationale": "Mainly recognizing and obtaining help for distressed koalas, within the expressly defined animal-care task.",
+      "language": "en",
+      "origin": "https://www.qld.gov.au",
+      "reviewMode": "primary-title-and-public-excerpt",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false
+    },
+    {
+      "id": "child-cal-04",
+      "split": "calibration",
+      "title": "Common brushtail possum",
+      "url": "https://www.qld.gov.au/environment/plants-animals/animals/discovering-wildlife/possum/common-brushtail-possum",
+      "groupId": "common-brushtail-possum-species",
+      "sourceFamily": "queensland-government",
+      "documentFamily": "brushtail-possum-species-profile",
+      "expectedRootId": "nature",
+      "labels": {
+        "video-games": false,
+        "animals": true,
+        "koalas": false
+      },
+      "rationale": "Another nonhuman marsupial is the main subject. Arboreal habits and Australian habitat do not establish koala membership.",
+      "language": "en",
+      "origin": "https://www.qld.gov.au",
+      "reviewMode": "primary-title-and-public-excerpt",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false
+    },
+    {
+      "id": "child-cal-05",
+      "split": "calibration",
+      "title": "Koala compiler project",
+      "url": "https://github.com/oklai/koala",
+      "groupId": "oklai-koala-compiler-software",
+      "sourceFamily": "oklai-koala-project",
+      "documentFamily": "koala-compiler-project-readme",
+      "expectedRootId": "technology",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "rationale": "Original developer repository for a stylesheet/script compiler GUI. The product name is not animal biology or a game.",
+      "language": "en",
+      "origin": "https://github.com",
+      "reviewMode": "primary-title-and-public-excerpt",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false
+    },
+    {
+      "id": "child-cal-06",
+      "split": "calibration",
+      "title": "Koala product warranty",
+      "url": "https://au-koala.gorgias.help/en-US/What-does-the-Koala-Warranty-cover-and-for-how-long-8100194",
+      "groupId": "koala-furniture-brand-warranty",
+      "sourceFamily": "koala-australian-furniture-brand",
+      "documentFamily": "koala-brand-consumer-warranty",
+      "expectedRootId": "business",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "rationale": "Official brand support concerns furniture and consumer warranty terms; Koala is a brand name here.",
+      "language": "en",
+      "origin": "https://au-koala.gorgias.help",
+      "reviewMode": "primary-title-and-public-excerpt",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false
+    },
+    {
+      "id": "child-cal-07",
+      "split": "calibration",
+      "title": "Official Othello rules",
+      "url": "https://www.worldothello.org/about/about-othello/othello-rules/official-rules/english",
+      "groupId": "othello-reversi-board-game",
+      "sourceFamily": "world-othello-federation",
+      "documentFamily": "physical-othello-game-rules",
+      "expectedRootId": "games",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "rationale": "Federation guidance concerns a physical board and discs. Digital adaptations do not change this document's main subject.",
+      "language": "en",
+      "origin": "https://www.worldothello.org",
+      "reviewMode": "primary-title-and-public-excerpt",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false
+    },
+    {
+      "id": "child-test-01",
+      "split": "test",
+      "title": "The NSW Koala Strategy",
+      "url": "https://www.environment.nsw.gov.au/topics/animals-and-plants/threatened-species/programs-legislation-and-framework/nsw-koala-strategy",
+      "groupId": "nsw-koala-strategy-document",
+      "sourceFamily": "new-south-wales-government",
+      "documentFamily": "nsw-koala-conservation-strategy",
+      "expectedRootId": "nature",
+      "labels": {
+        "video-games": false,
+        "animals": true,
+        "koalas": true
+      },
+      "rationale": "Prospective title-based label: official strategy specifically for koala conservation. Body remains unread.",
+      "language": "en",
+      "origin": "https://www.environment.nsw.gov.au",
+      "reviewMode": "search-title-and-url-only",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false
+    },
+    {
+      "id": "child-test-02",
+      "split": "test",
+      "title": "Building our knowledge of koalas",
+      "url": "https://www.environment.nsw.gov.au/topics/animals-and-plants/threatened-species/programs-legislation-and-framework/nsw-koala-strategy/building-our-knowledge-of-koalas",
+      "groupId": "nsw-koala-research-document",
+      "sourceFamily": "new-south-wales-government",
+      "documentFamily": "nsw-koala-research-and-knowledge",
+      "expectedRootId": "nature",
+      "labels": {
+        "video-games": false,
+        "animals": true,
+        "koalas": true
+      },
+      "rationale": "Prospective title-based label: research specifically about koalas rather than a broad wildlife listing. Body remains unread.",
+      "language": "en",
+      "origin": "https://www.environment.nsw.gov.au",
+      "reviewMode": "search-title-and-url-only",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false
+    },
+    {
+      "id": "child-test-03",
+      "split": "test",
+      "title": "Koala",
+      "url": "https://www.nationalparks.nsw.gov.au/plants-and-animals/koala",
+      "groupId": "npws-koala-species-document",
+      "sourceFamily": "new-south-wales-government",
+      "documentFamily": "npws-koala-species-profile",
+      "expectedRootId": "nature",
+      "labels": {
+        "video-games": false,
+        "animals": true,
+        "koalas": true
+      },
+      "rationale": "Prospective label from official threatened-animal profile title. Another document, not another species or an independent population sample. Body remains unread.",
+      "language": "en",
+      "origin": "https://www.nationalparks.nsw.gov.au",
+      "reviewMode": "search-title-and-url-only",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false
+    },
+    {
+      "id": "child-test-04",
+      "split": "test",
+      "title": "Wombats",
+      "url": "https://www.environment.nsw.gov.au/topics/animals-and-plants/native-animals/native-animal-facts/land-mammals/wombats",
+      "groupId": "wombats-animal-group",
+      "sourceFamily": "new-south-wales-government",
+      "documentFamily": "nsw-wombat-species-guidance",
+      "expectedRootId": "nature",
+      "labels": {
+        "video-games": false,
+        "animals": true,
+        "koalas": false
+      },
+      "rationale": "Prospective animal positive and koala negative: wombats are the main animal group. Body remains unread.",
+      "language": "en",
+      "origin": "https://www.environment.nsw.gov.au",
+      "reviewMode": "search-title-and-url-only",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false
+    },
+    {
+      "id": "child-test-05",
+      "split": "test",
+      "title": "Wollemi pine",
+      "url": "https://www.nationalparks.nsw.gov.au/plants-and-animals/wollemi-pine",
+      "groupId": "wollemi-pine-wollemia-nobilis",
+      "sourceFamily": "new-south-wales-government",
+      "documentFamily": "npws-wollemi-pine-profile",
+      "expectedRootId": "nature",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "rationale": "Prospective plant negative from official profile title; wildlife or conservation context would not establish animal membership. Body remains unread.",
+      "language": "en",
+      "origin": "https://www.nationalparks.nsw.gov.au",
+      "reviewMode": "search-title-and-url-only",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false
+    },
+    {
+      "id": "child-test-06",
+      "split": "test",
+      "title": "Stardew Valley FAQ",
+      "url": "https://www.stardewvalley.net/faq/",
+      "groupId": "stardew-valley-video-game",
+      "sourceFamily": "concernedape-stardew-valley",
+      "documentFamily": "stardew-valley-official-game-faq",
+      "expectedRootId": "games",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "rationale": "Prospective electronic-game guidance positive from the official title. In-game farms or animals do not establish animal-care membership. Body remains unread.",
+      "language": "en",
+      "origin": "https://www.stardewvalley.net",
+      "reviewMode": "search-title-and-url-only",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false
+    },
+    {
+      "id": "child-test-07",
+      "split": "test",
+      "title": "Connect 4 Classic Grid Board Game",
+      "url": "https://consumercare.hasbro.com/en-us/product/the-classic-game-of-connect-4/80FB5BCA-5056-9047-F5F4-5EB5DF88DAF4",
+      "groupId": "connect-four-physical-board-game",
+      "sourceFamily": "hasbro",
+      "documentFamily": "hasbro-connect-four-physical-product",
+      "expectedRootId": "games",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "rationale": "Prospective negative from official physical board-game product title, rather than a digital adaptation. Body remains unread.",
+      "language": "en",
+      "origin": "https://consumercare.hasbro.com",
+      "reviewMode": "search-title-and-url-only",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false
+    }
+  ],
+  "requestBudget": {
+    "maximumRequests": 34,
+    "subjectRequests": 16,
+    "originPolicyRequests": 18,
+    "totalRequests": 34,
+    "originCount": 9,
+    "perOrigin": [
+      {
+        "origin": "https://savethekoala.com",
+        "subjectIds": [
+          "child-train-01",
+          "child-train-02"
+        ],
+        "robotsRequests": 1,
+        "tdmRequests": 1,
+        "pageRequests": 2,
+        "totalRequests": 4
+      },
+      {
+        "origin": "https://www.qld.gov.au",
+        "subjectIds": [
+          "child-cal-01",
+          "child-cal-02",
+          "child-cal-03",
+          "child-cal-04"
+        ],
+        "robotsRequests": 1,
+        "tdmRequests": 1,
+        "pageRequests": 4,
+        "totalRequests": 6
+      },
+      {
+        "origin": "https://github.com",
+        "subjectIds": [
+          "child-cal-05"
+        ],
+        "robotsRequests": 1,
+        "tdmRequests": 1,
+        "pageRequests": 1,
+        "totalRequests": 3
+      },
+      {
+        "origin": "https://au-koala.gorgias.help",
+        "subjectIds": [
+          "child-cal-06"
+        ],
+        "robotsRequests": 1,
+        "tdmRequests": 1,
+        "pageRequests": 1,
+        "totalRequests": 3
+      },
+      {
+        "origin": "https://www.worldothello.org",
+        "subjectIds": [
+          "child-cal-07"
+        ],
+        "robotsRequests": 1,
+        "tdmRequests": 1,
+        "pageRequests": 1,
+        "totalRequests": 3
+      },
+      {
+        "origin": "https://www.environment.nsw.gov.au",
+        "subjectIds": [
+          "child-test-01",
+          "child-test-02",
+          "child-test-04"
+        ],
+        "robotsRequests": 1,
+        "tdmRequests": 1,
+        "pageRequests": 3,
+        "totalRequests": 5
+      },
+      {
+        "origin": "https://www.nationalparks.nsw.gov.au",
+        "subjectIds": [
+          "child-test-03",
+          "child-test-05"
+        ],
+        "robotsRequests": 1,
+        "tdmRequests": 1,
+        "pageRequests": 2,
+        "totalRequests": 4
+      },
+      {
+        "origin": "https://www.stardewvalley.net",
+        "subjectIds": [
+          "child-test-06"
+        ],
+        "robotsRequests": 1,
+        "tdmRequests": 1,
+        "pageRequests": 1,
+        "totalRequests": 3
+      },
+      {
+        "origin": "https://consumercare.hasbro.com",
+        "subjectIds": [
+          "child-test-07"
+        ],
+        "robotsRequests": 1,
+        "tdmRequests": 1,
+        "pageRequests": 1,
+        "totalRequests": 3
+      }
+    ],
+    "deadlineMs": 240000,
+    "perRequestTimeoutMs": 15000,
+    "minimumSequentialSpacingMs": 5000,
+    "pacing": "At least max(5000ms, applicable robots delay); sequential requests and one attempt per subject.",
+    "idealPacingOnlyMs": 165000,
+    "completionWithinDeadlineGuaranteed": false,
+    "budgetAssumptions": "One robots request and one TDM request per exact origin, then each selected page once. Redirects, retries and alternative URLs are not budgeted or permitted.",
+    "rightsOrPolicyFailure": "Retain unavailable result; never replace a subject or lower calibration minimums.",
+    "collectorChangeRequired": "Existing fixed collector accepts only en.wikipedia.org. Every new official origin needs a separate closed-origin source review/grant with existing SSRF, robots, response and document restrictions preserved."
+  },
+  "separation": {
+    "legacyPublisherOverlap": "Archived TRAIN and CAL share Wikimedia. Original splits and exact document groups are retained; no publisher-heldout or independent-population claim is made for reused data.",
+    "newPublisherFamiliesSplitDisjoint": true,
+    "newDocumentFamiliesSplitDisjoint": true,
+    "targetConceptOverlap": "Koala documents necessarily share the target species. Groups describe distinct editorial documents, not invented species or independent populations.",
+    "withinSplitCorrelation": "Two AKF TRAIN documents share a publisher. QLD CAL and NSW TEST each share governmental templates and related subjects. Counts are development support, not population confidence.",
+    "nearDuplicateAudit": "Before any fit, compare captured document hashes/text families without predictions. Confirm proposed documents are distinct; collapse/refuse dependent duplicates without moving split or fabricating group IDs. A resulting support shortfall disables the head.",
+    "testReservation": "Seven fresh TEST URLs were selected using public search titles and URLs only. Bodies were not displayed/read for this curation, and cannot enter TRAIN/CAL or tuning.",
+    "knownHeldoutDocumentCollision": "gta-train-03 reuses Grand Theft Auto IV, also root-expansion-final-001. Annotation is known but reuseEligible=false; historical roles remain explicit.",
+    "collisionScope": "Exact archived URL collisions checked against preserved root-expansion TEST and curated root-web metadata. New official URLs differ from those Wikipedia documents; all-future-corpus and syndication equivalence are not guaranteed."
+  },
+  "unselectedAvailabilityObservations": [
+    {
+      "url": "https://koala.com/",
+      "observed": "Browsing tool returned HTTP403; no collector availability or rights inference.",
+      "selected": false
+    },
+    {
+      "url": "https://koala-app.com/",
+      "observed": "Browsing tool timed out; developer GitHub source selected instead.",
+      "selected": false
+    },
+    {
+      "url": "https://www.scottishdraughts.com/rules-draughts.html",
+      "observed": "Search metadata exists but direct browsing failed; World Othello primary rules selected before predictions.",
+      "selected": false
+    }
+  ],
+  "acceptanceLimitations": {
+    "videoGamesFreshPositiveTestDocuments": 1,
+    "videoGamesTestScope": "One electronic-game FAQ is a limited check, not genre-wide or franchise-independent precision evidence. A stronger claim requires a separately predeclared bounded TEST batch before fitting or seeing TEST predictions, not expansion in response to outcomes.",
+    "koalaTrainingScope": "Two distinct documents from one publisher may fail the future duplicate-family audit. The support minimum must not be waived if they are dependent.",
+    "newCandidateEligibilityEstablished": false,
+    "qualityOrInstallationAcceptance": false
+  },
+  "executionConditions": [
+    "Independent source/label review before capture or fit.",
+    "Historical root/GTA results were already known; these labels come from explicit subject review, not those predictions. No new child predictions or vector features were inspected, and no URL replacement or label revision after predictions is allowed.",
+    "Recheck fixed metadata/case pins before reading numeric pairs under a future fit grant.",
+    "Unknown and quarantined rows cannot supply positive, negative or calibration-correctness support.",
+    "Fresh capture requires separate exact-origin rights/robots/TDM/SSRF review; metadata browsing is not collector approval.",
+    "A capture failure, rights restriction, duplicate conflict or inseparable cut disables unsupported detail rather than causing retries or minimum changes.",
+    "Freeze model/policy before separate fresh TEST evaluation; retain failures and availability in the full roster.",
+    "Root model, GTA head, canonical IDs, owner policy and installation remain unchanged."
+  ]
+}

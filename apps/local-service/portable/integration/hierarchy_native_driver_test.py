@@ -135,7 +135,7 @@ class MaintainedDriverTest(unittest.TestCase):
             r'''(?m)^\s*import\s*['"]([^'"]+)['"]''',
             r'''\bimport\(\s*['"]([^'"]+)['"]\s*\)''',
         )
-        pending, seen = [D.ENTRY,D.PRIVATE_ENTRY], set()
+        pending, seen = [D.ENTRY,D.PRIVATE_ENTRY,D.HTTP_ENTRY], set()
         while pending:
             key = pending.pop()
             if key in seen:
@@ -151,7 +151,7 @@ class MaintainedDriverTest(unittest.TestCase):
                     self.assertTrue(target.is_relative_to(D.REPO))
                     self.assertTrue(target.is_file(), name)
                     relative = target.relative_to(D.REPO).as_posix()
-                    self.assertIn(relative, maintained)
+                    self.assertTrue(relative in maintained, relative)
                     if target.suffix in ('.js', '.mjs'):
                         pending.append(relative)
         self.assertIn('spikes/topic-resolution/browser/core/local-service-client.js', seen)
@@ -166,6 +166,13 @@ class MaintainedDriverTest(unittest.TestCase):
         self.assertIn('apps/local-service/src/ops/windows-backup-protection.js',seen)
         self.assertIn('apps/local-service/portable/src/windows-dpapi-password.js',seen)
         self.assertIn(D.OWN+'private-owner-storage.js',seen)
+        # Every intermediate Node package scope is either pinned or required
+        # absent. A later package.json cannot silently change module parsing.
+        for key in seen:
+            for parent in Path(key).parents:
+                scope = (parent/'package.json').as_posix()
+                self.assertTrue(scope in maintained or scope in self.I.scope_absences()
+                                or scope in D.NORMAL_SCOPE_ABSENCES, scope)
         # The numeric loader reads these fixed data URLs, which the literal
         # module-reference traversal above cannot discover. No encoder weights
         # or inference runtime are needed by owner matcher registration.
@@ -488,15 +495,17 @@ class MaintainedDriverTest(unittest.TestCase):
 
     def test_closed_private_cli_cannot_select_a_path_or_host(self):
         seen = []
-        def fake_execute(digest,private):
-            seen.append((digest,private));return {'accepted':True}
+        def fake_execute(digest,private,http):
+            seen.append((digest,private,http));return {'accepted':True}
         with patch.object(D,'execute',fake_execute),contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(D.main(['a'*64]),0)
             self.assertEqual(D.main(['private-restore','b'*64]),0)
+            self.assertEqual(D.main(['private-http','c'*64]),0)
             for args in (['private-restore'],['restore','a'*64],['private-restore','a'*64,'D:/other'],
-                ['private-restore','A'*64],['private-restore','http://localhost']):
+                ['private-restore','A'*64],['private-restore','http://localhost'],['private-http'],
+                ['private-http','a'*64,'extra'],['private-http','A'*64]):
                 self.assertEqual(D.main(args),2)
-        self.assertEqual(seen,[('a'*64,False),('b'*64,True)])
+        self.assertEqual(seen,[('a'*64,False,False),('b'*64,True,False),('c'*64,True,True)])
 
     def test_private_control_uses_separate_purpose_and_claim(self):
         def check(normal):
@@ -766,6 +775,81 @@ class MaintainedDriverTest(unittest.TestCase):
                     pending.write_bytes(self.I.canonical_json(value))
                 with self.assertRaises(self.I.Refusal,msg=fault):phases.check()
             self._phase_test(check)
+
+    def http_proof(self):
+        return {'schema':'private-application-http-proof/v1','status':'passed',
+            'cases':[{'name':name,'status':'passed'} for name in D.HTTP_CASES],
+            'pendingCases':0,'server':{'destinationPort':4185,'canonicalHost':'127.0.0.1:4174','loopbackOnly':True},
+            'counts':{'httpRequests':30,'maximumConcurrentHttp':4,'fixtureActors':2},
+            'cleanup':{'serverClosed':True,'applicationClosed':True,'appClientClosed':True,'urlClientClosed':True,
+                'pendingHttp':0,'pendingDatabase':0},
+            'scope':{'realHttp':True,'realDatabase':True,'browser':False,'encoder':False,'provider':False,
+                'externalLoginVerified':False,'productionCapacityValidated':False,'testComposition':False},
+            'failure':None,'elapsedMs':1000,
+            'upgrade':{'schemaVersion':17,'preservedLegacyTables':18,'legacyRowsUnchanged':True}}
+
+    def _http_proof_test(self,callback):
+        def check(run):
+            run.output.mkdir()
+            value = self.http_proof()
+            def publish(value):
+                pending = run.output/'application-proof.pending.json'
+                pending.write_bytes(self.I.canonical_json(value))
+                os.link(pending,run.output/'application-proof.json')
+            callback(run,D.PrivateHttpProof(self.I,run),value,publish)
+        self._owned_run_test(check)
+
+    def test_http_evidence_requires_own_closed_proof_and_preserves_its_identity(self):
+        def check(run,proof,value,publish):
+            proof.check()
+            with self.assertRaises(FileNotFoundError):proof.complete()
+            publish(value);proof.complete();proof.check()
+            self.assertIsNotNone(proof.digest)
+            final,pending = run.output/'application-proof.json',run.output/'application-proof.pending.json'
+            raw = final.read_bytes()
+            final.rename(run.output/'retained-original-proof.json');pending.unlink()
+            pending.write_bytes(raw);os.link(pending,final)
+            with self.assertRaises(self.I.Refusal):proof.check()
+        self._http_proof_test(check)
+
+    def test_http_proof_refuses_weakened_data_scope_retirement_and_cases(self):
+        for fault in ('missing-case','reordered-case','failed-case','failed-status','pending',
+                'fixture','encoder','provider','browser','capacity','external-login','real-database',
+                'wrong-destination','wrong-host','wrong-upgrade','not-preserved','unclosed','pending-db','extra'):
+            def check(run,proof,value,publish):
+                if fault=='missing-case':value['cases'].pop()
+                elif fault=='reordered-case':value['cases'].reverse()
+                elif fault=='failed-case':value['cases'][0]['status']='failed'
+                elif fault=='failed-status':value['status']='failed'
+                elif fault=='pending':value['pendingCases']=True
+                elif fault in ('encoder','provider','browser'):value['scope'][fault]=True
+                elif fault=='fixture':value['scope']['testComposition']=True
+                elif fault=='capacity':value['scope']['productionCapacityValidated']=True
+                elif fault=='external-login':value['scope']['externalLoginVerified']=True
+                elif fault=='real-database':value['scope']['realDatabase']=False
+                elif fault=='wrong-destination':value['server']['destinationPort']=4174
+                elif fault=='wrong-host':value['server']['canonicalHost']='127.0.0.1:4185'
+                elif fault=='wrong-upgrade':value['upgrade']['schemaVersion']=9
+                elif fault=='not-preserved':value['upgrade']['legacyRowsUnchanged']=False
+                elif fault=='unclosed':value['cleanup']['serverClosed']=False
+                elif fault=='pending-db':value['cleanup']['pendingDatabase']=True
+                else:value['rawPayload']='forbidden'
+                publish(value)
+                with self.assertRaises(self.I.Refusal,msg=fault):proof.complete()
+            self._http_proof_test(check)
+
+    def test_http_mode_is_private_and_uses_only_its_fixed_reviewed_entry(self):
+        with self.assertRaises(self.I.Refusal):D.OwnedRun(self.I,False,True)
+        run = types.SimpleNamespace(output=D.PRIVATE_RUNS_ROOT/('run-'+'c'*48)/'output',private=True,http=True)
+        seen = []
+        def launch(executable,command,ps,ts,inherit,flags,environment,cwd,startup,info):
+            seen.append(command.value);self.assertEqual(flags,0x8040C)
+            info._obj.process,info._obj.thread,info._obj.pid = 111,222,333
+            return True
+        api = object.__new__(D.native_api_type(self.W,run))
+        api.m,api.k = self.B,types.SimpleNamespace(CreateProcessW=launch)
+        api.create_process((ctypes.create_string_buffer(16),None),11,12,13)
+        self.assertEqual(seen,['"'+D.NODE+'" --max-old-space-size=64 "'+str(D.REPO/D.HTTP_ENTRY)+'"'])
 
 
 if __name__ == '__main__':

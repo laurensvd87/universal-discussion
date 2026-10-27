@@ -8,29 +8,43 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
-Current 27 Oct continuation: the goal remains active. Private full-data restore
-source was committed/pushed as ceea2c7a; the fixed private LOCALAPPDATA correction
-is pushed as1677abb0. First actual20367 failed before authentication, then retired
-scratch A/PG normally; independent saved-failure audit bc34582f...148 was fully
-read/authenticated. Corrected actual9953 failed at sampled cumulative Job CPU
-60.015625; run2a5d7e45...65640 retains map/output/ownership and partial PG data.
-Parent verified owned emergency/empty Job/closed handles/two EOFs/end pins, but
-there is no child report: authentication, restore phase and SQL completion are
-unknown. Root fully read/authenticated audit c21a09d7...14ee. No rerun/adoption.
+Current 27 Oct: actual full-data restore PASSED. Session79937 closed exit0;
+run99a8da6bcdb0ca78105a789df77f42f471e4d2b620fc97ec retains its consumed source
+catalog and outputs. All19 restored SQL table fingerprints match the authenticated
+55,954-Source/97-contribution snapshot. Schema9/versions/collations,37 function
+security/role boundaries and7 nonmutating sequence checks pass. The25 ledger
+records are3 outer groups plus22 children, not25 separate backups. All33 private
+phases completed; both A16384/B264394 dropped; PG37840 smart-stopped normally.
+Parent normal/no emergency/empty Job/handles/EOFs/end pins pass. Independent
+actual audit0fa1694bc822b02ed071d4d27c124a105e74444b800de34c519fa4e9da029b8e
+was FULLY read/authenticated by Root. Lifecycle173677ms is not page latency.
 
-ADR226 now grants SOURCE only for a considered private CPU300/default60 policy,
-private callback min(now+300s, originalOverall-20s-25s)/default195s, unchanged
-360/380/390/1GiB/64MiB/32process/6GiB/floors, and33 bounded immutable private
-phase checkpoints. Six-file source independently accepted:37 pure Python and43
-guarded Node PASS; JS/Python phase/table grammar exact. Source accepted, with
-catalog9a6b7637...5e223/2435files275023616B/97NORMAL. Platform's NEW fixed
-failed-pgdata retirement script/test independently accepted;10 managed-fake
-tests PASS, no real AuditOnly or deletion authorized yet.
-D free11657945088B fails11GiB admission; exact derived fixture cleanup must pass
-review and a separate decision before another full restore. Preserve original
-backup/receipt/live data and all maps/claims/output/ownership. Original services
-and crawler4060 same starts; crawler5631 advancing/stderr0;55433 absent. Actual
-restored19fingerprints, combined UI/provider/load/backfill/adoption/cutover OPEN.
+Current source004f3b3e is pushed, catalog0055306b...cb57/2435files275025080B/
+97NORMAL/196Git joins. ADR226's private CPU300/callback min(now+300s,
+originalOverall-45s), default60/195, memory/process/disk/overall limits and closed
+phase protocol remain. Earlier failures and their snapshots are historical.
+Only the audited failed2a5.../nhpg-EDfH2R/pgdata duplicate was retired under a
+separate decision:770759531B, original artifacts/backup/receipt unchanged;
+independent retirement audit9401f5ff...b94f5 FULLY read/authenticated. No further
+restore/retirement grant follows from that success.
+
+Live services remain original schema9: API19868/worker36616/dashboard6644 and
+crawler4060 retain their starts; crawler6174 advancing/stderr0;55433/4185 absent.
+Goal ACTIVE. ADR225 still requires combined browser/database/provider and
+crawler/user-load checks before hierarchy activation. ADR227 SOURCE implementation
+is independently SOURCE accepted: fixed private-http mode, unchanged25 restore records/33 phases,
+real full-data9->17 migration/18 preserved fingerprints then16 HTTP cases.
+Root40 pure Python and34 guarded Node PASS; these are not actual application runs.
+Independent review found missing URL-selection coverage; the same saved-page
+case now checks the actual URL route and mismatched Source/topic/version refusal.
+Explicit140 NORMAL files/11 absent package scopes close the
+literal startup imports. No new actual/model/provider/browser/live grant yet.
+Source review04fb5469...708fa FULLread/auth; catalog547e3a4a...a885d authenticates
+2478files275417597B/379237B. One metadata-only child corpus is accepted as a
+prospective candidate plan with leakage/independence caveats, not fit eligibility;
+no new capture/fit/weights. Broader fine-topic
+coverage, actual application latency, existing-page preparation/adoption, owner
+controls and live cutover remain OPEN. Do not call the goal complete.
 
 LATEST27Oct productionoperatorbf7bdefe/schema17+counts15cc009f/dashboardbd322cfa/
 streamingbackup6c652709/native3aeae3ca allPUSHED. Actual01778979 CLOSEDexit0/
