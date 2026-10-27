@@ -298,6 +298,62 @@ class MaintainedDriverTest(unittest.TestCase):
         value.remember(self.W.BoundaryFailure('pipe-read'))
         self.assertEqual(value.primary, {'code':'resource-floor','counter':'commitFree','value':0})
 
+    def test_private_job_guard_inverse_changes_only_cpu_ceiling(self):
+        normal = D.diagnostic_controller_type(self.S,self.W)
+        private = D.diagnostic_controller_type(self.S,self.W,True)
+        self.assertIs(normal.job,self.S.Controller.job)
+        old = ast.parse((HERE/'native-hierarchy-postgres-v2/supervise.py').read_bytes())
+        new = ast.parse(source.read_bytes())
+        find = lambda tree:next(n for n in ast.walk(tree) if isinstance(n,ast.FunctionDef) and n.name=='job')
+        class Inverse(ast.NodeTransformer):
+            changed = 0
+            def visit_Compare(self,node):
+                if (isinstance(node.left,ast.Name) and node.left.id=='cpu' and len(node.ops)==1
+                        and isinstance(node.ops[0],ast.LtE) and len(node.comparators)==1
+                        and isinstance(node.comparators[0],ast.Constant) and node.comparators[0].value==300):
+                    node.comparators[0].value = 60
+                    self.changed += 1
+                return self.generic_visit(node)
+        inverse = Inverse();adapted = inverse.visit(find(new))
+        self.assertEqual(inverse.changed,1)
+        self.assertEqual(ast.dump(find(old),include_attributes=False),ast.dump(adapted,include_attributes=False))
+        self.assertIs(D.native_api_type(self.W,self.owned_paths).set_limits,self.W._WinAPI.set_limits)
+        self.assertIs(private.host,self.S.Controller.host)
+
+    def _job_subject(self,private,cpu=60):
+        row = {'cpu':cpu,'committed':1024*D.MIB,'accounting':{'totalProcesses':1,'activeProcesses':1,
+            'totalTerminatedProcesses':0,'user100ns':round(cpu*10000000),'kernel100ns':0},
+            'physicalFree':1024*D.MIB,'commitFree':1024*D.MIB,'cFree':2048*D.MIB,'dFree':4096*D.MIB}
+        cls = D.diagnostic_controller_type(self.S,self.W,private)
+        value = object.__new__(cls)
+        value.boundary = types.SimpleNamespace(sample=lambda:row)
+        value.last_cpu,value.last_peak,value.last_accounting = 0,0,None
+        return value,row
+
+    def test_private_truthful_cpu_samples_and_default_limit_are_separate(self):
+        for private,cpu,accepted in ((False,60,True),(False,60.015625,False),
+                (True,60.015625,True),(True,300,True),(True,300.000001,False)):
+            value,row = self._job_subject(private,cpu)
+            if accepted:
+                value.job()
+                self.assertEqual(value.last_cpu,cpu)
+            else:
+                with self.assertRaises(self.I.Refusal) as observed:value.job()
+                self.assertEqual(observed.exception.metadata,{'code':'resource-limit','counter':'jobCpuSeconds','value':cpu})
+
+    def test_private_cpu_policy_keeps_accounting_memory_process_and_all_floors(self):
+        for fault in ('accounting','cpu-regression','peak-regression','account-regression','processes','memory',
+                'physicalFree','commitFree','cFree','dFree'):
+            value,row = self._job_subject(True,100)
+            if fault=='accounting':row['cpu'] = 100.1
+            elif fault=='cpu-regression':value.last_cpu = 101
+            elif fault=='peak-regression':value.last_peak = row['committed']+1
+            elif fault=='account-regression':value.last_accounting = {**row['accounting'],'totalProcesses':2}
+            elif fault=='processes':row['accounting'].update(activeProcesses=33,totalProcesses=33)
+            elif fault=='memory':row['committed'] += 1
+            else:row[fault] -= 1
+            with self.assertRaises(self.I.Refusal,msg=fault):value.job()
+
     def _owned_run_test(self, callback):
         base = (D.REPO/'apps/local-service/data').resolve()
         with tempfile.TemporaryDirectory(dir=base, prefix='hierarchy-run-fs-') as generated:
@@ -630,6 +686,10 @@ class MaintainedDriverTest(unittest.TestCase):
         class FakeTree:
             def prepare(self):pass
             def check(self):pass
+        class FakePhases:
+            def __init__(self,*args):pass
+            def check(self):pass
+            def complete(self):pass
         class FakeController:
             remember = S.Controller.remember
             def __init__(self,**ports):
@@ -646,6 +706,7 @@ class MaintainedDriverTest(unittest.TestCase):
         libraries = {'supervisor':S,'windows':self.W,'baseline':baseline}
         with patch.object(D,'load_pinned',side_effect=lambda name:libraries[name]),patch.object(D,'catalog_type',return_value=FakeCatalog),\
             patch.object(D,'OwnedRun',FakeRun),patch.object(D,'PrivateInputs',FakeInputs),\
+            patch.object(D,'PrivatePhases',FakePhases),\
             patch.object(D,'publisher_type',return_value=FakePublisher),patch.object(D,'cluster_tree_type',return_value=FakeTree),\
             patch.object(D,'diagnostic_controller_type',return_value=FakeController):
             result = D.execute('a'*64,True)
@@ -654,6 +715,57 @@ class MaintainedDriverTest(unittest.TestCase):
         self.assertEqual(result['cleanup']['code'],'private-input-close')
         self.assertEqual(events[:3],['input-held','original-retired','close-refused'])
         self.assertEqual(events[3],('published',result,b'invented-failure',b''))
+
+    def _phase_test(self,callback):
+        def check(run):
+            run.output.mkdir()
+            phases = D.PrivatePhases(self.I,run)
+            def publish(index,elapsed=None):
+                value = {'schema':'private-owner-restore-phase/v1','ordinal':index,
+                    'stage':D.PRIVATE_PHASES[index],'elapsedMs':index if elapsed is None else elapsed}
+                pending = run.output/('phase-%02d.pending'%index)
+                pending.write_bytes(self.I.canonical_json(value))
+                os.link(pending,run.output/('phase-%02d.json'%index))
+            callback(run,phases,publish)
+        self._owned_run_test(check)
+
+    def test_closed_private_phase_prefix_accepts_complete_history_and_partial_next_write(self):
+        def check(run,phases,publish):
+            phases.check()
+            self.assertEqual(phases.closed,[])
+            pending = run.output/'phase-00.pending'
+            pending.touch()
+            phases.check()
+            pending.write_bytes(b'{')
+            phases.check()
+            publish(0)
+            phases.check()
+            self.assertEqual(len(phases.closed),1)
+            with self.assertRaises(self.I.Refusal):phases.complete()
+            for index in range(1,len(D.PRIVATE_PHASES)):publish(index)
+            phases.complete()
+            self.assertEqual(len(phases.closed),33)
+        self._phase_test(check)
+
+    def test_phase_schema_identity_clock_and_permanent_publication_are_required(self):
+        for fault in ('schema','stage','bool-ordinal','clock','hardlink','changed','missing','unknown'):
+            def check(run,phases,publish):
+                publish(0);phases.check()
+                final,pending = run.output/'phase-00.json',run.output/'phase-00.pending'
+                if fault=='hardlink':
+                    final.unlink();final.write_bytes(pending.read_bytes())
+                elif fault=='missing':final.unlink()
+                elif fault=='unknown':(run.output/'phase-99.pending').touch()
+                else:
+                    value = json.loads(pending.read_bytes())
+                    if fault=='schema':value['schema']='semantic-phase'
+                    elif fault=='stage':value['stage']='restore-passed'
+                    elif fault=='bool-ordinal':value['ordinal']=False
+                    elif fault=='clock':value['elapsedMs']=-1
+                    else:value['elapsedMs']=1
+                    pending.write_bytes(self.I.canonical_json(value))
+                with self.assertRaises(self.I.Refusal,msg=fault):phases.check()
+            self._phase_test(check)
 
 
 if __name__ == '__main__':

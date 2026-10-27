@@ -228,7 +228,10 @@ export function createOwnedScopedPostgres(deps){
       report.server={port:55433,postmasterPid:server.pid,version:sqlProof.version,ownershipVerified:true};
       await closeRecord(clients.at(-1),Math.min(clock()+15000,startup));bootstrapClosed=clients.filter(c=>c.bootstrap).every(c=>c.closed);
       if(!bootstrapClosed||physical.size)throw failure('OWNED_BOOTSTRAP_UNSETTLED');
-      phase='checks';callbackDeadline=clock()+FIXED.callbackMs;check(Math.min(callbackDeadline,overall-FIXED.stopMs-FIXED.reportMs));
+      phase='checks';const callbackStarted=clock();
+      callbackDeadline=privateOwnerData?Math.min(callbackStarted+300000,overall-FIXED.stopMs-FIXED.reportMs):callbackStarted+FIXED.callbackMs;
+      if(privateOwnerData)report.callbackMs=Math.max(0,Math.floor(callbackDeadline-callbackStarted));
+      check(Math.min(callbackDeadline,overall-FIXED.stopMs-FIXED.reportMs));
       callbackSettled=false;callback=Promise.resolve().then(()=>runChecks(privateOwnerData?Object.freeze({connectFixedRole:connector,restoreArchive,deadline:callbackDeadline,checkDeadline:()=>check(callbackDeadline)}):connector));callback.then(()=>{callbackSettled=true;},()=>{callbackSettled=true;});
       report.checks=await bounded(callback,callbackDeadline);
       if(report.checks?.status!=='passed')throw failure('OWNED_CHECKS_FAILED');report.status='passed';

@@ -1,5 +1,19 @@
 # Hierarchical topic assignment and discussion plan
 
+Delivery obligations still open (27 October): authenticate and compare the full
+restored snapshot, then test migration and the combined browser/human/AI paths
+before live cutover. Measure actual foreground p50/p95 while background work and
+the crawler run; numeric matcher timings do not prove application latency.
+
+Fine-topic coverage is also unfinished: the installed18-node model has16 broad
+roots and one GTA head. It has no Animals/Koalas head or independent Video-games
+head. Extend the existing generic child matcher with explicit labels, independent
+calibration and fresh held-out subjects; preserve parent fallback on uncertainty.
+Expose owner-only default/per-topic grouping controls, and preserve every
+historical discussion ID through adoption, model changes and owner cuts.
+Popularity may suggest a display cut or a new detail proposal; it must not
+silently change classifier confidence or approve a taxonomy expansion.
+
 Current integration checkpoint (27 October): schema17's protected dashboard
 aggregates and owner-cut refreshes pass real isolated PostgreSQL tests. The
 runtime package, including fixed encoder assets, is prepared and verified.

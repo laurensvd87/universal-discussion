@@ -1,12 +1,14 @@
 // Private full-owner-data rehearsal. Import is inert; only the closed noarg
 // entry can open the fixed archive and invoke the separately owned lifecycle.
 import {createHash} from 'node:crypto';
-import {open,lstat} from 'node:fs/promises';
+import {open,lstat,realpath,link} from 'node:fs/promises';
 import {isDeepStrictEqual,types} from 'node:util';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {createFixtureController} from './native-hierarchy-postgres-v2/context.js';
 import {getOwnedIdentity} from './hierarchy-native-cluster.js';
+import {readOwnedPrivateRunBinding} from './hierarchy-native-run.js';
+import {PRIVATE_RUN_ROOT} from './private-owner-storage.js';
 import {readCanonicalV4MigrationManifest} from '../canonical-v4/index.js';
 
 const SHA=/^[a-f0-9]{64}$/u,MAX_ARCHIVE=1073741824+16384+28;
@@ -26,6 +28,9 @@ const GROUPS=Object.freeze([
  Object.freeze({name:'Private restored generated ordinal safety',children:Object.freeze(['Restored identity and ordinal sequences cannot reuse stored keys'])}),
 ]);
 export const OWNER_RESTORE_CASES=Object.freeze(GROUPS.flatMap(group=>[Object.freeze({name:group.name,depth:0}),...group.children.map(name=>Object.freeze({name,depth:1}))]));
+export const OWNER_RESTORE_PHASES=Object.freeze(['callback-enter','archive-hash-start','archive-hash-complete','backup-auth-start','archive-authenticated','empty-target-verified',
+ 'restore-dispatched','restore-retired','schema-verified','grants-verified',...Object.keys(TABLES).map(table=>'table-'+table+'-verified'),
+ 'sequences-verified','scratch-a-retired','scratch-b-retired','inputs-closed']);
 const error=code=>Object.assign(new Error('Private owner restore unavailable'),{code});
 const hash=value=>createHash('sha256').update(value).digest('hex');
 function requireThat(condition,code){if(!condition)throw error(code);}
@@ -43,6 +48,35 @@ function ledger(){let index=0,pending=0;const rows=[];return {
  },snapshot:()=>({cases:rows.map(row=>({...row})),pendingAssertions:pending}),
  finish(){requireThat(index===25&&pending===0&&rows.every(row=>row.status==='passed'),'RESTORE_LEDGER');},
 };}
+function createPhaseWriter({fs,output,now,epoch,checkDeadline}){
+ const prefix=PRIVATE_RUN_ROOT+'\\run-',suffix='\\output';
+ requireThat(typeof output==='string'&&output.startsWith(prefix)&&output.endsWith(suffix)&&/^[a-f0-9]{48}$/u.test(output.slice(prefix.length,-suffix.length))&&
+  path.win32.normalize(output)===output&&typeof now==='function'&&typeof checkDeadline==='function'&&Number.isFinite(epoch)&&epoch>=0,'RESTORE_PHASE_SCOPE');
+ let index=0,lastElapsed=0,busy=false,failed=false,outputIdentity=null;
+ const identity=stat=>[stat.dev,stat.ino];
+ async function directory(){checkDeadline();const stat=await fs.lstat(output);checkDeadline();
+  requireThat(stat.isDirectory()&&!stat.isSymbolicLink()&&await fs.realpath(output)===output,'RESTORE_PHASE_DIRECTORY');checkDeadline();
+  if(outputIdentity===null)outputIdentity=identity(stat);else requireThat(isDeepStrictEqual(outputIdentity,identity(stat)),'RESTORE_PHASE_DIRECTORY');
+ }
+ return Object.freeze({async write(stage){
+  requireThat(!busy&&!failed&&index<OWNER_RESTORE_PHASES.length&&OWNER_RESTORE_PHASES[index]===stage,'RESTORE_PHASE_ORDER');busy=true;
+  try{
+   checkDeadline();await directory();const elapsedMs=Math.round(now()-epoch);requireThat(Number.isSafeInteger(elapsedMs)&&elapsedMs>=lastElapsed&&elapsedMs<=360000,'RESTORE_PHASE_CLOCK');
+   const record={elapsedMs,ordinal:index,schema:'private-owner-restore-phase/v1',stage},bytes=Buffer.from(JSON.stringify(record)+'\n');requireThat(bytes.length<=1024,'RESTORE_PHASE_BOUND');
+   const base=path.win32.join(output,'phase-'+String(index).padStart(2,'0')),pending=base+'.pending',closed=base+'.json';
+   checkDeadline();const fd=await fs.open(pending,'wx',0o600);let hadPrimary=false,primary;
+   try{checkDeadline();await fd.writeFile(bytes);checkDeadline();await fd.sync();checkDeadline();}
+   catch(e){hadPrimary=true;primary=e;throw e;}
+   finally{try{await fd.close();}catch(e){if(!hadPrimary)throw e;}if(hadPrimary)void primary;}
+   checkDeadline();const before=await fs.lstat(pending);checkDeadline();requireThat(before.isFile()&&!before.isSymbolicLink()&&before.size===bytes.length,'RESTORE_PHASE_FILE');
+   await directory();checkDeadline();await fs.link(pending,closed);checkDeadline();const after=await fs.lstat(closed);checkDeadline();
+   requireThat(after.isFile()&&!after.isSymbolicLink()&&after.size===bytes.length&&isDeepStrictEqual(identity(before),identity(after)),'RESTORE_PHASE_LINK');
+   await directory();checkDeadline();lastElapsed=elapsedMs;index++;
+  }catch(e){failed=true;throw e;}finally{busy=false;}
+ },finish(){checkDeadline();requireThat(!busy&&!failed&&index===OWNER_RESTORE_PHASES.length,'RESTORE_PHASE_INCOMPLETE');}});
+}
+/** Invented filesystem/clock seam; cannot select the normal entry's directory. */
+export function createOwnerRestorePhaseWriterForTest(dependencies){return createPhaseWriter(dependencies);}
 function validateReceipt(raw,inputs,manifest){requireThat(Buffer.isBuffer(raw)&&raw.length<=65536&&hash(raw)===inputs.receiptSha256,'RESTORE_RECEIPT_PIN');
  let receipt;try{receipt=JSON.parse(new TextDecoder('utf8',{fatal:true}).decode(raw));}catch{throw error('RESTORE_RECEIPT_ENCODING');}
  requireThat(field(receipt,'verified')===true&&field(receipt,'cleanupVerified')===true&&field(receipt,'filename')===inputs.filename&&
@@ -85,7 +119,7 @@ const TEXT_PKS=Object.freeze(['id_registry.id','topics.id','discussions.id','sou
  'fixed_references.topic_id','contributions.id','revisions.contribution_id','operation_receipts.source_id','command_receipts.actor_id','command_receipts.request_id','runtime_source_stamps.source_id','ingestion_jobs.operation_id'].sort());
 const decimal=value=>{requireThat(typeof value==='string'&&/^(0|[1-9][0-9]{0,18})$/u.test(value)&&BigInt(value)<=9223372036854775807n,'RESTORE_SEQUENCE');return BigInt(value);};
 
-async function verifyDatabase(db,receipt,manifest,checks,check){
+async function verifyDatabase(db,receipt,manifest,checks,check,phase){
  return db.transaction(async raw=>{const tx={query:async(sql,args=[])=>{check();const result=await raw.query(sql,args);check();return result;}};
   await tx.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
   await tx.query('SET LOCAL search_path=pg_catalog');
@@ -105,6 +139,7 @@ async function verifyDatabase(db,receipt,manifest,checks,check){
      JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum=k.attnum JOIN pg_type ty ON ty.oid=a.atttypid
      LEFT JOIN pg_collation co ON co.oid=a.attcollation WHERE n.nspname='canonical_v4' AND i.indisprimary AND ty.typcategory='S'`)).rows;
     requireThat(isDeepStrictEqual(pks.map(row=>row.table_name+'.'+row.attname).sort(),TEXT_PKS)&&pks.every(row=>row.collname==='C'),'RESTORE_PK_COLLATION');
+    await phase('schema-verified');
    });
    await t.test(GROUPS[0].children[1],async()=>{
     const schema=await one(tx,"SELECT pg_get_userbyid(nspowner) AS owner FROM pg_namespace WHERE nspname='canonical_v4'");requireThat(schema.owner==='murmingle_owner','RESTORE_OWNER');
@@ -133,6 +168,7 @@ async function verifyDatabase(db,receipt,manifest,checks,check){
     const sequenceGrants=await one(tx,`SELECT count(*)::text AS n FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace CROSS JOIN pg_roles r
      WHERE n.nspname='canonical_v4' AND c.relkind='S' AND r.rolname IN('murmingle_app','murmingle_crawler_submitter','murmingle_ingest_worker')
      AND has_sequence_privilege(r.rolname,c.oid,'USAGE,SELECT,UPDATE')`);requireThat(sequenceGrants.n==='0','RESTORE_SEQUENCE_GRANTS');
+    await phase('grants-verified');
    });
   });
   const observed=[];
@@ -144,6 +180,7 @@ async function verifyDatabase(db,receipt,manifest,checks,check){
     for(const row of result.rows){requireThat(typeof row.row_sha==='string'&&SHA.test(row.row_sha),'RESTORE_FINGERPRINT_HASH');digest.update(row.row_sha+'\n');rows++;integer(rows);}if(result.rows.length<128)break;}
    }catch(e){failed=true;primary=e;throw e;}finally{try{await tx.query('CLOSE backup_rows');}catch(e){if(!failed)throw e;}if(failed)void primary;}
    const fingerprint={table,rows,sha256:digest.digest('hex')};requireThat(isDeepStrictEqual(fingerprint,receipt.currentRowsFingerprint.tables[i]),'RESTORE_TABLE_FINGERPRINT');observed.push(fingerprint);
+   await phase('table-'+table+'-verified');
   });requireThat(hash(JSON.stringify(observed))===receipt.currentRowsFingerprint.sha256,'RESTORE_COMPOSITE_FINGERPRINT');});
   await checks.test(GROUPS[2].name,async t=>{await t.test(GROUPS[2].children[0],async()=>{
    const sequences=(await tx.query(`SELECT c.relname AS name,pg_get_userbyid(c.relowner) AS owner,s.seqincrement::text AS increment,s.seqcycle AS cycle
@@ -153,6 +190,7 @@ async function verifyDatabase(db,receipt,manifest,checks,check){
     const [table,key]=SEQUENCES[row.name],state=await one(tx,`SELECT last_value::text,is_called FROM canonical_v4.${row.name}`),maximum=await one(tx,`SELECT max(${key})::text AS maximum FROM canonical_v4.${table}`);
     const last=decimal(state.last_value);requireThat(typeof state.is_called==='boolean','RESTORE_SEQUENCE');const next=last+(state.is_called?1n:0n);
     requireThat(next<=9223372036854775807n&&(maximum.maximum===null||next>decimal(maximum.maximum)),'RESTORE_SEQUENCE_REUSE');}
+   await phase('sequences-verified');
   });});
   checks.finish();return true;
  });
@@ -160,33 +198,39 @@ async function verifyDatabase(db,receipt,manifest,checks,check){
 
 function buildCheck(deps,inputs){return async()=>deps.lifecycle(async capability=>{
  const {connectFixedRole,restoreArchive,deadline,checkDeadline}=capability;requireThat(typeof connectFixedRole==='function'&&typeof restoreArchive==='function'&&typeof checkDeadline==='function'&&Number.isFinite(deadline),'RESTORE_CAPABILITY');
+ const epoch=deps.now();requireThat(Number.isFinite(epoch)&&epoch>=0,'RESTORE_PHASE_CLOCK');
  let openScope=true,originalClient=null,db=null,data=null,receiptBound=false,archiveAuthenticated=false,completeInput=false,restoreVerified=false,hadPrimary=false,primary;
  const check=()=>{requireThat(openScope,'RESTORE_SCOPE_RETIRED');checkDeadline();};
+ let phases=null;
+ const phase=async stage=>{check();await phases.write(stage);check();};
  const controller=deps.controller({connectFixedRole:async(request,guard)=>{const client=await connectFixedRole(request,guard);if(request.database===NAMES[0]&&request.role==='postgres'){requireThat(originalClient===null,'RESTORE_TARGET_REUSE');originalClient=client;}return client;},getOwnedIdentity:deps.getOwnedIdentity,guard:check}),checks=ledger();
  let cleanup;
  try{
-  check();data=await deps.readData(check);check();requireThat(data.archiveSha256===inputs.archiveSha256&&Number.isSafeInteger(data.archiveBytes)&&data.archiveBytes>inputs.dumpBytes&&data.archiveBytes<=MAX_ARCHIVE,'RESTORE_ARCHIVE_PIN');
+  check();phases=await deps.openPhases({epoch,checkDeadline:check});check();await phase('callback-enter');await phase('archive-hash-start');
+  data=await deps.readData(check);check();requireThat(data.archiveSha256===inputs.archiveSha256&&Number.isSafeInteger(data.archiveBytes)&&data.archiveBytes>inputs.dumpBytes&&data.archiveBytes<=MAX_ARCHIVE,'RESTORE_ARCHIVE_PIN');
+  await phase('archive-hash-complete');
   const manifest=await deps.manifest();check();const receipt=validateReceipt(data.receiptRaw,inputs,manifest);receiptBound=true;
   db=await controller.acquire();check();requireThat(originalClient!==null,'RESTORE_TARGET_CLIENT');
   let target;
   const port={
-   inspect:async()=>{check();archiveAuthenticated=true;target=checkedIdentity(await one(db,IDENTITY_SQL),deps.getOwnedIdentity(originalClient),NAMES[0]);check();await emptySchema(db);check();
-    await db.exec('DROP SCHEMA canonical_v4');check();return {host:'127.0.0.1',port:55433,database:NAMES[0],oid:target.oid,serverStarted:Number(target.started),owned:true,fresh:true,empty:true};},
+   inspect:async()=>{check();archiveAuthenticated=true;await phase('archive-authenticated');target=checkedIdentity(await one(db,IDENTITY_SQL),deps.getOwnedIdentity(originalClient),NAMES[0]);check();await emptySchema(db);check();
+    await db.exec('DROP SCHEMA canonical_v4');check();await phase('empty-target-verified');return {host:'127.0.0.1',port:55433,database:NAMES[0],oid:target.oid,serverStarted:Number(target.started),owned:true,fresh:true,empty:true};},
    restore:async value=>{check();requireThat(value.identity.oid===target.oid&&value.dumpSha256===inputs.dumpSha256&&value.dumpBytes===inputs.dumpBytes,'RESTORE_DUMP_BINDING');
-    const result=await restoreArchive({client:originalClient,oid:target.oid,dump:value.dump,dumpBytes:inputs.dumpBytes,dumpSha256:inputs.dumpSha256});check();
-    requireThat(result.closed===true&&result.stdoutEof===true&&result.stderrEof===true&&result.exitCode===0,'RESTORE_CHILD_UNSETTLED');completeInput=true;return result;},
+    await phase('restore-dispatched');const result=await restoreArchive({client:originalClient,oid:target.oid,dump:value.dump,dumpBytes:inputs.dumpBytes,dumpSha256:inputs.dumpSha256});check();
+    requireThat(result.closed===true&&result.stdoutEof===true&&result.stderrEof===true&&result.exitCode===0,'RESTORE_CHILD_UNSETTLED');completeInput=true;await phase('restore-retired');return result;},
    verifyRestored:async value=>{check();requireThat(hash(JSON.stringify(value.header))===inputs.headerSha256&&value.header.dumpSha256===inputs.dumpSha256&&value.header.dumpBytes===inputs.dumpBytes&&
     isDeepStrictEqual(value.header.version,receipt.version)&&isDeepStrictEqual(value.header.migrations,receipt.migrations)&&isDeepStrictEqual(value.header.counts,receipt.counts),'RESTORE_HEADER_BINDING');
     const identity=checkedIdentity(await one(db,IDENTITY_SQL),deps.getOwnedIdentity(originalClient),NAMES[0]);requireThat(identity.oid===target.oid&&Number(identity.started)===Number(target.started),'RESTORE_TARGET_REPLACED');
-    return verifyDatabase(db,receipt,manifest,checks,check);},
+    return verifyDatabase(db,receipt,manifest,checks,check,phase);},
   };
-  const result=await deps.restore(inputs.filename,port);check();requireThat(result.restored===true&&result.dumpSha256===inputs.dumpSha256&&result.targetDatabase===NAMES[0]&&result.targetOid===target.oid,'RESTORE_RESULT');restoreVerified=true;
-  await db.close();db=null;check();const second=await controller.acquire();check();await emptySchema(second);await second.close();check();
+  await phase('backup-auth-start');const result=await deps.restore(inputs.filename,port);check();requireThat(result.restored===true&&result.dumpSha256===inputs.dumpSha256&&result.targetDatabase===NAMES[0]&&result.targetOid===target.oid,'RESTORE_RESULT');restoreVerified=true;
+  await db.close();db=null;check();await phase('scratch-a-retired');const second=await controller.acquire();check();await emptySchema(second);await second.close();check();await phase('scratch-b-retired');
  }catch(e){hadPrimary=true;primary=e;}
  finally{
   try{cleanup=await controller.finish();}catch(e){if(!hadPrimary){hadPrimary=true;primary=e;}}
   try{if(data){await data.verify();check();}}catch(e){if(!hadPrimary){hadPrimary=true;primary=e;}}
   try{await data?.close();}catch(e){if(!hadPrimary){hadPrimary=true;primary=e;}}
+  if(!hadPrimary)try{await phase('inputs-closed');phases.finish();}catch(e){hadPrimary=true;primary=e;}
   openScope=false;
  }
  const state=checks.snapshot();return {schema:'owner-restore-postgres-proof/v1',status:!hadPrimary&&restoreVerified&&cleanup?.status==='passed'?'passed':'failed',primary:hadPrimary?code(primary):null,
@@ -230,11 +274,16 @@ async function readFixedData(check){let receipt,archive;
   while(position<archive.size){check();const b=Buffer.alloc(Math.min(65536,archive.size-position));try{const {bytesRead}=await archive.fd.read(b,0,b.length,position);check();requireThat(bytesRead===b.length,'RESTORE_INPUT_TRUNCATED');digest.update(b);position+=bytesRead;}finally{b.fill(0);}}
   await archive.verify();check();return {receiptRaw,archiveSha256:digest.digest('hex'),archiveBytes:archive.size,verify:archive.verify,close:()=>archive.fd.close()};
  }catch(e){try{await receipt?.fd.close();}catch{}try{await archive?.fd.close();}catch{}throw e;}}
+async function openFixedPhases({epoch,checkDeadline}){
+ checkDeadline();const binding=await readOwnedPrivateRunBinding();checkDeadline();
+ return createPhaseWriter({fs:{open,link,lstat,realpath},output:path.win32.join(binding.runDirectory,'output'),now:()=>performance.now(),epoch,checkDeadline});
+}
 let used=false;
 export async function runOwnerRestoreNativeCheck(){
  requireThat(arguments.length===0&&!used,'RESTORE_ONESHOT');used=true;
  const [{runWithPrivateOwnedScopedPostgres},{restorePostgresBackupToOwnedFixture}]=await Promise.all([import('./hierarchy-native-cluster.js'),import('../../src/ops/postgres-backup-operator.js')]);
- const run=buildCheck({lifecycle:runWithPrivateOwnedScopedPostgres,controller:createFixtureController,getOwnedIdentity,manifest:()=>readCanonicalV4MigrationManifest(),readData:readFixedData,restore:restorePostgresBackupToOwnedFixture},INPUTS);
+ const run=buildCheck({lifecycle:runWithPrivateOwnedScopedPostgres,controller:createFixtureController,getOwnedIdentity,manifest:()=>readCanonicalV4MigrationManifest(),readData:readFixedData,
+  openPhases:openFixedPhases,now:()=>performance.now(),restore:restorePostgresBackupToOwnedFixture},INPUTS);
  return projectOwnerRestoreResult(await run());
 }
 export async function main(args=process.argv.slice(2)){

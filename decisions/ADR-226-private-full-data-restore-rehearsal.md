@@ -168,6 +168,61 @@ Do not modify either production helper/operator or expose password values.
 No second actual attempt is authorized by this source correction; a fresh review,
 resource check and separate one-attempt decision are still required.
 
+## Full-data resource policy after the corrected attempt
+
+The corrected attempt (session9953) closed exit1 at sampled cumulative Job CPU
+60.015625 seconds. Its run is
+`run-2a5d7e4541290b2bccac9edd86498e1a35f722e3e2465640`; original source is retained
+by Git `1677abb0`, and its catalog/output remain unchanged. Parent retirement was
+owned emergency, with empty Job/closed handles/both EOFs/end pins verified. There
+is no child lifecycle report or assertion ledger, so authentication, restore phase
+and normal PostgreSQL/database retirement are unknown. Root fully read and
+authenticated independent failure audit SHA256
+`c21a09d762d495070f5f1260b77bde3cd0226facdd6779a9aff84e3b213814ee`.
+Offline A-directory metadata shows679188147 bytes; this does not prove phase or
+completion. D free11657945088 bytes currently fails11GiB admission.
+
+Lead, Platform, Maintained and independent reviewers accepted the following
+purpose-based full-data SOURCE policy, not a prediction of success:
+
+- Private Job CPU ceiling300 cumulative seconds; default60 unchanged. Adapt only
+  the maintained private `job()` method's60 literal, with exact inverse proof;
+  preserve truthful accounting, peak/process/monotonic checks and every floor.
+- Private callback cutoff `min(now+300000, originalOverall-20000-25000)`;
+  default195000 unchanged. Preserve startup120/overall360/380/390, Job1GiB,
+  Node64MiB, process32, private tree6GiB and all free-space limits.
+- Add private durable checkpoints under the verified output directory, with a
+  closed ordered stage vocabulary, ordinal and original elapsed time only.
+  Prefer at most40 exclusive pending/closed-hardlink records of at most1024 bytes;
+  completed record publication follows original work and deadline checks. Keep
+  within existing128-entry/512KiB output limits. Started stages and last completed
+  checkpoints are lower-bound observations, not completion authority.
+- Separately prepare a fixed-path retirement of only the failed run's
+  `cluster/nhpg-EDfH2R/pgdata`, after marker/catalog/claim/owned-emergency joins,
+  successful exact PID and55433 absence, ACL/containment and all-entry reparse and
+  hardlink checks. Preserve ownership, PID metadata, file-count/size/hash inventory
+  and finite retirement receipt outside pgdata before removal. Never start/adopt
+  the retained cluster or touch archive, live data, maps, claims or output files.
+
+Bounded SOURCE grant: Platform owns maintained cluster/test deadline changes and
+the fixed one-off retirement script/test (delegated by Lead after cluster HOLD);
+Maintained owns private entry/test checkpoint changes; Lead owns driver/test
+private CPU adaptation and catalog.
+Pure tests and review only. Retirement and a further full restore each require
+separate explicit Lead decisions after source review and fresh observations.
+No automatic budget increase or further retry follows a failed future attempt;
+use the retained checkpoints to decide the next action.
+
+Follow-up source is independently accepted:37 pure Python,43 guarded Node and10
+managed-fake PowerShell checks pass. The33-stage JavaScript/Python grammar joins
+exactly. Retirement script SHA256
+`d0d39818d19208b549b65335d310b752d8c64eae27f709de87a7ebf0f557f08d`
+binds only the audited failed pgdata, preserves all original artifacts, and writes
+new evidence to a separate protected retirement directory. Root authenticated
+the current catalog:372559 bytes/2435 files/275023616 bytes, SHA256
+`9a6b7637dcc67f2a9c95066d2be84350555901cd1138e8c3e8cf54da6b85e223`.
+This source acceptance authorizes neither actual retirement nor another restore.
+
 Source grant (2026-10-27): implement only the maintained driver/test and catalog,
 maintained run-binding/cluster and their tests, new private-owner-storage helper
 and test, and new owner-restore-native-check entry and test. Reviews resolved

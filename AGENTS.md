@@ -8,6 +8,30 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current 27 Oct continuation: the goal remains active. Private full-data restore
+source was committed/pushed as ceea2c7a; the fixed private LOCALAPPDATA correction
+is pushed as1677abb0. First actual20367 failed before authentication, then retired
+scratch A/PG normally; independent saved-failure audit bc34582f...148 was fully
+read/authenticated. Corrected actual9953 failed at sampled cumulative Job CPU
+60.015625; run2a5d7e45...65640 retains map/output/ownership and partial PG data.
+Parent verified owned emergency/empty Job/closed handles/two EOFs/end pins, but
+there is no child report: authentication, restore phase and SQL completion are
+unknown. Root fully read/authenticated audit c21a09d7...14ee. No rerun/adoption.
+
+ADR226 now grants SOURCE only for a considered private CPU300/default60 policy,
+private callback min(now+300s, originalOverall-20s-25s)/default195s, unchanged
+360/380/390/1GiB/64MiB/32process/6GiB/floors, and33 bounded immutable private
+phase checkpoints. Six-file source independently accepted:37 pure Python and43
+guarded Node PASS; JS/Python phase/table grammar exact. Source accepted, with
+catalog9a6b7637...5e223/2435files275023616B/97NORMAL. Platform's NEW fixed
+failed-pgdata retirement script/test independently accepted;10 managed-fake
+tests PASS, no real AuditOnly or deletion authorized yet.
+D free11657945088B fails11GiB admission; exact derived fixture cleanup must pass
+review and a separate decision before another full restore. Preserve original
+backup/receipt/live data and all maps/claims/output/ownership. Original services
+and crawler4060 same starts; crawler5631 advancing/stderr0;55433 absent. Actual
+restored19fingerprints, combined UI/provider/load/backfill/adoption/cutover OPEN.
+
 LATEST27Oct productionoperatorbf7bdefe/schema17+counts15cc009f/dashboardbd322cfa/
 streamingbackup6c652709/native3aeae3ca allPUSHED. Actual01778979 CLOSEDexit0/
 25orderedPASS runc0983e17...33f17/catalog72a05a...f69c2424/274804547B/92Git;

@@ -35,6 +35,10 @@ RESTORED_TABLES = ('schema_migrations','meta','id_registry','topics','discussion
     'embeddings','source_links','topic_memberships','fixed_references','contributions',
     'revisions','operation_receipts','import_ledger','runtime_state','command_receipts',
     'runtime_source_stamps','ingestion_jobs','catalog_ingest_lane')
+PRIVATE_PHASES = ('callback-enter','archive-hash-start','archive-hash-complete','backup-auth-start',
+    'archive-authenticated','empty-target-verified','restore-dispatched','restore-retired',
+    'schema-verified','grants-verified') + tuple('table-'+name+'-verified' for name in RESTORED_TABLES) + (
+    'sequences-verified','scratch-a-retired','scratch-b-retired','inputs-closed')
 MAP_KEY = OWN + 'hierarchy-native-reviewed-sources.json'
 NORMAL_SCOPE_ABSENCES = frozenset([
     'apps/local-service/src/http/package.json',
@@ -135,6 +139,8 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/test/postgres-backup-operator.test.js',
     'apps/local-service/src/ops/windows-backup-protection.js',
     'apps/local-service/portable/src/windows-dpapi-password.js',
+    OWN + 'hierarchy-private-retire-pgdata.ps1',
+    OWN + 'hierarchy-private-retire-pgdata.test.ps1',
 ])
 PINS = {
     'inventory': (OLD+'inventory.py', '3dfc2dcdb0c09a46d6215b5cf0781829f27a70f03c8106e6bb70db18bf28f385'),
@@ -155,12 +161,15 @@ NATIVE_FAILURE_CODES = frozenset([
 ])
 
 
-def diagnostic_controller_type(supervisor, windows):
+def diagnostic_controller_type(supervisor, windows, private=False):
     """Keep finite exact-class failures at original first-failure selection.
 
     No operation is caught/retried here. Unknown exceptions still use the
     frozen generic classification; no messages, filenames or SQL are inspected.
     """
+    if type(private) is not bool:
+        raise ValueError('controller-purpose')
+    require,number,uint,MIB = supervisor.require,supervisor.number,supervisor.uint,supervisor.MIB
     class Controller(supervisor.Controller):
         def remember(self, error, cleanup=False, fallback='controller-failure'):
             translated = error
@@ -181,7 +190,36 @@ def diagnostic_controller_type(supervisor, windows):
                         translated = supervisor.Refusal(category)
                         break
             return super().remember(translated, cleanup, fallback)
-    return Controller
+    if not private:
+        return Controller
+
+    class PrivateController(Controller):
+        # Exact frozen resource checks, with only the purpose-specific CPU
+        # ceiling changed. Tests prove the inverse; samples remain truthful.
+        def job(self):
+            row = self.boundary.sample()
+            require(type(row) is dict, 'resource-shape')
+            cpu, peak, account = row.get('cpu'), row.get('committed'), row.get('accounting')
+            require(number(cpu) and uint(peak) and type(account) is dict, 'resource-shape')
+            keys = ('totalProcesses', 'activeProcesses', 'totalTerminatedProcesses', 'user100ns', 'kernel100ns')
+            require(set(account) == set(keys) and all(uint(account[key]) for key in keys), 'resource-shape')
+            require(account['activeProcesses'] <= 32 and account['activeProcesses'] <= account['totalProcesses'] and
+                    account['totalTerminatedProcesses'] <= account['totalProcesses'], 'job-accounting')
+            require(cpu == (account['user100ns'] + account['kernel100ns'])/10000000,
+                    'job-accounting')
+            require(cpu >= self.last_cpu and peak >= self.last_peak, 'resource-regression')
+            if self.last_accounting is not None:
+                require(all(account[key] >= self.last_accounting[key] for key in keys
+                            if key != 'activeProcesses'), 'resource-regression')
+            self.last_cpu, self.last_peak, self.last_accounting = cpu, peak, dict(account)
+            require(cpu <= 300, 'resource-limit', 'jobCpuSeconds', cpu)
+            require(peak <= 1024*MIB, 'resource-limit', 'historicalPeakJobMemoryBytes', peak)
+            # These are sampled independently of host_sample; neither is a reservation.
+            for key, floor in (('physicalFree', 1024*MIB), ('commitFree', 1024*MIB),
+                               ('cFree', 2048*MIB), ('dFree', 4096*MIB)):
+                require(uint(row.get(key)), 'resource-shape')
+                require(row[key] >= floor, 'resource-floor', key, row[key])
+    return PrivateController
 
 
 def semantic_completion(stdout, stderr, exit_code):
@@ -517,6 +555,72 @@ class PrivateInputs:
             raise first
 
 
+class PrivatePhases:
+    """Sample closed checkpoint prefixes; a checkpoint is never SQL authority."""
+    def __init__(self, inventory, run):
+        self.i,self.run = inventory,run
+        self.pending_ids,self.closed = {},[]
+
+    def check(self):
+        I,root = self.i,self.run.output
+        directory_info(root,I)
+        allowed = {'phase-%02d.%s'%(index,suffix) for index in range(len(PRIVATE_PHASES))
+            for suffix in ('pending','json')}
+        with os.scandir(root) as entries:
+            for entry in entries:
+                if entry.name.startswith('phase-'):
+                    I.require(entry.name in allowed,'private-phase-name')
+        for index in range(len(PRIVATE_PHASES)):
+            pending = root/('phase-%02d.pending'%index)
+            if os.path.lexists(pending):
+                info = pending.lstat()
+                I.require(I.no_reparse(info) and stat.S_ISREG(info.st_mode) and info.st_nlink in (1,2)
+                    and 0 <= info.st_size <= 1024,'private-phase-pending')
+                identity = (info.st_dev,info.st_ino)
+                if index in self.pending_ids:
+                    I.require(self.pending_ids[index] == identity,'private-phase-replaced')
+                else:
+                    self.pending_ids[index] = identity
+            else:
+                I.require(index not in self.pending_ids,'private-phase-disappeared')
+        # Read permanent paths in prefix order, rather than interpreting one
+        # directory enumeration as an atomic snapshot of legal publication.
+        for index,stage in enumerate(PRIVATE_PHASES):
+            final = root/('phase-%02d.json'%index)
+            if not os.path.lexists(final):
+                I.require(index >= len(self.closed),'private-phase-disappeared')
+                break
+            pending = root/('phase-%02d.pending'%index)
+            info,pi = final.lstat(),pending.lstat()
+            I.require(I.no_reparse(info) and I.no_reparse(pi) and stat.S_ISREG(info.st_mode)
+                and stat.S_ISREG(pi.st_mode) and 0 < info.st_size <= 1024 and info.st_nlink == pi.st_nlink == 2
+                and (info.st_dev,info.st_ino,info.st_size) == (pi.st_dev,pi.st_ino,pi.st_size),'private-phase-link')
+            with final.open('rb') as stream:
+                raw = stream.read(1025)
+            digest = hashlib.sha256(raw).hexdigest()
+            I.require(len(raw) == info.st_size and I.hash_regular_file(root,final.name,info.st_size) == digest
+                and I.hash_regular_file(root,pending.name,pi.st_size) == digest,'private-phase-pin')
+            try:
+                value = json.loads(raw,object_pairs_hook=I._unique_pairs)
+            except (ValueError,UnicodeError,RecursionError):
+                raise I.Refusal('private-phase-record') from None
+            I.require(type(value) is dict and set(value) == {'schema','ordinal','stage','elapsedMs'}
+                and value['schema'] == 'private-owner-restore-phase/v1' and type(value['ordinal']) is int
+                and value['ordinal'] == index and value['stage'] == stage and type(value['elapsedMs']) is int
+                and 0 <= value['elapsedMs'] <= 360000 and raw == I.canonical_json(value),'private-phase-record')
+            if index:
+                I.require(value['elapsedMs'] >= self.closed[index-1][1],'private-phase-clock')
+            observed = (digest,value['elapsedMs'])
+            if index < len(self.closed):
+                I.require(self.closed[index] == observed,'private-phase-changed')
+            else:
+                self.closed.append(observed)
+
+    def complete(self):
+        self.check()
+        self.i.require(len(self.closed) == len(PRIVATE_PHASES),'private-phase-incomplete')
+
+
 def load_pinned(name):
     key, expected = PINS[name]
     path = REPO/key
@@ -818,6 +922,7 @@ def execute(external_sha, private=False):
     tree = cluster_tree_type(S, I, run)()
     modules, host_native = {'windows':load_pinned('windows')}, []
     inputs = PrivateInputs(I) if private else None
+    phases = PrivatePhases(I,run) if private else None
 
     def authenticate():
         catalog.authenticate()
@@ -843,6 +948,8 @@ def execute(external_sha, private=False):
         tree.check()
         if inputs is not None and not inputs.closed:
             inputs.check()
+        if phases is not None:
+            phases.check()
 
     def boundary():
         W, B = modules['windows'], modules['baseline']
@@ -850,13 +957,21 @@ def execute(external_sha, private=False):
 
     def end_pins():
         catalog.end_pins()
+        if phases is not None:
+            phases.check()
         if inputs is not None:
             if not inputs.closed:
                 inputs.finish(controller.normal_deadline if controller.normal_deadline is not None else STARTED+380)
             I.require(inputs.verified and inputs.closed,'private-input-retirement')
 
-    controller = diagnostic_controller_type(S, modules['windows'])(authenticate=authenticate, end_pins=end_pins,
-        host_sample=host, boundary_factory=boundary, validate=private_completion if private else semantic_completion,
+    def validate(stdout,stderr,exit_code):
+        value = private_completion(stdout,stderr,exit_code) if private else semantic_completion(stdout,stderr,exit_code)
+        if private and value['accepted']:
+            phases.complete()
+        return value
+
+    controller = diagnostic_controller_type(S, modules['windows'],private=private)(authenticate=authenticate, end_pins=end_pins,
+        host_sample=host, boundary_factory=boundary, validate=validate,
         clock=time.monotonic, pause=time.sleep, workspace_check=workspace, started_at=STARTED)
     try:
         result = controller.run()

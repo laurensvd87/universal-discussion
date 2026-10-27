@@ -3,7 +3,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {OWNER_RESTORE_CASES,createOwnerRestoreCheckForTest,projectOwnerRestoreResult,main,runOwnerRestoreNativeCheck} from './owner-restore-native-check.js';
+import {OWNER_RESTORE_CASES,OWNER_RESTORE_PHASES,createOwnerRestoreCheckForTest,createOwnerRestorePhaseWriterForTest,projectOwnerRestoreResult,main,runOwnerRestoreNativeCheck} from './owner-restore-native-check.js';
+import {PRIVATE_RUN_ROOT} from './private-owner-storage.js';
 
 const sha=value=>createHash('sha256').update(value).digest('hex');
 const names=['murmingle_hierarchy_fixture_20261026_a','murmingle_hierarchy_fixture_20261026_b'];
@@ -20,7 +21,7 @@ const privileges={app:['runtime_append_command','runtime_lifecycle_command','run
  submitter:['ingest_enqueue_crawler','ingest_renew_authority','ingest_revoke_authority','ingest_receipt','ingest_status'],
  worker:['ingest_claim','ingest_renew_lease','ingest_ridge_predicate','ingest_ridge_scan','ingest_apply','ingest_fail_claim']};
 function fixture({fault=null}={}){
- const events=[],queries=[],identities=new WeakMap(),manifest=Array.from({length:9},(_,i)=>({version:i+1,hash:sha('migration-'+i)}));
+ const events=[],queries=[],phases=[],identities=new WeakMap(),manifest=Array.from({length:9},(_,i)=>({version:i+1,hash:sha('migration-'+i)}));
  const plaintext=Buffer.from('PGDMPinvented-only'),fingerprints=tables.map(table=>({table,rows:table==='schema_migrations'?9:1,
   sha256:sha(Array.from({length:table==='schema_migrations'?9:1},(_,i)=>sha(table+'-'+i)+'\n').join(''))}));
  const version={generation:'invented-generation',revision:7},counts={topics:1,discussions:1,sources:1,sourceLinks:1,contributions:1};
@@ -66,7 +67,11 @@ function fixture({fault=null}={}){
   else assert.fail('Unexpected SQL in invented adapter: '+sql);
   return {rows};
  }
- const deps={manifest:async()=>manifest,getOwnedIdentity:client=>identities.get(client),
+ const deps={manifest:async()=>manifest,getOwnedIdentity:client=>identities.get(client),now:()=>0,
+  openPhases:async({epoch,checkDeadline})=>{assert.equal(epoch,0);checkDeadline();return {
+   write:async stage=>{checkDeadline();assert.equal(stage,OWNER_RESTORE_PHASES[phases.length]);if(fault?.phase===stage)throw fault.phaseValue;phases.push(stage);},
+   finish:()=>assert.deepEqual(phases,OWNER_RESTORE_PHASES),
+  };},
   readData:async check=>{check();events.push('read-pins');return {receiptRaw,archiveSha256:inputs.archiveSha256,archiveBytes:plaintext.length+100,
    verify:async()=>events.push('verify-held-data'),close:async()=>events.push('close-held-data')};},
   controller:ports=>{const records=[];controller={async acquire(){const index=records.length;assert.ok(index<2);assert.ok(index===0||records[0].closed);
@@ -86,7 +91,7 @@ function fixture({fault=null}={}){
    await port.restore({identity,dump:(async function*(){yield plaintext;})(),dumpBytes:plaintext.length,dumpSha256:sha(plaintext)});
    await port.verifyRestored({identity,header});return {restored:true,targetDatabase:names[0],targetOid:identity.oid,dumpSha256:sha(plaintext)};},
  };
- return {deps,inputs,events,queries,receiptRaw,header,get invocations(){return invocations;},run:()=>createOwnerRestoreCheckForTest(deps,inputs)()};
+ return {deps,inputs,events,queries,phases,receiptRaw,header,get invocations(){return invocations;},run:()=>createOwnerRestoreCheckForTest(deps,inputs)()};
 }
 
 test('private entry imports inert, exposes distinct fixed25 ledger and rejects all CLI selectors',async()=>{
@@ -102,6 +107,7 @@ test('all19 fingerprints, schema/grants/sequences and AthenB retirement compose 
  assert.equal(f.queries.filter(sql=>sql.startsWith('DECLARE')).length,19);assert.equal(f.queries.filter(sql=>sql.startsWith('SELECT last_value')).length,7);
  assert.ok(f.queries.filter(sql=>sql.startsWith('DECLARE')&&sql.includes('array_send')).length===2);
  assert.ok(!f.queries.some(sql=>/nextval\(|setval\(/u.test(sql)));assert.ok(f.events.includes('rr-commit'));
+ assert.deepEqual(f.phases,OWNER_RESTORE_PHASES);assert.equal(f.phases.length,33);
 });
 test('receipt and archive bindings refuse before any restore or fixture acquisition',async()=>{
  const f=fixture();f.inputs.receiptSha256='0'.repeat(64);const result=projectOwnerRestoreResult(await f.run());assert.equal(result.accepted,false);
@@ -113,6 +119,7 @@ test('a changed table fingerprint fails its genuine named point and still closes
  const f=fixture({fault:{fingerprint:'sources'}}),result=projectOwnerRestoreResult(await f.run());assert.equal(result.accepted,false);assert.equal(result.primary,'RESTORE_TABLE_FINGERPRINT');
  assert.equal(result.proof.cases.at(-1).name,'Restored snapshot table: sources');assert.equal(result.proof.cases.at(-1).status,'failed');
  assert.ok(f.events.includes('rr-rollback'));assert.ok(f.events.includes('finish-controller'));assert.equal(f.events.at(-1),'close-held-data');
+ assert.equal(f.phases.at(-1),'table-discussions-verified');assert.ok(!f.phases.includes('table-sources-verified'));
 });
 for(const [name,fault,expected]of [['PK collation',{collation:true},'RESTORE_PK_COLLATION'],['PUBLIC function execute',{publicFunction:true},'RESTORE_FUNCTION_SECURITY'],['restored DML grant',{writable:true},'RESTORE_TABLE_GRANTS'],['unsafe ordinal sequence',{unsafeSequence:true},'RESTORE_SEQUENCE_REUSE']])
  test(name+' cannot pass full-data verification',async()=>{const result=projectOwnerRestoreResult(await fixture({fault}).run());assert.equal(result.accepted,false);assert.equal(result.primary,expected);});
@@ -127,6 +134,53 @@ test('falsy primary SQL failure is not replaced by a secondary fixture cleanup e
  const f=fixture({fault:{query:sql=>sql.startsWith('FETCH')?{throw:true,value:false}:null,cleanup:Object.assign(new Error('secondary'),{code:'CLEANUP_SECONDARY'})}});
  const result=await f.run();assert.equal(result.checks.primary,'PRIVATE_RESTORE_FAILURE');assert.equal(result.checks.status,'failed');assert.ok(f.events.includes('close-held-data'));
  assert.ok(f.queries.includes('CLOSE backup_rows'));
+});
+test('a failed phase publication fails the rehearsal and preserves its first falsy failure during cleanup',async()=>{
+ const f=fixture({fault:{phase:'archive-hash-complete',phaseValue:false,cleanup:Object.assign(new Error('secondary'),{code:'CLEANUP_SECONDARY'})}});
+ const lifecycle=await f.run();assert.equal(lifecycle.checks.status,'failed');assert.equal(lifecycle.checks.primary,'PRIVATE_RESTORE_FAILURE');
+ assert.deepEqual(f.phases,['callback-enter','archive-hash-start']);assert.equal(f.invocations,0);assert.ok(f.events.includes('finish-controller'));assert.ok(f.events.includes('close-held-data'));
+});
+
+function phaseFixture({writeFailure=false,closeFailure=false,linkFailure=false}={}){
+ const output=PRIVATE_RUN_ROOT+'\\run-'+'a'.repeat(48)+'\\output',files=new Map(),events=[];let serial=1,time=100,expired=false;
+ const stat=node=>({dev:1,ino:node?.ino??0,size:node?.bytes?.length??0,isDirectory:()=>!node,isFile:()=>!!node,isSymbolicLink:()=>false});
+ const fs={lstat:async filename=>{if(filename===output)return stat(null);assert.ok(files.has(filename));return stat(files.get(filename));},realpath:async filename=>filename,
+  open:async(filename,flags)=>{assert.equal(flags,'wx');assert.ok(filename.startsWith(output+'\\phase-'));if(files.has(filename))throw Object.assign(new Error('exists'),{code:'EEXIST'});
+   const node={ino:serial++,bytes:null,closed:false,synced:false};files.set(filename,node);events.push('open');return {
+    writeFile:async bytes=>{events.push('write');if(writeFailure)throw false;node.bytes=Buffer.from(bytes);},sync:async()=>{node.synced=true;events.push('sync');},
+    close:async()=>{node.closed=true;events.push('close');if(closeFailure)throw Object.assign(new Error('close'),{code:'SECONDARY_CLOSE'});},
+   };},
+  link:async(from,to)=>{events.push('link');assert.equal(files.get(from).closed,true);assert.equal(files.get(from).synced,true);if(linkFailure)throw Object.assign(new Error('link'),{code:'PHASE_LINK'});
+   if(files.has(to))throw Object.assign(new Error('exists'),{code:'EEXIST'});files.set(to,files.get(from));},
+ };
+ const dependencies={fs,output,epoch:100,now:()=>time,checkDeadline:()=>{if(expired)throw Object.assign(new Error('elapsed'),{code:'OWNED_DEADLINE'});}};
+ return {writer:createOwnerRestorePhaseWriterForTest(dependencies),dependencies,files,events,output,advance:()=>time++,expire:()=>{expired=true;}};
+}
+test('bounded phase writer publishes all33 canonical records only after original write/sync/close, using exclusive hardlinks',async()=>{
+ const f=phaseFixture();for(const stage of OWNER_RESTORE_PHASES){await f.writer.write(stage);f.advance();}f.writer.finish();assert.equal(f.files.size,66);
+ for(let i=0;i<33;i++){const base=f.output+'\\phase-'+String(i).padStart(2,'0'),pending=f.files.get(base+'.pending'),closed=f.files.get(base+'.json');
+  assert.equal(pending,closed);assert.ok(closed.bytes.length<=1024);assert.deepEqual(Object.keys(JSON.parse(closed.bytes)).sort(),['elapsedMs','ordinal','schema','stage']);
+  assert.equal(closed.bytes.toString(),JSON.stringify({elapsedMs:i,ordinal:i,schema:'private-owner-restore-phase/v1',stage:OWNER_RESTORE_PHASES[i]})+'\n');}
+ await assert.rejects(f.writer.write('inputs-closed'),{code:'RESTORE_PHASE_ORDER'});assert.equal(f.files.size,66);
+});
+test('phase writer does not refund failed pending writes and preserves falsy write over secondary close failure',async()=>{
+ const f=phaseFixture({writeFailure:true,closeFailure:true});let caught='missing';try{await f.writer.write('callback-enter');}catch(e){caught=e;}assert.equal(caught,false);
+ assert.equal(f.files.size,1);assert.deepEqual(f.events,['open','write','close']);await assert.rejects(f.writer.write('callback-enter'),{code:'RESTORE_PHASE_ORDER'});
+ const g=phaseFixture({linkFailure:true});await assert.rejects(g.writer.write('callback-enter'),{code:'PHASE_LINK'});assert.equal(g.files.size,1);assert.throws(()=>g.writer.finish());
+});
+test('late original checkpoint write remains awaited and cannot publish after the callback cutoff',async()=>{
+ const f=phaseFixture(),originalOpen=f.dependencies.fs.open;let release,entered=false,settled=false;
+ f.dependencies.fs.open=async(...args)=>{const fd=await originalOpen(...args);return {...fd,writeFile:async bytes=>{entered=true;await new Promise(resolve=>{release=resolve;});await fd.writeFile(bytes);}};};
+ const writer=createOwnerRestorePhaseWriterForTest(f.dependencies),pending=writer.write('callback-enter').finally(()=>{settled=true;}),observed=pending.catch(e=>e);
+ while(!entered)await new Promise(resolve=>setImmediate(resolve));f.expire();await new Promise(resolve=>setImmediate(resolve));assert.equal(settled,false);
+ assert.equal(f.events.includes('link'),false);release();assert.equal((await observed).code,'OWNED_DEADLINE');assert.equal(f.files.size,1);
+ assert.ok(f.events.includes('close'));assert.ok(!f.events.includes('link'));
+});
+test('phase writer refuses stage selectors, foreign directories, expired or regressing clocks without closed publication',async()=>{
+ const f=phaseFixture();await assert.rejects(f.writer.write('arbitrary-sql-stage'),{code:'RESTORE_PHASE_ORDER'});assert.equal(f.files.size,0);
+ assert.throws(()=>createOwnerRestorePhaseWriterForTest({...f.dependencies,output:'D:\\foreign\\output'}),{code:'RESTORE_PHASE_SCOPE'});
+ const g=phaseFixture();g.expire();await assert.rejects(g.writer.write('callback-enter'),{code:'OWNED_DEADLINE'});assert.equal(g.files.size,0);
+ const h=phaseFixture(),writer=createOwnerRestorePhaseWriterForTest({...h.dependencies,now:()=>99});await assert.rejects(writer.write('callback-enter'),{code:'RESTORE_PHASE_CLOCK'});assert.equal(h.files.size,0);
 });
 test('finite projection rejects unsafe descriptors and cannot accept missing auth/input/retirement gates',async()=>{
  const lifecycle=await fixture().run();for(const key of ['archiveAuthenticated','receiptBound','completeInput','restoreVerified']){const changed=structuredClone(lifecycle);changed.checks[key]=false;assert.equal(projectOwnerRestoreResult(changed).accepted,false);}
