@@ -423,8 +423,9 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
     if (method === "discussion") return discussion(input);
     if (method === "discussionPage") {
       const page = await reads.discussionPage(input);
-      const { discussionVersion: _discussionVersion, ...dto } = page;
-      return frozenClone(dto);
+      // Public paging binds to this discussion's version, independently of
+      // unrelated crawler writes advancing the catalog's global revision.
+      return frozenClone(page);
     }
     if (method === "exactSource") return reads.exactSource(input);
     if (method === "alternateDiscussion") return alternateDiscussion(input);

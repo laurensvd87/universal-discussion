@@ -3,18 +3,34 @@ import assert from 'node:assert/strict';
 import {createPostgresCanonicalService} from '../src/application/create-postgres-canonical-service.js';
 import {createRequestHandler} from '../src/http/request-handler.js';
 import {AccountError} from '../src/accounts/account-errors.js';
+import {createLocalServiceClient} from '../../../spikes/topic-resolution/browser/core/local-service-client.js';
 
 const config={hostHeader:'127.0.0.1:4174',origin:'chrome-extension://'+'a'.repeat(32),capability:'invented-semantic-read'};
 const input={nodeId:'games',limit:20,cursor:null};
 const version=Object.freeze({generation:'semantic-http-generation',revision:1});
 const defer=()=>{let resolve;const promise=new Promise(done=>{resolve=done;});return {promise,resolve};};
-function fixture({enabled=false,feed=async()=>({version,roots:[]}),stamp=async()=>({generation:version.generation,revision:'f'.repeat(64)})}={}){
+function fixture({enabled=false,feed=async()=>({version,roots:[]}),stamp=async()=>({generation:version.generation,revision:'f'.repeat(64)}),discussionPage=null}={}){
  const never=()=>assert.fail('Unrelated canonical read or mutation');
- const reads={version:async()=>version,catalogContext:never,catalogPage:never,discussionPage:never,exactSource:never,urlSelection:never,
+ const reads={version:async()=>version,catalogContext:never,catalogPage:never,discussionPage:discussionPage??never,exactSource:never,urlSelection:never,
   semanticFeed:feed,semanticThread:async()=>({version,root:{id:'canonical-root'}}),semanticTarget:async()=>({version,root:{id:'canonical-root'},targetId:'canonical-root'}),
   semanticTopics:async()=>({version,policyRevision:0,topics:[]}),semanticContext:async()=>({version,sourceId:'saved-source'}),semanticStamp:stamp};
  return createPostgresCanonicalService({reads,runtime:{command:never},semanticDiscussions:enabled});
 }
+
+test('actual application HTTP projection preserves the per-discussion cursor version required by the public history client',async()=>{
+ const cfg={...config,capability:'canonical-history-public-test-token-long-enough'},requests=[];
+ const service=fixture({discussionPage:async value=>{assert.deepEqual(value,{topicId:'manual-topic',limit:20,cursor:null});return {
+  version,discussionVersion:7,topic:{id:'manual-topic',title:'Unclassified manual discussion',kind:'general'},discussionId:'manual-discussion',items:[],nextCursor:null};}});
+ const handle=createRequestHandler({config:cfg,service});
+ const client=createLocalServiceClient({getToken:()=>cfg.capability,getAccountToken:()=>assert.fail('Public history does not use account sessions'),
+  fetchImpl:async(url,options)=>{requests.push(new URL(url).pathname);const headers=Object.fromEntries(Object.entries(options.headers).map(([key,value])=>[key.toLowerCase(),value]));
+   const response=await handle({method:options.method,url:new URL(url).pathname,headers:{...headers,host:cfg.hostHeader,origin:cfg.origin},body:options.body??null});
+   return {url,status:response.status,headers:new Headers(response.headers),body:new Response(response.body).body};
+  }});
+ const page=await client.canonicalDiscussionPage({topicId:'manual-topic',limit:20,cursor:null});
+ assert.equal(page.discussionVersion,7);assert.equal(page.topic.id,'manual-topic');assert.equal(page.discussionId,'manual-discussion');assert.equal(Object.isFrozen(page),true);
+ assert.deepEqual(requests,['/v1/discussions/page']);
+});
 
 test('semantic routes are opt-in until startup installs their schema and matcher',async()=>{
  let calls=0;const service=fixture({feed:async()=>{calls++;return {};}});
