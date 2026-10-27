@@ -19,7 +19,7 @@ import {createStoredSourceHierarchyPreparation} from '../canonical-v4/semantic-s
 import {createCanonicalV4ReadFacade} from '../canonical-v4/read-facade.js';
 import {createPostgresCanonicalService} from '../../src/application/create-postgres-canonical-service.js';
 import {createRequestHandler} from '../../src/http/request-handler.js';
-import {readSemanticFeed,readSemanticThread,readSemanticTarget} from '../../../../spikes/topic-resolution/browser/core/local-service-contract.js';
+import {readSemanticFeed,readSemanticThread,readSemanticTarget,readSemanticTopics,readSemanticContext} from '../../../../spikes/topic-resolution/browser/core/local-service-contract.js';
 import {sourceStamp} from '../../src/domain/source-threads.js';
 import {RIDGE_PARAMETER_SHA256} from '../../src/domain/ridge-topic-adapter.js';
 import semanticGroups from './semantic-native-cases.json' with {type:'json'};
@@ -100,6 +100,13 @@ export async function runSemanticAssertions(test,{acquireFixture}){
  const feed=(nodeId='games')=>appFeeds.feedReferences({generation:fixture.generation,nodeId,beforeOrdinal:null,limit:100});
  const rootSnapshots=()=>owner.query(`SELECT root_id,source_id,source_version::text,matcher_hash,generation,operation_id,operation_digest,supported_path,topic_id,discussion_id,root_ordinal::text
   FROM canonical_v4.semantic_root_snapshots WHERE root_id=ANY($1::text[]) ORDER BY root_id`,[[humanRoot,aiRoot].filter(Boolean)]).then(r=>r.rows);
+ function publicMetadata(value){
+  const forbidden=new Set(['embedding','body','operationId','operationDigest','matcherIdentityHash','receipt','url','provenance','nativeObservation','assignmentAuthority']);
+  function check(v){if(v&&typeof v==='object')for(const [key,child] of Object.entries(v)){assert.equal(forbidden.has(key),false,'public semantic metadata omits private material');check(child);}}
+  check(value);return value;
+ }
+ const topics=async()=>readSemanticTopics(publicMetadata(await service.semanticTopics({})));
+ const context=async sourceId=>readSemanticContext(publicMetadata(await service.semanticContext({sourceId})),{sourceId});
  async function humanPost(label,{topicId=A.topicId,sourceId=A.sourceId}={}){
   return appRuntime.command({actorId:actor.id,requestId:'semantic-post-'+label,expected:await fixture.header(),
    command:{type:'create-root',topicId,body:'Invented human SQL root '+label,originSourceId:sourceId}});
@@ -171,6 +178,9 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     assert.equal(Number((await scalar(owner,'SELECT count(*) n FROM canonical_v4.semantic_root_snapshots')).n),0);
     const semanticStamp=await reads.semanticStamp();assert.equal(semanticStamp.generation,fixture.generation);assert.match(semanticStamp.revision,/^[a-f0-9]{64}$/u);
     assert.deepEqual(await scalar(worker,'SELECT * FROM canonical_v4.semantic_read_revision()'),semanticStamp);
+    assert.equal(Number((await scalar(owner,'SELECT count(*) n FROM canonical_v4.schema_migrations')).n),9);
+    assert.deepEqual((await topics()).topics,[]);
+    await assert.rejects(service.semanticContext({sourceId:'unknown-semantic-source'}),e=>e.code==='not-found');
     assert.equal((await scalar(owner,'SELECT id FROM canonical_v4.discussions WHERE id=$1 AND topic_id=$2',[MANUAL_DISCUSSION,MANUAL_TOPIC])).id,MANUAL_DISCUSSION);
    });
    await t.test(GROUPS[0].children[1],async()=>{
@@ -187,6 +197,8 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     await denied(app,'UPDATE canonical_v4.semantic_owner_policy SET revision=revision');
     await denied(app,'UPDATE canonical_v4.semantic_root_snapshots SET root_ordinal=root_ordinal');
     assert.deepEqual((await feed()).references,[]);assert.equal((await appFeeds.ownerPolicy()).revision,0);
+    assert.deepEqual((await scalar(app,'SELECT canonical_v4.semantic_read_topic_nodes($1) metadata',[fixture.generation])).metadata.nodes,[]);
+    await assert.rejects(app.query('SELECT canonical_v4.semantic_read_source_context($1,$2)',[fixture.generation,'unknown-semantic-source']),sqlCode('P1242'));
     await denied(app,'SELECT * FROM canonical_v4.semantic_read_source_candidates($1,$2,$3,$4)',[fixture.generation,hash1,null,50]);
     await denied(app,'SELECT * FROM canonical_v4.semantic_reclassify_stored_sources($1,$2,$3::jsonb)',[fixture.generation,hash1,'[]']);
     await denied(app,'SELECT * FROM canonical_v4.semantic_adopt_legacy_roots($1,$2,$3::jsonb)',[fixture.generation,hash1,'[]']);
@@ -201,6 +213,8 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     await denied(submitter,'SELECT * FROM canonical_v4.semantic_read_source_candidates($1,$2,$3,$4)',[fixture.generation,hash1,null,50]);
     await denied(submitter,'SELECT * FROM canonical_v4.semantic_reclassify_stored_sources($1,$2,$3::jsonb)',[fixture.generation,hash1,'[]']);
     await denied(submitter,'SELECT * FROM canonical_v4.semantic_adopt_legacy_roots($1,$2,$3::jsonb)',[fixture.generation,hash1,'[]']);
+    await denied(submitter,'SELECT canonical_v4.semantic_read_topic_nodes($1)',[fixture.generation]);
+    await denied(submitter,'SELECT canonical_v4.semantic_read_source_context($1,$2)',[fixture.generation,'unknown-semantic-source']);
    });
    await t.test(GROUPS[0].children[4],async()=>{
     await denied(worker,LEGACY,Array(11).fill(null));await denied(worker,REGISTER,[identity1]);await denied(worker,ACTIVATE,[hash1,0]);
@@ -211,6 +225,8 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     await denied(worker,'SELECT * FROM canonical_v4.semantic_read_feed($1,$2,$3,$4)',[fixture.generation,'games',null,10]);
     await denied(worker,'SELECT * FROM canonical_v4.semantic_adopt_legacy_roots($1,$2,$3::jsonb)',[fixture.generation,hash1,'[]']);
     await denied(worker,'UPDATE canonical_v4.semantic_material_state SET revision=revision');
+    assert.deepEqual((await scalar(worker,'SELECT canonical_v4.semantic_read_topic_nodes($1) metadata',[fixture.generation])).metadata.nodes,[]);
+    await denied(worker,'SELECT canonical_v4.semantic_read_source_context($1,$2)',[fixture.generation,'unknown-semantic-source']);
    });
    await t.test(GROUPS[0].children[5],async()=>{
     await assert.rejects(ownerSemantic.registerMatcher(badMatcher),error=>error.code==='invalid');
@@ -283,6 +299,34 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     assert.deepEqual(groupSupportedSemanticPath(compileSemanticTopicGrouping({nodes,policy:defaultOwnerPolicy}),bound.supported_path).selectedPath,['games']);
     assert.deepEqual(groupSupportedSemanticPath(compileSemanticTopicGrouping({nodes,policy:await appFeeds.ownerPolicy()}),bound.supported_path).selectedPath,SUPPORTED_PATH);
     assert.deepEqual((await scalar(owner,'SELECT supported_path FROM canonical_v4.semantic_inputs WHERE source_id=$1',[A.sourceId])).supported_path,bound.supported_path);
+    const priorPolicy=await appFeeds.ownerPolicy(),canonicalBeforePolicy=await canonicalState(),numericBeforePolicy=await counts(owner);
+    const broad=await ownerFeeds.setOwnerPolicy({expectedRevision:priorPolicy.revision,defaultMaxDepth:1,overrides:[]});
+    const coarse=await context(A.sourceId);assert.equal(coarse.status,'classified');assert.equal(coarse.sourceVersion,s.write_version);
+    assert.deepEqual(coarse.supportedPath,SUPPORTED_PATH);assert.deepEqual(coarse.selectedPath,['games']);
+    assert.deepEqual(coarse.topic,{id:'games',title:'Games',path:['games']});assert.equal(coarse.policyRevision,broad.revision);
+    assert.deepEqual((await topics()).topics.map(card=>card.id),['games','nature']);
+    let rrMode=false,switched=false,restoredPolicy;
+    // Observe the real app transaction, preserving every SQL result. Switch the
+    // actual owner policy on the existing owner connection between topology and
+    // policy reads: RR must retain its earlier coherent metadata projection.
+    const rrReads=createCanonicalV4ReadFacade({database:{query:(...args)=>app.query(...args),transaction:work=>app.transaction(async tx=>work({dialect:'pg',query:async(sql,args=[])=>{
+     const result=await tx.query(sql,args);
+     if(sql==='SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY'){
+      assert.deepEqual(await scalar(tx,"SELECT current_setting('transaction_isolation') isolation,current_setting('transaction_read_only') read_only"),{isolation:'repeatable read',read_only:'on'});rrMode=true;
+     }
+     if(sql==='SELECT canonical_v4.semantic_read_topic_nodes($1) AS metadata'&&!switched){
+      restoredPolicy=await ownerFeeds.setOwnerPolicy({expectedRevision:broad.revision,defaultMaxDepth:priorPolicy.defaultMaxDepth,overrides:priorPolicy.overrides});switched=true;
+     }
+     return result;
+    }}))}});
+    const stable=readSemanticContext(publicMetadata(await rrReads.semanticContext({sourceId:A.sourceId})),{sourceId:A.sourceId});
+    assert.equal(rrMode,true);assert.equal(switched,true);assert.equal(stable.policyRevision,broad.revision);assert.deepEqual(stable.selectedPath,['games']);
+    const specific=await context(A.sourceId);assert.equal(specific.policyRevision,restoredPolicy.revision);assert.deepEqual(specific.supportedPath,SUPPORTED_PATH);
+    assert.deepEqual(specific.selectedPath,SUPPORTED_PATH);assert.deepEqual(specific.topic,{id:'invented-game-branch',title:'invented-game-branch',path:SUPPORTED_PATH});
+    const directory=await topics();assert.equal(directory.policyRevision,restoredPolicy.revision);
+    assert.deepEqual(directory.topics.map(card=>card.id),['games','invented-game-branch','nature']);
+    assert.deepEqual(directory.topics.find(card=>card.id==='invented-game-branch').path,SUPPORTED_PATH);
+    assert.deepEqual(await canonicalState(),canonicalBeforePolicy);assert.deepEqual(await counts(owner),numericBeforePolicy);
     const receipt=await appIngest.receipt({operationId:initial.claim.operationId,operationDigest:initial.claim.operationDigest});assert.equal(receipt.sourceId,A.sourceId);
     originalDestination={topicId:s.topic_id,discussionId:s.discussion_id};
     const humanRequest={actorId:actor.id,requestId:'semantic-first-human-root',expected:await fixture.header(),
@@ -324,6 +368,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
    await t.test(GROUPS[1].children[7],async()=>{
     const work=await queued('challenge',{title:'Just a moment...'});assert.deepEqual(work.prepared.decision.semanticPath,SUPPORTED_PATH);excluded=await finish(work,{representedValues:null});
     const input=await scalar(owner,'SELECT supported_path,semantic_eligible FROM canonical_v4.semantic_inputs WHERE source_id=$1',[excluded.sourceId]);assert.deepEqual(input.supported_path,[]);assert.equal(input.semantic_eligible,false);
+    const excludedContext=await context(excluded.sourceId);assert.equal(excludedContext.status,'excluded');assert.deepEqual(excludedContext.supportedPath,[]);assert.deepEqual(excludedContext.selectedPath,[]);assert.equal(excludedContext.topic,null);
     assert.notEqual(excluded.topicId,A.topicId);assert.equal((await sourceState(owner,excluded.sourceId)).method,'learned-provisional');
     const root=await humanPost('excluded',{topicId:excluded.topicId,sourceId:excluded.sourceId});
     assert.equal(Number((await scalar(owner,'SELECT count(*) n FROM canonical_v4.semantic_root_snapshots WHERE root_id=$1',[root.result.contributionId])).n),0);
@@ -434,6 +479,8 @@ export async function runSemanticAssertions(test,{acquireFixture}){
      A=results[0].value;activation=results[1]?.value;
     }
     assert.equal(activation.matcherIdentityHash,hash2);assert.equal((await appIngest.status({operationId:work.claim.operationId,operationDigest:work.claim.operationDigest})).state,'complete');
+    const pendingContext=await context(A.sourceId);assert.equal(pendingContext.status,'pending');assert.equal(pendingContext.sourceVersion,(await sourceState(owner,A.sourceId)).write_version);
+    assert.deepEqual(pendingContext.supportedPath,[]);assert.deepEqual(pendingContext.selectedPath,[]);assert.equal(pendingContext.topic,null);
     // CURRENT is now model2. The Source still has only model1 observations:
     // this ordinary root must remain unclassified until explicit owner adoption.
     const legacy=await humanPost('retained-current-context',{topicId:MANUAL_TOPIC});legacyRoot=legacy.result.contributionId;
@@ -454,6 +501,8 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     assert.deepEqual(await workerSources.reclassify({...scope,items:[prepared]}),[{sourceId:A.sourceId,sourceVersion:prepared.sourceVersion,status:'recorded'}]);
     assert.deepEqual(await canonicalState(),unchanged,'background reclassification changes no Source, receipt, queue, lane or canonical revision');
     const recordedStamp=await reads.semanticStamp();assert.notEqual(recordedStamp.revision,beforeStamp.revision);
+    const reclassifiedContext=await context(A.sourceId);assert.equal(reclassifiedContext.status,'classified');assert.equal(reclassifiedContext.sourceVersion,prepared.sourceVersion);
+    assert.deepEqual(reclassifiedContext.supportedPath,SUPPORTED_PATH);assert.deepEqual(reclassifiedContext.selectedPath,SUPPORTED_PATH);
     assert.deepEqual(await workerSources.reclassify({...scope,items:[prepared]}),[{sourceId:A.sourceId,sourceVersion:prepared.sourceVersion,status:'reused'}]);
     assert.deepEqual(await reads.semanticStamp(),recordedStamp);
     const root=await scalar(owner,'SELECT write_version::text,discussion_id FROM canonical_v4.contributions WHERE id=$1',[legacyRoot]);
@@ -479,6 +528,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     const zeroStored=await scalar(owner,`SELECT o.source_version::text,i.body_values FROM canonical_v4.semantic_observations o
      JOIN canonical_v4.semantic_inputs i USING(source_id,operation_digest,matcher_hash) WHERE o.source_id=$1`,[imported.sourceId]);
     assert.equal(zeroStored.source_version,'0');assert.deepEqual(zeroStored.body_values,imported.values);
+    const zeroContext=await context(imported.sourceId);assert.equal(zeroContext.status,'classified');assert.equal(zeroContext.sourceVersion,'0');assert.deepEqual(zeroContext.supportedPath,zero.supportedPath);
     const remaining=await workerSources.candidates({...scope,afterOrdinal:null,limit:50});
     assert.equal(remaining.candidates.some(c=>[A.sourceId,imported.sourceId].includes(c.sourceId)),false,'current classified versions leave the missing-observation worklist');
    });
@@ -501,6 +551,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     }),error=>error===rollback);
     assert.deepEqual((await feed('invented-game-branch')).references.map(r=>r.rootId).sort(),[humanRoot,manualRoot,legacyRoot].sort());
     await appIngest.lifecycle(await fixture.header(),{type:'forget-source',sourceId:A.sourceId});
+    await assert.rejects(service.semanticContext({sourceId:A.sourceId}),e=>e.code==='not-found');
     const erased=await scalar(owner,`SELECT (SELECT count(*) FROM canonical_v4.sources WHERE id=$1)::integer sources,
      (SELECT count(*) FROM canonical_v4.semantic_inputs WHERE source_id=$1)::integer inputs,
      (SELECT count(*) FROM canonical_v4.semantic_observations WHERE source_id=$1)::integer observations`,[A.sourceId]);assert.deepEqual(erased,{sources:0,inputs:0,observations:0});

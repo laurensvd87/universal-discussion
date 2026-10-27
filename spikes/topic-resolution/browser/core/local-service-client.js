@@ -2,7 +2,8 @@ import { freeze, readActorId, readCatalog, readCommand, readConfirmation, readDi
   readId, readLimit, readOutcome, readPairingToken, readRelated, readPriorDiscussions, readReset, readVersion,
   readIngestion, readIngestionOutcome, readAlternateDiscussion, isAccountActorId,
   readEnrichmentRequest, readEnrichment, readSemanticFeedRequest, readSemanticThreadRequest, readSemanticTargetRequest,
-  readSemanticFeed, readSemanticThread, readSemanticTarget } from "./local-service-contract.js";
+  readSemanticFeed, readSemanticThread, readSemanticTarget, readSemanticTopicsRequest, readSemanticContextRequest,
+  readSemanticTopics, readSemanticContext } from "./local-service-contract.js";
 import { LocalServiceSessionProxyError } from "./local-service-session.js";
 import { readAccountAuthError } from "./account-auth-response.js";
 import { readDiscovery, readPrivateResponse, readAccountPublicChatsRequest, readAccountPublicChatsResponse } from "./community-contract.js";
@@ -169,6 +170,14 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
     }
   }
   return Object.freeze({
+    semanticTopics(value = {}, { signal, beforeDispatch } = {}) {
+      const body = input(() => readSemanticTopicsRequest(value));
+      return request("/semantic/topics", body, undefined, readSemanticTopics, signal, undefined, beforeDispatch);
+    },
+    semanticContext(value, { signal, beforeDispatch } = {}) {
+      const body = input(() => readSemanticContextRequest(value));
+      return request("/semantic/context", body, undefined, value => readSemanticContext(value, body), signal, undefined, beforeDispatch);
+    },
     semanticFeed(value, { signal, beforeDispatch } = {}) {
       const body = input(() => readSemanticFeedRequest(value));
       return request("/semantic/feed", body, undefined, value => readSemanticFeed(value, body), signal, undefined, beforeDispatch);

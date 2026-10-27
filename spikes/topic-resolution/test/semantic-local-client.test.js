@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createLocalServiceClient} from '../browser/core/local-service-client.js';
-import {readSemanticFeed,readSemanticThread,readSemanticTarget,readSemanticFeedRequest} from '../browser/core/local-service-contract.js';
+import {readSemanticFeed,readSemanticThread,readSemanticTarget,readSemanticFeedRequest,readSemanticTopicsRequest,readSemanticContextRequest,
+ readSemanticTopics,readSemanticContext} from '../browser/core/local-service-contract.js';
 
 const version={generation:'semantic-generation',revision:9},actors=[{id:'demo-alex',displayName:'Alex',type:'human'}];
 const nodeId='games',topic={id:'canonical-topic-a',title:'Original topic A',kind:'general'},discussionId='canonical-discussion-a';
@@ -110,4 +111,74 @@ test('current dispatch guard and caller cancellation fence public semantic trans
  const late=client(async()=>{calls++;entered.resolve();return response.promise;});
  const pending=late.semanticThread(threadRequest,{signal:lateAbort.signal});await entered.promise;lateAbort.abort();response.resolve(json(thread()));
  await assert.rejects(pending,{code:'unavailable'});assert.equal(calls,1);
+});
+
+const directory=()=>({version:{...version},policyRevision:2,topics:[{id:'games',title:'Games',path:['games']},
+ {id:'Grand Theft Auto: franchise',title:'Grand Theft Auto',path:['games','video-games','Grand Theft Auto: franchise']}]});
+const context=()=>({version:{...version},policyRevision:2,sourceId:'source-a',sourceVersion:'9223372036854775807',status:'classified',
+ supportedPath:['games','video-games','Grand Theft Auto: franchise'],selectedPath:['games'],topic:{id:'games',title:'Games',path:['games']}});
+
+test('semantic topics and context use page-independent public POST requests with no account or Source argument for topics',async()=>{
+ const calls=[];let accountCalls=0;
+ const c=createLocalServiceClient({getToken:()=> 'synthetic-semantic-client-pairing-token',getAccountToken:()=>{accountCalls++;assert.fail('Public read needs no account');},
+  fetchImpl:async(url,options)=>{calls.push({url,options});return json(url.endsWith('/topics')?directory():context());}});
+ const topics=await c.semanticTopics({}),page=await c.semanticContext({sourceId:'source-a'});
+ assert.equal(topics.topics[1].id,'Grand Theft Auto: franchise');assert.equal(topics.topics[1].path[1],'video-games');assert.equal(page.sourceVersion,'9223372036854775807');
+ assert.ok(Object.isFrozen(topics.topics[1].path));assert.ok(Object.isFrozen(page.topic));assert.equal(accountCalls,0);
+ assert.deepEqual(calls.map(call=>call.url),['http://127.0.0.1:4174/v1/semantic/topics','http://127.0.0.1:4174/v1/semantic/context']);
+ assert.equal(calls[0].options.body,'{}');assert.deepEqual(JSON.parse(calls[1].options.body),{sourceId:'source-a'});
+ for(const {options} of calls){assert.equal(options.method,'POST');assert.equal(options.redirect,'error');assert.equal(options.credentials,'omit');assert.equal(options.cache,'no-store');
+  assert.equal(options.headers['X-Account-Session'],undefined);assert.equal(options.headers['X-Demo-Actor'],undefined);}
+});
+
+test('topic directory permits omitted ancestors but rejects duplicate IDs, inconsistent listed ancestry and bounded invalid cards',()=>{
+ assert.equal(readSemanticTopics(directory()).topics.length,2);
+ const full=directory();full.topics.push({id:'video-games',title:'Video games',path:['games','video-games']});assert.equal(readSemanticTopics(full).topics.length,3);
+ for(const change of [v=>{v.topics.push({...v.topics[0]});},v=>{v.topics.push({id:'video-games',title:'Wrong lineage',path:['video-games']});},
+  v=>{v.topics[1].path=['games','games',v.topics[1].id];},v=>{v.topics[1].path=[];},v=>{v.topics[1].id='wrong-last-node';},
+  v=>{v.topics[1].title='x'.repeat(161);},v=>{v.topics[1].path=Array.from({length:9},(_,i)=>'node-'+i);v.topics[1].id='node-8';},
+  v=>{v.topics=Array.from({length:513},(_,i)=>({id:'node-'+i,title:'Node',path:['node-'+i]}));},v=>{v.policyRevision=-1;},v=>{v.nativeObservation=true;}]){
+  const value=directory();change(value);assert.throws(()=>readSemanticTopics(value),TypeError);
+ }
+ const value=directory(),parsed=readSemanticTopics(value);value.topics[0].title='Changed';assert.equal(parsed.topics[0].title,'Games');
+});
+
+test('Source context preserves zero and int64 versions, explicit pending/excluded states and classified abstention',()=>{
+ for(const sourceVersion of ['0','9007199254740993','9223372036854775807'])assert.equal(readSemanticContext({...context(),sourceVersion},{sourceId:'source-a'}).sourceVersion,sourceVersion);
+ for(const status of ['pending','excluded','classified']){
+  const value={...context(),status,supportedPath:[],selectedPath:[],topic:null};assert.equal(readSemanticContext(value).status,status);
+ }
+ const value=context();value.selectedPath=[...value.supportedPath];value.topic=directory().topics[1];assert.equal(readSemanticContext(value).topic.id,'Grand Theft Auto: franchise');
+ for(const sourceVersion of ['01','-1','9223372036854775808','1.0',0,9007199254740992,null])assert.throws(()=>readSemanticContext({...context(),sourceVersion}),TypeError);
+});
+
+test('context requires exact Source binding, prefix selection and matching nullable topic without adding authority fields',()=>{
+ for(const change of [v=>{v.sourceId='source-b';},v=>{v.selectedPath=['video-games'];},v=>{v.selectedPath=['games','other-child'];},
+  v=>{v.topic=null;},v=>{v.selectedPath=[];},v=>{v.topic.path=['other','games'];},v=>{v.topic.id='another-node';},
+  v=>{v.status='pending';},v=>{v.status='excluded';},v=>{v.status='ready';},v=>{v.supportedPath=['games','games'];},
+  v=>{v.matcherIdentityHash='a'.repeat(64);},v=>{v.assignmentAuthority=false;}]){
+  const value=context();change(value);assert.throws(()=>readSemanticContext(value,{sourceId:'source-a'}),TypeError);
+ }
+});
+
+test('directory/context accessors and sparse arrays are refused before hooks and malformed requests never dispatch',async()=>{
+ let hooks=0;const topics=directory();Object.defineProperty(topics.topics[1],'path',{enumerable:true,get(){hooks++;return [];}});
+ assert.throws(()=>readSemanticTopics(topics),TypeError);assert.equal(hooks,0);
+ const value=context();Object.defineProperty(value,'sourceVersion',{enumerable:true,get(){hooks++;return '0';}});
+ assert.throws(()=>readSemanticContext(value),TypeError);assert.equal(hooks,0);
+ const sparse=directory();sparse.topics=new Array(1);assert.throws(()=>readSemanticTopics(sparse),TypeError);
+ const badPath=context();badPath.selectedPath=new Array(1);assert.throws(()=>readSemanticContext(badPath),TypeError);
+ assert.deepEqual(readSemanticTopicsRequest({}),{});assert.deepEqual(readSemanticContextRequest({sourceId:'source-a'}),{sourceId:'source-a'});
+ let fetches=0;const c=client(async()=>{fetches++;return json(context());});
+ assert.throws(()=>c.semanticTopics({sourceId:'source-a'}),{code:'invalid-request'});
+ assert.throws(()=>c.semanticContext({sourceId:'source-a',url:'https://example.org'}),{code:'invalid-request'});assert.equal(fetches,0);
+ await assert.rejects(c.semanticContext({sourceId:'source-b'}),{code:'invalid-response'});assert.equal(fetches,1);
+});
+
+test('new semantic reads retain current-dispatch and delayed-token cancellation guards without retry',async()=>{
+ let fetches=0;const c=client(async()=>{fetches++;return json(directory());});
+ await assert.rejects(c.semanticTopics({},{beforeDispatch:()=>false}),{code:'conflict'});assert.equal(fetches,0);
+ const token=deferred(),abort=new AbortController(),waiting=createLocalServiceClient({getToken:()=>token.promise,fetchImpl:async()=>{fetches++;return json(context());}});
+ const work=waiting.semanticContext({sourceId:'source-a'},{signal:abort.signal});abort.abort();token.resolve('synthetic-semantic-client-pairing-token');
+ await assert.rejects(work,{code:'unavailable'});assert.equal(fetches,0);
 });

@@ -12,6 +12,8 @@ import { readRelatedCatalogEvidence } from './related-catalog-evidence.js';
 import { buildRelatedCatalogIndex, createRelatedCatalogEntryPreparation, relatedCatalogChanges, rankRelatedCatalogIndex } from './related-catalog-index.js';
 import { inspectPageNavigationUrl, inspectPageUrl } from '../../../../spikes/topic-resolution/browser/core/page-content-policy.js';
 import { createCanonicalV4SemanticDiscussionRepository } from './semantic-discussion-repository.js';
+import { createCanonicalV4SemanticMetadataRepository } from './semantic-metadata-repository.js';
+import { projectSemanticTopicDirectory, projectSemanticSourceContext } from '../../src/domain/semantic-topic-directory.js';
 
 const CATALOG_CURSOR_SCHEMA = 'canonical-v4-catalog-page/v1';
 const DISCUSSION_CURSOR_SCHEMA = 'canonical-v4-contributions/v1';
@@ -1249,6 +1251,31 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
           result.root = candidate.root; result.nextCursor = candidate.nextCursor;
         }
         return result;
+      });
+    },
+
+    async semanticTopics(value = {}) {
+      readRecord(value, []);
+      return snapshot(database, async tx => {
+        const header = await headerIn(tx), metadata = createCanonicalV4SemanticMetadataRepository({ database: tx });
+        const topology = await metadata.topics({ generation: header.version.generation });
+        const policy = await createCanonicalV4SemanticDiscussionRepository({ database: tx }).ownerPolicy();
+        let directory;try { directory = projectSemanticTopicDirectory(topology, policy); }
+        catch { corrupt('Invalid semantic topic directory'); }
+        return assertDtoSize({ version: header.version, ...directory }, 'Semantic topics');
+      });
+    },
+
+    async semanticContext(value) {
+      const input = readRecord(value, ['sourceId']), sourceId = readId(input.sourceId);
+      return snapshot(database, async tx => {
+        const header = await headerIn(tx), metadata = createCanonicalV4SemanticMetadataRepository({ database: tx });
+        const scope = { generation: header.version.generation };
+        const topology = await metadata.topics(scope), context = await metadata.sourceContext({ ...scope, sourceId });
+        const policy = await createCanonicalV4SemanticDiscussionRepository({ database: tx }).ownerPolicy();
+        let projected;try { projected = projectSemanticSourceContext(topology, policy, context); }
+        catch { corrupt('Invalid semantic Source context'); }
+        return assertDtoSize({ version: header.version, ...projected }, 'Semantic context');
       });
     },
 

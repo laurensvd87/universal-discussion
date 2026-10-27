@@ -2,11 +2,11 @@
   {
     "name": "semantic installation, owner policy, topology stability and stored-material role boundaries",
     "children": [
-      "semantic schemas start with an inert head, empty root snapshots, revision stamp and default owner policy",
+      "semantic schemas keep nine registered migrations and start with inert head, empty topic metadata, root snapshots and default owner policy",
       "actual numeric owner registration is inert, byte-bound and idempotent",
-      "app reads policy and feeds but cannot register, activate, reclassify, adopt or mutate semantic records",
-      "crawler submitter cannot register, activate, read semantic material or apply semantic writes",
-      "worker cannot call legacy apply, register models, set policy, adopt roots, read feeds or mutate semantic tables",
+      "app reads policy, topics, context and feeds but cannot register, activate, reclassify, adopt or mutate semantic records",
+      "crawler submitter cannot register, activate, read topology or context metadata or apply semantic writes",
+      "worker reads topology only but cannot read Source context, call legacy apply, register, set policy, adopt, read feeds or mutate tables",
       "cross-model node ancestry is stable while distinct models with the same ancestry register",
       "repeatable-read and serializable owner registration explicitly reject without mutation",
       "owner activation and depth policy use real compare-and-swap and actual grouping with stale and invalid-rule refusal"
@@ -20,9 +20,9 @@
       "registered topology rejects a numerically prepared non-ancestor path",
       "actual worker SQL rejects an invalid title vector without canonical mutation",
       "post-legacy semantic insertion failure rolls back Source, receipt, numeric input and job completion",
-      "successful apply binds paired input and human-AI child snapshots with original destinations, application feed paging and real HTTP projection",
+      "successful apply binds paired input, snapshot-safe public owner-cut metadata, human-AI canonical child feeds and real HTTP projection",
       "completed operation status and exact enqueue replay do not duplicate semantic or canonical writes",
-      "excluded challenge context remains canonically isolated and its real root receives no semantic snapshot"
+      "excluded challenge metadata stays empty and canonically isolated while its real root receives no semantic snapshot"
     ]
   },
   {
@@ -31,7 +31,7 @@
       "identical renewal deduplicates numeric input and records a new Source version without rewriting root snapshots",
       "title-only change creates new paired input while unpinned original roots retain their historical semantic snapshots",
       "manual destination persists while parsed application threads and exact targets retain canonical IDs, page actors and body-revision cursor fences",
-      "worker head share permits app reads, then unchanged Source reclassification and explicit legacy adoption refresh semantic reads including genuine version zero",
+      "worker head share permits app reads, then pending context becomes classified through unchanged Source reclassification and legacy adoption including genuine version zero",
       "actual withdrawal and controlled visibility changes remove feed edges; Source forget clears derived context but retains canonical roots and discussions",
       "second fresh database resets owner policy and material revision without reusing registry, head, snapshots or worker authority"
     ]

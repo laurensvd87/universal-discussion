@@ -69,6 +69,11 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/src/accounts/account-errors.js',
     'apps/local-service/src/accounts/account-routes.js',
     'apps/local-service/src/application/postgres-public-read-flights.js',
+    'apps/local-service/portable/canonical-v4/migrations/013-semantic-public-topic-metadata.sql',
+    'apps/local-service/portable/canonical-v4/semantic-metadata-repository.js',
+    'apps/local-service/portable/test/semantic-metadata-repository.test.js',
+    'apps/local-service/src/domain/semantic-topic-directory.js',
+    'apps/local-service/test/semantic-topic-directory.test.js',
 ])
 PINS = {
     'inventory': (OLD+'inventory.py', '3dfc2dcdb0c09a46d6215b5cf0781829f27a70f03c8106e6bb70db18bf28f385'),

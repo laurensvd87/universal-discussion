@@ -322,6 +322,50 @@ function semanticThread(value, expected, target) {
 }
 export function readSemanticThread(value, expected = null) { return semanticThread(value, expected, false); }
 export function readSemanticTarget(value, expected = null) { return semanticThread(value, expected, true); }
+export function readSemanticTopicsRequest(value) { return freeze(record(value, [])); }
+export function readSemanticContextRequest(value) {
+  const item = record(value, ["sourceId"]);
+  return freeze({ sourceId: readId(item.sourceId) });
+}
+function semanticPath(value, nonempty = false) {
+  const path = array(value, 8, semanticNode);
+  if (nonempty && path.length === 0 || new Set(path).size !== path.length) invalid();
+  return path;
+}
+function semanticTopicCard(value) {
+  const item = record(value, ["id", "title", "path"]), path = semanticPath(item.path, true), id = semanticNode(item.id);
+  if (path.at(-1) !== id) invalid();
+  return { id, title: text(item.title, 160), path };
+}
+function semanticPolicyRevision(value) {
+  if (!Number.isSafeInteger(value) || value < 0) invalid();
+  return value;
+}
+export function readSemanticTopics(value) {
+  const item = record(value, ["version", "policyRevision", "topics"]);
+  const topics = unique(array(item.topics, 512, semanticTopicCard)), byId = new Map(topics.map(card => [card.id, card]));
+  // Owner cuts may omit intermediate nodes. Any ancestor that IS listed must
+  // still describe the exact same declared ancestry prefix.
+  for (const card of topics) for (let i = 0; i < card.path.length; i++) {
+    const ancestor = byId.get(card.path[i]);
+    if (ancestor && (ancestor.path.length !== i + 1 || ancestor.path.some((id, index) => id !== card.path[index]))) invalid();
+  }
+  return freeze({ version: readVersion(item.version), policyRevision: semanticPolicyRevision(item.policyRevision), topics });
+}
+export function readSemanticContext(value, expected = null) {
+  const item = record(value, ["version", "policyRevision", "sourceId", "sourceVersion", "status", "supportedPath", "selectedPath", "topic"]);
+  const sourceId = readId(item.sourceId), sourceVersion = item.sourceVersion;
+  if (expected && sourceId !== expected.sourceId || typeof sourceVersion !== "string" ||
+      !/^(0|[1-9][0-9]{0,18})$/u.test(sourceVersion) || BigInt(sourceVersion) > 9223372036854775807n) invalid();
+  const status = oneOf(item.status, ["pending", "classified", "excluded"]), supportedPath = semanticPath(item.supportedPath), selectedPath = semanticPath(item.selectedPath);
+  if (selectedPath.length > supportedPath.length || selectedPath.some((id, index) => id !== supportedPath[index]) ||
+      status !== "classified" && (supportedPath.length || selectedPath.length)) invalid();
+  const topic = item.topic === null ? null : semanticTopicCard(item.topic);
+  if (selectedPath.length === 0 ? topic !== null : topic === null || topic.id !== selectedPath.at(-1) ||
+      topic.path.length !== selectedPath.length || topic.path.some((id, index) => id !== selectedPath[index])) invalid();
+  return freeze({ version: readVersion(item.version), policyRevision: semanticPolicyRevision(item.policyRevision), sourceId, sourceVersion,
+    status, supportedPath, selectedPath, topic });
+}
 export function readDiscussion(value, topicId) {
   const item = record(value, ["version", "topic", "discussionId", "roots"]);
   const projectedTopic = topic(item.topic);

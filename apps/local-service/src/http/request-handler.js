@@ -317,6 +317,10 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
     return publicRead("semanticThread", parseJsonBody(request));
   if (request.method === "POST" && path === "/v1/semantic/target" && typeof service.semanticTarget === "function")
     return publicRead("semanticTarget", parseJsonBody(request));
+  if (request.method === "POST" && path === "/v1/semantic/topics" && typeof service.semanticTopics === "function")
+    return publicRead("semanticTopics", parseJsonBody(request));
+  if (request.method === "POST" && path === "/v1/semantic/context" && typeof service.semanticContext === "function")
+    return publicRead("semanticContext", parseJsonBody(request));
   if (request.method === "POST" && path === "/v1/discover/search" && service.discover) {
     return publicRead("discover", parseJsonBody(request));
   }

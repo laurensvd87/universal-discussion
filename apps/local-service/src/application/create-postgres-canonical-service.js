@@ -122,7 +122,7 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
       typeof urlSelectionReads.urlSelection !== "function")
     throw new TypeError("Invalid PostgreSQL canonical service dependencies");
   if (typeof semanticDiscussions !== "boolean" || semanticDiscussions &&
-      (typeof reads.semanticFeed !== "function" || typeof reads.semanticThread !== "function" || typeof reads.semanticTarget !== "function" || typeof reads.semanticStamp !== "function"))
+      (["semanticFeed", "semanticThread", "semanticTarget", "semanticTopics", "semanticContext", "semanticStamp"].some(name => typeof reads[name] !== "function")))
     throw new TypeError("Invalid PostgreSQL semantic discussion dependencies");
   const cursorKey = accountCursorKey(accountCursorSecret);
   const publicFlights = createPostgresPublicReadFlights();
@@ -399,7 +399,7 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
     // accounts, credentials, and caller-provided version claims.
     let expected = method === "urlSelection" && typeof urlSelectionReads.version === "function"
       ? await urlSelectionReads.version() : await reads.version();
-    if (semanticDiscussions && ["semanticFeed", "semanticThread", "semanticTarget"].includes(method)) {
+    if (semanticDiscussions && ["semanticFeed", "semanticThread", "semanticTarget", "semanticTopics", "semanticContext"].includes(method)) {
       const stamp = await reads.semanticStamp();
       if (stamp.generation !== expected.generation || typeof stamp.revision !== "string" || !/^[a-f0-9]{64}$/u.test(stamp.revision))
         fail("unavailable", "Semantic read unavailable");
@@ -432,6 +432,8 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
     if (semanticDiscussions && method === "semanticFeed") return semanticDto(await reads.semanticFeed(input));
     if (semanticDiscussions && method === "semanticThread") return semanticDto(await reads.semanticThread(input));
     if (semanticDiscussions && method === "semanticTarget") return semanticDto(await reads.semanticTarget(input));
+    if (semanticDiscussions && method === "semanticTopics") return reads.semanticTopics(input);
+    if (semanticDiscussions && method === "semanticContext") return reads.semanticContext(input);
     fail("unavailable", "Read unavailable");
   }
 
@@ -518,6 +520,8 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
       semanticFeed: input => readPublic("semanticFeed", input),
       semanticThread: input => readPublic("semanticThread", input),
       semanticTarget: input => readPublic("semanticTarget", input),
+      semanticTopics: input => readPublic("semanticTopics", input),
+      semanticContext: input => readPublic("semanticContext", input),
     } : {}),
     ...(typeof reads.discover === "function" ? {
       discover: Object.freeze({ search: (input) => reads.discover(input) }),
