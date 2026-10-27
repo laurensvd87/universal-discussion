@@ -1,5 +1,25 @@
 # Project status
 
+## Latest: Chrome behavior checks pass; visual review found composer clipping
+
+Source `f35f0519` passed 11 checks in an actual isolated Chrome run, including
+global topic browsing independent of the foreground page, flat replies, original
+reply destinations, explicit uncertain-write recovery without reposting, canonical
+fallback and stale account/navigation refusal. The test used production browser
+modules with intercepted synthetic service responses; it proves neither real SQL
+posting nor provider, native-document, load or live application behavior.
+
+Evidence is retained in local data directory
+`semantic-workspace-browser-qa-20261027/attempt-fJE18h` (result SHA256
+`bab20f24a0bd1d5b2e3976dea57ab0193e2f648072444c2bf5282f0f58c9df96`).
+The owned browser exited, its fresh profile was removed, and source/end pins match.
+Screenshots at 320/400/520 pixels exposed internal composer scrolling and a 1px
+reply-context column despite document-level overflow checks passing. This is an
+open product defect; scoped layout fixes and stronger internal bounds checks are
+underway. Cross-page AI, production installation/backfill/dashboard, real combined
+UI/database tests, concurrency/latency validation and live cutover remain open.
+The running services and crawler have not been switched.
+
 ## Latest: installed encoder and persisted topic discovery verified
 
 `58dbe12f` passed the expanded real PostgreSQL suite, including the global topic

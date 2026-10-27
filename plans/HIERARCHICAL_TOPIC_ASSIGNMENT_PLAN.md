@@ -36,7 +36,9 @@ the foreground page independent from selected threads. Optional metadata failure
 retain saved canonical discussions, and genuine old-backend absence selects the
 legacy interface. New routing (`f9e41a15`) also suppresses old global Ridge/related
 work, including late responses and retry paths. Pure tests and source reviews pass;
-actual Chrome validation is next. Cross-page AI replies still need their own
+actual Chrome behavior validation now passes11 checks (`f35f0519`, isolated
+synthetic service responses), but screenshot review found clipped composer
+content that needs a layout fix before UI acceptance. Cross-page AI replies still need their own
 server protocol. Then come actual browser,
 simultaneous-user and crawler tests, followed by migration and live cutover. The
 remaining work is substantial integration, rather than matcher research alone.
