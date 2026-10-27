@@ -14,6 +14,7 @@ import {PRIVATE_RUN_ROOT} from './private-owner-storage.js';
 import {runPrivateModelRehearsal} from './private-model-rehearsal.js';
 import {loadPrivateModelTrainingInputs} from './private-model-training-inputs.js';
 import {openPrivateApplicationBrowser,PRIVATE_BROWSER_ROOT_BODY,PRIVATE_BROWSER_REPLY_BODY} from '../../harness/run-semantic-workspace-browser-smoke.js';
+import {runPrivateLegacyAdoptionRehearsal} from './private-legacy-adoption-rehearsal.js';
 
 const fail=code=>Object.assign(new Error('Private application rehearsal failed'),{code});
 const need=(value,code='APPLICATION_ASSERTION')=>{if(!value)throw fail(code);};
@@ -89,7 +90,7 @@ async function publishProof(a,proof){await directories(a.outputDirectory);a.chec
 }
 const REAL={prepareStorage,seedAccounts,openApplication:openDormantPostgresApplication,listen,request:requestHttp,publishProof,now:()=>performance.now(),randomBytes,randomUUID,
  model:runPrivateModelRehearsal,readTraining:loadPrivateModelTrainingInputs};
-const PRODUCT={openBrowser:openPrivateApplicationBrowser,requestRaw:createRequestHttp(options=>http.request(options),true)};
+const PRODUCT={openBrowser:openPrivateApplicationBrowser,requestRaw:createRequestHttp(options=>http.request(options),true),legacy:runPrivateLegacyAdoptionRehearsal};
 
 async function isolateCopiedQueue(database,check){
  // This runs only in the authenticated disposable restored fixture, after all
@@ -170,7 +171,7 @@ async function verifyBrowserOwnerRows(database,ui,actorId,check){
 async function run(value,ports,testComposition,withModel=false,withBrowser=false){const a=context(value);a.checkDeadline();const began=ports.now(),states=PRIVATE_APPLICATION_CASES.map(name=>({name,status:'not-attempted'}));let stage='setup',failed=false,primary;
  let appDatabase=null,urlDatabase=null,application=null,server=null,appClient=null,urlClient=null;const pendingHttp=new Set();let httpRequests=0,maximumConcurrentHttp=0;
  let workerClient=null,submitterClient=null,workerDatabase=null,submitterDatabase=null,model=null;
- let browserHandle=null,browser=null;
+ let browserHandle=null,browser=null,legacy=null,originalRootHighWatermark=null;
  const cleanup={serverClosed:false,applicationClosed:false,appClientClosed:false,urlClientClosed:false,pendingHttp:0,pendingDatabase:0};
  if(withModel)Object.assign(cleanup,{workerClientClosed:false,submitterClientClosed:false});
  if(withBrowser)cleanup.browserClosed=false;
@@ -194,6 +195,10 @@ async function run(value,ports,testComposition,withModel=false,withBrowser=false
   runtime:{chromeExecutableSha256:'480f275b63d1ea39113cbc8344ac395578acc25b432bd39af5fbc77005179aca',installedDllsPinned:false}};cleanup.browserClosed=true;}
  try{
   stage='setup-storage';const storage=await ports.prepareStorage(a);a.checkDeadline();
+  if(withBrowser){stage='original-root-high-watermark';const result=await a.ownerDatabase.query('SELECT max(ordinal)::text AS original_root_high_watermark FROM canonical_v4.contributions WHERE root_id IS NULL');a.checkDeadline();
+   need(result.rows.length===1,'APPLICATION_LEGACY_SCOPE');originalRootHighWatermark=result.rows[0].original_root_high_watermark;
+   need(originalRootHighWatermark===null||typeof originalRootHighWatermark==='string'&&/^(0|[1-9][0-9]{0,18})$/u.test(originalRootHighWatermark)&&BigInt(originalRootHighWatermark)<=9223372036854775807n,'APPLICATION_LEGACY_SCOPE');
+  }
   stage='setup-accounts';const actors=await ports.seedAccounts(storage.accountDatabasePath,key);a.checkDeadline();need(Array.isArray(actors)&&actors.length===2&&actors.every(x=>typeof x.token==='string'&&x.token.length===43),'APPLICATION_ACCOUNTS');
   if(withBrowser){stage='setup-browser';const nonce=a.outputDirectory.slice((PRIVATE_RUN_ROOT+'\\run-').length,-'\\output'.length);
    browserHandle=await ports.openBrowser({profileDirectory:path.win32.join(a.privateAppDirectory,'c-'+nonce.slice(0,8)),outputDirectory:a.outputDirectory,deadline:a.deadline,checkDeadline:a.checkDeadline,request:browserRequest});
@@ -261,6 +266,10 @@ async function run(value,ports,testComposition,withModel=false,withBrowser=false
    model=await ports.model({workerDatabase,submitterDatabase,readHttp,readCapturedTrainingInputs:async()=>training,foregroundSourceId:sourceId,deadline:a.deadline,checkDeadline:a.checkDeadline});
    model.fixtureIsolation=fixtureIsolation;a.checkDeadline();
    stage='model-owner-verification';model.ownerVerification=await verifyModelOwnerRows(a.ownerDatabase,model,training,a.checkDeadline);
+   if(withBrowser){stage='original-legacy-adoption';legacy=await ports.legacy({ownerDatabase:a.ownerDatabase,workerDatabase,originalRootHighWatermark,deadline:a.deadline,checkDeadline:a.checkDeadline});a.checkDeadline();
+    need(legacy?.status==='passed'||legacy?.status==='not-applicable'&&['no-eligible-original-root','original-source-ineligible','original-source-unclassified'].includes(legacy.reason),'APPLICATION_LEGACY');
+    need(legacy.resourcesClosed===true,'APPLICATION_LEGACY');
+   }
   }
  }catch(e){remember(e);}
  finally{
@@ -282,7 +291,7 @@ async function run(value,ports,testComposition,withModel=false,withBrowser=false
   server:{destinationPort:PORT,canonicalHost:HOST,loopbackOnly:true},upgrade:{...a.upgrade},counts:{httpRequests,maximumConcurrentHttp,fixtureActors:2},cleanup,
   scope:{realHttp:!testComposition,realDatabase:!testComposition,browser:withBrowser&&!testComposition,encoder:withModel&&!testComposition,provider:false,externalLoginVerified:false,productionCapacityValidated:false,testComposition},
   ...(withModel?{model}:{}),
-  ...(withBrowser?{browser}:{}),
+  ...(withBrowser?{browser,legacy}:{}),
   failure:failed?{stage,code:'APPLICATION_CASE_OR_CLEANUP_FAILED'}:null,elapsedMs:Math.max(0,Math.round(ports.now()-began))};
  if(failed)void primary;a.checkDeadline();const file=await ports.publishProof(a,proof);a.checkDeadline();return Object.freeze({status:proof.status,proofSha256:file.sha256,proofBytes:file.bytes});
 }

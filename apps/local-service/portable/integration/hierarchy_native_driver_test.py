@@ -1082,6 +1082,31 @@ class MaintainedDriverTest(unittest.TestCase):
             'failure':None,'elapsedMs':100},'ownerVerification':{'roots':1,'replies':1,'manualSnapshots':0},
             'runtime':{'chromeExecutableSha256':'480f275b63d1ea39113cbc8344ac395578acc25b432bd39af5fbc77005179aca','installedDllsPinned':False}}
 
+    def legacy_proof(self):
+        return {'schema':'private-original-legacy-adoption-proof/v1','status':'passed','reason':None,'failure':None,
+            'counts':{'pages':1,'scanned':1,'pending':1,'eligible':0,'prepared':1,'reclassified':1,'adopted':1},
+            'canonicalPreserved':True,'repeatInert':True,'readVerified':True,'resourcesClosed':True,'testComposition':False,
+            'scope':{'originalBackupRootsOnly':True,'maximumPages':10,'pageSize':10,'maximumAdoptedRoots':1,
+                'contextBasis':'legacy-current-source-context','recapture':False,'qualityEvaluation':False,'canonicalWrites':False,'callerDatabasesClosed':False}}
+
+    def test_legacy_proof_demands_original_scope_canonical_equality_and_inert_real_adoption(self):
+        D.checked_legacy_proof(self.I,self.legacy_proof())
+        changes=(lambda p:p.update(testComposition=True),lambda p:p.update(canonicalPreserved=False),lambda p:p.update(repeatInert=False),
+            lambda p:p.update(readVerified=False),lambda p:p.update(resourcesClosed=False),lambda p:p['counts'].update(adopted=0),
+            lambda p:p['counts'].update(adopted=True),lambda p:p['counts'].update(pages=11),lambda p:p['counts'].update(scanned=101),
+            lambda p:p['scope'].update(originalBackupRootsOnly=False),lambda p:p['scope'].update(canonicalWrites=True),
+            lambda p:p['scope'].update(contextBasis='source-observation-at-root-create'))
+        for change in changes:
+            value=self.legacy_proof();change(value)
+            with self.assertRaises(self.I.Refusal):D.checked_legacy_proof(self.I,value)
+
+    def test_legacy_nonapplicability_never_aliases_successful_adoption_or_incomplete_scan(self):
+        value=self.legacy_proof();value.update(status='not-applicable',reason='no-eligible-original-root',canonicalPreserved=False,repeatInert=False,readVerified=False)
+        value['counts'].update(pending=0,prepared=0,reclassified=0,adopted=0);D.checked_legacy_proof(self.I,value)
+        for change in (lambda p:p.update(reason='original-scan-bound'),lambda p:p.update(repeatInert=True),lambda p:p['counts'].update(adopted=1),lambda p:p.update(canonicalPreserved=True)):
+            bad=json.loads(json.dumps(value));change(bad)
+            with self.assertRaises(self.I.Refusal):D.checked_legacy_proof(self.I,bad)
+
     def test_product_mode_is_closed_and_requires_the_private_model_composition(self):
         seen=[]
         with patch.object(D,'execute',side_effect=lambda *args:seen.append(args) or {'accepted':True}),contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()):
@@ -1137,7 +1162,7 @@ class MaintainedDriverTest(unittest.TestCase):
     def test_browser_evidence_cannot_alias_http_or_model_and_is_mandatory_for_product(self):
         def check(run,normal,value,publish):
             value['model']=self.model_proof();value['scope'].update(encoder=True,browser=True)
-            value['cleanup'].update(workerClientClosed=True,submitterClientClosed=True,browserClosed=True);value['browser']=self.browser_proof();publish(value)
+            value['cleanup'].update(workerClientClosed=True,submitterClientClosed=True,browserClosed=True);value['browser']=self.browser_proof();value['legacy']=self.legacy_proof();publish(value)
             for proof in (normal,D.PrivateHttpProof(self.I,run,True)):
                 with self.assertRaises(self.I.Refusal):proof.complete()
             proof=D.PrivateHttpProof(self.I,run,True,True);proof.complete();proof.check();self.assertIsNotNone(proof.digest)

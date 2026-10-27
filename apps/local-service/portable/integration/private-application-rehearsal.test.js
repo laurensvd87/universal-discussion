@@ -100,11 +100,13 @@ test('full fake-port orchestration keeps normal app composition and separate fin
 function productFixture(){
  const f=fixture(),origin='chrome-extension://'+'b'.repeat(32),ownerQuery=f.value.ownerDatabase.query;let result=null,closing=null,rawRequest;
  f.value.ownerDatabase.query=async(sql,args)=>{
+  if(sql.includes(' AS original_root_high_watermark')){f.events.push('original-root-high-watermark');return {rows:[{original_root_high_watermark:'97'}]};}
   if(sql.includes(' AS manual_snapshots')){f.events.push('browser-owner-join');assert.equal(args.length,7);assert.equal(args[4],'account-private-account-one');
    assert.match(sql,/c.origin_source_id IS NULL AND c.anchor_source_id IS NULL/u);assert.match(sql,/r.payload::jsonb->>'body'=\$6/u);return {rows:[{roots:1,replies:1,manual_snapshots:0}]};}
   return ownerQuery(sql,args);
  };
  f.ports.requestRaw=async input=>{f.events.push('browser-raw-http');assert.equal(input.headers.Origin,origin);assert.equal(input.headers.Host,'127.0.0.1:4174');return {status:204,headers:{'access-control-allow-origin':origin},body:Buffer.alloc(0)};};
+ f.ports.legacy=async input=>{f.events.push('original-legacy-run');assert.equal(input.ownerDatabase,f.value.ownerDatabase);assert.equal(input.workerDatabase.dialect,'pg');assert.equal(input.originalRootHighWatermark,'97');assert.equal(input.deadline,f.value.deadline);return {status:'passed',resourcesClosed:true,testComposition:true};};
  f.ports.openBrowser=async options=>{
   f.events.push('browser-open');assert.equal(f.events.includes('app-open'),false);assert.equal(options.profileDirectory,f.value.clusterDirectory+'\\app\\c-aaaaaaaa');assert.equal(options.outputDirectory,f.value.outputDirectory);rawRequest=options.request;
   return {origin,async exercise(input){f.events.push('browser-exercise');assert.ok(f.events.includes('listen'));assert.deepEqual(input.actors.map(row=>row.actorId),['account-private-account-one','account-private-account-two']);
@@ -120,6 +122,15 @@ test('product composition discovers genuine origin before app startup, closes UI
  assert.ok(f.events.indexOf('browser-open')<f.events.indexOf('app-open'));assert.ok(f.events.indexOf('browser-exercise')<f.events.indexOf('browser-close'));
  assert.ok(f.events.indexOf('browser-close')<f.events.indexOf('model-run'));assert.ok(f.events.indexOf('browser-owner-join')<f.events.indexOf('model-run'));
  assert.deepEqual(f.proof.browser.ownerVerification,{roots:1,replies:1,manualSnapshots:0});assert.equal(f.proof.browser.ui.origin,'chrome-extension://'+'b'.repeat(32));assert.equal(f.proof.cleanup.browserClosed,true);assert.equal(f.proof.scope.browser,false);assert.equal(f.proof.scope.testComposition,true);
+ assert.ok(f.events.indexOf('original-root-high-watermark')<f.events.indexOf('browser-open'));assert.ok(f.events.indexOf('model-owner-join')<f.events.indexOf('original-legacy-run'));assert.equal(f.proof.legacy.testComposition,true);
+});
+
+test('unavailable original legacy roots remain explicit while failed, unclosed or scan-bound work blocks product acceptance',async()=>{
+ for(const [result,expected]of [[{status:'not-applicable',reason:'no-eligible-original-root',resourcesClosed:true},'passed'],
+  [{status:'not-applicable',reason:'original-scan-bound',resourcesClosed:true},'failed'],[{status:'passed',resourcesClosed:false},'failed'],[{status:'failed',resourcesClosed:true},'failed']]){
+  const f=productFixture();f.ports.legacy=async()=>result;assert.equal((await runPrivateProductApplicationRehearsalForTest(f.value,f.ports)).status,expected);
+  assert.deepEqual(f.proof.legacy,result);assert.ok(f.events.includes('end-3')&&f.events.includes('end-4'));
+ }
 });
 
 test('failed real-row browser binding blocks encoder while retiring original browser and HTTP/database handles',async()=>{

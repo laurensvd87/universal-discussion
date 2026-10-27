@@ -106,6 +106,7 @@ NORMAL_KEYS = frozenset([
     OWN+'hierarchy-native-supervisor.py', OWN+'hierarchy_native_supervisor_test.py',
     OWN+'private-model-rehearsal.js', OWN+'private-model-rehearsal.test.js',
     OWN+'private-model-training-inputs.js', OWN+'private-model-training-inputs.test.js',
+    OWN+'private-legacy-adoption-rehearsal.js', OWN+'private-legacy-adoption-rehearsal.test.js',
     'apps/local-service/harness/run-semantic-workspace-browser-smoke.js',
     'apps/local-service/harness/semantic-browser-containment.js',
     'apps/local-service/test/semantic-browser-boundary.test.js',
@@ -873,6 +874,42 @@ def checked_browser_proof(I,value):
         and all(scope[key] is False for key in ('sqlVerifiedByThisHelper','nativeCapture','nativeSidePanel','provider','externalIdentity','productionCapacity')),'browser-proof-scope')
 
 
+def checked_legacy_proof(I,value):
+    def shape(item,fields):return type(item) is dict and set(item)==set(fields.split())
+    def count(item,maximum):return type(item) is int and 0<=item<=maximum
+    I.require(shape(value,'schema status reason failure counts canonicalPreserved repeatInert readVerified resourcesClosed testComposition scope')
+        and value['schema']=='private-original-legacy-adoption-proof/v1' and value['status'] in ('passed','not-applicable')
+        and value['failure'] is None and value['resourcesClosed'] is True and value['testComposition'] is False
+        and all(type(value[key]) is bool for key in ('canonicalPreserved','repeatInert','readVerified')),'legacy-proof-shape')
+    counts=value['counts']
+    I.require(shape(counts,'pages scanned pending eligible prepared reclassified adopted')
+        and count(counts['pages'],10) and count(counts['scanned'],100)
+        and counts['scanned']<=10*counts['pages']
+        and all(count(counts[key],1) for key in ('pending','eligible','prepared','reclassified','adopted'))
+        and counts['pending']+counts['eligible']<=1
+        and counts['pending']+counts['eligible']<=counts['scanned']
+        and counts['reclassified']<=counts['prepared']<=counts['pending'],'legacy-proof-counts')
+    scope=value['scope']
+    I.require(shape(scope,'originalBackupRootsOnly maximumPages pageSize maximumAdoptedRoots contextBasis recapture qualityEvaluation canonicalWrites callerDatabasesClosed')
+        and scope['originalBackupRootsOnly'] is True
+        and type(scope['maximumPages']) is int and scope['maximumPages']==10
+        and type(scope['pageSize']) is int and scope['pageSize']==10
+        and type(scope['maximumAdoptedRoots']) is int and scope['maximumAdoptedRoots']==1
+        and scope['contextBasis']=='legacy-current-source-context'
+        and all(scope[key] is False for key in ('recapture','qualityEvaluation','canonicalWrites','callerDatabasesClosed')),'legacy-proof-scope')
+    if value['status']=='passed':
+        I.require(value['reason'] is None and counts['adopted']==1 and counts['pending']+counts['eligible']==1
+            and all(value[key] is True for key in ('canonicalPreserved','repeatInert','readVerified')),'legacy-proof-adopted')
+    else:
+        I.require(value['reason'] in ('no-eligible-original-root','original-source-ineligible','original-source-unclassified')
+            and counts['adopted']==0 and value['repeatInert'] is False and value['readVerified'] is False,'legacy-proof-unavailable')
+        if value['reason']=='no-eligible-original-root':
+            I.require(counts['pending']+counts['eligible']==0 and counts['prepared']==counts['reclassified']==0
+                and value['canonicalPreserved'] is False,'legacy-proof-unavailable')
+        else:
+            I.require(counts['pending']+counts['eligible']==1 and value['canonicalPreserved'] is True,'legacy-proof-unavailable')
+
+
 class PrivateHttpProof:
     """Additional mandatory HTTP evidence; never aliases the restore ledger."""
     def __init__(self,inventory,run,model=False,product=False):
@@ -909,7 +946,7 @@ class PrivateHttpProof:
             return type(item) is dict and set(item) == set(fields.split())
         def bounded(item,low,high):
             return type(item) is int and low <= item <= high
-        I.require(shape(value,'schema status cases pendingCases server counts cleanup scope failure elapsedMs upgrade'+(' model' if self.model else '')+(' browser' if self.product else ''))
+        I.require(shape(value,'schema status cases pendingCases server counts cleanup scope failure elapsedMs upgrade'+(' model' if self.model else '')+(' browser legacy' if self.product else ''))
             and value['schema'] == 'private-application-http-proof/v1' and value['status'] == 'passed'
             and value['failure'] is None and type(value['pendingCases']) is int and value['pendingCases'] == 0
             and bounded(value['elapsedMs'],0,300000),'http-proof-shape')
@@ -942,6 +979,7 @@ class PrivateHttpProof:
             checked_model_proof(I,value['model'])
         if self.product:
             checked_browser_proof(I,value['browser'])
+            checked_legacy_proof(I,value['legacy'])
         if self.digest is not None:
             I.require(self.digest == digest and self.identity == identity,'http-proof-changed')
         self.digest = digest
