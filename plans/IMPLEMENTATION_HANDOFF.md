@@ -1,5 +1,21 @@
 # Implementation handoff: local-service discussion MVP
 
+LATEST27Oct014 scan-free semantic source containers IMPLEMENTED6bbf7376 and
+actual80408 CLOSEDexit0/25orderedPASS, run7d53990d7ccf3fc71ab387665ef19f1cc57d1f6db7f19838.
+Legacyapply causalRidge sentinelP1491; semanticapply bypasses scan, controlled
+insertfault rollsback, SAMEclaim succeeds. DistinctnewURLcontainers; existingfull
+memberships/manualroutes/primary/policy/discussionIDs retained. Parentnormal/
+noemergency/allendpins; ownedPG41376smartstop/twoscratchDBsdropped. Independent
+audit14254B788827c07143314983c23fac7c86388ea129607d2c245af957e62784a85423ed
+authenticated/FULLread; catalog2389/274107818B91890938...fc2b/Git56 exact.
+10-14 stillUNREGISTERED/liveunchanged; old014design-only paragraph historical.
+449d7d04 checkedruntime+boundedglobalSearchTopics panel committed SOURCE/puretests;
+notactualstartup/UI. Currentrootstartup opt-in and additivecontroller/SQL015
+atomicsemanticreplywitness integration WIP. KeepforegroundPageB Source/native/
+accountbinding separatefromRootA postingdestination; AIcrossSource protocol OPEN.
+Then mountUI, finalizeoperator/migrations/head, backfill/adopteligibleoldroots,
+actualbrowser/AI/load tests, safeapprovedlivecutover+crawlerrestart. GoalACTIVE.
+
 LATEST27Oct58dbe12f/session77794 CLOSEDexit0/25PASS: native013 publicmetadata/
 owner-cuts/currentSource status+version/client codecs/RR snapshot acrossactualowner
 CAS. Run6a0dd605...20731, parentd53158f1...a4d8/stdout421905e6...2e66/child007ad2b7...8a2c;

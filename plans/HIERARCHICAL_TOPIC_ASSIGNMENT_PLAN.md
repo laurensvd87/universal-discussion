@@ -1,5 +1,27 @@
 # Hierarchical topic assignment and discussion plan
 
+Current delivery state (27 October): the hierarchical matcher, persisted semantic
+paths, owner-wide/per-topic cuts, bounded feeds and exact reply-target reads work
+in isolated checks. The accepted initial model covers16 broad topics and one
+conservative GTA refinement; finer-topic coverage is still limited. This is not
+yet the live application's complete topic-assignment flow.
+
+The slow global Ridge scan has now been removed from hierarchical ingestion
+(`6bbf7376`). An actual PostgreSQL test installed a deliberate failure in that
+scan: legacy ingestion reached it, while hierarchical ingestion succeeded on the
+same queued claim without calling it. Rollback, existing memberships, manual
+routes and original discussion destinations passed. The owned test server shut
+down normally; the live database was unchanged. Migrations10-14 remain unregistered.
+
+The checked shared worker/coordinator and bounded Search Topics panel are
+committed (`449d7d04`). Application startup integration and the guarded human reply
+flow are the current work. The panel still needs mounting in the real extension;
+cross-page AI replies need their own server protocol. Then come actual browser,
+simultaneous-user and crawler tests, followed by migration and live cutover. The
+remaining work is substantial integration, rather than matcher research alone.
+
+The following checkpoints retain their original evidence and limits.
+
 Current product foundation (27October): `58dbe12f` passed actual PostgreSQL
 metadata integration (session77794/run6a0dd605...). The page-independent topic
 directory and current Source context are read with owner policy in one RR
@@ -13,21 +35,10 @@ two public TRAIN title vectors reproduce exactly, initialization1479.65ms,
 preparation66.11/21.34ms and cached2.36/1.56ms. This is not UI/quality/load evidence.
 Its fixed package and paced stored-page coordinator (`f1707b04`) are committed.
 
-Immediate performance work: remove the old global Ridge scan still invoked for
-canonical container selection. Implement one ordinary private source-local apply
-helper, preserving all durable admission/lease/receipt/lock/rollback semantics and
-the legacy entry point. New Sources get private containers; updates retain full
-existing memberships and their primary/manual destination. Semantic paths/feeds
-remain the actual shared topic assignment. Use an explicit Source policy name,
-update its readers, preserve index invalidation on material changes, and prove
-no Ridge call with an isolated sentinel. Passing NULL to skip matching would
-change eligibility and is not a valid shortcut. This is a reviewed design only;
-no014 implementation or actual execution yet.
-
 Still required: startup/head readiness and coordinator wiring; the actual browser
 semantic selection/reply flows below; deliberate cross-Source AI job/proof update;
 owner control operation/dashboard counts; real UI/load tests and live cutover.
-Migrations10-13 remain unregistered and live routes remain disabled by default.
+Live routes remain disabled by default.
 
 Latest client integration: `87a92532` passed the real isolated PostgreSQL suite
 (session69072/runfed2c989...). Actual service responses pass the browser's partial

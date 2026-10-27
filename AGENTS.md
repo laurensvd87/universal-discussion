@@ -8,6 +8,26 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+CURRENT27Oct014 scan-free source-container routing IMPLEMENTED6bbf7376 and
+actualsession80408 CLOSEDexit0/25orderedPASS (3outer+8/8/6, not25qualitycases).
+Run7d53990d...d20731: legacy11apply hits installed Ridge sentinelP1491; semantic
+apply bypasses it, reaches controlledrollbackfault then succeeds on SAMEclaim.
+NewURL containers distinct; existingmultimemberships/manual/primary/policy and
+canonicaldiscussiondestinations retained. PG41376 smartstopped, bothscratchDBs
+dropped, parentnormal/emptyJob/handles/EOF/endpins/noemergency. Independent
+14254Baudit788827c07143314983c23fac7c86388ea129607d2c245af957e62784a85423ed
+authenticated+FULLread; catalog2389/274107818B91890938...fc2b/Git56 exact.
+10-14 UNREGISTERED/liveunchanged. Prior013/014design-only notes below superseded.
+449d7d04 checkedinstalledruntime+boundedsemanticpanel committed: runtime checks
+head/topology/workerprivileges beforeE5 andagainbeforeclaims, sharesencoder with
+pacedstoredcoordinator; panel globalSearchTopics/flatthreads/exacttarget/guards.
+SOURCE+puretests only, panel NOTmounted/noactualstartup/UI/load/liveproof.
+NOW root startup opt-in integration; independentcontroller/optionalSQL015 reply
+witness WIP. KeepPageB nativeSource/accountbinding distinctfromRootA destination;
+atomicbodyrevision+semanticmembership guard needed, AIprotocol separatelyOPEN.
+GoalACTIVE: realUI/provider/concurrency, operator/migration/head/cutover/dashboard
+andstoredbackfill stillunfinished. No externalblocker or newpermissionquestion.
+
 CURRENT27Oct metadata013 actual58dbe12f/session77794 CLOSEDexit0/25PASS.
 Run6a0dd6057c627fc4f1dfc6fb76eef03113862068a2d20731; parent862Bd53158f1...a4d8/
 stdout4688B421905e6...2e66/stderr0/child5303B007ad2b7...8a2c. ActualappSQL->

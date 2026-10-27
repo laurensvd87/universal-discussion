@@ -24,6 +24,7 @@ import { createCanonicalV4LifecycleRepository } from "../portable/canonical-v4/l
 import { createPostgresCanonicalService } from "./application/create-postgres-canonical-service.js";
 import { createPostgresInteractiveIngestion } from "./application/postgres-interactive-ingestion.js";
 import { startPostgresIngestionWorkerLoop } from "./application/postgres-ingestion-worker-loop.js";
+import { openInstalledHierarchyRuntime } from "./application/installed-hierarchy-runtime.js";
 import { createTopicSpaceDiscovery } from "./application/topic-space-discovery.js";
 import { createFileTopicSpacePolicyStore } from "./application/topic-space-policy.js";
 import { createInstalledFixedReferenceMatcher } from "./domain/fixed-reference-topic-integration.js";
@@ -93,12 +94,13 @@ export async function openDormantPostgresApplication({ config: input, databasePa
   ingestionWorkerRepository = null, referenceMatcher = null, alternateRidgeAdapter = null,
   workerOptions = {}, chatgptFetchImpl, chatgptRefreshStore = null, insightTrace = null,
   insightDebug = null, insightRequestTrace = null, ai, pairingVerifier = null,
-  accountsEnabled = false, accountHmacKey = null, accountDatabasePath = null } = {}) {
+  accountsEnabled = false, accountHmacKey = null, accountDatabasePath = null,
+  hierarchicalTopics = false } = {}) {
   const config = validateStartupConfig(input);
   if (!canonicalDatabase || typeof canonicalDatabase.query !== "function" ||
       typeof canonicalDatabase.transaction !== "function" || typeof nextId !== "function" || typeof now !== "function" ||
       typeof canonicalDatabaseOwned !== "boolean" || typeof urlSelectionDatabaseOwned !== "boolean" ||
-      typeof ingestionWorkerDatabaseOwned !== "boolean")
+      typeof ingestionWorkerDatabaseOwned !== "boolean" || typeof hierarchicalTopics !== "boolean")
     throw new TypeError("Invalid PostgreSQL application dependencies");
   if (urlSelectionDatabase !== null && (typeof urlSelectionDatabase.query !== "function" ||
       typeof urlSelectionDatabase.transaction !== "function" || urlSelectionDatabase === canonicalDatabase ||
@@ -109,14 +111,16 @@ export async function openDormantPostgresApplication({ config: input, databasePa
       ingestionWorkerDatabase === canonicalDatabase) || ingestionWorkerRepository !== null &&
       (!ingestionWorkerDatabase || ingestionWorkerDatabase === canonicalDatabase))
     throw new TypeError("A separate ingestion worker database role is required");
+  // The installed hierarchy owns its repository and preparation boundary. A
+  // legacy repository override must never silently bypass that composition.
+  if (hierarchicalTopics && ingestionWorkerRepository !== null)
+    throw new TypeError("Installed hierarchy requires its own worker repository");
   mkdirSync(path.dirname(databasePath), { recursive: true });
   const reads = createCanonicalV4ReadFacade({ database: canonicalDatabase });
   const urlSelectionReads = urlSelectionDatabase === null ? reads :
     createCanonicalV4ReadFacade({ database: urlSelectionDatabase });
   const commands = createCanonicalV4RuntimeRepository({ database: canonicalDatabase, nextId, now });
-  await commands.health();
   const contributionLifecycle = createCanonicalV4LifecycleRepository({ database: canonicalDatabase, nextId, now });
-  await contributionLifecycle.health();
   const appIngestionRepository = ingestion?.enqueueInteractive ? ingestion :
     createCanonicalV4IngestionRepository({ database: canonicalDatabase, nextId, now });
   const interactiveIngestion = ingestion?.ingest ? ingestion :
@@ -129,17 +133,38 @@ export async function openDormantPostgresApplication({ config: input, databasePa
     },
     withdrawAccountContributions: (actorId) => contributionLifecycle.withdrawAccountContributions(actorId),
   });
-  if (ingestionWorkerDatabase !== null && ingestionWorkerRepository === null)
+  if (!hierarchicalTopics && ingestionWorkerDatabase !== null && ingestionWorkerRepository === null)
     ingestionWorkerRepository = createCanonicalV4IngestionRepository({ database: ingestionWorkerDatabase, nextId, now });
-  if (ingestionWorkerRepository !== null) await ingestionWorkerRepository.health();
   let accounts = null, accountRepository = null, privateDiscussions = null, accountLifecycle = null, runtime = null, worker = null,
     topicSpaces = null;
+  async function cleanup() {
+    let failed = false, primary;
+    const settle = async work => {
+      try { await work(); }
+      catch (error) { if (!failed) { failed = true; primary = error; } }
+    };
+    // A worker owns encoder and original SQL drains, so close it before its
+    // database. One failing release must not skip independent local resources.
+    await settle(() => topicSpaces?.close());
+    await settle(() => worker?.close());
+    await settle(() => privateDiscussions?.close());
+    await settle(() => runtime?.dispose?.());
+    await settle(() => accountRepository?.close());
+    if (ingestionWorkerDatabaseOwned) await settle(() => ingestionWorkerDatabase?.close?.());
+    if (urlSelectionDatabaseOwned) await settle(() => urlSelectionDatabase?.close?.());
+    if (canonicalDatabaseOwned) await settle(() => canonicalDatabase.close?.());
+    if (failed) throw primary;
+  }
   const service = createPostgresCanonicalService({ reads, urlSelectionReads, runtime: commands,
     ingestion: interactiveIngestion, lifecycle: lifecycleBoundary,
+    semanticDiscussions: hierarchicalTopics,
     resolveAccountActor: id => accounts?.principalForAccountId(id) ?? null,
     readAccountActors: () => accounts?.publicActors() ?? [] });
   try {
-    if (alternateRidgeAdapter !== null) {
+    await commands.health();
+    await contributionLifecycle.health();
+    if (ingestionWorkerRepository !== null) await ingestionWorkerRepository.health();
+    if (!hierarchicalTopics && alternateRidgeAdapter !== null) {
       topicSpaces = createTopicSpaceDiscovery({ reads, topicAdapter: alternateRidgeAdapter,
         policyStore: createFileTopicSpacePolicyStore({
           filename: path.join(path.dirname(databasePath), "topic-space-policy.json"),
@@ -166,41 +191,27 @@ export async function openDormantPostgresApplication({ config: input, databasePa
       accountLifecycle = createAccountLifecycle({ accounts, service, ai: runtime, privateDiscussions });
       await accountLifecycle.resume();
     }
-    if (ingestionWorkerRepository !== null) {
+    if (hierarchicalTopics && ingestionWorkerDatabase !== null) {
+      referenceMatcher ??= alternateRidgeAdapter === null ? null : createInstalledFixedReferenceMatcher(alternateRidgeAdapter);
+      worker = await openInstalledHierarchyRuntime({ database: ingestionWorkerDatabase,
+        referenceMatcher, nextId, now, workerOptions });
+    } else if (ingestionWorkerRepository !== null) {
       referenceMatcher ??= alternateRidgeAdapter === null ? null : createInstalledFixedReferenceMatcher(alternateRidgeAdapter);
       worker = startPostgresIngestionWorkerLoop({ ...workerOptions,
         repository: ingestionWorkerRepository, referenceMatcher });
     }
   } catch (error) {
-    try { await topicSpaces?.close(); } catch {}
-    await worker?.close().catch(() => {}); privateDiscussions?.close(); runtime?.dispose?.(); accountRepository?.close();
-    if (ingestionWorkerDatabaseOwned) await ingestionWorkerDatabase?.close?.().catch(() => {});
-    if (urlSelectionDatabaseOwned) await urlSelectionDatabase?.close?.().catch(() => {});
-    if (canonicalDatabaseOwned) await canonicalDatabase.close?.().catch(() => {});
+    try { await cleanup(); } catch { /* Preserve the original startup failure. */ }
     throw error;
   }
-  let closed = false;
+  let closing = null;
   return Object.freeze({ config, service, topicSpaces,
     handle: createRequestHandler({ service, config, ai: runtime, pairingVerifier,
       accounts, accountWrites: accountsEnabled, accountLifecycle, privateDiscussions, topicSpaces }),
     restore: () => runtime?.restore?.() ?? Promise.resolve(false),
-    async close() {
-      if (closed) return;
-      closed = true;
-      try {
-        try { await topicSpaces?.close(); }
-        finally { await worker?.close(); privateDiscussions?.close(); runtime?.dispose?.(); accountRepository?.close(); }
-      } finally {
-        try {
-          if (ingestionWorkerDatabaseOwned) await ingestionWorkerDatabase?.close?.();
-        } finally {
-          try {
-            if (urlSelectionDatabaseOwned) await urlSelectionDatabase?.close?.();
-          } finally {
-            if (canonicalDatabaseOwned) await canonicalDatabase.close?.();
-          }
-        }
-      }
+    close() {
+      if (closing === null) closing = cleanup();
+      return closing;
     },
   });
 }
