@@ -551,9 +551,11 @@ def native_api_type(windows, run):
     require = windows.require
     wintypes = windows.wintypes
     TEMP = run.output / 'temp'
-    # A closed mode chooses between two reviewed entries. The native method
-    # below remains AST-identical to the frozen suspended-launch implementation.
+    # A closed mode chooses between two reviewed entries and supplies the one
+    # fixed private metadata variable. Removing that explicit prefix restores
+    # the frozen suspended-launch AST; default environment bytes stay exact.
     ENTRY = PRIVATE_ENTRY if getattr(run, 'private', False) else globals()['ENTRY']
+    ENV_PREFIX = 'LOCALAPPDATA=C:\\Users\\Laurens\\AppData\\Local\0' if getattr(run, 'private', False) else ''
 
     class NativeAPI(windows._WinAPI):
         def create_process(self, attributes, stdin, stdout, stderr):
@@ -567,7 +569,7 @@ def native_api_type(windows, run):
             startup.startup.stdin, startup.startup.stdout, startup.startup.stderr = stdin, stdout, stderr
             startup.attributes = ctypes.addressof(attributes[0])
             command = '"' + NODE + '" --max-old-space-size=64 "' + str(REPO / ENTRY) + '"'
-            environment = ('OMP_NUM_THREADS=1\0PATH=D:\\PostgreSQL\\17\\bin;C:\\Windows\\System32;C:\\Windows\0'
+            environment = ENV_PREFIX + ('OMP_NUM_THREADS=1\0PATH=D:\\PostgreSQL\\17\\bin;C:\\Windows\\System32;C:\\Windows\0'
                            'SystemRoot=C:\\Windows\0TEMP=' + str(TEMP) + '\0TMP=' + str(TEMP) +
                            '\0UV_THREADPOOL_SIZE=1\0WINDIR=C:\\Windows\0\0')
             block = ctypes.create_unicode_buffer(environment, len(environment))

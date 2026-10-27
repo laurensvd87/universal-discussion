@@ -126,6 +126,48 @@ and cluster/test plus private-storage verifier/test; Maintained private entry/te
 Whole source, code/data bindings, fresh resources and a separate one-attempt Root
 decision are required before actual restore execution.
 
+## Implemented source checkpoint
+
+Implementation is committed and pushed as `ceea2c7a`. Root's final focused checks
+passed32 pure Python tests and51 guarded64MiB Node tests (including16 unchanged
+backup-contract checks). Independent review accepted the private entry, platform
+slice and driver after two failure-path fixes: preserve the first input error
+when closing also fails, and retain failed-attempt publication when final close
+fails. A startup ACL ordering defect was fixed before execution as well.
+
+The current code catalog is372203 bytes,2433 files/274969808 bytes,
+SHA256 `5ace16491828d4598c6a829fcf43acf2ffd35c54cd1e5a8c1b738caf8ddd7594`.
+Root authenticated its complete inventory and end pins;193 tracked catalog blobs
+and the catalog itself match raw committed Git bytes. Encrypted data inputs are
+outside this code budget. Independent final catalog binding review passed before
+the first actual attempt.
+These are source checks, not proof of an actual restored row or live readiness.
+
+## First actual attempt and narrow follow-up
+
+The separately decided attempt (session20367) closed exit1. Run
+`run-475eb273bd4de7d0c1b063bcd9944e5044474f7be8be6679` retains the consumed
+catalog, marker/claim and outputs; Git commit `ceea2c7a` retains its source.
+The child failed before authentication, with zero row checks. Scratch A16384 was
+dropped and PostgreSQL3908 smart-stopped normally; the parent verified empty Job,
+closed handles, both EOFs and end pins without emergency retirement. Independent
+saved-failure audit SHA256
+`bc34582ffcbe16ffefd138f3af51b945e0e128213070d5bd019338ded5bca148`
+was fully read and authenticated by Root. This is a failed restore.
+
+Saved output retains only a generic failure. A separate guarded probe reproduced
+the production restore helper refusing before its trusted port when LOCALAPPDATA
+is missing. Source shows eager protected-password-provider construction even on
+the restore path, and the isolated launch omits that metadata variable.
+
+Root authorizes a narrow follow-up SOURCE change: include only the fixed
+`LOCALAPPDATA=C:\Users\Laurens\AppData\Local` in the private launch environment,
+preserving the default seven-variable environment and all resource limits.
+Extend the launch regression and regenerate/review the ordinary code catalog.
+Do not modify either production helper/operator or expose password values.
+No second actual attempt is authorized by this source correction; a fresh review,
+resource check and separate one-attempt decision are still required.
+
 Source grant (2026-10-27): implement only the maintained driver/test and catalog,
 maintained run-binding/cluster and their tests, new private-owner-storage helper
 and test, and new owner-restore-native-check entry and test. Reviews resolved

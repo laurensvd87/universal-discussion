@@ -46,7 +46,14 @@ class MaintainedDriverTest(unittest.TestCase):
         old = ast.parse((HERE/'native-hierarchy-postgres-v2/windows.py').read_bytes())
         new = ast.parse(source.read_bytes())
         find = lambda tree: next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == 'create_process')
-        self.assertEqual(ast.dump(find(old), include_attributes=False), ast.dump(find(new), include_attributes=False))
+        class DefaultLaunchInverse(ast.NodeTransformer):
+            def visit_Assign(self,node):
+                if (len(node.targets)==1 and isinstance(node.targets[0],ast.Name) and node.targets[0].id=='environment'
+                        and isinstance(node.value,ast.BinOp) and isinstance(node.value.op,ast.Add)
+                        and isinstance(node.value.left,ast.Name) and node.value.left.id=='ENV_PREFIX'):
+                    node.value = node.value.right
+                return self.generic_visit(node)
+        self.assertEqual(ast.dump(find(old), include_attributes=False), ast.dump(DefaultLaunchInverse().visit(find(new)), include_attributes=False))
         self.assertIs(normal.set_limits, self.W._WinAPI.set_limits)
         self.assertIs(normal.attributes, self.W._WinAPI.attributes)
         self.assertIs(normal.members, self.W._WinAPI.members)
@@ -545,7 +552,8 @@ class MaintainedDriverTest(unittest.TestCase):
             self.assertEqual(flags,0x8040C)
             self.assertIs(inherit,True)
             values = dict(item.split('=',1) for item in environment[:].split('\0') if item)
-            self.assertEqual(set(values),{'OMP_NUM_THREADS','PATH','SystemRoot','TEMP','TMP','UV_THREADPOOL_SIZE','WINDIR'})
+            self.assertEqual(set(values),{'LOCALAPPDATA','OMP_NUM_THREADS','PATH','SystemRoot','TEMP','TMP','UV_THREADPOOL_SIZE','WINDIR'})
+            self.assertEqual(values['LOCALAPPDATA'],'C:\\Users\\Laurens\\AppData\\Local')
             self.assertEqual(values['TEMP'],str(run.output/'temp'))
             info._obj.process,info._obj.thread,info._obj.pid = 111,222,333
             return True
