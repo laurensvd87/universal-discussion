@@ -1,5 +1,30 @@
 # Project status
 
+## Current: application rehearsal failed its CPU-work limit
+
+The first real-application attempt (session58343, local commit `016b2520`)
+completed the restored schema9 table, security and sequence checkpoints, then
+hit its configured cumulative Job CPU limit at300.078125 seconds. The last closed
+checkpoint was at161894ms. There is no application result or accepted schema17
+upgrade. Exact work after that checkpoint is unknown. The supervisor verified
+emergency retirement, empty Job, closed handles, drained pipes and source pins;
+this is not proof of PostgreSQL smart-stop or scratch database drops.
+
+Independent saved-failure audit SHA256
+`5c10b647e1e01fc84dd059ae0b45af959287f67e8cd4b646be6951a273045ca1`
+was fully read/authenticated. The earlier successful complete schema9 recovery
+below remains valid. Original API, worker, dashboard and advancing crawler retain
+their process starts; isolated ports55433/4185 are absent. No live cutover occurred.
+
+The code-level application tests pass (40 Python,34 guarded Node). A reviewed
+next design would compare all18 legacy tables directly to the original receipt
+once after migration, avoiding the current before-and-after full-data scans.
+It must use distinct proof semantics and preserve standalone restore checks;
+it is not yet implemented or executed. No new matching-accuracy result is claimed.
+Broader topic coverage, actual AI/browser/load checks and activation remain open.
+Changes are committed locally; push awaits the owner's specific approval after
+automatic review rejected the export to the existing GitHub remote.
+
 ## Current: actual full-data recovery rehearsal passed
 
 The complete encrypted production snapshot restored successfully in the private

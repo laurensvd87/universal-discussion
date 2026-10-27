@@ -127,3 +127,28 @@ Only source edits, pure tests and review are granted. No HTTP listener, database
 encoder/model run, browser, provider request, live migration, queue change or
 activation is granted here. Review final source, bindings and fresh resource
 admission before a separate one-attempt actual decision.
+
+## First actual result and efficiency follow-up
+
+After independent full-source and committed-catalog review, a separate decision
+authorized one actual attempt at local commit `016b2520`. Session58343 closed
+exit1 on cumulative Job CPU300.078125. Thirty phases completed, ending with
+sequences-verified at161894ms; no application proof or child lifecycle result
+was emitted. The precise subsequent work and migration outcome are unknown.
+Parent emergency retirement, empty Job, handles, two EOFs and end pins passed.
+Independent saved-failure audit SHA256
+`5c10b647e1e01fc84dd059ae0b45af959287f67e8cd4b646be6951a273045ca1`
+was fully read/authenticated. All consumed snapshots and output remain intact.
+No retry, adoption, cap increase or data retirement follows from this failure.
+
+A source-only efficiency proposal removes duplicate full-table verification:
+authenticate/restore the same fixed snapshot, verify schema9 identity/security,
+install17, then hash all18 unchanged legacy tables once against the original
+authenticated receipt. Require exact17 migration hashes, preserved runtime
+generation/revision and sequence safety before any HTTP writes. Keep the normal
+standalone recovery mode unchanged; HTTP must have its own explicit proof,
+ledger and phases rather than claiming it repeated that mode's19-table recovery.
+No intermediate baseline or MVCC substitute is proposed. This preserves final
+data equality and should reduce work; the failed run's exact cause and whether
+the complete application rehearsal fits its budget remain unproven. Separate
+source review/implementation and actual decisions are still required.

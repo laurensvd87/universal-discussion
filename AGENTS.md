@@ -8,6 +8,27 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Latest27Oct: ONEprivate-http actual58343 CLOSEDexit1, localSOURCE016b2520/catalog
+117028cb...83660. Runaaa554dbcf8fc863644e1aafc631b4b7446f8737e06d55a1 retains
+snapshot/claim/output/nhpg-pALDNp data. Parent primaryresource-limit/jobCpuSeconds
+300.078125; ownedemergency/emptyJob/handles/2EOF/endpins TRUE.30closed phases,
+last29sequences-verified161894ms; stdout0/stderr0/noapplicationproof/lifecycle.
+Exactpostphasework/migrationacceptance/HTTPacceptance/PGsmartstop/DBdrops UNKNOWN.
+Independent14372B actualaudit5c10b647e1e01fc84dd059ae0b45af959287f67e8cd4b646be6951a273045ca1
+RootFULLread/auth; all2478pins/239Gitjoins/73priorartifacts exact. Earlier complete
+schema9 recovery remains separately PASS. No retry/adoption/capraise/cleanup grant.
+Source+tests reviewed40Python/34NodePASS; one-pass migration proposal avoids
+duplicate pre/post scans: schema9 identity/grants, install17, then compareALL18
+legacytables directlytoORIGINALreceipt+exact17manifest/version/sequences before
+HTTPwrites. It needs its OWN literal proof/ledger/phases; preserve standalone
+25/33 unchanged. No implementation grant yet; no MVCC sentinel/rebaseline.
+RealE5 future evidence RSS877391872B/heap197403840B makes64MiB heap unproven;
+no encoder budget/run granted. LiveIDs+starts unchanged; crawler6260advancing/
+stderr0;55433/4185absent. GoalACTIVE/no newmatchingaccuracy/liveactivation.
+All changes committed locally; GitHub push rejected byautomaticreview for
+unestablished exportpermission, specificownerapproval questionpending. Do not
+retry/bypasspush before answer. Old notesbelow historical where superseded.
+
 Current 27 Oct: actual full-data restore PASSED. Session79937 closed exit0;
 run99a8da6bcdb0ca78105a789df77f42f471e4d2b620fc97ec retains its consumed source
 catalog and outputs. All19 restored SQL table fingerprints match the authenticated
