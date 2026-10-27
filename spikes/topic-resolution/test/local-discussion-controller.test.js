@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createLocalDiscussionController } from "../browser/core/local-discussion-controller.js";
+import { canStageRootDraft, createLocalDiscussionController } from "../browser/core/local-discussion-controller.js";
 import { lookupIndicatorFixtureByNormalizedUrl } from "../browser/fixtures/indicator-fixtures.js";
 import { localServiceSourceId } from "../browser/fixtures/local-service-fixture-bridge.js";
 import { validateAndProjectActiveTabResponse } from "../browser/core/indicator-contract.js";
@@ -1629,6 +1629,22 @@ test("first-seen eligible document permits local typing while embedding is unres
   assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
   assert.equal(await ui.controller.submitDraft(), true);assert.equal(ui.requests.filter(([kind]) => kind === "command").length, 1);
 });
+test("first-page typing stays available through every same-document canonical promotion publication", async t => {
+  const published = [], ui = firstPageDraftHarness({ onStateChange: state => published.push(state) });
+  t.after(() => ui.controller.dispose());await ui.controller.open();ui.controller.setDraft("Uncommitted composition stays in the original textarea");
+  published.length = 0;ui.ingest();await ui.publish();
+  const gap = published.find(state => state.resolution?.phase === "ready" && !state.sourceId && !state.topicId);
+  assert.ok(gap, "exercise the real intermediate controller publication, not a direct ready-state replacement");
+  assert.equal(gap.localRootDraftReady, true);assert.equal(canStageRootDraft(gap), true);
+  assert.equal(gap.humanPostingReady, false);assert.equal(gap.phase, "loading");
+  for (const state of published) {
+    assert.equal(state.draft.detached, false);
+    assert.equal(state.draft.body, "Uncommitted composition stays in the original textarea");
+    if (state.phase !== "ready") assert.equal(canStageRootDraft(state), true);
+  }
+  assert.equal(published.at(-1).phase, "ready");assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+});
+
 test("first-page staging requires an exact document and explicit account-session revision", async t => {
   for (const overrides of [{ readPostingSessionRevision: () => undefined }, { readPostingSessionRevision: () => null }]) {
     const ui = firstPageDraftHarness(overrides);t.after(() => ui.controller.dispose());await ui.controller.open();

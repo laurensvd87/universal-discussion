@@ -1845,6 +1845,37 @@ test("saved discussion matching permits local root typing and preserves IME whil
   ui.panel.dispose();
 });
 
+test("real first-page controller publications keep the composing textarea enabled through canonical promotion", async t => {
+  const ui = harness();let next = 0, promoting = false;const frames = [], commands = [];
+  const service = createMemoryDemoService({ nextId: kind => `${kind}-${++next}`, now: () => "2026-10-27T12:00:00.000Z" });
+  const url = "http://127.0.0.1:4173/background-fixture/first-composition.html";
+  let resolution = { phase: "processing", reason: "embedding", tabId: 7, url, documentId: "composition-document", sourceId: null, topicId: null,
+    assignment: null, sequence: 1, enabled: true, blockedOrigins: [], sessionWindowId: 2, currentWindowId: 2,
+    sessionRevision: "composition-capture", hostAccess: true, currentOrigin: "http://127.0.0.1:4173", currentTabId: 7, currentUrl: url, contextReason: null };
+  const controller = createLocalDiscussionController({
+    client: { health: async () => ({}), catalog: async () => service.catalog(), discussion: async id => service.discussion(id),
+      related: async id => service.related(id, 5), priorDiscussions: async sourceId => ({ version: service.catalog().version, sourceId, currentTopicId: resolution.topicId, topics: [] }),
+      command: async (...args) => { commands.push(args);return service.command(...args); } },
+    session: { isPaired: async () => true }, readPostingSessionRevision: () => 1,
+    readPageResolution: async () => resolution, readActiveTab: async () => ({ tabId: 7, windowId: 2, url }),
+    observeTabLifecycle: () => () => {}, lookupByNormalizedUrl: lookupIndicatorFixtureByNormalizedUrl,
+    onStateChange(state) { ui.panel.render(state);if (promoting) frames.push({ state, enabled: !ui.byId("discussion-body").disabled, text: ui.byId("discussion-body").value }); },
+  });
+  t.after(() => { controller.dispose();ui.panel.dispose(); });ui.panel.bind(controller);await controller.setTopicViewMode("classic");await controller.open();
+  const body = ui.byId("discussion-body");body.focus();controller.setDraft("Committed prefix");
+  body.listeners.get("compositionstart")();body.value = "Committed prefix 未完";
+  body.selectionStart = 4;body.selectionEnd = 9;body.selectionDirection = "backward";
+  const result = service.ingest({ expected: service.catalog().version, operationId: "composition-operation", url, title: "First composition document",
+    embedding: { modelId: "e5-small-q8-browser-main-prefix-v1", values: Array.from({ length: 384 }, (_, i) => i === 0 ? 1 : 0) }, extractorVersion: "main-text-prefix/v1" });
+  resolution = { ...resolution, phase: "ready", reason: null, sourceId: result.sourceId, topicId: result.topicId, assignment: result.assignment, sequence: 2 };
+  promoting = true;await controller.updatePageResolution(resolution);
+  assert.ok(frames.some(({ state }) => state.resolution?.phase === "ready" && !state.sourceId));
+  assert.ok(frames.length >= 3);for (const frame of frames) { assert.equal(frame.enabled, true);assert.equal(frame.text, "Committed prefix 未完"); }
+  assert.equal(ui.document.activeElement, body);assert.deepEqual([body.selectionStart, body.selectionEnd, body.selectionDirection], [4, 9, "backward"]);
+  assert.equal(controller.currentState().draft.body, "Committed prefix");body.listeners.get("compositionend")();
+  assert.equal(controller.currentState().draft.body, "Committed prefix 未完");assert.equal(commands.length, 0);
+});
+
 test("selected discussion loading permits a root draft while posting and Insights remain gated", () => {
   const ui = harness();
   const loading = state({ phase: "loading", sourceId: "source-demo", discussion: null, related: null });

@@ -154,7 +154,9 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   function firstRootStagingCurrent() {
     return !disposed && !mutationPending && !pendingSemanticCommand && !state.needsFreshRead &&
       ["choose-topic", "loading"].includes(state.phase) && !state.selection && !state.sourceId && !state.topicId &&
-      !state.discussion && state.serviceConnection === "connected" && ["processing", "error"].includes(state.resolution?.phase) && firstRootContextCurrent();
+      // A verified Ready resolution arrives before its canonical selection.
+      // Keep local typing available across that same-document promotion gap.
+      !state.discussion && state.serviceConnection === "connected" && ["processing", "error", "ready"].includes(state.resolution?.phase) && firstRootContextCurrent();
   }
   function targetState() {
     if (firstRootBinding && !firstRootContextCurrent()) detach();

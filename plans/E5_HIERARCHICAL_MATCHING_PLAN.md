@@ -1,5 +1,12 @@
 # E5 matching across broad and specific topics
 
+27 October: full real PostgreSQL snapshot migration to schema17 preserves all18
+legacy table fingerprints and passes16 real HTTP cases in the isolated application.
+Chrome passes14/17 UI cases, then catches a first-page promotion composition gap.
+The minimal staging fix and two real controller-publication regressions pass237
+guarded tests; the corrected actual browser check is next. Matching remains off
+in the live application pending combined real encoder, load and provider checks.
+
 Current26 October: frozen GTA head has actual separate TEST evidence:6/6Games,
 2/3GTA refinements,0/3false refinements; ChinatownWars staysGames. No retuning.
 Resultd611ab51...4d93f/independent audit3f50506a...567d8; small English franchise
