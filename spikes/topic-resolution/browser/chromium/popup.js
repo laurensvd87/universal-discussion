@@ -299,10 +299,12 @@ function observeToolbar(state) {
     finally { toolbarRefreshPending = false; }
   })();
 }
+let topicSpaceSessionRevision = 0, topicSpaceSession = null;
 const localDiscussion = createLocalDiscussionController({
   client: localClient,
   session: localSession,
   readPostingActor: () => accountPanel?.getActorId() ?? null,
+  readPostingSessionRevision: () => topicSpaceSessionRevision,
   requestSignIn: () => { void accountPanel?.requestSignIn(); },
   validatePairing: async (token) => {
     const health = await localClient.healthWithToken(token);
@@ -387,7 +389,13 @@ accountPanel = mountAccountPanel({ document, mount: document.body,
   onSessionChanged: listener => {
     const observe = (changes, area) => {
       if (area === "session" && (Object.hasOwn(changes, ACCOUNT_SESSION_KEY) ||
-          Object.hasOwn(changes, ACCOUNT_SESSION_FENCE_KEY))) listener();
+          Object.hasOwn(changes, ACCOUNT_SESSION_FENCE_KEY))) {
+        // An identical account DTO can accompany a replaced or revoked session.
+        // Fence local drafts synchronously before asynchronous reconciliation.
+        topicSpaceSessionRevision++;
+        localDiscussion.accountChanged();
+        listener();
+      }
     };
     storageEvents.addListener(observe);
     return () => storageEvents.removeListener(observe);
@@ -434,7 +442,6 @@ const libraryPanel = mountDiscoveryPanel(document, libraryRoot, { client: localC
     }
   },
 });
-let topicSpaceSessionRevision = 0, topicSpaceSession = null;
 const topicSpaceState = () => ({ actorId: accountPanel?.getActorId() ?? null, sessionRevision: topicSpaceSessionRevision });
 function ownerTopicSpaceRequest(method, value, options = {}) {
   const actorId = accountPanel?.getActorId(), sessionRevision = topicSpaceSessionRevision;

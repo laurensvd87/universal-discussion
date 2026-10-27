@@ -8,6 +8,26 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Latest27Oct: actualonepass78217 CLOSEDexit1 but ALL25upgradepointsPASS: schema17,
+ALL18DIRECToriginalreceiptFP/version/7seq,31phases lastmigrated-sequences165385ms.
+run65a047162f403f3bdbe78c82886c5a8e8e314f0bb38b3b24/nhpg-JyIyUI; PG37616 own
+smartstop/A16384drop/adminclosed/physicalsettled, parentnormal/noemergency/emptyJob/
+handles/2EOF/endpins. ApplicationSETUPfailed209ms/HTTP0/all16unattempted; Bunused,
+no35completion/wholeappacceptance.16812Baudit6dc5bcfa...059fd RootFULLread/auth.
+SeparatefreshrealSQLiteprobe: old252DB/260journal chars failsstorage-failure0B,
+short234/242succeeds57344B; seed2accountsPASS. Retainedactual90112Baccounts/0B
+privateDB consistent, originalexceptionnotretained. Helper2shortappdir+journalNUL
+guard+8setupstages SOURCEaccepted,11purePASS. UI5firstseenlocaldraftSOURCEaccepted
+297guardedPASS independent/247Rootjoined; sameDocSourcearrival+IMEpreserved,
+exactdoc/account/session/generationfences, noearlyposting/AI/privateauthority.
+Combinedreview4101Ba348cf77...6f89 RootFULLread/auth. NoactualnextHTTP/Chrome yet.
+PriorfailedAAApgdata1892866923B safelyretired,full1456entryinventory retained;
+actual3953Bauditf9799df1...7af1 RootFULLread/auth; backup+37+73artifactsunchanged.
+FreshD12093595648/C15515459584/physical13773553664/commit10578378752B; newcheck
+mandatorybeforeactual. UserexplicitYES GitHubpushreceived; b68d7780PUSHED to
+existingorigin. Future reviewedsource pushesauthorized; previouspushblockresolved.
+GoalACTIVE/live9/crawlerpreserved; E5/browser/provider/quality/load/cutoverOPEN.
+
 Current27Oct SOURCE checkpoint: one-pass HTTP correction independently accepted.
 Root44purePythonPASS/38guardedNodePASS, independentd249b44d...893a2 FULLread/auth.
 HTTP uses own25ledger/35phases and owner-upgrade proof/result, not normalrestore

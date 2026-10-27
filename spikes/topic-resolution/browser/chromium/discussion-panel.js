@@ -1083,8 +1083,13 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     // Mentions keep their existing AI readiness gate; ordinary human messages
     // can use an independently attested saved discussion while matching runs.
     const humanSubmitReady = humanReady && (semanticDraft || !hasAiMention(state.draft.body));
-    const compositionContextChanged = previousState?.sourceId !== state.sourceId ||
-      previousState?.topicId !== state.topicId || previousState?.draft.mode !== state.draft.mode ||
+    const sameFirstPageDraft = previousState?.localRootDraftReady === true && !state.draft.detached &&
+      previousState.draft.mode === "root" && state.draft.mode === "root" && previousState.actorId === state.actorId &&
+      previousState.resolution?.documentId && previousState.resolution.documentId === state.resolution?.documentId &&
+      previousState.resolution.currentUrl === state.resolution.currentUrl && previousState.resolution.currentTabId === state.resolution.currentTabId &&
+      previousState.resolution.sessionRevision === state.resolution.sessionRevision;
+    const compositionContextChanged = !sameFirstPageDraft && (previousState?.sourceId !== state.sourceId ||
+      previousState?.topicId !== state.topicId) || previousState?.draft.mode !== state.draft.mode ||
       previousState?.draft.targetId !== state.draft.targetId ||
       JSON.stringify(previousState?.draft.targetBinding ?? null) !==
         JSON.stringify(state.draft.targetBinding ?? null) ||
@@ -1314,8 +1319,8 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     const changedThread = signature !== renderedDiscussion || renderedActor !== state.actorId ||
       Boolean(createdKey && focusedCreatedPost !== createdKey) ||
       renderedBusy !== state.busy || renderedFreshRead !== state.needsFreshRead || renderedUiMode !== uiMode;
-    const sameDraftContext = previousState?.sourceId === state.sourceId &&
-      previousState?.topicId === state.topicId && previousState?.draft.mode === state.draft.mode &&
+    const sameDraftContext = (sameFirstPageDraft || previousState?.sourceId === state.sourceId &&
+      previousState?.topicId === state.topicId) && previousState?.draft.mode === state.draft.mode &&
       previousState?.draft.targetId === state.draft.targetId &&
       JSON.stringify(previousState?.draft.targetBinding ?? null) ===
         JSON.stringify(state.draft.targetBinding ?? null) &&

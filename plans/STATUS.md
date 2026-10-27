@@ -1,5 +1,31 @@
 # Project status
 
+## Current: real-data hierarchy migration verified; application setup fix reviewed
+
+The one-pass run78217 installed hierarchy17 and passed all25 upgrade records,
+including all18 original table fingerprints, preserved runtime version and seven
+sequence checks. It finished within unchanged limits. The complete application
+rehearsal still failed during setup before any HTTP request; A was dropped and
+PostgreSQL shut down normally, with all original work settled. Independent audit
+`6dc5bcfae73953cbef5a04ed4da00d633c67df87389628382e14665de75059fd`
+was fully read/authenticated. This is actual migration/data-preservation evidence,
+not complete application, browser or matching-quality acceptance.
+
+A fresh real SQLite probe reproduced a Windows journal-path limit: the old
+252-character database path opened but its260-character journal path failed;
+a shortened path succeeded. The private setup now uses that shorter path and
+checks journal suffix plus terminating NUL before allocation. Eleven guarded
+tests pass. The previous raw setup exception was not retained, so the reproduced
+mechanism is consistent with its files rather than proof of that exact exception.
+
+The first-seen-page composer fix is also implemented and independently reviewed:
+users can stage root text locally while embedding is pending, with document,
+account/session and generation fences. Same-document Source arrival preserves
+draft/IME focus; sending and AI/private actions retain their existing authority
+requirements.297 joined guarded tests pass; real Chrome verification remains.
+The next complete HTTP rehearsal and broader E5/provider/load/quality work remain
+open. Reviewed source through `b68d7780` is pushed after explicit owner approval.
+
 ## Current: one-pass migration verifier reviewed; execution pending
 
 The one-pass application verifier is implemented and independently source-reviewed:

@@ -2,10 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {EventEmitter} from 'node:events';
-import {createPrivateSerialDatabase,createPrivateHttpRequestForTest,runPrivateApplicationRehearsalForTest,PRIVATE_APPLICATION_CASES} from './private-application-rehearsal.js';
+import {createPrivateSerialDatabase,createPrivateHttpRequestForTest,runPrivateApplicationRehearsalForTest,privateApplicationStoragePaths,PRIVATE_APPLICATION_CASES} from './private-application-rehearsal.js';
 import {PRIVATE_RUN_ROOT} from './private-owner-storage.js';
 const sha=b=>createHash('sha256').update(b).digest('hex'),turn=()=>new Promise(r=>setImmediate(r));
 const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r;});return {promise,resolve};};
+test('fixed real-length SQLite path budgets journal suffix and NUL before storage allocation',()=>{
+ const cluster=PRIVATE_RUN_ROOT+'\\run-'+'a'.repeat(48)+'\\cluster\\nhpg-ABC123';
+ const old=cluster+'\\application-rehearsal',short=cluster+'\\app';
+ assert.equal((old+'\\private-conversations.sqlite').length,252);
+ assert.equal((old+'\\private-conversations.sqlite-journal').length,260);
+ assert.throws(()=>privateApplicationStoragePaths(old),{code:'APPLICATION_SQLITE_PATH'});
+ const paths=privateApplicationStoragePaths(short);assert.equal(paths.accountDatabasePath,short+'\\accounts.sqlite');
+ assert.equal((short+'\\private-conversations.sqlite-journal').length,242);
+ const overhead='\\private-conversations.sqlite-journal'.length+1;
+ assert.doesNotThrow(()=>privateApplicationStoragePaths('x'.repeat(260-overhead)));
+ assert.throws(()=>privateApplicationStoragePaths('x'.repeat(261-overhead)),{code:'APPLICATION_SQLITE_PATH'});
+});
 test('actual HTTP client fixes destination4185 and waits response original even after request close',async()=>{
  let req;const request=createPrivateHttpRequestForTest(options=>{assert.equal(options.host,'127.0.0.1');assert.equal(options.port,4185);assert.equal(options.agent,false);assert.equal(options.headers.host,'127.0.0.1:4174');req=new EventEmitter();req.setTimeout=(ms,fn)=>assert.equal(ms,5000);req.end=()=>{};return req;});
  let settled=false;const pending=request({method:'GET',url:'/v1/health',headers:{host:'127.0.0.1:4174'},body:null}).then(value=>{settled=true;return value;});const response=new EventEmitter();response.statusCode=200;req.emit('response',response);req.emit('close');await turn();assert.equal(settled,false);response.emit('data',Buffer.from('{"protocol":"local-service/v1"}'));response.emit('end');assert.equal((await pending).value.protocol,'local-service/v1');
@@ -33,7 +45,7 @@ function fixture({failAt=null,closeFails=false}={}){
   async connectFixedRole(request,guard){guard();assert.equal(request.role,'murmingle_app');assert.equal(request.database,'murmingle_hierarchy_fixture_20261026_a');const number=++serial;events.push('connect-'+number);const client={query:async sql=>{events.push('query-'+number);return {command:sql==='COMMIT'?'COMMIT':'SELECT',rows:[]};},end:async()=>{events.push('end-'+number);}};identities.set(client,{database:request.database,role:request.role,address:'127.0.0.1',port:55433,started:1000});return client;},
   getOwnedIdentity:client=>identities.get(client),checkDeadline:()=>{},deadline:300000,upgrade:Object.freeze({schemaVersion:17,preservedLegacyTables:18,legacyRowsUnchanged:true})};
  const ports={now:()=>1,randomBytes:n=>Buffer.alloc(n,3),randomUUID:()=> 'invented-id',
-  async prepareStorage(a){events.push('prepare');assert.equal(a.privateAppDirectory,cluster+'\\application-rehearsal');return {databasePath:'invented-application.sqlite',accountDatabasePath:'invented-accounts.sqlite'};},
+  async prepareStorage(a){events.push('prepare');assert.equal(a.privateAppDirectory,cluster+'\\app');return {databasePath:'invented-application.sqlite',accountDatabasePath:'invented-accounts.sqlite'};},
   async seedAccounts(filename,key){events.push('seed-close');assert.equal(key.length,32);return [{token:tokens[0],username:'RehearsalOne'},{token:tokens[1],username:'RehearsalTwo'}];},
   async openApplication(options){events.push('app-open');assert.equal(Object.hasOwn(options,'ai'),false);assert.equal(Object.hasOwn(options,'chatgptFetchImpl'),false);assert.equal(options.hierarchicalTopics,true);assert.notEqual(options.canonicalDatabase,options.urlSelectionDatabase);config=options.config;
    await options.canonicalDatabase.transaction(tx=>tx.query('SELECT startup'));return {handle:()=>{},close:async()=>{events.push('app-close');if(closeFails)throw Error('PRIVATE SECONDARY MUST NOT LEAK');}};},
@@ -74,6 +86,17 @@ test('foreign path/upgrade/context substitutions refuse before any fake resource
 });
 test('late/failing second role acquisition still retires the original issued first client',async()=>{
  const f=fixture(),connect=f.value.connectFixedRole;let calls=0;f.value.connectFixedRole=async(...args)=>{if(++calls===2)throw false;return connect(...args);};const result=await runPrivateApplicationRehearsalForTest(f.value,f.ports);assert.equal(result.status,'failed');assert.ok(f.events.includes('end-1'));assert.equal(f.proof.cleanup.appClientClosed,true);assert.equal(f.proof.cleanup.pendingHttp,0);
+});
+
+test('setup failures retain finite substage and retire originals without starting HTTP',async()=>{
+ for(const [port,stage]of [['prepareStorage','setup-storage'],['seedAccounts','setup-accounts'],['openApplication','setup-application'],['listen','setup-listener']]){
+  const f=fixture();f.ports[port]=async()=>{throw false;};
+  const result=await runPrivateApplicationRehearsalForTest(f.value,f.ports);
+  assert.equal(result.status,'failed');assert.equal(f.proof.failure.stage,stage);
+  assert.equal(f.proof.counts.httpRequests,0);assert.ok(f.proof.cases.every(x=>x.status==='not-attempted'));
+  assert.equal(f.proof.cleanup.appClientClosed,true);assert.equal(f.proof.cleanup.urlClientClosed,true);
+  assert.equal(f.proof.cleanup.pendingDatabase,0);assert.equal(f.proof.cleanup.pendingHttp,0);
+ }
 });
 test('URL-selection case refuses different Source/topic or incoherent snapshot while retaining cleanup',async()=>{
  for(const mutate of [r=>{r.catalog.sources[0].id='different-source';},r=>{r.discussion.topic.id='different-topic';},r=>{r.discussion.version.revision=2;},r=>{r.discussion.roots.push({id:'unexpected-existing-root'});}]){

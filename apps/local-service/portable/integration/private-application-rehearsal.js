@@ -46,10 +46,19 @@ function context(value){
  const remainder=p.slice(prefix.length);need(/^[a-f0-9]{48}\\cluster\\nhpg-[A-Za-z0-9]{6}$/u.test(remainder),'APPLICATION_PATH');
  need(out.outputDirectory===PRIVATE_RUN_ROOT+'\\run-'+remainder.slice(0,48)+'\\output','APPLICATION_PATH');
  need(out.upgrade?.schemaVersion===17&&out.upgrade?.preservedLegacyTables===18&&out.upgrade?.legacyRowsUnchanged===true&&Object.keys(out.upgrade).length===3,'APPLICATION_UPGRADE');
- return {...out,privateAppDirectory:path.win32.join(out.clusterDirectory,'application-rehearsal')};
+ const privateAppDirectory=path.win32.join(out.clusterDirectory,'app');
+ privateApplicationStoragePaths(privateAppDirectory);
+ return {...out,privateAppDirectory};
+}
+// SQLite's Windows DELETE journal needs the suffix and terminating NUL within
+// MAX_PATH, even when opening the shorter database filename itself succeeds.
+export function privateApplicationStoragePaths(directory){
+ need(typeof directory==='string'&&/^[\x20-\x7e]+$/u.test(directory),'APPLICATION_SQLITE_PATH');
+ for(const filename of ['application.sqlite','accounts.sqlite','private-conversations.sqlite'])need((path.win32.join(directory,filename)+'-journal').length+1<=260,'APPLICATION_SQLITE_PATH');
+ return {databasePath:path.win32.join(directory,'application.sqlite'),accountDatabasePath:path.win32.join(directory,'accounts.sqlite')};
 }
 async function directories(directory){for(let name=directory;;name=path.win32.dirname(name)){const s=await lstat(name);need(s.isDirectory()&&!s.isSymbolicLink()&&await realpath(name)===name,'APPLICATION_PATH');if(path.win32.dirname(name)===name)break;}}
-async function prepareStorage(a){await directories(path.win32.dirname(a.privateAppDirectory));a.checkDeadline();await mkdir(a.privateAppDirectory);a.checkDeadline();await directories(a.privateAppDirectory);return {databasePath:path.win32.join(a.privateAppDirectory,'application.sqlite'),accountDatabasePath:path.win32.join(a.privateAppDirectory,'accounts.sqlite')};}
+async function prepareStorage(a){const paths=privateApplicationStoragePaths(a.privateAppDirectory);await directories(path.win32.dirname(a.privateAppDirectory));a.checkDeadline();await mkdir(a.privateAppDirectory);a.checkDeadline();await directories(a.privateAppDirectory);return paths;}
 async function seedAccounts(filename,key){const repository=new AccountRepository({filename});let first=false,primary;try{
  let delivered;const accounts=new AccountService({repository,hmacKey:key,fixtureOnly:true,mailSink:message=>{delivered=message;}}),result=[];
  for(const [index,username]of ['RehearsalOne','RehearsalTwo'].entries()){const clientNonce=randomBytes(24).toString('hex');accounts.requestCode({email:`private-rehearsal-${index}@example.test`,clientNonce});const verified=accounts.verifyCode({challengeId:delivered.challengeId,code:delivered.code,clientNonce});delivered=null;accounts.setUsername(verified.session.accessToken,{username});result.push({token:verified.session.accessToken,username});}
@@ -89,11 +98,15 @@ async function run(value,ports,testComposition){const a=context(value);a.checkDe
  async function command(session,command){return ok('/v1/commands',{expected:await version(),command},session);}
  async function caseRun(name,work){stage=name;const state=states.find(x=>x.name===name);try{await work();a.checkDeadline();state.status='passed';}catch(e){state.status='failed';throw e;}}
  try{
-  const storage=await ports.prepareStorage(a);a.checkDeadline();const actors=await ports.seedAccounts(storage.accountDatabasePath,key);a.checkDeadline();need(Array.isArray(actors)&&actors.length===2&&actors.every(x=>typeof x.token==='string'&&x.token.length===43),'APPLICATION_ACCOUNTS');
-  appClient=await a.connectFixedRole(requestRole('murmingle_app'),a.checkDeadline);urlClient=await a.connectFixedRole(requestRole('murmingle_app'),a.checkDeadline);
+  stage='setup-storage';const storage=await ports.prepareStorage(a);a.checkDeadline();
+  stage='setup-accounts';const actors=await ports.seedAccounts(storage.accountDatabasePath,key);a.checkDeadline();need(Array.isArray(actors)&&actors.length===2&&actors.every(x=>typeof x.token==='string'&&x.token.length===43),'APPLICATION_ACCOUNTS');
+  stage='setup-app-client';appClient=await a.connectFixedRole(requestRole('murmingle_app'),a.checkDeadline);
+  stage='setup-url-client';urlClient=await a.connectFixedRole(requestRole('murmingle_app'),a.checkDeadline);
+  stage='setup-role-identity';
   const appIdentity=a.getOwnedIdentity(appClient),urlIdentity=a.getOwnedIdentity(urlClient);need(appClient!==urlClient&&[appIdentity,urlIdentity].every(x=>x.database===DATABASE&&x.role==='murmingle_app'&&x.address==='127.0.0.1'&&x.port===55433)&&appIdentity.started===urlIdentity.started,'APPLICATION_ROLE');
-  appDatabase=createPrivateSerialDatabase(appClient,a.checkDeadline);urlDatabase=createPrivateSerialDatabase(urlClient,a.checkDeadline);
-  application=await ports.openApplication({config:cfg,...storage,nextId:kind=>kind+'-'+ports.randomUUID(),now:()=>new Date().toISOString(),canonicalDatabase:appDatabase,urlSelectionDatabase:urlDatabase,accountsEnabled:true,accountHmacKey:key,hierarchicalTopics:true});a.checkDeadline();server=await ports.listen(application.handle);a.checkDeadline();
+  stage='setup-adapters';appDatabase=createPrivateSerialDatabase(appClient,a.checkDeadline);urlDatabase=createPrivateSerialDatabase(urlClient,a.checkDeadline);
+  stage='setup-application';application=await ports.openApplication({config:cfg,...storage,nextId:kind=>kind+'-'+ports.randomUUID(),now:()=>new Date().toISOString(),canonicalDatabase:appDatabase,urlSelectionDatabase:urlDatabase,accountsEnabled:true,accountHmacKey:key,hierarchicalTopics:true});a.checkDeadline();
+  stage='setup-listener';server=await ports.listen(application.handle);a.checkDeadline();
   const [one,two]=actors;let topicId,sourceId,discussionId,rootId,replyId;
   await caseRun('hierarchy17-http-health',async()=>{need((await ok('/v1/health')).protocol==='local-service/v1');});
   await caseRun('independent-semantic-directory',async()=>{const r=await ok('/v1/semantic/topics',{});need(Array.isArray(r.topics)&&r.topics.length>=16&&r.policyRevision===1);});

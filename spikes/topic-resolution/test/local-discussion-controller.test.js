@@ -9,6 +9,7 @@ import { createTabLifecycleObserver } from "../browser/chromium/active-tab-reade
 import { LocalServiceSessionProxyError } from "../browser/core/local-service-session.js";
 import { projectDiscussionShell } from "../browser/chromium/popup-shell.js";
 import { RIDGE_POLICY, RIDGE_REPRESENTATION } from "../browser/core/topic-view-mode.js";
+import { createBackgroundMatcher } from "../browser/core/background-matcher.js";
 
 const deferred = () => {
   let resolve, reject;
@@ -1606,6 +1607,98 @@ function backgroundHarness(overrides = {}) {
   return { ...ui, ingest, pauses, resolution: () => resolution,
     setResolution(patch) { resolution = { ...resolution, ...patch }; }, publish: () => ui.controller.updatePageResolution(resolution) };
 }
+
+function firstPageDraftHarness(overrides = {}) {
+  let ui;
+  ui = backgroundHarness({ readPostingSessionRevision: () => 1,
+    readActiveTab: async () => ({ tabId: ui.resolution().currentTabId, windowId: ui.resolution().currentWindowId, url: ui.resolution().currentUrl }),
+    ...overrides });
+  return ui;
+}
+test("first-seen eligible document permits local typing while embedding is unresolved, then keeps its draft on exact canonical arrival", async t => {
+  const ui = firstPageDraftHarness();t.after(() => ui.controller.dispose());
+  await ui.controller.open();
+  const pending = ui.controller.currentState();assert.equal(pending.localRootDraftReady, true);
+  assert.equal(pending.sourceId, null);assert.equal(pending.topicId, null);assert.equal(pending.humanPostingReady, false);
+  ui.controller.setDraft("I can write while the first body embedding is still unresolved");
+  assert.equal(await ui.controller.submitDraft(), false);assert.equal(ui.controller.begin("reply", "missing"), false);
+  assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+  const learned = ui.ingest();await ui.publish();
+  const bound = ui.controller.currentState();assert.equal(bound.phase, "ready");assert.equal(bound.sourceId, learned.sourceId);
+  assert.equal(bound.draft.body, "I can write while the first body embedding is still unresolved");assert.equal(bound.draft.detached, false);
+  assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+  assert.equal(await ui.controller.submitDraft(), true);assert.equal(ui.requests.filter(([kind]) => kind === "command").length, 1);
+});
+test("first-page staging requires an exact document and explicit account-session revision", async t => {
+  for (const overrides of [{ readPostingSessionRevision: () => undefined }, { readPostingSessionRevision: () => null }]) {
+    const ui = firstPageDraftHarness(overrides);t.after(() => ui.controller.dispose());await ui.controller.open();
+    assert.equal(ui.controller.currentState().localRootDraftReady, false);ui.controller.setDraft("Not staged");assert.equal(ui.controller.currentState().draft.body, "");
+  }
+  const ui = firstPageDraftHarness();t.after(() => ui.controller.dispose());ui.setResolution({ documentId: null });await ui.controller.open();
+  assert.equal(ui.controller.currentState().localRootDraftReady, false);ui.controller.setDraft("No document");assert.equal(ui.controller.currentState().draft.body, "");
+  ui.setResolution({ documentId: "doc-1", sequence: 2 });await ui.publish();assert.equal(ui.controller.currentState().localRootDraftReady, true);
+});
+test("first-page draft detaches on document, capture privacy, session, pairing and account changes without discarding text", async t => {
+  for (const change of [ui => ui.setResolution({ documentId: "doc-2" }),
+    ui => ui.setResolution({ currentUrl: ui.resolution().url + "?new-document", url: ui.resolution().url + "?new-document" }),
+    ui => ui.setResolution({ hostAccess: false }), ui => ui.setResolution({ sessionRevision: "capture-session-2" }),
+    ui => ui.setResolution({ blockedOrigins: [ui.resolution().currentOrigin] })]) {
+    const ui = firstPageDraftHarness();t.after(() => ui.controller.dispose());await ui.controller.open();ui.controller.setDraft("Keep this document's text");
+    change(ui);await ui.publish();const state = ui.controller.currentState();assert.equal(state.draft.body, "Keep this document's text");
+    assert.equal(state.draft.detached, true);assert.equal(state.localRootDraftReady, false);assert.equal(await ui.controller.submitDraft(), false);
+  }
+  let revision = 1;const session = firstPageDraftHarness({ readPostingSessionRevision: () => revision });
+  t.after(() => session.controller.dispose());await session.controller.open();session.controller.setDraft("Old session draft");revision = 2;
+  session.controller.setDraft("Must not replace");assert.equal(session.controller.currentState().draft.body, "Old session draft");assert.equal(session.controller.currentState().draft.detached, true);
+  for (const action of [ui => ui.controller.accountChanged(), ui => ui.controller.disconnect(), ui => ui.invalidate()]) {
+    const ui = firstPageDraftHarness();t.after(() => ui.controller.dispose());await ui.controller.open();ui.controller.setDraft("Preserved until explicit reattachment");
+    await action(ui);assert.equal(ui.controller.currentState().draft.detached, true);assert.equal(ui.controller.currentState().draft.body, "Preserved until explicit reattachment");
+  }
+});
+test("late first-page canonical binding cannot attach an old account-session draft", async t => {
+  let revision = 1;const ui = firstPageDraftHarness({ readPostingSessionRevision: () => revision });t.after(() => ui.controller.dispose());
+  await ui.controller.open();ui.controller.setDraft("Keep old session text");revision = 2;ui.ingest();await ui.publish();
+  const state = ui.controller.currentState();assert.equal(state.draft.body, "Keep old session text");assert.equal(state.draft.detached, true);
+  assert.equal(await ui.controller.submitDraft(), false);assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+});
+test("a reset generation cannot adopt a first-page draft even for the same foreground document", async t => {
+  const ui = firstPageDraftHarness();t.after(() => ui.controller.dispose());await ui.controller.open();ui.controller.setDraft("Original generation text");
+  ui.service.reset(ui.service.catalog().version, "RESET DEMO STATE");ui.ingest();await ui.publish();
+  assert.equal(ui.controller.currentState().draft.body, "Original generation text");assert.equal(ui.controller.currentState().draft.detached, true);
+  assert.equal(await ui.controller.submitDraft(), false);assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+});
+
+test("real background matcher can remain blocked in embedding while first-page controller stages text without ingesting or posting", async t => {
+  const embedding = deferred();let ui, entered = false, ingests = 0;
+  const matcher = createBackgroundMatcher({
+    getPreferences: async () => ({ enabled: true, sessionWindowId: 2, sessionRevision: "fixture-revision", blockedOrigins: [] }),
+    readForeground: async () => ({ tabId: 7, windowId: 2, url: ui.resolution().currentUrl }), hasPermission: async () => true, isPaired: async () => true,
+    reader: { read: async () => ({ documentId: "doc-1", result: { status: "collected", title: "Invented first document", text: "Invented public article text. ".repeat(20), extractorVersion: "main-text-prefix/v1" } }),
+      attest: async () => ({ status: "attested" }) },
+    embed: async () => { entered = true;return embedding.promise; }, digestInput: async () => "a".repeat(64),
+    client: { version: async () => ({ version: ui.service.catalog().version }), ingest: async input => { ingests++;return ui.service.ingest(input); } },
+    nextOperationId: () => "first-body-operation",
+  });
+  ui = firstPageDraftHarness({ readPageResolution: async () => ({ ...ui.resolution(), ...matcher.currentState() }) });
+  t.after(() => { matcher.dispose();ui.controller.dispose(); });const matching = matcher.refresh();
+  while (!entered) await turn();await ui.controller.open();assert.equal(ui.controller.currentState().localRootDraftReady, true);
+  ui.controller.setDraft("Started before embedding resolved");assert.equal(await ui.controller.submitDraft(), false);assert.equal(ingests, 0);
+  assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+  embedding.resolve({ modelId: "e5-small-q8-browser-main-prefix-v1", values: Array.from({ length: 384 }, (_, i) => i === 0 ? 1 : 0) });
+  await matching;await ui.controller.updatePageResolution({ ...ui.resolution(), ...matcher.currentState() });
+  assert.equal(ingests, 1);assert.equal(ui.controller.currentState().phase, "ready");assert.equal(ui.controller.currentState().draft.detached, false);
+  assert.equal(ui.controller.currentState().draft.body, "Started before embedding resolved");assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+});
+test("promoted first-page draft keeps its account-session fence through display, reattach and final dispatch awaits", async t => {
+  let revision = 1;const gate = deferred();let attesting = false;
+  const ui = firstPageDraftHarness({ readPostingSessionRevision: () => revision,
+    attestActiveContext: async () => { attesting = true;await gate.promise;return true; } });t.after(() => ui.controller.dispose());
+  await ui.controller.open();ui.controller.setDraft("One session's pending root");ui.ingest();await ui.publish();
+  const sending = ui.controller.submitDraft();while (!attesting) await turn();revision = 2;
+  assert.equal(ui.controller.currentState().draft.detached, true);ui.controller.reattachDraft();assert.equal(ui.controller.currentState().draft.detached, true);
+  gate.resolve();assert.equal(await sending, false);assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+  assert.equal(ui.controller.currentState().draft.body, "One session's pending root");
+});
 
 function savedPostingHarness(overrides = {}) {
   let ui;

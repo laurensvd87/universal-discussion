@@ -1786,6 +1786,26 @@ test("typing preserves contribution button focus; language fallback and disposal
   assert.equal(ui.created.some((item) => item.listeners.size > 0), false);
 });
 
+test("first-page local root composer accepts typing without a Source while all delivery stays gated", async () => {
+  const ui = harness(), pending = state({ phase: "loading", sourceId: null, topicId: null, discussion: null, related: null,
+    localRootDraftReady: true, humanPostingReady: false,
+    resolution: { phase: "processing", documentId: "first-document", currentUrl: "https://public.example/page", currentTabId: 7, sessionRevision: "capture-1" } });
+  pending.catalog.sources = [];pending.catalog.topics = [];
+  ui.panel.render(pending);const body = ui.byId("discussion-body"), composer = ui.byId("discussion-composer");
+  assert.equal(composer.hidden, false);assert.equal(body.disabled, false);assert.equal(ui.byId("discussion-submit").disabled, true);
+  assert.equal(ui.byId("discussion-ai-insights").disabled, true);assert.equal(ui.byId("discussion-private-toggle").disabled, true);
+  body.focus();body.listeners.get("compositionstart")();body.value = "Typing before body E5 settles";
+  const ready = state({ sourceId: "source-demo", resolution: pending.resolution });ready.catalog.sources[0].topicId = ready.topicId;
+  ui.panel.render(ready);assert.equal(body.value, "Typing before body E5 settles");assert.equal(ui.document.activeElement, body);
+  body.listeners.get("compositionend")();assert.deepEqual(ui.calls.at(-1), ["setDraft", "Typing before body E5 settles"]);
+  assert.equal(ui.calls.some(([kind]) => kind === "submitDraft" || kind === "begin"), false);
+  for (const patch of [{ localRootDraftReady: false }, { needsFreshRead: true }, { busy: true },
+    { draft: { ...pending.draft, detached: true } }, { draft: { ...pending.draft, mode: "reply" } }, { draft: { ...pending.draft, mode: "edit" } }]) {
+    ui.panel.render({ ...pending, ...patch });assert.equal(body.disabled, true);assert.equal(ui.byId("discussion-submit").disabled, true);
+  }
+  ui.panel.dispose();
+});
+
 test("saved discussion matching permits local root typing and preserves IME while delivery stays gated", async () => {
   const ui = harness(); const generations = [];
   ui.panel.bindInsight({ currentState: () => ({ context: { currentSource: { id: "source-demo" } },
