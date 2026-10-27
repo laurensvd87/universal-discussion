@@ -38,7 +38,7 @@ function freeze(value){if(value&&typeof value==='object'){for(const child of Obj
 // This is verification only: it cannot migrate, register, activate or claim.
 export async function verifyInstalledHierarchyWorkerReadiness(database,installed){
  try{
-  await createCanonicalV4IngestionRepository({database,schemaProfile:'hierarchy16'}).health();
+  await createCanonicalV4IngestionRepository({database,schemaProfile:'hierarchy17'}).health();
   const rows=(await database.query(`SELECT pg_catalog.to_regprocedure($1) IS NOT NULL AS container_installed,
    pg_catalog.has_function_privilege(current_user,pg_catalog.to_regprocedure($2),'EXECUTE') AS semantic_execute,
    coalesce(pg_catalog.has_function_privilege(current_user,pg_catalog.to_regprocedure($1),'EXECUTE'),false) AS container_execute,
@@ -66,7 +66,7 @@ async function openResources(options,dependencies,productionBinding){
  const represent=a.referenceMatcher.represent.bind(a.referenceMatcher);
  const installed=await dependencies.loadInstalled();let encoder=null;
  try{
-  const ingest=dependencies.createIngestionRepository({database:a.database,nextId:a.nextId,now:a.now,schemaProfile:'hierarchy16'});
+  const ingest=dependencies.createIngestionRepository({database:a.database,nextId:a.nextId,now:a.now,schemaProfile:'hierarchy17'});
   if(productionBinding)await verifyInstalledHierarchyWorkerReadiness(a.database,installed);
   else await ingest.health(); // Trusted test composition never claims production readiness.
   // Packaged production opener verifies all nine encoder assets and creates

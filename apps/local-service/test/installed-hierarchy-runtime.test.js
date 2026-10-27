@@ -5,8 +5,8 @@ import {loadInstalledHierarchyMatcher} from '../src/application/installed-hierar
 import {readCanonicalV4MigrationManifest} from '../portable/canonical-v4/index.js';
 
 const generation='runtime-generation',defer=()=>{let resolve;const promise=new Promise(done=>{resolve=done;});return {promise,resolve};};
-async function fixture(){
- const installed=await loadInstalledHierarchyMatcher(),manifest=await readCanonicalV4MigrationManifest('hierarchy16'),calls=[];let changed=false,badRights=false,badSchema=false,held=null;
+async function fixture(profile='hierarchy17'){
+ const installed=await loadInstalledHierarchyMatcher(),manifest=await readCanonicalV4MigrationManifest(profile),calls=[];let changed=false,badRights=false,badSchema=false,held=null;
  const nodes=installed.descriptor.matcherIdentity.nodes,byId=new Map(nodes.map(n=>[n.id,n]));
  const topology=()=>({generation,matcherIdentityHash:changed?'b'.repeat(64):installed.descriptor.matcherIdentityHash,
   nodes:nodes.map(n=>{const path=[];let cursor=n;while(cursor){path.unshift(cursor.id);cursor=byId.get(cursor.parentId);}return {...n,path};})});
@@ -61,4 +61,9 @@ test('malformed configuration and database errors expose no sensitive startup de
  const bad={...f.options,database:{query:async()=>{throw Error('private connection material');}}};
  await assert.rejects(openInstalledHierarchyRuntimeForTest(bad,{openResources:f.openResources}),error=>error.code==='unavailable'&&!error.message.includes('private'));
  assert.equal(f.calls.some(c=>c[0]==='open-resources'),false);
+});
+
+test('standalone hierarchy17 runtime refuses an exact hierarchy16 installation before allocating resources',async()=>{
+ const f=await fixture('hierarchy16');await assert.rejects(openInstalledHierarchyRuntimeForTest(f.options,{openResources:f.openResources}),{code:'unavailable'});
+ assert.equal(f.calls.filter(call=>call[0]==='query').length,1);assert.equal(f.calls.some(call=>call[0]==='open-resources'||call[0]==='start-worker'),false);
 });

@@ -35,35 +35,36 @@ async function owner({isolation='read committed',readonly='off',failPolicy=false
 }
 const request=db=>({database:db,expectedHeadRevision:0,expectedPolicyRevision:0,policy:{defaultMaxDepth:1,overrides:[]}});
 
-test('closed manifests preserve exact legacy9 prefix and reject every other profile',async()=>{
- const legacy=await readCanonicalV4MigrationManifest(),hierarchy=await readCanonicalV4MigrationManifest('hierarchy16');
- assert.equal(legacy.length,9);assert.equal(hierarchy.length,16);assert.deepEqual(hierarchy.slice(0,9),legacy);
- for(const profile of ['hierarchy15','16',16,null,{},['hierarchy16']])await assert.rejects(readCanonicalV4MigrationManifest(profile),TypeError);
+test('closed manifests preserve exact legacy9 and hierarchy16 prefixes under hierarchy17',async()=>{
+ const legacy=await readCanonicalV4MigrationManifest(),hierarchy=await readCanonicalV4MigrationManifest('hierarchy16'),latest=await readCanonicalV4MigrationManifest('hierarchy17');
+ assert.equal(legacy.length,9);assert.equal(hierarchy.length,16);assert.equal(latest.length,17);
+ assert.deepEqual(hierarchy.slice(0,9),legacy);assert.deepEqual(latest.slice(0,16),hierarchy);assert.equal(latest[16].version,17);assert.equal(latest[16].hash,sha(latest[16].sql));
+ for(const profile of ['hierarchy15','hierarchy18','16','17',16,17,null,{},['hierarchy16'],['hierarchy17']])await assert.rejects(readCanonicalV4MigrationManifest(profile),TypeError);
 });
 
 test('all repository health gates require exact selected hashes/counts and default to9',async()=>{
- const legacy=rows(await readCanonicalV4MigrationManifest()),hierarchy=rows(await readCanonicalV4MigrationManifest('hierarchy16'));
+ const legacy=rows(await readCanonicalV4MigrationManifest()),hierarchy=rows(await readCanonicalV4MigrationManifest('hierarchy16')),latest=rows(await readCanonicalV4MigrationManifest('hierarchy17'));
  for(const factory of [createCanonicalV4RuntimeRepository,createCanonicalV4IngestionRepository,createCanonicalV4LifecycleRepository]){
-  for(const [schemaProfile,valid] of [['legacy9',legacy],['hierarchy16',hierarchy]]){
+  for(const [schemaProfile,valid] of [['legacy9',legacy],['hierarchy16',hierarchy],['hierarchy17',latest]]){
    let current=valid;
    const database={transaction:()=>assert.fail('Health is read only'),async query(sql){return {rows:sql.includes('schema_migrations')?current:
     [{generation:'generation',revision:0,catalog_version:0,matching_version:0}]};}};
    const repo=factory({database,schemaProfile});assert.equal((await repo.health()).schemaVersion,valid.length);
    if(schemaProfile==='legacy9')assert.equal((await factory({database}).health()).schemaVersion,9);
-   for(const invalid of [valid.slice(0,-1),[...valid,{version:17,hash:'0'.repeat(64)}],valid.map((row,i)=>i===0?{...row,hash:'0'.repeat(64)}:row)]){
+   for(const invalid of [valid.slice(0,-1),[...valid,{version:18,hash:'0'.repeat(64)}],valid.map((row,i)=>i===0?{...row,hash:'0'.repeat(64)}:row),valid.map((row,i)=>i===valid.length-1?{...row,hash:'f'.repeat(64)}:row)]){
     current=invalid;await assert.rejects(repo.health(),{code:'unavailable'});
    }
-   current=hierarchy;if(schemaProfile==='legacy9')await assert.rejects(factory({database}).health(),{code:'unavailable'});
+   for(const other of [legacy,hierarchy,latest].filter(rows=>rows!==valid)){current=other;await assert.rejects(repo.health(),{code:'unavailable'});}
    assert.throws(()=>factory({database,schemaProfile:'arbitrary'}),TypeError);
   }
  }
 });
 
-test('owner installer uses one verifiedRC physical transaction for9to16, fixed matcher and explicit CAS policy',async()=>{
+test('owner installer uses one verifiedRC physical transaction for9to17, fixed matcher and explicit CAS policy',async()=>{
  const f=await owner(),before=f.snapshot(),input=request(f.db),policy=structuredClone(input.policy),result=await installInstalledHierarchy(input);
- assert.equal(f.transactions,1);assert.equal(result.schemaVersion,16);assert.equal(result.headRevision,1);assert.equal(result.policy.revision,1);
+ assert.equal(f.transactions,1);assert.equal(result.schemaVersion,17);assert.equal(result.headRevision,1);assert.equal(result.policy.revision,1);
  assert.deepEqual(input.policy,policy);assert.deepEqual(f.snapshot().migrations.slice(0,9),before.migrations);
- assert.equal(f.snapshot().migrations.length,16);assert.equal(f.snapshot().models[0],result.matcherIdentityHash);
+ assert.equal(f.snapshot().migrations.length,17);assert.equal(f.snapshot().models[0],result.matcherIdentityHash);
  const physical=f.calls.filter(c=>c.tx);assert.equal(new Set(physical.map(c=>c.tx)).size,1);
  const registration=f.calls.findIndex(c=>c.kind==='query'&&c.sql?.startsWith('SELECT canonical_v4.semantic_register_matcher')),lastMigration=f.calls.findLastIndex(c=>c.sql?.startsWith('INSERT INTO canonical_v4.schema_migrations'));
  assert.ok(lastMigration<registration);assert.equal(f.calls[0].sql.startsWith("SELECT current_setting('transaction_isolation')"),true);
@@ -93,10 +94,22 @@ test('owner policy is snapshotted before async loading and unsafe nested rules n
 });
 
 test('migrator rejects future, nonprefix or mismatched registered rows without executing migration SQL',async()=>{
- const manifest=rows(await readCanonicalV4MigrationManifest('hierarchy16'));
- for(const current of [[...manifest,{version:17,hash:'0'.repeat(64)}],manifest.slice(1),manifest.map((r,i)=>i===8?{...r,hash:'f'.repeat(64)}:r)]){
-  const ddl=[],tx={dialect:'pg',exec:async sql=>{ddl.push(sql);},query:async sql=>({rows:sql.includes('pg_get_userbyid')?[{owner:'owner',current_user:'owner'}]:sql.includes('pg_extension')?[{}]:sql.includes('schema_migrations')?current:[{}]})};
-  await assert.rejects(migrateCanonicalV4({transaction:work=>work(tx)},'hierarchy16'));
-  assert.equal(ddl.length,1);assert.match(ddl[0],/^CREATE TABLE IF NOT EXISTS canonical_v4.schema_migrations/);
+ for(const profile of ['hierarchy16','hierarchy17']){
+  const manifest=rows(await readCanonicalV4MigrationManifest(profile));
+  for(const current of [[...manifest,{version:manifest.length+1,hash:'0'.repeat(64)}],manifest.slice(1),manifest.map((r,i)=>i===8?{...r,hash:'f'.repeat(64)}:r)]){
+   const ddl=[],tx={dialect:'pg',exec:async sql=>{ddl.push(sql);},query:async sql=>({rows:sql.includes('pg_get_userbyid')?[{owner:'owner',current_user:'owner'}]:sql.includes('pg_extension')?[{}]:sql.includes('schema_migrations')?current:[{}]})};
+   await assert.rejects(migrateCanonicalV4({transaction:work=>work(tx)},profile));
+   assert.equal(ddl.length,1);assert.match(ddl[0],/^CREATE TABLE IF NOT EXISTS canonical_v4.schema_migrations/);
+  }
  }
+});
+
+test('explicit hierarchy16 migration stays at16 and owner installation appends17 in a new atomic operation',async()=>{
+ const f=await owner(),legacy=await readCanonicalV4MigrationManifest('hierarchy16');
+ const original=await migrateCanonicalV4(f.db,'hierarchy16');assert.equal(original.schemaVersion,16);
+ assert.deepEqual(f.snapshot().migrations,rows(legacy));assert.equal(f.snapshot().head,0);assert.equal(f.snapshot().policy,0);assert.deepEqual(f.snapshot().models,[]);
+ const boundary=f.calls.length,installed=await installInstalledHierarchy(request(f.db));
+ assert.equal(installed.schemaVersion,17);assert.equal(f.transactions,2);assert.deepEqual(f.snapshot().migrations.slice(0,16),rows(legacy));
+ const inserted=f.calls.slice(boundary).filter(call=>call.sql?.startsWith('INSERT INTO canonical_v4.schema_migrations'));
+ assert.deepEqual(inserted.map(call=>call.args[0]),[17]);assert.equal(installed.headRevision,1);assert.equal(installed.policy.revision,1);
 });

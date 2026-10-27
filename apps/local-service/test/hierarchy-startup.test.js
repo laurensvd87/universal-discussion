@@ -24,7 +24,7 @@ async function fixture(profile='legacy9'){
 }
 
 test('trusted hierarchy startup exposes semantic reads without opening an encoder, worker, or legacy Topic Spaces index',async()=>{
- const f=await fixture('hierarchy16');
+ const f=await fixture('hierarchy17');
  const application=await openDormantPostgresApplication({...f.options,hierarchicalTopics:true,
   alternateRidgeAdapter:new Proxy({}, {get(){assert.fail('API-only startup must not touch the old index or worker encoder');}}),
   canonicalDatabaseOwned:true});
@@ -56,7 +56,7 @@ test('an embedded hierarchy worker rejects a missing migration or excessive priv
   {container_installed:false,semantic_execute:false,container_execute:false,legacy_execute:false},
   {container_installed:true,semantic_execute:true,container_execute:true,legacy_execute:false},
  ]){
-  const f=await fixture('hierarchy16'),manifest=await readCanonicalV4MigrationManifest('hierarchy16');let workerQueries=0;
+  const f=await fixture('hierarchy17'),manifest=await readCanonicalV4MigrationManifest('hierarchy17');let workerQueries=0;
   const workerDatabase={async query(sql){workerQueries++;
    if(sql==='SELECT version,hash FROM canonical_v4.schema_migrations ORDER BY version')return {rows:manifest.map(({version,hash})=>({version,hash}))};
    assert.ok(sql.includes('AS container_installed'));
@@ -71,7 +71,7 @@ test('an embedded hierarchy worker rejects a missing migration or excessive priv
 });
 
 test('cleanup attempts all independently owned pools and preserves even a falsy first failure',async()=>{
- const f=await fixture('hierarchy16'),urlPool={query:async()=>assert.fail('No URL read'),transaction:()=>assert.fail('No URL transaction'),
+ const f=await fixture('hierarchy17'),urlPool={query:async()=>assert.fail('No URL read'),transaction:()=>assert.fail('No URL transaction'),
   async close(){f.calls.push(['url-close']);throw Error('Later cleanup failure');}};
  const application=await openDormantPostgresApplication({...f.options,hierarchicalTopics:true,
   canonicalDatabaseOwned:true,urlSelectionDatabase:urlPool,urlSelectionDatabaseOwned:true,
@@ -101,4 +101,22 @@ test('schema-health startup failures still close owned pools without replacing t
  f.database.close=async()=>{f.calls.push(['canonical-close']);throw Error('Cleanup failure');};
  await assert.rejects(openDormantPostgresApplication({...f.options,canonicalDatabaseOwned:true}),error=>error===failure);
  assert.deepEqual(f.calls,[['canonical-close']]);
+});
+
+test('trusted hierarchy17 startup refuses legacy9 and hierarchy16 before worker or encoder work',async()=>{
+ for(const profile of ['legacy9','hierarchy16']){
+  const f=await fixture(profile);let workerQueries=0;
+  await assert.rejects(openDormantPostgresApplication({...f.options,hierarchicalTopics:true,
+   ingestionWorkerDatabase:{query:async()=>{workerQueries++;assert.fail('Old profile must fail before worker work');}},
+   referenceMatcher:{represent:()=>assert.fail('No claim or encoder work')},
+  }),{code:'unavailable'});assert.equal(workerQueries,0);
+ }
+});
+
+test('embedded hierarchy worker rejects exact16 schema before role, model or encoder reads',async()=>{
+ const f=await fixture('hierarchy17'),manifest=await readCanonicalV4MigrationManifest('hierarchy16');let queries=0;
+ const database={query:async sql=>{queries++;assert.equal(sql,'SELECT version,hash FROM canonical_v4.schema_migrations ORDER BY version');
+  return {rows:manifest.map(({version,hash})=>({version,hash}))};}};
+ await assert.rejects(openDormantPostgresApplication({...f.options,hierarchicalTopics:true,ingestionWorkerDatabase:database,
+  referenceMatcher:{represent:()=>assert.fail('No claim or encoder work')}}),{code:'unavailable'});assert.equal(queries,1);
 });

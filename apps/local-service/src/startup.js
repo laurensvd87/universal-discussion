@@ -119,7 +119,7 @@ export async function openDormantPostgresApplication({ config: input, databasePa
   const reads = createCanonicalV4ReadFacade({ database: canonicalDatabase });
   const urlSelectionReads = urlSelectionDatabase === null ? reads :
     createCanonicalV4ReadFacade({ database: urlSelectionDatabase });
-  const schemaProfile = hierarchicalTopics ? 'hierarchy16' : 'legacy9';
+  const schemaProfile = hierarchicalTopics ? 'hierarchy17' : 'legacy9';
   const commands = createCanonicalV4RuntimeRepository({ database: canonicalDatabase, nextId, now, schemaProfile });
   const contributionLifecycle = createCanonicalV4LifecycleRepository({ database: canonicalDatabase, nextId, now, schemaProfile });
   const appIngestionRepository = ingestion?.enqueueInteractive ? ingestion :

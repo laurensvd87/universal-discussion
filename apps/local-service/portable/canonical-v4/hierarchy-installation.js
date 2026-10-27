@@ -42,7 +42,7 @@ export async function installInstalledHierarchy(value) {
       throw new Error('Hierarchy installation requires a writable READ COMMITTED transaction');
     // Adapt only the transaction port: migrator and both existing CAS adapters
     // use this exact physical connection, with no nested BEGIN or pool checkout.
-    const migrated=await migrateCanonicalV4({transaction:work=>work(tx)},'hierarchy16');
+    const migrated=await migrateCanonicalV4({transaction:work=>work(tx)},'hierarchy17');
     const semantic=createCanonicalV4SemanticRepository({database:tx});
     const registration=await semantic.registerMatcher(installed.matcher);
     const head=await semantic.activateMatcher({matcherIdentityHash:registration.matcherIdentityHash,expectedRevision:input.expectedHeadRevision});

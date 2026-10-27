@@ -117,7 +117,7 @@ test('closing retains exact outstanding SQL originals and suppresses late delive
 
 test('health and stored SQL share a finite eight-call admission limit',async()=>{
  const held=defer(),f=setup();let calls=0,startup=true;
- f.dependencies.createIngestionRepository=()=>({health:()=>{if(startup){startup=false;return Promise.resolve({schemaVersion:16});}calls++;return held.promise;},claim:async()=>null,failClaim:async()=>true});
+ f.dependencies.createIngestionRepository=()=>({health:()=>{if(startup){startup=false;return Promise.resolve({schemaVersion:17});}calls++;return held.promise;},claim:async()=>null,failClaim:async()=>true});
  f.dependencies.createStoredRepository=()=>({candidates:()=>{calls++;return held.promise;},reclassify:()=>{calls++;return held.promise;}});
  const r=await f.open(),work=[r.health(),r.storedSources.candidates({}),r.storedSources.reclassify({}),...Array.from({length:5},()=>r.health())];
  const settled=Promise.allSettled(work);await assert.rejects(r.health(),{code:'unavailable'});assert.equal(calls,8);
@@ -132,11 +132,11 @@ test('direct production resources refuse unregistered hierarchy schema before en
  assert.equal(f.state.claims,0);assert.equal(f.state.encodes,0);
 });
 
-test('trusted resource composition selects16 health before opening its encoder',async()=>{
+test('trusted resource composition selects17 health before opening its encoder',async()=>{
  const f=setup();let opened=false;
- f.dependencies.createIngestionRepository=options=>{assert.equal(options.schemaProfile,'hierarchy16');return {health:async()=>{throw Error('Invalid16 schema');}};};
+ f.dependencies.createIngestionRepository=options=>{assert.equal(options.schemaProfile,'hierarchy17');return {health:async()=>{throw Error('Invalid17 schema');}};};
  f.dependencies.openEncoder=async()=>{opened=true;assert.fail('Schema must precede encoder');};
- await assert.rejects(f.open(),{message:'Invalid16 schema'});assert.equal(opened,false);assert.equal(f.state.claims,0);
+ await assert.rejects(f.open(),{message:'Invalid17 schema'});assert.equal(opened,false);assert.equal(f.state.claims,0);
 });
 
 test('invalid database shape rejects before installed assets or encoder startup',async()=>{
