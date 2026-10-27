@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {types} from 'node:util';
 import {existsSync,lstatSync,mkdirSync,mkdtempSync,readFileSync,realpathSync,rmSync,writeFileSync} from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -29,6 +30,24 @@ function checkedPath(target){const root=workspaceRoot(),absolute=path.resolve(ta
 const ELIGIBLE_TARGETS=new Set(['page','iframe','other','service_worker','worker','shared_worker']);
 const AUTO_ATTACH={autoAttach:true,waitForDebuggerOnStart:true,flatten:true,
   filter:[...ELIGIBLE_TARGETS].map(type=>({type,exclude:false})).concat({exclude:true})};
+const BOUNDARY_METHODS=new Set(['Target.setAutoAttach','Network.enable','Network.emulateNetworkConditions','Fetch.enable',
+  'Runtime.enable','Page.enable','Runtime.runIfWaitingForDebugger']);
+export function describeSemanticBoundaryFailure(error){
+  if(error===null||typeof error!=='object'||types.isProxy(error))return {code:'boundary-failure'};
+  let message;try{message=Object.getOwnPropertyDescriptor(error,'message')?.value;}catch{return {code:'boundary-failure'};}
+  if(typeof message!=='string'||message.length>256)return {code:'boundary-failure'};
+  const known={'Target cap':'target-cap','Unexpected target type':'unexpected-target-type',
+    'Executable target already running':'target-already-executing','Unexpected executable target':'unexpected-target-origin',
+    'Foreign extension target':'foreign-extension-target'};
+  if(Object.hasOwn(known,message))return {code:known[message]};
+  const rejected=/^Chromium protocol rejected ([A-Za-z]+\.[A-Za-z]+) \(code (-?[0-9]{1,10})\)$/u.exec(message);
+  if(rejected&&BOUNDARY_METHODS.has(rejected[1])){const numericCode=Number(rejected[2]);if(Number.isInteger(numericCode)&&numericCode>=-2147483648&&numericCode<=2147483647)
+    return {code:'protocol-rejected',method:rejected[1],numericCode};}
+  for(const [prefix,code] of [['Chromium protocol timeout: ','protocol-timeout'],['Chromium pipe ended during ','pipe-ended'],['Chromium pipe unavailable for ','pipe-unavailable']]){
+    if(message.startsWith(prefix)&&BOUNDARY_METHODS.has(message.slice(prefix.length)))return {code,method:message.slice(prefix.length)};
+  }
+  return {code:'boundary-failure'};
+}
 
 // Serialized into the isolated extension page only. All document observations,
 // account identity, service state and attestations below are invented fixtures.
@@ -91,7 +110,7 @@ export async function runSemanticWorkspaceBrowserSmoke(){
   const profileResolved=realpathSync(profile),dataResolved=realpathSync(DATA);assert.ok(contained(workspaceRoot(),dataResolved));assert.ok(contained(workspaceRoot(),profileResolved));
   let browser=null,sessionId=null,origin=null,phase='initial',closing=false,timedOut=false,profileRemoved=false;
   const started=Date.now(),failures=[],exceptions=[],screenshots=[],cases=[],interceptions=[],commands=[],pendingTasks=new Set(),targets=new Map(),held=[];
-  let remoteResponses=0,retiredInterceptions=0,protocolFailure=false,browserVersion=null,initialBlankAccepted=false,extensionLoadStarted=false;
+  let remoteResponses=0,retiredInterceptions=0,protocolFailure=false,browserVersion=null,initialBlankAccepted=false,extensionLoadStarted=false,firstBoundaryFailure=null;
   let publishOrigin;const originKnown=new Promise(resolve=>{publishOrigin=resolve;});
   const mode={capability:'available',context:'classified',holdTarget:false,command:'ok'};
   const state={revision:7,replies:[]};
@@ -174,32 +193,41 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     browser.on('Network.responseReceived',({response})=>{if(/^https?:/u.test(response.url)){remoteResponses++;const headers=Object.fromEntries(Object.entries(response.headers??{}).map(([k,v])=>[k.toLowerCase(),v]));if(headers['x-murmingle-qa-intercepted']!=='1')fail('unintercepted-response');}});
     browser.on('Fetch.requestPaused',(event,incoming)=>{track(intercept(event,incoming).catch(async()=>{fail('interception-failed');await abortRequest(event.requestId,incoming);}));});
     browser.on('Target.attachedToTarget',({sessionId:attached,targetInfo,waitingForDebugger})=>{
-      const entry={type:targetInfo.type,targetId:targetInfo.targetId,ready:false};targets.set(attached,entry);
+      const entry={ordinal:targets.size+1,type:ELIGIBLE_TARGETS.has(targetInfo.type)?targetInfo.type:'unexpected',targetId:targetInfo.targetId,
+        waiting:waitingForDebugger===true,originClass:targetInfo.url==='about:blank'?'blank':/^chrome-extension:\/\//u.test(targetInfo.url)?'extension':'other',
+        stage:'validate-target-count',ready:false,firstFailure:null};targets.set(attached,entry);
       entry.setup=track((async()=>{
         if(targets.size>32)throw new Error('Target cap');
+        entry.stage='validate-target-type';
         if(!ELIGIBLE_TARGETS.has(targetInfo.type))throw new Error('Unexpected target type');
+        entry.stage='validate-waiting';
         const initialBlank=!waitingForDebugger&&!extensionLoadStarted&&!initialBlankAccepted&&targetInfo.type==='page'&&
           targetInfo.url==='about:blank'&&!targetInfo.openerId&&!targetInfo.openerFrameId;
         if(initialBlank)initialBlankAccepted=true;
         if(!waitingForDebugger&&!initialBlank)throw new Error('Executable target already running');
+        entry.stage='validate-origin';
         const extensionUrl=/^chrome-extension:\/\/[a-p]{32}\//u.test(targetInfo.url);
         if(!initialBlank&&!(targetInfo.url==='about:blank'&&['page','iframe'].includes(targetInfo.type))&&
           !(extensionUrl&&extensionLoadStarted&&(!origin||targetInfo.url.startsWith(origin+'/'))))throw new Error('Unexpected executable target');
         // Browser-scope attachment does not cover every descendant. Install the
         // same paused recursive policy on EACH eligible attached target first.
-        await protocol('Target.setAutoAttach',AUTO_ATTACH,attached);entry.recursiveAttachInstalled=true;
+        entry.stage='recursive-auto-attach';await protocol('Target.setAutoAttach',AUTO_ATTACH,attached);entry.recursiveAttachInstalled=true;
         // Install both boundaries before any new extension target executes.
-        await protocol('Network.enable',{},attached);
-        await protocol('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0},attached);
+        entry.stage='network-enable';await protocol('Network.enable',{},attached);
+        entry.stage='network-offline';await protocol('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0},attached);
         entry.offlineInstalled=true;
-        await protocol('Fetch.enable',{patterns:[{urlPattern:'http://*',requestStage:'Request'},{urlPattern:'https://*',requestStage:'Request'}]},attached);
+        entry.stage='fetch-enable';await protocol('Fetch.enable',{patterns:[{urlPattern:'http://*',requestStage:'Request'},{urlPattern:'https://*',requestStage:'Request'}]},attached);
         entry.fetchInstalled=true;
         // Extension workers can attach before loadUnpacked returns its ID. They
         // stay paused until that exact owned origin is known and checked.
-        if(extensionUrl){const ownedOrigin=origin??await originKnown;if(closing||!ownedOrigin||!targetInfo.url.startsWith(ownedOrigin+'/'))throw new Error('Foreign extension target');}
-        await protocol('Runtime.enable',{},attached);if(targetInfo.type==='page')await protocol('Page.enable',{},attached);
-        entry.ready=true;if(waitingForDebugger)await protocol('Runtime.runIfWaitingForDebugger',{},attached);
-      })().catch(()=>{protocolFailure=true;fail('target-boundary-installation');void browser.close();}));
+        if(extensionUrl){entry.stage='await-owned-origin';const ownedOrigin=origin??await originKnown;if(closing||!ownedOrigin||!targetInfo.url.startsWith(ownedOrigin+'/'))throw new Error('Foreign extension target');}
+        entry.stage='runtime-enable';await protocol('Runtime.enable',{},attached);
+        if(targetInfo.type==='page'){entry.stage='page-enable';await protocol('Page.enable',{},attached);}
+        if(waitingForDebugger){entry.stage='resume';await protocol('Runtime.runIfWaitingForDebugger',{},attached);}
+        entry.ready=true;entry.stage='ready';
+      })().catch(error=>{entry.firstFailure??={stage:entry.stage,...describeSemanticBoundaryFailure(error)};
+        firstBoundaryFailure??={ordinal:entry.ordinal,type:entry.type,waiting:entry.waiting,originClass:entry.originClass,...entry.firstFailure};
+        protocolFailure=true;fail('target-boundary-installation');void browser.close();}));
     });
     await browser.send('Target.setDiscoverTargets',{discover:true});
     await browser.send('Target.setAutoAttach',AUTO_ATTACH);
@@ -264,6 +292,9 @@ export async function runSemanticWorkspaceBrowserSmoke(){
       elapsedMs:Date.now()-started,timedOut,closing,closeReturned,ownedProcessExited,profileRemoved,ownedProfileRetained:!profileRemoved,
       attempt:path.relative(REPO,attempt).replaceAll('\\','/'),continuedHttpRequests:0,
       offlineAllTargets:targets.size>0&&[...targets.values()].every(entry=>entry.offlineInstalled&&entry.fetchInstalled&&entry.recursiveAttachInstalled),targets:targets.size,httpResponsesObserved:remoteResponses,browserVersion,
+      firstBoundaryFailure,targetStates:[...targets.values()].map(entry=>({ordinal:entry.ordinal,type:entry.type,waiting:entry.waiting,originClass:entry.originClass,
+        stage:entry.stage,ready:entry.ready,recursiveAttachInstalled:entry.recursiveAttachInstalled===true,offlineInstalled:entry.offlineInstalled===true,
+        fetchInstalled:entry.fetchInstalled===true,firstFailure:entry.firstFailure})),
       interceptions,retiredInterceptions,commands,cases,exceptions,failures,screenshots,sourcePins:startPins,endPins};
     checkedPath(attempt);writeFileSync(checkedPath(path.join(attempt,'result.json')),JSON.stringify(result,null,2)+'\n',{flag:'wx'});
     if(result.outcome!=='passed')throw new Error('Semantic browser QA failed; preserved result.json');
