@@ -1,5 +1,35 @@
 # Project status
 
+## Current: SQL and browser AI checks pass; production upgrade rehearsal next
+
+The isolated PostgreSQL run at `c89ca1a2` passes all25 ordered aggregate checks,
+including real application-role AI publication, exact replay, stale target and
+Source rejection, a concurrent Source update and expiry after a held lock.
+Both scratch databases were dropped and the owned server stopped normally.
+The independently audited result is retained under local
+`semantic-insight-native-fixture-repair-actual-audit-20261027.json`.
+These checks use an invented provider; they do not demonstrate live AI service.
+
+Actual Chrome at `1710bee9` passes13 behavior cases and layout checks at
+320/400/520px. The AI button answers the selected message; submitting `@AI`
+targets the newly accepted question. Replies preserve their original thread,
+and newer unsent text is preserved. This uses production controllers with
+intercepted synthetic services, not the combined browser/database/provider path.
+Saved result: `semantic-workspace-browser-qa-20261027/attempt-IG7GVC/result.json`,
+SHA256 `06c3f62b03afba56622eba6b63f7ecd08af9ee7423bd985e820ddba8d6d6f002`.
+
+`f83aa959` adds explicit legacy9/hierarchy16 schema profiles and one owner
+transaction for migration, fixed matcher registration, head activation and
+explicit grouping policy. Source review and focused tests pass. Actual upgrade
+and rollback verification in scratchB is next. The live database remains9;
+services have not switched. Production operator/seal, backup/restore rehearsal,
+existing-page processing, dashboard integration, combined UI/provider checks,
+crawler plus many-user load/latency and live cutover remain unfinished.
+The crawler continues advancing (4983 in the latest observed run; stderr0).
+Fine-topic coverage remains limited to the accepted GTA refinement below16 roots.
+
+Earlier entries below are historical checkpoints.
+
 ## Latest: readable semantic composer passes actual Chrome checks
 
 The clipped composer and low-contrast topic buttons are fixed in `3eb42c84`.

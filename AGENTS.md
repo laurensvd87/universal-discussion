@@ -8,6 +8,22 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+CURRENT27Oct SQL016 c89ca1a2 actualPASS25ordered (NOT25qualitycases), runbde501...
+23052 normalparent/ownsmartstop/2DBdrop/noemergency/stderr0. RealappSQL AIreply/
+replay/staleSource-target-history/held-lockexpiry/RR Source race; providerinvented.
+Independent b09b916d...e6a9ad0 authenticated/FULLread. Chrome1710bee9 PASS13+3PNGs
+at320/400/520, realcontrollers/inventedAI+services; selectedbutton/new@AI question
+sameRootA/originNULL/draftpreserved. Result06c3f62b...f002/31pins/ownedexit/profile
+cleanup. UI source released108d5348, NOTlive. ADR224sourcef83aa959 pushed:
+exact legacy9/hierarchy16 profiles, atomicownerRC migrate/register/head+policyCAS,
+readinessbeforeencoder/claim. Next actual9to16 rollback+install in scratchB;
+scratchAraw16/25ledger/2DB/8clients/originalcaps unchanged. Current map3a6ad8c5...
+26b54 consumed, rebuild for newordinarysource+installer/assets before new actual.
+Maintained agent owns nativecontext/assertions SOURCE; Root catalog/review/actual.
+Productionoperator/seal+assets/PGbackuprestore/backfill/adoption/dashboard,
+combinedUI+SQL/provider/manyuser+crawlerlatency/livecutover OPEN. Live9/original
+services preserved; crawler4060 advancing4983/stderr0. GoalACTIVE.
+
 CURRENT27Oct native015 ONEactual160da940/session9319 CLOSEDexit0/25orderedPASS.
 Run38cb27a37c0d4226eeda019a08e1f8f5729fbb202a2ecb1f; parent862B67dd9c2a...fbc1/
 stdout4767Beaabd949...9af1/stderr0/child5383B24f5d917...bc4c. Actualclient->handler

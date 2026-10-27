@@ -1,5 +1,16 @@
 # Hierarchical topic assignment and discussion plan
 
+Latest verification (27 October): real PostgreSQL now passes the cross-page AI
+publication protocol, including exact replay, stale evidence and expiry races
+(`c89ca1a2`,25 aggregate ledger points). Chrome passes13 cases with simulated AI
+and service responses (`1710bee9`), including selected-target AI and new `@AI`
+question handoff. Neither check proves the combined live browser/provider path.
+The explicit schema16 profile and atomic owner installer are committed in
+`f83aa959`; a real registered9-to16 upgrade/rollback rehearsal is next.
+Production installation, existing-page processing, dashboard integration,
+simultaneous user/crawler performance and live cutover remain open. Earlier
+references below to blocked AI or unimplemented schema profiles are historical.
+
 Current delivery state (27 October): the hierarchical matcher, persisted semantic
 paths, owner-wide/per-topic cuts, bounded feeds and exact reply-target reads work
 in isolated checks. The accepted initial model covers16 broad topics and one

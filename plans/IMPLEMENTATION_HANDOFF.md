@@ -1,5 +1,23 @@
 # Implementation handoff: local-service discussion MVP
 
+CURRENT27Oct SQL016 c89ca1a2 actualPASS25ordered/3+8+8+6, NOT25qualitycases.
+Runbde501046b11a30b15c35c92366e5b7e4eb5f41333023052; parent e2a5cb9d...cc23/
+stdout2e13a910...5945/child1157538f...f78/stderr0. App-role publication/replay,
+staleRoot/Target/Source/history/expiry-after-held-lock and real RR Source race
+PASS; provider invented. Own smartstop/2DBdrop/normalparent/endpins/noemergency.
+Independent b09b916dce0bf9e2af314587bb36d88d69faeef867437176c2e0f8f82e6a9ad0
+authenticated/FULLread. Chrome1710bee9/attempt-IG7GVC PASS13+3responsivePNGs,
+real insight/discussion controllers with inventedAI+interceptedservices only.
+ButtonselectedTarget and @AI acceptedNEWquestion share sameRootA/originNULL;
+draft preserved. Result06c3f62b...f002/31pins/ownedexit+profilecleanup.
+AI UI source released108d5348; no live rollout. ADR224sourcef83aa959 pushed:
+explicit9/16profiles, owner oneRCtransaction migration+matcher+headCAS+policyCAS,
+worker exact16/readiness beforeencoder/claims. Actual9to16 upgrade/rollbackNEXT
+in scratchB, scratchAraw16/original25ledger/2DB/8clients/caps preserved.
+Then trackedoperator/seal+assets, PGbackup/restore, backfill/adoption/dashboard,
+combinedUI+SQL/provider/manyuser+crawlerlatency/livecutover. Live9/originalservices,
+crawler4060advances4983/stderr0. GoalACTIVE. Old checkpoints below superseded.
+
 LATEST27Oct Chrome5d3f38ad/attempt-FddUGS PASS11behavior+3responsivePNGs.
 Stronginternalbounds/visiblecontext-heading-submit/contrast12.257 PASS320/400/520;
 Root+TrustPNG/savedresultaudit PASS882d022e...c958/all14start-end-currentpins.
