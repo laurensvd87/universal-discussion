@@ -4,7 +4,8 @@ const UNSAFE = /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066
 const KINDS = ["general", "event", "product", "claim"];
 const ACTORS = ["demo-alex", "demo-blair"];
 export const REFERENCE_TOPIC_POLICY = "ridge1-fixed-reference-radius/v1";
-const LEARNED_POLICIES = ["provisional-all-source-cosine/v1", "adaptive-supported-partitions/v1", REFERENCE_TOPIC_POLICY];
+export const HIERARCHY_SOURCE_POLICY = "hierarchy-source-container/v1";
+const LEARNED_POLICIES = ["provisional-all-source-cosine/v1", "adaptive-supported-partitions/v1", REFERENCE_TOPIC_POLICY, HIERARCHY_SOURCE_POLICY];
 // Every valid catalog/prior-topic JSON row takes more than 32 bytes on the wire.
 // The HTTP client rejects responses over 1 MiB, so this bounds direct projections
 // without retaining the retired 100-row PoC ceiling.
@@ -507,7 +508,7 @@ export function readOutcome(value, commandType) {
     const hasMemberships = Object.hasOwn(item.result ?? {}, "topicIds");
     const result = record(item.result, ["sourceId", "topicId", "previousTopicId", "assignment", "policyVersion", ...(hasMemberships ? ["topicIds"] : [])]);
     const memberships = hasMemberships ? topicMemberships(result.topicIds, result.topicId) : null;
-    if (result.policyVersion === REFERENCE_TOPIC_POLICY && !memberships) invalid();
+    if ([REFERENCE_TOPIC_POLICY, HIERARCHY_SOURCE_POLICY].includes(result.policyVersion) && !memberships) invalid();
     return { version: readVersion(item.version), result: { sourceId: readId(result.sourceId), topicId: readId(result.topicId),
       previousTopicId: nullableId(result.previousTopicId), assignment: oneOf(result.assignment, ["confirmed"]),
       policyVersion: oneOf(result.policyVersion, LEARNED_POLICIES), ...(memberships ? { topicIds: memberships } : {}) } };
@@ -542,7 +543,7 @@ export function readIngestionOutcome(value) {
   const hasMemberships = Object.hasOwn(value ?? {}, "topicIds");
   const item = record(value, ["version", "sourceId", "topicId", "assignment", "policyVersion", ...(hasMemberships ? ["topicIds"] : [])]);
   const memberships = hasMemberships ? topicMemberships(item.topicIds, item.topicId) : null;
-  if (item.policyVersion === REFERENCE_TOPIC_POLICY && !memberships) invalid();
+  if ([REFERENCE_TOPIC_POLICY, HIERARCHY_SOURCE_POLICY].includes(item.policyVersion) && !memberships) invalid();
   return { version: readVersion(item.version), sourceId: readId(item.sourceId), topicId: readId(item.topicId),
     assignment: oneOf(item.assignment, ["provisional", "confirmed"]),
     policyVersion: oneOf(item.policyVersion, LEARNED_POLICIES), ...(memberships ? { topicIds: memberships } : {}) };

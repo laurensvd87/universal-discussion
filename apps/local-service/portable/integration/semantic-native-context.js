@@ -14,6 +14,7 @@ const SQL_SHA='2a647b0a83bb4e9c09bbd703dc4343788a4dd57dd7f52289f5b842afaeba8355'
 const FEED_SQL_SHA='a2ccf69eb5c17bc4f64a950c053bae49dd82f9f13c913cf7fb5615602f945202';
 const STORED_SQL_SHA='9af5affa2377d218df1b2ca9daa79eddbedd78fa3bf86ccf74f97c09acf574aa';
 const METADATA_SQL_SHA='cd89f6da5c3813991b627f29c03ac9cb28688cef942812e6af518649f3ae2855';
+const CONTAINER_SQL_SHA='af0d480792ed2e55dfc2961356b6e1400e4bb9abbdd90d478492f7b222c06cd7';
 const roles=new Map([['postgres','observer'],['murmingle_app','app'],
  ['murmingle_ingest_worker','worker'],['murmingle_crawler_submitter','submitter']]);
 function code(error){const value=error&&Object.getOwnPropertyDescriptor(error,'code');
@@ -35,7 +36,7 @@ function ledger(){
  }};
 }
 
-async function initialize(database,generation,sql,feedSql,storedSql,metadataSql){
+async function initialize(database,generation,sql,feedSql,storedSql,metadataSql,containerSql){
  await database.exec('ALTER SCHEMA canonical_v4 OWNER TO murmingle_owner');
  await database.exec('SET ROLE murmingle_owner');
  await migrateCanonicalV4(database);
@@ -60,6 +61,7 @@ async function initialize(database,generation,sql,feedSql,storedSql,metadataSql)
   await tx.exec(feedSql);
   await tx.exec(storedSql);
   await tx.exec(metadataSql);
+  await tx.exec(containerSql);
  });
 }
 
@@ -74,6 +76,8 @@ export async function runSemanticNativeProof(){
  if(storedRaw.length!==29092||sha(storedRaw)!==STORED_SQL_SHA)throw fail('SEMANTIC_STORED_SCHEMA_PIN');
  const metadataRaw=await readFile(new URL('../canonical-v4/migrations/013-semantic-public-topic-metadata.sql',import.meta.url));
  if(metadataRaw.length!==7445||sha(metadataRaw)!==METADATA_SQL_SHA)throw fail('SEMANTIC_METADATA_SCHEMA_PIN');
+ const containerRaw=await readFile(new URL('../canonical-v4/migrations/014-semantic-source-containers.sql',import.meta.url));
+ if(containerRaw.length!==22853||sha(containerRaw)!==CONTAINER_SQL_SHA)throw fail('SEMANTIC_CONTAINER_SCHEMA_PIN');
  return runWithOwnedScopedPostgres(async connectFixedRole=>{
   let open=true,primary=null;
   const guard=()=>{if(!open)throw fail('SEMANTIC_SCOPE_RETIRED');};
@@ -114,7 +118,7 @@ export async function runSemanticNativeProof(){
       await database.close();
      })();return closing;
     }};
-   fixtures.push(fixture);await initialize(database,generation,raw.toString('utf8'),feedRaw.toString('utf8'),storedRaw.toString('utf8'),metadataRaw.toString('utf8'));return fixture;
+   fixtures.push(fixture);await initialize(database,generation,raw.toString('utf8'),feedRaw.toString('utf8'),storedRaw.toString('utf8'),metadataRaw.toString('utf8'),containerRaw.toString('utf8'));return fixture;
   }
   let rows=null,cleanup;
   try{await runSemanticAssertions(checks.test,{acquireFixture});rows=checks.finish();}

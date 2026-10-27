@@ -4,9 +4,9 @@
     "children": [
       "semantic schemas keep nine registered migrations and start with inert head, empty topic metadata, root snapshots and default owner policy",
       "actual numeric owner registration is inert, byte-bound and idempotent",
-      "app reads policy, topics, context and feeds but cannot register, activate, reclassify, adopt or mutate semantic records",
-      "crawler submitter cannot register, activate, read topology or context metadata or apply semantic writes",
-      "worker reads topology only but cannot read Source context, call legacy apply, register, set policy, adopt, read feeds or mutate tables",
+      "app reads public metadata and feeds but cannot execute internal container apply, register, activate, reclassify, adopt or mutate records",
+      "crawler submitter cannot execute internal container apply, register, activate, read topology or context or apply semantic writes",
+      "worker reads topology but cannot call internal or legacy apply directly, read Source context, register, set policy, adopt, read feeds or mutate tables",
       "cross-model node ancestry is stable while distinct models with the same ancestry register",
       "repeatable-read and serializable owner registration explicitly reject without mutation",
       "owner activation and depth policy use real compare-and-swap and actual grouping with stale and invalid-rule refusal"
@@ -19,8 +19,8 @@
       "stale installed matcher rejects before any legacy canonical mutation",
       "registered topology rejects a numerically prepared non-ancestor path",
       "actual worker SQL rejects an invalid title vector without canonical mutation",
-      "post-legacy semantic insertion failure rolls back Source, receipt, numeric input and job completion",
-      "successful apply binds paired input, snapshot-safe public owner-cut metadata, human-AI canonical child feeds and real HTTP projection",
+      "legacy apply hits the real Ridge sentinel while container apply reaches the controlled semantic fault and rolls back all canonical work",
+      "semantic apply bypasses the retained Ridge sentinel, creates distinct same-vector page containers and retains canonical human-AI feeds and metadata",
       "completed operation status and exact enqueue replay do not duplicate semantic or canonical writes",
       "excluded challenge metadata stays empty and canonically isolated while its real root receives no semantic snapshot"
     ]
@@ -30,7 +30,7 @@
     "children": [
       "identical renewal deduplicates numeric input and records a new Source version without rewriting root snapshots",
       "title-only change creates new paired input while unpinned original roots retain their historical semantic snapshots",
-      "manual destination persists while parsed application threads and exact targets retain canonical IDs, page actors and body-revision cursor fences",
+      "legacy provisional multi-memberships and manual routes survive changed renewal while parsed canonical targets retain actors and body-revision cursor fences",
       "worker head share permits app reads, then pending context becomes classified through unchanged Source reclassification and legacy adoption including genuine version zero",
       "actual withdrawal and controlled visibility changes remove feed edges; Source forget clears derived context but retains canonical roots and discussions",
       "second fresh database resets owner policy and material revision without reusing registry, head, snapshots or worker authority"

@@ -76,6 +76,7 @@ const REGISTER='SELECT canonical_v4.semantic_register_matcher($1)';
 const ACTIVATE='SELECT canonical_v4.semantic_activate_matcher($1,$2)';
 const APPLY=`SELECT * FROM canonical_v4.semantic_ingest_apply($1,$2,$3,$4::double precision[],$5,$6,$7,$8,$9,$10,$11,$12,$13::double precision[],$14::text[])`;
 const LEGACY=`SELECT * FROM canonical_v4.ingest_apply($1,$2,$3,$4::double precision[],$5,$6,$7,$8,$9,$10,$11)`;
+const PRIVATE_CONTAINER=LEGACY.replace('canonical_v4.ingest_apply(','canonical_v4.semantic_apply_source_container(');
 
 /** Runs only when the caller supplies its separately owned native fixture scope.
  * A roles: owner primary + worker/app/submitter/postgres observer. B: owner +
@@ -91,6 +92,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
  let ownerSemantic,workerSemantic,ownerFeeds,appFeeds,appRuntime,appLifecycle,appIngest,workerIngest,A,initial,excluded,serial=0,encoderCalls=0;
  let humanRoot,aiRoot,manualRoot,legacyRoot,originalSnapshots,originalDestination,defaultOwnerPolicy,reads,service,workerSources,ownerSources;
  let storedEncoderCalls=0;
+ let ridgeDefinition=null;
  const actor=Object.freeze({id:'demo-alex',type:'human',demo:true});
  const nextId=kind=>`semantic-${kind}-${++serial}`,now=()=>new Date().toISOString();
  const preparation=createHierarchyIngestionPreparation({matcher:matcher1,embedTitle:async()=>{encoderCalls++;return {modelId:MODEL,values:axis(0)};}});
@@ -119,11 +121,13 @@ export async function runSemanticAssertions(test,{acquireFixture}){
    (SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]'::jsonb)::text FROM canonical_v4.sources s) sources,
    (SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY e.source_id),'[]'::jsonb)::text FROM canonical_v4.embeddings e) embeddings,
    (SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.source_id),'[]'::jsonb)::text FROM canonical_v4.operation_receipts r) receipts`);}
- async function importVersionZero(){
-  const sourceId=nextId('source-zero'),operationId='semantic-import-zero',values=axis(0);values[0]=Math.sqrt(.5);values[2]=Math.sqrt(.5);
-  const input={url:'https://semantic.example.org/imported-version-zero',title:'Invented genuine default-zero import',embedding:{modelId:MODEL,values},extractorVersion:'crawler-static-html-prefix/v1'};
+ async function importVersionZero({legacyMulti=false}={}){
+  const sourceId=nextId('source-zero'),operationId=legacyMulti?'semantic-import-legacy-multi':'semantic-import-zero',values=axis(0);
+  if(!legacyMulti){values[0]=Math.sqrt(.5);values[2]=Math.sqrt(.5);}
+  const input={url:'https://semantic.example.org/'+(legacyMulti?'imported-legacy-multi':'imported-version-zero'),title:'Invented genuine default-zero import',embedding:{modelId:MODEL,values},extractorVersion:'crawler-static-html-prefix/v1'};
   const operationDigest=digest(input),stamp=sourceStamp(input),policyVersion='ridge1-fixed-reference-radius/v1';
-  const payload={id:sourceId,...input,provenance:'owner-local-page-embedding/v1',operationId,operationDigest,policyVersion,topicIds:[MANUAL_TOPIC]};
+  const topicIds=legacyMulti?[MANUAL_TOPIC,originalDestination.topicId].sort():[MANUAL_TOPIC],method=legacyMulti?'learned-provisional':'manual-confirmed';
+  const payload={id:sourceId,...input,provenance:'owner-local-page-embedding/v1',operationId,operationDigest,policyVersion,topicIds};
   await owner.transaction(async tx=>{
    await tx.query("INSERT INTO canonical_v4.id_registry(id,kind) VALUES($1,'sources')",[sourceId]);
    // Deliberately OMIT write_version: this exercises canonical import DEFAULT0,
@@ -133,11 +137,11 @@ export async function runSemanticAssertions(test,{acquireFixture}){
    await tx.query('INSERT INTO canonical_v4.embeddings(source_id,payload,model_id,dimensions,values_double) VALUES($1,$2,$3,384,$4::double precision[])',[sourceId,JSON.stringify(input.embedding),MODEL,wire(values)]);
    await tx.query('INSERT INTO canonical_v4.operation_receipts(source_id,operation_id,operation_digest) VALUES($1,$2,$3)',[sourceId,operationId,operationDigest]);
    await tx.query('INSERT INTO canonical_v4.runtime_source_stamps(source_id,stamp,postable) VALUES($1,$2,true)',[sourceId,stamp]);
-   await tx.query('INSERT INTO canonical_v4.topic_memberships(source_id,topic_id,ordinal) VALUES($1,$2,0)',[sourceId,MANUAL_TOPIC]);
-   await tx.query(`INSERT INTO canonical_v4.source_links(source_id,topic_id,ordinal,payload,method) VALUES($1,$2,nextval('canonical_v4.source_link_ordinal_sequence'),$3,'manual-confirmed')`,
-    [sourceId,MANUAL_TOPIC,JSON.stringify({sourceId,topicId:MANUAL_TOPIC,method:'manual-confirmed'})]);
+   for(let ordinal=0;ordinal<topicIds.length;ordinal++)await tx.query('INSERT INTO canonical_v4.topic_memberships(source_id,topic_id,ordinal) VALUES($1,$2,$3)',[sourceId,topicIds[ordinal],ordinal]);
+   await tx.query(`INSERT INTO canonical_v4.source_links(source_id,topic_id,ordinal,payload,method) VALUES($1,$2,nextval('canonical_v4.source_link_ordinal_sequence'),$3,$4)`,
+    [sourceId,MANUAL_TOPIC,JSON.stringify({sourceId,topicId:MANUAL_TOPIC,method}),method]);
   });
-  assert.equal((await sourceState(owner,sourceId)).write_version,'0');return {sourceId,values};
+  assert.equal((await sourceState(owner,sourceId)).write_version,'0');return {sourceId,values,url:input.url,topicIds,policyVersion};
  }
  async function activate(hash){const head=await scalar(owner,'SELECT revision::text FROM canonical_v4.semantic_installation WHERE singleton');return ownerSemantic.activateMatcher({matcherIdentityHash:hash,expectedRevision:Number(head.revision)});}
  async function queued(label,{url=`https://semantic.example.org/article-${label}`,title='Invented public article'}={}){
@@ -153,10 +157,16 @@ export async function runSemanticAssertions(test,{acquireFixture}){
  function rawParameters(work,{title=axis(0),path=SUPPORTED_PATH}={}){return [work.claim.operationId,work.claim.operationDigest,work.claim.leaseToken,wire(axis(0)),RIDGE_PARAMETER_SHA256,
   nextId('source'),nextId('topic'),nextId('discussion'),now(),sourceStamp(work.claim.input),true,hash1,wire(title),path];}
  async function closeA(){
+  let restoreFailed=false,restoreError;
+  if(ridgeDefinition&&owner)try{
+   await owner.exec(ridgeDefinition);
+   assert.equal((await scalar(owner,"SELECT pg_get_functiondef('canonical_v4.ingest_ridge_scan(double precision[],text)'::regprocedure) definition")).definition,ridgeDefinition);
+  }catch(error){restoreFailed=true;restoreError=error;}finally{ridgeDefinition=null;}
   const clients=[observer,submitter,app,worker];observer=submitter=app=worker=null;
   const closed=await Promise.allSettled(clients.filter(Boolean).map(client=>client.close()));
   const saved=fixture;fixture=null;owner=null;if(saved)await saved.close();
   for(const result of closed)if(result.status==='rejected')throw result.reason;
+  if(restoreFailed)throw restoreError;
  }
  try{
   await test(GROUPS[0].name,async t=>{
@@ -190,6 +200,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     assert.equal((await scalar(owner,'SELECT matcher_hash FROM canonical_v4.semantic_installation WHERE singleton')).matcher_hash,null);
    });
    await t.test(GROUPS[0].children[2],async()=>{
+    await denied(app,PRIVATE_CONTAINER,Array(11).fill(null));
     await denied(app,REGISTER,[identity1]);await denied(app,ACTIVATE,[hash1,0]);
     await denied(app,'UPDATE canonical_v4.semantic_installation SET revision=revision');
     await denied(app,'SELECT * FROM canonical_v4.semantic_inputs');
@@ -205,6 +216,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     await denied(app,'UPDATE canonical_v4.semantic_material_state SET revision=revision');
    });
    await t.test(GROUPS[0].children[3],async()=>{
+    await denied(submitter,PRIVATE_CONTAINER,Array(11).fill(null));
     await denied(submitter,REGISTER,[identity1]);await denied(submitter,ACTIVATE,[hash1,0]);await denied(submitter,APPLY,Array(14).fill(null));
     await denied(submitter,'SELECT canonical_v4.semantic_set_owner_policy($1,$2,$3::jsonb)',[0,1,'[]']);
     await denied(submitter,'SELECT * FROM canonical_v4.semantic_read_feed($1,$2,$3,$4)',[fixture.generation,'games',null,10]);
@@ -217,6 +229,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     await denied(submitter,'SELECT canonical_v4.semantic_read_source_context($1,$2)',[fixture.generation,'unknown-semantic-source']);
    });
    await t.test(GROUPS[0].children[4],async()=>{
+    await denied(worker,PRIVATE_CONTAINER,Array(11).fill(null));
     await denied(worker,LEGACY,Array(11).fill(null));await denied(worker,REGISTER,[identity1]);await denied(worker,ACTIVATE,[hash1,0]);
     await denied(worker,'UPDATE canonical_v4.semantic_matchers SET identity_text=identity_text');
     await denied(worker,'DELETE FROM canonical_v4.semantic_observations');
@@ -279,9 +292,18 @@ export async function runSemanticAssertions(test,{acquireFixture}){
    });
    await t.test(GROUPS[1].children[4],async()=>{
     const before=await counts(owner);
+    ridgeDefinition=(await scalar(owner,"SELECT pg_get_functiondef('canonical_v4.ingest_ridge_scan(double precision[],text)'::regprocedure) definition")).definition;
+    assert.equal(typeof ridgeDefinition,'string');
+    await owner.exec(`CREATE OR REPLACE FUNCTION canonical_v4.ingest_ridge_scan(candidate double precision[],p_parameter_sha256 text)
+     RETURNS TABLE(topic_id text,similarity double precision) LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $$
+     BEGIN RAISE EXCEPTION 'Owned fixture Ridge routing sentinel' USING ERRCODE='P1491'; END $$`);
+    const legacyBefore=await canonicalState();
+    await assert.rejects(owner.query(LEGACY,rawParameters(initial).slice(0,11)),sqlCode('P1491'));
+    assert.deepEqual(await canonicalState(),legacyBefore);assert.deepEqual(await counts(owner),before);
     await owner.exec(`CREATE FUNCTION canonical_v4.semantic_test_insert_fault() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'controlled semantic insert fault' USING ERRCODE='P0001'; END $$;
      CREATE TRIGGER semantic_test_insert_fault BEFORE INSERT ON canonical_v4.semantic_observations FOR EACH ROW EXECUTE FUNCTION canonical_v4.semantic_test_insert_fault()`);
     try{
+     await assert.rejects(worker.query(APPLY,rawParameters(initial)),sqlCode('P0001'));
      await assert.rejects(finish(initial),error=>error.code==='storage-failure');assert.deepEqual(await counts(owner),before);
      const job=await scalar(owner,'SELECT state,request_material,lease_token FROM canonical_v4.ingestion_jobs WHERE operation_id=$1',[initial.claim.operationId]);
      assert.equal(job.state,'leased');assert.equal(job.request_material,initial.claim.requestMaterial);assert.equal(job.lease_token,initial.claim.leaseToken);
@@ -290,6 +312,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
    });
    await t.test(GROUPS[1].children[5],async()=>{
     A=await finish(initial);const s=await sourceState(owner,A.sourceId);assert.equal(s.write_version,'1');assert.equal(s.operation_id,initial.claim.operationId);
+    assert.equal((await scalar(owner,'SELECT policy_version FROM canonical_v4.sources WHERE id=$1',[A.sourceId])).policy_version,'hierarchy-source-container/v1');
     const bound=await scalar(owner,`SELECT o.source_version::text,o.operation_digest,i.body_values,i.title_values,i.supported_path,i.semantic_eligible,
      i.body_wire_hash=encode(sha256(array_send(i.body_values)),'hex') body_exact,i.title_wire_hash=encode(sha256(array_send(i.title_values)),'hex') title_exact
      FROM canonical_v4.semantic_observations o JOIN canonical_v4.semantic_inputs i USING(source_id,operation_digest,matcher_hash) WHERE o.source_id=$1`,[A.sourceId]);
@@ -357,6 +380,18 @@ export async function runSemanticAssertions(test,{acquireFixture}){
      authorization:'Bearer '+config.capability,'content-type':'application/json'},body:JSON.stringify({nodeId:'games',limit:1,cursor:null})});
     assert.equal(response.status,200);const http=JSON.parse(response.body);assert.equal(http.roots.length,1);assert.ok([humanRoot,aiRoot].includes(http.roots[0].root.id));
     assert.equal(http.roots[0].discussionId,s.discussion_id);assert.equal(http.roots[0].root.origin.sourceId,A.sourceId);
+    const peerWork=await queued('same-vector-distinct-page',{title:initial.input.title}),peer=await finish(peerWork),peerState=await sourceState(owner,peer.sourceId);
+    assert.notEqual(peer.topicId,A.topicId);assert.notEqual(peerState.discussion_id,s.discussion_id);
+    assert.equal((await scalar(owner,'SELECT policy_version FROM canonical_v4.sources WHERE id=$1',[peer.sourceId])).policy_version,'hierarchy-source-container/v1');
+    assert.deepEqual((await context(peer.sourceId)).supportedPath,SUPPORTED_PATH);
+    const peerRoot=(await humanPost('same-vector-distinct-container',{topicId:peer.topicId,sourceId:peer.sourceId})).result.contributionId;
+    const peerRef=(await feed('invented-game-branch')).references.find(ref=>ref.rootId===peerRoot);
+    assert.ok(peerRef);assert.equal(peerRef.topicId,peer.topicId);assert.equal(peerRef.discussionId,peerState.discussion_id);
+    assert.deepEqual(await rootSnapshots(),originalSnapshots,'distinct semantic peers never retarget original canonical roots');
+    // Retain the peer Source/container, withdraw only this fixture's extra root
+    // so subsequent original feed/erasure assertions retain their exact cohort.
+    await appLifecycle.command(await fixture.header(),{type:'withdraw',contributionId:peerRoot},actor);
+    assert.equal((await feed('invented-game-branch')).references.length,2);
    });
    await t.test(GROUPS[1].children[6],async()=>{
     const before=await counts(owner),version=(await sourceState(owner,A.sourceId)).write_version;
@@ -391,6 +426,22 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     assert.equal(Number((await scalar(owner,'SELECT count(*) n FROM canonical_v4.contributions WHERE id=ANY($1::text[]) AND anchor_source_id IS NULL',[[humanRoot,aiRoot]])).n),2);
    });
    await t.test(GROUPS[2].children[2],async()=>{
+    // Explicit owner import models a genuine legacy DEFAULT0 Source: old Radius
+    // policy, provisional primary route and both original membership rows.
+    const importedLegacy=await importVersionZero({legacyMulti:true});
+    const membershipsBefore=(await owner.query('SELECT source_id,topic_id,ordinal FROM canonical_v4.topic_memberships WHERE source_id=$1 ORDER BY topic_id',[importedLegacy.sourceId])).rows;
+    const linkBefore=await scalar(owner,'SELECT source_id,topic_id,ordinal::text,payload,method FROM canonical_v4.source_links WHERE source_id=$1',[importedLegacy.sourceId]);
+    assert.equal(membershipsBefore.length,2);assert.equal(linkBefore.method,'learned-provisional');
+    const matchingBefore=(await scalar(owner,'SELECT matching_version::text FROM canonical_v4.runtime_state WHERE singleton')).matching_version;
+    const legacyWork=await queued('legacy-multi-renew',{url:importedLegacy.url,title:'Changed genuine legacy multi-membership title'});
+    const renewedLegacy=await finish(legacyWork,{representedValues:axis(1)});
+    assert.equal(renewedLegacy.sourceId,importedLegacy.sourceId);assert.equal((await sourceState(owner,importedLegacy.sourceId)).write_version,'1');
+    assert.deepEqual((await owner.query('SELECT source_id,topic_id,ordinal FROM canonical_v4.topic_memberships WHERE source_id=$1 ORDER BY topic_id',[importedLegacy.sourceId])).rows,membershipsBefore);
+    assert.deepEqual(await scalar(owner,'SELECT source_id,topic_id,ordinal::text,payload,method FROM canonical_v4.source_links WHERE source_id=$1',[importedLegacy.sourceId]),linkBefore);
+    const retainedPolicy=await scalar(owner,"SELECT policy_version,payload::jsonb->>'policyVersion' payload_policy,payload::jsonb->'topicIds' topic_ids FROM canonical_v4.sources WHERE id=$1",[importedLegacy.sourceId]);
+    assert.equal(retainedPolicy.policy_version,importedLegacy.policyVersion);assert.equal(retainedPolicy.payload_policy,importedLegacy.policyVersion);assert.deepEqual(retainedPolicy.topic_ids,importedLegacy.topicIds);
+    assert.equal((await scalar(owner,'SELECT matching_version::text FROM canonical_v4.runtime_state WHERE singleton')).matching_version,String(BigInt(matchingBefore)+1n));
+    assert.deepEqual((await context(importedLegacy.sourceId)).supportedPath,SUPPORTED_PATH,'numeric hierarchy uses actual body/title input independently of legacy represented vector');
     await appIngest.lifecycle(await fixture.header(),{type:'correct-source',sourceId:A.sourceId,topicId:MANUAL_TOPIC});
     const work=await queued('manual-retain',{url:initial.input.url,title:'Invented manual title refresh'});A=await finish(work);
     const s=await sourceState(owner,A.sourceId);assert.equal(A.topicId,MANUAL_TOPIC);assert.equal(A.assignment,'confirmed');assert.equal(s.topic_id,MANUAL_TOPIC);assert.equal(s.discussion_id,MANUAL_DISCUSSION);assert.equal(s.method,'manual-confirmed');

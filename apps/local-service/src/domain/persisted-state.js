@@ -63,7 +63,7 @@ function assertState(state, legacy, largeScale = false) {
     if (learned) {
       text(source.title, 200); text(source.operationId, 128);
       if (!compatibleExtractor(source.extractorVersion) || !(legacy ? source.policyVersion === MATCH_POLICY_VERSION :
-          [MATCH_POLICY_VERSION, ADAPTIVE_TOPIC_POLICY.version,...(referenceState?['ridge1-fixed-reference-radius/v1']:[])].includes(source.policyVersion)) ||
+          [MATCH_POLICY_VERSION, ADAPTIVE_TOPIC_POLICY.version,...(referenceState?['ridge1-fixed-reference-radius/v1','hierarchy-source-container/v1']:[])].includes(source.policyVersion)) ||
           !/^[a-f0-9]{64}$/u.test(source.operationDigest) || source.embedding?.modelId !== BROWSER_MODEL_ID) invalid();
       const retainedUrl = inspectRetainedSourceDtoUrl(source.url);
       if (!retainedUrl.supported || retainedUrl.url !== source.url) invalid();
