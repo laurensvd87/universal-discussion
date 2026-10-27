@@ -124,7 +124,7 @@ export function installSemanticBrowserContainment({browser,targets,targetGroups,
 const PRIVATE_ROUTES=new Map([
  ['GET',new Set(['/v1/health','/v1/version'])],
  ['POST',new Set(['/v1/account/me','/v1/semantic/capabilities','/v1/semantic/topics','/v1/semantic/feed','/v1/semantic/thread','/v1/semantic/target',
-  '/v1/catalog/context','/v1/catalog/selection','/v1/commands'])],
+  '/v1/catalog/context','/v1/catalog/selection','/v1/commands','/v1/discover/search','/v1/discussions/page'])],
 ]);
 const privateFailure=()=>new Error('Private browser transport refused');
 function needPrivate(value){if(!value)throw privateFailure();}
@@ -134,33 +134,48 @@ function plain(value){needPrivate(value&&typeof value==='object'&&!types.isProxy
  * no credentials or response data in the returned finite description. */
 export function createPrivateBrowserRequestProxy({origin,request,checkDeadline,isOpen}){
  needPrivate(typeof origin==='string'&&/^chrome-extension:\/\/[a-p]{32}$/u.test(origin)&&[request,checkDeadline,isOpen].every(value=>typeof value==='function'));
- let closed=false,total=0,maximumPending=0;const pending=new Set(),observations=[];
+ let closed=false,total=0,maximumPending=0,attempts=0,firstFailure=null;const pending=new Set(),observations=[];
+ const routes=new Map([...PRIVATE_ROUTES.values()].flatMap(paths=>[...paths]).map(value=>[value,value.slice(4).replaceAll('/','-')]));
  function check(){checkDeadline();needPrivate(!closed&&isOpen());}
  return Object.freeze({async forward(value){
-  check();const input=plain(value);needPrivate(Object.keys(input).sort().join() === 'headers,method,postData,url');
-  const url=new URL(input.url);needPrivate(url.origin==='http://127.0.0.1:4174'&&!url.username&&!url.password&&!url.search&&!url.hash&&url.href===input.url);
-  const allowed=input.method==='OPTIONS'?[...PRIVATE_ROUTES.values()].some(routes=>routes.has(url.pathname)):PRIVATE_ROUTES.get(input.method)?.has(url.pathname);
-  needPrivate(allowed);const headers=plain(input.headers),lower=new Map();let headerBytes=0;
-  for(const [name,value]of Object.entries(headers)){needPrivate(/^[A-Za-z0-9-]{1,64}$/u.test(name)&&typeof value==='string'&&!/[\r\n\u0000]/u.test(value)&&!lower.has(name.toLowerCase()));
-   lower.set(name.toLowerCase(),value);headerBytes+=name.length+value.length;}
-  needPrivate(lower.size<=64&&headerBytes<=16384&&lower.get('origin')===origin&&!lower.has('x-demo-actor')&&!lower.has('cookie'));
-  if(lower.has('host'))needPrivate(lower.get('host')==='127.0.0.1:4174');
-  else headers.Host='127.0.0.1:4174'; // Exact validated browser URL authority.
-  if(input.method==='OPTIONS')needPrivate(!lower.has('authorization')&&!lower.has('x-account-session'));
-  if(input.method!=='OPTIONS')needPrivate(/^Bearer [A-Za-z0-9_-]{32,512}$/u.test(lower.get('authorization')??''));
-  if(lower.has('x-account-session'))needPrivate(/^[A-Za-z0-9_-]{43}$/u.test(lower.get('x-account-session')));
-  needPrivate(input.postData===undefined||typeof input.postData==='string');const body=input.postData===undefined?null:Buffer.from(input.postData,'utf8');
-  needPrivate(body===null||body.length<=65536);needPrivate(total<64&&pending.size<4);total++;
-  const original=Promise.resolve().then(()=>request({method:input.method,url:url.pathname,headers,body}));pending.add(original);maximumPending=Math.max(maximumPending,pending.size);
-  try{const value=await original;check();const response=plain(value);needPrivate(Object.keys(response).sort().join()==='body,headers,status');
-   needPrivate(Number.isInteger(response.status)&&response.status>=100&&response.status<=599&&Buffer.isBuffer(response.body)&&response.body.length<=1048576);
-   const responseHeaders=plain(response.headers);needPrivate(Object.keys(responseHeaders).length<=64);
-   for(const [name,value]of Object.entries(responseHeaders))needPrivate(/^[A-Za-z0-9-]{1,64}$/u.test(name)&&typeof value==='string'&&value.length<=8192&&!/[\r\n\u0000]/u.test(value));
-   const observedOrigin=Object.entries(responseHeaders).find(([name])=>name.toLowerCase()==='access-control-allow-origin');needPrivate(observedOrigin?.[1]===origin);
+  const diagnostic={stage:'request-shape',code:'request-shape',requestOrdinal:Math.min(++attempts,65),method:'other',route:'other',status:null,
+   headers:{origin:false,authorization:false,accountSession:false,contentType:false,cors:false}};
+  const at=stage=>{diagnostic.stage=stage;diagnostic.code=stage;};
+  let original=null,body=null;
+  try{
+   check();const input=plain(value);needPrivate(Object.keys(input).sort().join() === 'headers,method,postData,url');
+   diagnostic.method=['GET','POST','OPTIONS'].includes(input.method)?input.method:'other';
+   at('request-route');const url=new URL(input.url);needPrivate(url.origin==='http://127.0.0.1:4174'&&!url.username&&!url.password&&!url.search&&!url.hash&&url.href===input.url);
+   diagnostic.route=routes.get(url.pathname)??'other';
+   const allowed=input.method==='OPTIONS'?[...PRIVATE_ROUTES.values()].some(routes=>routes.has(url.pathname)):PRIVATE_ROUTES.get(input.method)?.has(url.pathname);
+   needPrivate(allowed);at('request-headers');const headers=plain(input.headers),lower=new Map();let headerBytes=0;
+   for(const [name,value]of Object.entries(headers)){needPrivate(/^[A-Za-z0-9-]{1,64}$/u.test(name)&&typeof value==='string'&&!/[\r\n\u0000]/u.test(value)&&!lower.has(name.toLowerCase()));
+    lower.set(name.toLowerCase(),value);headerBytes+=name.length+value.length;}
+   Object.assign(diagnostic.headers,{origin:lower.has('origin'),authorization:lower.has('authorization'),accountSession:lower.has('x-account-session'),contentType:lower.has('content-type')});
+   const omittedOrigin=input.method==='GET'&&PRIVATE_ROUTES.get('GET').has(url.pathname)&&!lower.has('origin');
+   needPrivate(lower.size<=64&&headerBytes<=16384&&!lower.has('x-demo-actor')&&!lower.has('cookie'));
+   at('request-origin');needPrivate(omittedOrigin||lower.get('origin')===origin);
+   at('request-authority');if(lower.has('host'))needPrivate(lower.get('host')==='127.0.0.1:4174');
+   else headers.Host='127.0.0.1:4174'; // Exact validated browser URL authority.
+   if(input.method==='OPTIONS')needPrivate(!lower.has('authorization')&&!lower.has('x-account-session'));
+   if(input.method!=='OPTIONS')needPrivate(/^Bearer [A-Za-z0-9_-]{32,512}$/u.test(lower.get('authorization')??''));
+   if(lower.has('x-account-session'))needPrivate(/^[A-Za-z0-9_-]{43}$/u.test(lower.get('x-account-session')));
+   if(['/v1/discover/search','/v1/discussions/page'].includes(url.pathname))needPrivate(!lower.has('x-account-session'));
+   at('request-body');needPrivate(input.postData===undefined||typeof input.postData==='string');body=input.postData===undefined?null:Buffer.from(input.postData,'utf8');
+   needPrivate(body===null||body.length<=65536);at('request-capacity');needPrivate(total<64&&pending.size<4);total++;
+   at('http-request');original=Promise.resolve().then(()=>request({method:input.method,url:url.pathname,headers,body}));pending.add(original);maximumPending=Math.max(maximumPending,pending.size);
+   const returned=await original;at('response-shape');check();const response=plain(returned);needPrivate(Object.keys(response).sort().join()==='body,headers,status');
+   if(Number.isInteger(response.status)&&response.status>=100&&response.status<=599)diagnostic.status=response.status;
+   needPrivate(diagnostic.status!==null&&Buffer.isBuffer(response.body)&&response.body.length<=1048576);
+   at('response-headers');const responseHeaders=plain(response.headers);needPrivate(Object.keys(responseHeaders).length<=64);const responseNames=new Set();
+   for(const [name,value]of Object.entries(responseHeaders)){needPrivate(/^[A-Za-z0-9-]{1,64}$/u.test(name)&&typeof value==='string'&&value.length<=8192&&!/[\r\n\u0000]/u.test(value)&&!responseNames.has(name.toLowerCase()));responseNames.add(name.toLowerCase());}
+   const observedOrigin=Object.entries(responseHeaders).find(([name])=>name.toLowerCase()==='access-control-allow-origin');diagnostic.headers.cors=Boolean(observedOrigin);
+   at('response-origin');needPrivate(observedOrigin?observedOrigin[1]===origin:omittedOrigin);
    observations.push({method:input.method,path:url.pathname,status:response.status});return {status:response.status,headers:responseHeaders,body:response.body};
-  }finally{pending.delete(original);body?.fill(0);}
+  }catch(error){firstFailure??={...diagnostic,headers:{...diagnostic.headers}};throw error;
+  }finally{if(original)pending.delete(original);body?.fill(0);}
  },async close(){closed=true;await Promise.allSettled([...pending]);},
- describe:()=>Object.freeze({requests:total,maximumPending,pending:pending.size,closed,observations:observations.map(row=>({...row}))})});
+ describe:()=>Object.freeze({requests:total,maximumPending,pending:pending.size,closed,firstFailure:firstFailure?{...firstFailure,headers:{...firstFailure.headers}}:null,observations:observations.map(row=>({...row}))})});
 }
 
 export function readPrivateBrowserCredentials(value){

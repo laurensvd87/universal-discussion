@@ -200,8 +200,8 @@ function freezePrivate(value){if(value&&typeof value==='object'){for(const child
 // No credential is interpolated into source, placed in the DOM or returned.
 async function bootstrapPrivateApplication(credentials){
  window.dispatchEvent(new Event('pagehide'));
- const [{mountDiscussionPanel},{mountSemanticTopicPanel},{createLocalDiscussionController},{createLocalServiceClient},{createAccountClient}]=await Promise.all([
-  import('./discussion-panel.js'),import('./semantic-topic-panel.js'),import('../core/local-discussion-controller.js'),import('../core/local-service-client.js'),import('../core/account-client.js')]);
+ const [{mountDiscussionPanel},{mountSemanticTopicPanel},{createLocalDiscussionController},{createLocalServiceClient},{createAccountClient},{mountCanonicalHistoryPanel}]=await Promise.all([
+  import('./discussion-panel.js'),import('./semantic-topic-panel.js'),import('../core/local-discussion-controller.js'),import('../core/local-service-client.js'),import('../core/account-client.js'),import('./canonical-history-panel.js')]);
  let actor=credentials.actors[0].actorId;const sessions=new Map(credentials.actors.map(row=>[row.actorId,row.sessionToken])),topicId=credentials.canonicalTopicId;
  const transport=createLocalServiceClient({fetchImpl:fetch.bind(globalThis),getToken:()=>credentials.capability,getAccountToken:id=>sessions.get(id)??null});
  const accounts=createAccountClient({fetchImpl:fetch.bind(globalThis),getPairingToken:()=>credentials.capability});
@@ -220,7 +220,10 @@ async function bootstrapPrivateApplication(credentials){
   lookupByNormalizedUrl:async()=>{throw new Error('Private manual context only');},onStateChange:value=>panel.render(value)});
  controller.setSemanticTopicsAvailable(true);panel.bind(controller);await controller.open();
  const topics=mountSemanticTopicPanel(document,directory,{client:transport,idPrefix:'private-topics-'});topics.setConnection(true);topics.setActive(true);
- let rootId=null,replyId=null;
+ let rootId=null,replyId=null,history=null,historyRoot=null,directoryPages=0,messagePages=0,directoryPaginationObserved=false,messagePaginationObserved=false;
+ const seenHistory=new Set();
+ const historyReady=()=>historyRoot?.getAttribute('aria-busy')==='false'&&historyRoot.querySelector('#canonical-history-retry')?.hidden===true;
+
  return {
   ready:()=>Boolean(directory.querySelector('button[id^="private-topics-open-"]')),
   directoryFound:()=>directory.querySelector('#private-topics-search')?.value==='Games'&&Boolean(directory.querySelector('#private-topics-open-games'))&&!directory.querySelector('#private-topics-open-music'),
@@ -232,10 +235,37 @@ async function bootstrapPrivateApplication(credentials){
   async stored(rootBody,replyBody){const value=await transport.selection({sourceId:null,topicId}),root=value.discussion.roots.find(row=>row.id===rootId),reply=root?.replies.find(row=>row.id===replyId);
    if(!root||root.body!==rootBody||!reply||reply.body!==replyBody||reply.rootId!==rootId||root.origin?.sourceId||reply.origin?.sourceId)throw new Error('Private stored read mismatch');
    return {topicId,discussionId:value.discussion.discussionId,rootId,replyId};},
+  startHistory(){
+   canonical.hidden=true;directory.hidden=true;historyRoot=document.createElement('section');historyRoot.className='action-panel';historyRoot.id='private-public-history';main.append(historyRoot);
+   // Public history uses the real paired client without any account resolver.
+   const anonymous=createLocalServiceClient({fetchImpl:fetch.bind(globalThis),getToken:()=>credentials.capability,getAccountToken:()=>null});
+   const bounded=(input)=>{if(input.limit!==20||!(input.cursor===null||typeof input.cursor==='string'))throw Error('Private history request');};
+   const historyClient={discover(input,options){bounded(input);if(input.query!==''||++directoryPages>5)throw Error('Private history directory bound');return anonymous.discover(input,options);},
+    canonicalDiscussionPage(input,options){bounded(input);if(input.topicId!==topicId||++messagePages>5)throw Error('Private history messages bound');return anonymous.canonicalDiscussionPage(input,options);}};
+   history=mountCanonicalHistoryPanel(document,historyRoot,{client:historyClient});history.observe({actorId:null,sessionRevision:null});history.setAvailable(true);history.setActive(true);return true;
+  },
+  historyReady,
+  historyTopic(){return Boolean(historyRoot.querySelector('[id="canonical-history-open-'+topicId+'"]'));},
+  historyNext(kind){const next=historyRoot.querySelector('#canonical-history-next');if(!next||next.disabled)return false;
+   if(kind==='directory')directoryPaginationObserved=true;else messagePaginationObserved=true;return true;},
+  historyPage(rootBody,replyBody){
+   for(const id of [rootId,replyId]){const card=[...historyRoot.querySelectorAll('[data-post-id]')].find(n=>n.dataset.postId===id);if(!card)continue;
+    if(card.querySelector('.discussion-body')?.textContent!==(id===rootId?rootBody:replyBody))throw Error('Private history body');
+    if(id===replyId){const inset=parseFloat(getComputedStyle(card).marginInlineStart),rem=parseFloat(getComputedStyle(document.documentElement).fontSize);if(!Number.isFinite(inset)||!Number.isFinite(rem)||Math.abs(inset-rem)>0.1)throw Error('Private history indent');}seenHistory.add(id);}
+   return seenHistory.has(rootId)&&seenHistory.has(replyId);
+  },
+  historyProof(){
+   const bounds=historyRoot.getBoundingClientRect(),cards=[...historyRoot.querySelectorAll('.discussion-contribution')];
+   const layout=innerWidth===320&&bounds.width>0&&bounds.left>=0&&bounds.right<=innerWidth+1&&historyRoot.scrollWidth<=historyRoot.clientWidth+1&&cards.every(n=>{const r=n.getBoundingClientRect();return r.left>=bounds.left&&r.right<=bounds.right+1&&n.scrollWidth<=n.clientWidth+1;});
+   const readonly=!historyRoot.querySelector('textarea,input,form,[contenteditable="true"],[data-action]'),noLinks=!historyRoot.querySelector('a');
+   if(!seenHistory.has(rootId)||!seenHistory.has(replyId)||!layout||!readonly||!noLinks)throw Error('Private history verification');
+   return {verified:true,anonymous:true,originalIdsRead:true,readOnly:true,noSourceLinks:true,flatReplies:true,layoutWithinBounds:true,viewportWidth:320,
+    directoryPages,messagePages,directoryPaginationObserved,messagePaginationObserved};
+  },
   async denySecond(rootBody){actor=credentials.actors[1].actorId;controller.accountChanged();const value=await transport.selection({sourceId:null,topicId});let refused=false;
    try{await transport.command(value.catalog.version,{type:'edit',contributionId:rootId,body:'Unauthorized browser replacement'},actor);}catch(error){refused=error?.code==='forbidden';}
    const after=await transport.selection({sourceId:null,topicId});if(!refused||after.discussion.roots.find(row=>row.id===rootId)?.body!==rootBody)throw new Error('Private second-account edit not refused');return true;},
-  dispose(){topics.dispose();controller.dispose();panel.dispose();sessions.clear();credentials=null;},
+  dispose(){history?.dispose();topics.dispose();controller.dispose();panel.dispose();sessions.clear();credentials=null;},
  };
 }
 
@@ -245,7 +275,7 @@ export async function openPrivateApplicationBrowser(value){
  assert.ok(Number.isFinite(a.deadline)&&typeof a.checkDeadline==='function'&&typeof a.request==='function');assert.equal(process.platform,'win32');
  privateDirectories(path.dirname(a.profileDirectory));privateDirectories(a.outputDirectory);mkdirSync(a.profileDirectory);privateDirectories(a.profileDirectory);
  const profileIdentity=realpathSync(a.profileDirectory),started=performance.now(),cutoff=Math.min(a.deadline,started+120000),targets=new Map(),targetGroups=new Map(),pendingTasks=new Set();
- let browser=null,origin=null,sessionId=null,extensionLoadStarted=false,closing=false,exercising=false,boundaryFailed=false,stage='opening',failure=null,final=null,remote=null,canonical=null,proxy=null;
+ let browser=null,origin=null,sessionId=null,extensionLoadStarted=false,closing=false,exercising=false,boundaryFailed=false,stage='opening',failure=null,final=null,remote=null,canonical=null,proxy=null,history=null,transportFailure=null,transportOrdinal=0;
  const cases=PRIVATE_BROWSER_CASES.map(name=>({name,status:'not-started'})),forwardedNetwork=new Map();let observedResponses=0,publishOrigin;const originKnown=new Promise(resolve=>{publishOrigin=resolve;});
  const remember=code=>{failure??={stage,code};};
  const check=()=>{a.checkDeadline();if(closing||boundaryFailed||performance.now()>=cutoff)throw new Error('Private browser unavailable');};
@@ -254,7 +284,7 @@ export async function openPrivateApplicationBrowser(value){
  const abort=async(id,session)=>{try{await protocol('Fetch.failRequest',{requestId:id,errorReason:'BlockedByClient'},session);}catch{/* Closing remains separately verified. */}};
  async function wait(fn){const end=Math.min(cutoff,performance.now()+9000);for(;;){check();if(await fn())return;if(performance.now()>=end)throw new Error('Private browser wait expired');await pause(40);}}
  async function call(fn,args=[]){check();const response=await protocol('Runtime.callFunctionOn',{objectId:remote,functionDeclaration:fn,arguments:args.map(value=>({value})),awaitPromise:true,returnByValue:true},sessionId);check();assert.ok(!response.exceptionDetails);return response.result?.value;}
- async function click(selector){const point=await call("function(selector){const n=document.querySelector(selector),r=n?.getBoundingClientRect();if(!n||n.disabled||!r||r.width<=0||r.height<=0)throw Error('Control unavailable');return {x:r.left+r.width/2,y:r.top+r.height/2};}",[selector]);
+ async function click(selector){const point=await call("function(selector){const n=document.querySelector(selector);n?.scrollIntoView({block:'center',inline:'nearest'});const r=n?.getBoundingClientRect();if(!n||n.disabled||!r||r.width<=0||r.height<=0)throw Error('Control unavailable');return {x:r.left+r.width/2,y:r.top+r.height/2};}",[selector]);
   await protocol('Input.dispatchMouseEvent',{type:'mousePressed',x:point.x,y:point.y,button:'left',clickCount:1},sessionId);
   await protocol('Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x,y:point.y,button:'left',clickCount:1},sessionId);check();}
  const control=createOneShotBrowserExercise({perform:async credentials=>{
@@ -273,7 +303,17 @@ export async function openPrivateApplicationBrowser(value){
    stage=cases[2].name;cases[2].status='running';await click('[data-action=reply]');
    await click('#discussion-body');await protocol('Input.insertText',{text:PRIVATE_BROWSER_REPLY_BODY},sessionId);
    await click('#discussion-submit');await wait(()=>call('function(body){return this.replyAccepted(body);}',[PRIVATE_BROWSER_REPLY_BODY]));
-   canonical=await call('function(root,reply){return this.stored(root,reply);}',[PRIVATE_BROWSER_ROOT_BODY,PRIVATE_BROWSER_REPLY_BODY]);cases[2].status='passed';
+   canonical=await call('function(root,reply){return this.stored(root,reply);}',[PRIVATE_BROWSER_ROOT_BODY,PRIVATE_BROWSER_REPLY_BODY]);
+   await protocol('Emulation.setDeviceMetricsOverride',{width:320,height:900,deviceScaleFactor:1,mobile:false},sessionId);
+   await call('function(){return this.startHistory();}');
+   for(let page=0;;page++){await wait(()=>call('function(){return this.historyReady();}'));
+    if(await call('function(){return this.historyTopic();}'))break;
+    assert.ok(page<4&&await call('function(){return this.historyNext("directory");}'));await click('#canonical-history-next');}
+   await click('[id="canonical-history-open-'+canonical.topicId+'"]');
+   for(let page=0;;page++){await wait(()=>call('function(){return this.historyReady();}'));
+    if(await call('function(root,reply){return this.historyPage(root,reply);}',[PRIVATE_BROWSER_ROOT_BODY,PRIVATE_BROWSER_REPLY_BODY]))break;
+    assert.ok(page<4&&await call('function(){return this.historyNext("messages");}'));await click('#canonical-history-next');}
+   history=await call('function(){return this.historyProof();}');cases[2].status='passed';
    stage=cases[3].name;cases[3].status='running';assert.equal(await call('function(body){return this.denySecond(body);}',[PRIVATE_BROWSER_ROOT_BODY]),true);cases[3].status='passed';
   }catch{const row=cases.find(row=>row.status==='running');if(row)row.status='failed';remember('private-browser-exercise');throw new Error('Private browser exercise unavailable');}
  },retire:async()=>{
@@ -293,7 +333,7 @@ export async function openPrivateApplicationBrowser(value){
   if(!contained||!ownedRootExited||!observedResponses)remember('private-browser-boundary');const network=proxy?.describe()??{requests:0,maximumPending:0,pending:0};
   if(cases.some(row=>row.status!=='passed'))remember('private-browser-exercise');
   final=freezePrivate({schema:'private-application-browser-proof/v1',status:!failure&&cases.every(row=>row.status==='passed')?'passed':'failed',cases:cases.map(row=>({...row})),pendingCases:cases.filter(row=>row.status==='running').length,
-   origin,canonical,requests:network.requests,maxConcurrentRequests:network.maximumPending,cleanup:{browserClosed,ownedRootExited,pendingRequests:network.pending,pendingTasks:pendingTasks.size,profileRemoved},
+   origin,canonical,history,transportFailure,requests:network.requests,maxConcurrentRequests:network.maximumPending,cleanup:{browserClosed,ownedRootExited,pendingRequests:network.pending,pendingTasks:pendingTasks.size,profileRemoved},
    scope:{realBrowser:true,realHttpProxy:true,sqlVerifiedByThisHelper:false,nativeCapture:false,nativeSidePanel:false,provider:false,externalIdentity:false,productionCapacity:false},failure,elapsedMs:Math.round(performance.now()-started)});
   return final;
  }});
@@ -302,15 +342,16 @@ export async function openPrivateApplicationBrowser(value){
    isExtensionLoadStarted:()=>extensionLoadStarted,onFailure:()=>{boundaryFailed=true;remember('private-browser-boundary');}});
   browser.on('Runtime.exceptionThrown',()=>{boundaryFailed=true;remember('private-browser-exercise');});
   browser.on('Network.responseReceived',({requestId,response},session)=>{if(/^https?:/u.test(response.url)){
-   observedResponses++;if(forwardedNetwork.get(session+'\0'+requestId)!==response.url){boundaryFailed=true;remember('private-browser-transport');}
+   observedResponses++;if(forwardedNetwork.get(session+'\0'+requestId)!==response.url){transportFailure??={stage:'unexpected-response',code:'unexpected-response',requestOrdinal:null,method:'other',route:'other',status:null,headers:{origin:false,authorization:false,accountSession:false,contentType:false,cors:false}};boundaryFailed=true;remember('private-browser-transport');}
   }});
-  browser.on('Fetch.requestPaused',(event,session)=>{track((async()=>{if(!exercising||closing){await abort(event.requestId,session);return;}try{
+  browser.on('Fetch.requestPaused',(event,session)=>{track((async()=>{if(!exercising||closing){await abort(event.requestId,session);return;}
+   const diagnostic={stage:'owned-page',code:'owned-page',requestOrdinal:Math.min(++transportOrdinal,65),method:'other',route:'other',status:null,headers:{origin:false,authorization:false,accountSession:false,contentType:false,cors:false}};try{
     check();const entry=targets.get(session);assert.ok(entry?.active&&entry.recursiveAttachInstalled&&entry.offlineInstalled&&entry.fetchInstalled);
     const info=(await protocol('Target.getTargetInfo',{targetId:entry.targetId})).targetInfo;check();assert.ok(info?.attached&&info.url.startsWith(origin+'/'));
-    const response=await proxy.forward({url:event.request.url,method:event.request.method,headers:event.request.headers,postData:event.request.postData});check();
+    diagnostic.stage=diagnostic.code='proxy';const response=await proxy.forward({url:event.request.url,method:event.request.method,headers:event.request.headers,postData:event.request.postData});check();
     assert.equal(typeof event.networkId,'string');assert.ok(event.networkId.length<=128);forwardedNetwork.set(session+'\0'+event.networkId,event.request.url);
-    await protocol('Fetch.fulfillRequest',{requestId:event.requestId,responseCode:response.status,responseHeaders:Object.entries(response.headers).map(([name,value])=>({name,value})),body:response.body.toString('base64')},session);
-   }catch{if(!closing){boundaryFailed=true;remember('private-browser-transport');}await abort(event.requestId,session);}})());});
+    diagnostic.stage=diagnostic.code='fulfill';diagnostic.status=response.status;await protocol('Fetch.fulfillRequest',{requestId:event.requestId,responseCode:response.status,responseHeaders:Object.entries(response.headers).map(([name,value])=>({name,value})),body:response.body.toString('base64')},session);
+   }catch{if(!closing){transportFailure??=proxy?.describe().firstFailure??diagnostic;boundaryFailed=true;remember('private-browser-transport');}await abort(event.requestId,session);}})());});
   await protocol('Target.setDiscoverTargets',{discover:true});await protocol('Target.setAutoAttach',AUTO_ATTACH);extensionLoadStarted=true;
   const loaded=await protocol('Extensions.loadUnpacked',{path:EXTENSION});check();assert.match(loaded.id,/^[a-p]{32}$/u);origin='chrome-extension://'+loaded.id;publishOrigin(origin);
   proxy=createPrivateBrowserRequestProxy({origin,request:a.request,checkDeadline:check,isOpen:()=>exercising&&!closing});

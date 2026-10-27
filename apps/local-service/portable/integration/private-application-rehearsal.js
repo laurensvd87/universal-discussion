@@ -187,7 +187,8 @@ async function run(value,ports,testComposition,withModel=false,withBrowser=false
  async function browserRequest(input){a.checkDeadline();need(pendingHttp.size<4,'APPLICATION_HTTP_CAPACITY');
   need(input&&Reflect.ownKeys(input).length===4&&['method','url','headers','body'].every(k=>Object.hasOwn(input,k))&&['GET','POST','OPTIONS'].includes(input.method)&&typeof input.url==='string'&&/^\/v1\/[a-z0-9/?=&%._-]+$/iu.test(input.url)&&input.url.length<=4096,'APPLICATION_BROWSER_REQUEST');
   const headers=new Map(Object.entries(input.headers??{}).map(([key,value])=>[key.toLowerCase(),value]));
-  need(headers.size===Object.keys(input.headers??{}).length&&headers.get('host')===HOST&&headers.get('origin')===cfg.origin&&(input.method==='OPTIONS'?!headers.has('authorization')&&!headers.has('x-account-session'):headers.get('authorization')==='Bearer '+token)&&(input.body===null||Buffer.isBuffer(input.body))&&(input.body===null||input.body.length<=65536),'APPLICATION_BROWSER_REQUEST');
+  const omittedOrigin=input.method==='GET'&&['/v1/health','/v1/version'].includes(input.url)&&!headers.has('origin');
+  need(headers.size===Object.keys(input.headers??{}).length&&headers.get('host')===HOST&&(omittedOrigin||headers.get('origin')===cfg.origin)&&(input.method==='OPTIONS'?!headers.has('authorization')&&!headers.has('x-account-session'):headers.get('authorization')==='Bearer '+token)&&(input.body===null||Buffer.isBuffer(input.body))&&(input.body===null||input.body.length<=65536),'APPLICATION_BROWSER_REQUEST');
   const original=Promise.resolve().then(()=>ports.requestRaw(input));pendingHttp.add(original);httpRequests++;maximumConcurrentHttp=Math.max(maximumConcurrentHttp,pendingHttp.size);
   try{const result=await original;a.checkDeadline();return result;}finally{pendingHttp.delete(original);}
  }

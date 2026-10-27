@@ -852,14 +852,21 @@ def checked_browser_proof(I,value):
     value=value['ui']
     names=('named-account-and-semantic-directory-search','human-root-in-original-canonical-topic-null-origin',
         'human-reply-and-stored-read-original-destination','second-account-edit-denied-original-body-retained')
-    I.require(shape(value,'schema status cases pendingCases origin canonical requests maxConcurrentRequests cleanup scope failure elapsedMs')
+    I.require(shape(value,'schema status cases pendingCases origin canonical requests maxConcurrentRequests cleanup scope failure elapsedMs history transportFailure')
         and value['schema']=='private-application-browser-proof/v1' and value['status']=='passed'
         and value['cases']==[{'name':name,'status':'passed'} for name in names]
         and type(value['pendingCases']) is int and value['pendingCases']==0 and value['failure'] is None
         and type(value['origin']) is str and re.fullmatch(r'chrome-extension://[a-p]{32}',value['origin']) is not None
         and type(value['requests']) is int and 1<=value['requests']<=64
         and type(value['maxConcurrentRequests']) is int and 1<=value['maxConcurrentRequests']<=4
-        and value['maxConcurrentRequests']<=value['requests'] and number(value['elapsedMs'],0,300000),'browser-proof-shape')
+        and value['maxConcurrentRequests']<=value['requests'] and number(value['elapsedMs'],0,300000)
+        and value['transportFailure'] is None,'browser-proof-shape')
+    history=value['history']
+    I.require(shape(history,'verified anonymous originalIdsRead readOnly noSourceLinks flatReplies layoutWithinBounds viewportWidth directoryPages messagePages directoryPaginationObserved messagePaginationObserved')
+        and all(history[key] is True for key in ('verified','anonymous','originalIdsRead','readOnly','noSourceLinks','flatReplies','layoutWithinBounds'))
+        and type(history['viewportWidth']) is int and history['viewportWidth']==320
+        and all(type(history[key]) is int and 1<=history[key]<=5 for key in ('directoryPages','messagePages'))
+        and all(type(history[key]) is bool for key in ('directoryPaginationObserved','messagePaginationObserved')),'browser-proof-history')
     canonical=value['canonical']
     I.require(shape(canonical,'topicId discussionId rootId replyId')
         and all(type(x) is str and 0<len(x)<=128 and re.fullmatch(r'[A-Za-z0-9._:-]+',x) is not None for x in canonical.values())

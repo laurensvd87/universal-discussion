@@ -105,12 +105,13 @@ function productFixture(){
    assert.match(sql,/c.origin_source_id IS NULL AND c.anchor_source_id IS NULL/u);assert.match(sql,/r.payload::jsonb->>'body'=\$6/u);return {rows:[{roots:1,replies:1,manual_snapshots:0}]};}
   return ownerQuery(sql,args);
  };
- f.ports.requestRaw=async input=>{f.events.push('browser-raw-http');assert.equal(input.headers.Origin,origin);assert.equal(input.headers.Host,'127.0.0.1:4174');return {status:204,headers:{'access-control-allow-origin':origin},body:Buffer.alloc(0)};};
+ f.ports.requestRaw=async input=>{f.events.push('browser-raw-http');assert.equal(input.headers.Host,'127.0.0.1:4174');if(input.method==='GET'){assert.equal(Object.hasOwn(input.headers,'Origin'),false);return {status:200,headers:{'content-type':'application/json'},body:Buffer.from('{}')};}assert.equal(input.headers.Origin,origin);return {status:204,headers:{'access-control-allow-origin':origin},body:Buffer.alloc(0)};};
  f.ports.legacy=async input=>{f.events.push('original-legacy-run');assert.equal(input.ownerDatabase,f.value.ownerDatabase);assert.equal(input.workerDatabase.dialect,'pg');assert.equal(input.originalRootHighWatermark,'97');assert.equal(input.deadline,f.value.deadline);return {status:'passed',resourcesClosed:true,testComposition:true};};
  f.ports.openBrowser=async options=>{
   f.events.push('browser-open');assert.equal(f.events.includes('app-open'),false);assert.equal(options.profileDirectory,f.value.clusterDirectory+'\\app\\c-aaaaaaaa');assert.equal(options.outputDirectory,f.value.outputDirectory);rawRequest=options.request;
   return {origin,async exercise(input){f.events.push('browser-exercise');assert.ok(f.events.includes('listen'));assert.deepEqual(input.actors.map(row=>row.actorId),['account-private-account-one','account-private-account-two']);
    const response=await rawRequest({method:'OPTIONS',url:'/v1/commands',headers:{Host:'127.0.0.1:4174',Origin:origin,'Access-Control-Request-Method':'POST'},body:null});assert.equal(response.status,204);
+   for(const url of ['/v1/health','/v1/version']){const reply=await rawRequest({method:'GET',url,headers:{Host:'127.0.0.1:4174',Authorization:'Bearer '+input.capability},body:null});assert.equal(reply.status,200);assert.equal(Object.hasOwn(reply.headers,'access-control-allow-origin'),false);}
    result={status:'passed',origin,canonical:{topicId:'topic-empty',discussionId:'browser-discussion',rootId:'browser-root',replyId:'browser-reply'},scope:{realBrowser:false}};
   },close(){if(!closing){f.events.push('browser-close');closing=Promise.resolve(result);}return closing;},get result(){return result;}};
  };
@@ -142,6 +143,19 @@ test('browser request origin/capability/selector substitutions never dispatch th
  for(const patch of [{url:'https://example.test/v1/health'},{headers:{host:'127.0.0.1:4174',origin:'https://example.test'}},{method:'DELETE'}]){
   const f=productFixture(),open=f.ports.openBrowser;f.ports.openBrowser=async options=>{const browser=await open(options);return {...browser,async exercise(){await options.request({method:'GET',url:'/v1/health',headers:{host:'127.0.0.1:4174',origin:browser.origin,authorization:'Bearer wrong'},body:null,...patch});}};};
   assert.equal((await runPrivateProductApplicationRehearsalForTest(f.value,f.ports)).status,'failed');assert.equal(f.proof.failure.stage,'browser-exercise');assert.equal(f.events.includes('browser-raw-http'),false);assert.equal(f.events.includes('model-run'),false);assert.equal(f.proof.cleanup.browserClosed,true);
+ }
+});
+
+test('parent permits omission only on exact public GETs; POST, preflight and wrong present origins remain refused',async()=>{
+ for(const variant of [{method:'POST',url:'/v1/account/me'}, {method:'OPTIONS',url:'/v1/commands'},
+  {method:'GET',url:'/v1/version?extra=1'}, {method:'GET',url:'/v1/account/me'},
+  {method:'GET',url:'/v1/version',origin:''},{method:'GET',url:'/v1/version',origin:'null'},
+  {method:'GET',url:'/v1/version',origin:'https://example.test'}]){
+  const f=productFixture(),open=f.ports.openBrowser;f.ports.openBrowser=async options=>{const browser=await open(options);return {...browser,async exercise(input){
+   const headers={Host:'127.0.0.1:4174',...(variant.method==='OPTIONS'?{}:{Authorization:'Bearer '+input.capability}),...(Object.hasOwn(variant,'origin')?{Origin:variant.origin}:{})};
+   await options.request({method:variant.method,url:variant.url,headers,body:null});
+  }};};
+  assert.equal((await runPrivateProductApplicationRehearsalForTest(f.value,f.ports)).status,'failed');assert.equal(f.proof.failure.stage,'browser-exercise');assert.equal(f.events.includes('browser-raw-http'),false);
  }
 });
 

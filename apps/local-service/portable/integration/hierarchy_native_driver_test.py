@@ -156,6 +156,7 @@ class MaintainedDriverTest(unittest.TestCase):
                         './discussion-panel.js':'chromium/discussion-panel.js',
                         './semantic-topic-workspace.js':'chromium/semantic-topic-workspace.js',
                         './semantic-topic-panel.js':'chromium/semantic-topic-panel.js',
+                        './canonical-history-panel.js':'chromium/canonical-history-panel.js',
                         '../core/local-discussion-controller.js':'core/local-discussion-controller.js',
                         '../core/local-service-client.js':'core/local-service-client.js',
                         '../core/account-client.js':'core/account-client.js',
@@ -1079,7 +1080,9 @@ class MaintainedDriverTest(unittest.TestCase):
             'pendingCases':0,'origin':'chrome-extension://'+'b'*32,'canonical':{'topicId':'original-topic','discussionId':'original-discussion','rootId':'root-browser','replyId':'reply-browser'},
             'requests':20,'maxConcurrentRequests':2,'cleanup':{'browserClosed':True,'ownedRootExited':True,'pendingRequests':0,'pendingTasks':0,'profileRemoved':True},
             'scope':{**dict.fromkeys(('realBrowser','realHttpProxy'),True),**dict.fromkeys(('sqlVerifiedByThisHelper','nativeCapture','nativeSidePanel','provider','externalIdentity','productionCapacity'),False)},
-            'failure':None,'elapsedMs':100},'ownerVerification':{'roots':1,'replies':1,'manualSnapshots':0},
+            'failure':None,'elapsedMs':100,'transportFailure':None,
+            'history':{**dict.fromkeys(('verified','anonymous','originalIdsRead','readOnly','noSourceLinks','flatReplies','layoutWithinBounds'),True),
+                'viewportWidth':320,'directoryPages':1,'messagePages':1,'directoryPaginationObserved':False,'messagePaginationObserved':False}},'ownerVerification':{'roots':1,'replies':1,'manualSnapshots':0},
             'runtime':{'chromeExecutableSha256':'480f275b63d1ea39113cbc8344ac395578acc25b432bd39af5fbc77005179aca','installedDllsPinned':False}}
 
     def legacy_proof(self):
@@ -1154,7 +1157,10 @@ class MaintainedDriverTest(unittest.TestCase):
             lambda p:p['ui'].update(maxConcurrentRequests=5),lambda p:p['ui'].update(elapsedMs=float('nan')),
             lambda p:p['ownerVerification'].update(roots=True),lambda p:p['ownerVerification'].update(manualSnapshots=1),
             lambda p:p['ui']['canonical'].update(replyId='root-browser'),lambda p:p.update(rawCredentials='forbidden'),
-            lambda p:p['runtime'].update(chromeExecutableSha256='a'*64),lambda p:p['runtime'].update(installedDllsPinned=True))
+            lambda p:p['runtime'].update(chromeExecutableSha256='a'*64),lambda p:p['runtime'].update(installedDllsPinned=True),
+            lambda p:p['ui']['history'].update(anonymous=False),lambda p:p['ui']['history'].update(originalIdsRead=False),
+            lambda p:p['ui']['history'].update(viewportWidth=400),lambda p:p['ui']['history'].update(messagePages=6),
+            lambda p:p['ui']['history'].update(layoutWithinBounds=False),lambda p:p['ui'].update(transportFailure={'code':'request-origin'}))
         for change in changes:
             value=self.browser_proof();change(value)
             with self.assertRaises(self.I.Refusal):D.checked_browser_proof(self.I,value)

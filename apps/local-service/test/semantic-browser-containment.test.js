@@ -2,6 +2,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
+import {createRequestHandler} from '../src/http/request-handler.js';
+import {validateStartupConfig} from '../src/http/startup-config.js';
 import {AUTO_ATTACH,installSemanticBrowserContainment,createPrivateBrowserRequestProxy,readPrivateBrowserCredentials,createOneShotBrowserExercise} from '../harness/semantic-browser-containment.js';
 const origin='chrome-extension://'+'a'.repeat(32),other='chrome-extension://'+'b'.repeat(32),token='p'.repeat(43),session='s'.repeat(43);
 const gate=()=>{let resolve;const promise=new Promise(yes=>{resolve=yes;});return {promise,resolve};};
@@ -67,4 +69,69 @@ test('credential snapshots refuse getters/proxies and duplicate principals witho
  let hooks=0;const getter={...copy};Object.defineProperty(getter,'capability',{enumerable:true,get(){hooks++;return token;}});assert.throws(()=>readPrivateBrowserCredentials(getter));
  assert.throws(()=>readPrivateBrowserCredentials(new Proxy(copy,{get(){hooks++;}})));assert.equal(hooks,0);
  assert.throws(()=>readPrivateBrowserCredentials({...copy,actors:[copy.actors[0],copy.actors[0]]}));
+});
+
+
+test('real handler health/version GET omissions survive both bridge directions without synthesized CORS',async()=>{
+ const config=validateStartupConfig({host:'127.0.0.1',port:4174,origin,capability:token});
+ const handle=createRequestHandler({service:{version:async()=>({generation:'actual-generation',revision:1})},config});const seen=[];
+ const proxy=createPrivateBrowserRequestProxy({origin,checkDeadline:()=>{},isOpen:()=>true,request:async input=>{
+  seen.push(input);const actual=await handle(input);return {...actual,body:Buffer.from(actual.body)};
+ }});
+ for(const path of ['health','version'])for(const supplied of [false,true]){
+  const headers={Authorization:'Bearer '+token,...(supplied?{Origin:origin}:{})};
+  const result=await proxy.forward(request({method:'GET',url:'http://127.0.0.1:4174/v1/'+path,headers,postData:undefined}));
+  assert.equal(result.status,200);assert.equal(Object.hasOwn(seen.at(-1).headers,'Origin'),supplied);
+  assert.equal(Object.hasOwn(result.headers,'access-control-allow-origin'),supplied);if(supplied)assert.equal(result.headers['access-control-allow-origin'],origin);
+ }
+ assert.equal(proxy.describe().firstFailure,null);await proxy.close();
+});
+
+test('omission exception cannot authorize missing POST/OPTIONS Origin, wrong present GET Origin, or missing bearer',async()=>{
+ let count=0;const proxy=createPrivateBrowserRequestProxy({origin,checkDeadline:()=>{},isOpen:()=>true,request:async()=>{count++;return response();}});
+ for(const path of ['health','version'])for(const value of ['', 'null',other])await assert.rejects(proxy.forward(request({method:'GET',url:'http://127.0.0.1:4174/v1/'+path,headers:{Origin:value,Authorization:'Bearer '+token},postData:undefined})));
+ for(const method of ['POST','OPTIONS'])await assert.rejects(proxy.forward(request({method,headers:method==='POST'?{Authorization:'Bearer '+token}:{},postData:undefined})));
+ await assert.rejects(proxy.forward(request({method:'GET',url:'http://127.0.0.1:4174/v1/health',headers:{},postData:undefined})));
+ await assert.rejects(proxy.forward(request({method:'GET',url:'http://127.0.0.1:4174/v1/catalog',headers:{Authorization:'Bearer '+token},postData:undefined})));
+ assert.equal(count,0);assert.equal(proxy.describe().firstFailure.stage,'request-origin');await proxy.close();
+});
+
+test('response CORS omission is restricted to original omitted-Origin health/version GETs',async()=>{
+ for(const [method,path,supplied,cors,accept] of [
+  ['GET','health',false,undefined,true],['GET','version',false,other,false],['GET','health',false,'',false],
+  ['GET','health',true,undefined,false],['POST','commands',true,undefined,false],['OPTIONS','commands',true,undefined,false]]){
+  const proxy=createPrivateBrowserRequestProxy({origin,checkDeadline:()=>{},isOpen:()=>true,request:async()=>({status:200,headers:cors===undefined?{}:{'access-control-allow-origin':cors},body:Buffer.from('{}')})});
+  const work=proxy.forward(request({method,url:'http://127.0.0.1:4174/v1/'+path,headers:{...(supplied?{Origin:origin}:{}),...(method==='OPTIONS'?{}:{Authorization:'Bearer '+token})},postData:undefined}));
+  if(accept)assert.equal((await work).status,200);else{await assert.rejects(work);assert.equal(proxy.describe().firstFailure.stage,'response-origin');}
+  await proxy.close();
+ }
+});
+
+test('history permits only exact paired anonymous POST routes with real bounded request bytes',async()=>{
+ const seen=[],proxy=createPrivateBrowserRequestProxy({origin,checkDeadline:()=>{},isOpen:()=>true,request:async input=>{seen.push({...input,body:Buffer.from(input.body)});return response();}});
+ for(const path of ['discover/search','discussions/page']){
+  const body=JSON.stringify(path==='discover/search'?{query:'',limit:20,cursor:null}:{topicId:'canonical-topic',limit:20,cursor:'opaque_cursor'});
+  const input=request({url:'http://127.0.0.1:4174/v1/'+path,headers:{Origin:origin,Authorization:'Bearer '+token,'Content-Type':'application/json'},postData:body});
+  await proxy.forward(input);assert.equal(seen.at(-1).body.toString(),body);assert.equal(Object.keys(seen.at(-1).headers).some(name=>name.toLowerCase()==='x-account-session'),false);
+  await assert.rejects(proxy.forward({...input,headers:{...input.headers,'X-Account-Session':session}}));
+  await assert.rejects(proxy.forward({...input,method:'GET'}));await assert.rejects(proxy.forward({...input,url:input.url+'?limit=100'}));
+ }
+ assert.equal(seen.length,2);await proxy.close();
+});
+
+test('first transport diagnostic is closed finite metadata and remains immutable across later failures',async()=>{
+ const proxy=createPrivateBrowserRequestProxy({origin,checkDeadline:()=>{},isOpen:()=>true,request:async()=>{throw Error('secret '+token+session);}});
+ await assert.rejects(proxy.forward(request()));const expected={stage:'http-request',code:'http-request',requestOrdinal:1,method:'POST',route:'commands',status:null,
+  headers:{origin:true,authorization:true,accountSession:true,contentType:true,cors:false}};
+ assert.deepEqual(proxy.describe().firstFailure,expected);const copy=proxy.describe();copy.firstFailure.headers.origin=false;
+ await assert.rejects(proxy.forward(request({url:'https://secret.invalid/'+token})));assert.deepEqual(proxy.describe().firstFailure,expected);
+ const bytes=JSON.stringify(proxy.describe());for(const secret of [token,session,'https:','secret','caf'])assert.equal(bytes.includes(secret),false);await proxy.close();
+});
+
+
+test('transport capacity remains 64 and refusal attempt 65 has finite first-site diagnostics',async()=>{
+ let calls=0;const proxy=createPrivateBrowserRequestProxy({origin,checkDeadline:()=>{},isOpen:()=>true,request:async()=>{calls++;return response();}});
+ for(let i=0;i<64;i++)await proxy.forward(request());
+ await assert.rejects(proxy.forward(request()));assert.equal(calls,64);assert.equal(proxy.describe().requests,64);
+ assert.equal(proxy.describe().firstFailure.requestOrdinal,65);assert.equal(proxy.describe().firstFailure.stage,'request-capacity');await proxy.close();
 });
