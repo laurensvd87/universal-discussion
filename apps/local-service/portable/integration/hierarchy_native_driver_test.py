@@ -7,6 +7,7 @@ import io
 import json
 import os
 import re
+import stat
 from pathlib import Path
 import tempfile
 import types
@@ -95,6 +96,12 @@ class MaintainedDriverTest(unittest.TestCase):
             cls = next(n for n in ast.walk(tree) if isinstance(n, ast.ClassDef) and n.name == 'ClusterTree')
             return next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == 'check')
         class Inverse(ast.NodeTransformer):
+            def visit_Name(self, node):
+                if node.id == 'cluster_byte_limit':
+                    return ast.parse('512*MIB',mode='eval').body
+                if node.id == 'cluster_marker':
+                    return ast.Constant(value='native-hierarchy-postgres/v2')
+                return node
             def visit_Constant(self, node):
                 if node.value == 'nhpg-[A-Za-z0-9]{1,64}':
                     node.value = 'nhpg2-[A-Za-z0-9]{1,64}'
@@ -121,7 +128,7 @@ class MaintainedDriverTest(unittest.TestCase):
             r'''(?m)^\s*import\s*['"]([^'"]+)['"]''',
             r'''\bimport\(\s*['"]([^'"]+)['"]\s*\)''',
         )
-        pending, seen = [D.ENTRY], set()
+        pending, seen = [D.ENTRY,D.PRIVATE_ENTRY], set()
         while pending:
             key = pending.pop()
             if key in seen:
@@ -148,6 +155,10 @@ class MaintainedDriverTest(unittest.TestCase):
         self.assertIn('apps/local-service/portable/canonical-v4/hierarchy-installation.js', seen)
         self.assertIn('apps/local-service/src/application/installed-hierarchy-matcher.js', seen)
         self.assertIn('apps/topic-dashboard/src/data/postgres-catalog.js', seen)
+        self.assertIn('apps/local-service/src/ops/postgres-backup-operator.js',seen)
+        self.assertIn('apps/local-service/src/ops/windows-backup-protection.js',seen)
+        self.assertIn('apps/local-service/portable/src/windows-dpapi-password.js',seen)
+        self.assertIn(D.OWN+'private-owner-storage.js',seen)
         # The numeric loader reads these fixed data URLs, which the literal
         # module-reference traversal above cannot discover. No encoder weights
         # or inference runtime are needed by owner matcher registration.
@@ -351,6 +362,290 @@ class MaintainedDriverTest(unittest.TestCase):
             with self.assertRaises(self.I.Refusal):
                 other.check()
         self._owned_run_test(check)
+
+    def private_result(self):
+        value = self.semantic_result()
+        value['schema'] = 'owner-restore-postgres-result/v1'
+        groups = (
+            ('Private restored schema and grant boundaries',[
+                'Restored fixed schema9 identities and primary-key collations',
+                'Restored owner and execute-only role boundaries']),
+            ('Private full-data snapshot fingerprints',['Restored snapshot table: '+name for name in D.RESTORED_TABLES]),
+            ('Private restored generated ordinal safety',['Restored identity and ordinal sequences cannot reuse stored keys']),
+        )
+        cases = []
+        for name,children in groups:
+            cases.append({'name':name,'depth':0,'status':'passed'})
+            cases.extend({'name':child,'depth':1,'status':'passed'} for child in children)
+        value['proof'] = {'schema':'owner-restore-postgres-proof/v1','status':'passed','primary':None,
+            'cases':cases,'pendingAssertions':0,'ownerData':True,'syntheticOnly':False,
+            'archiveAuthenticated':True,'receiptBound':True,'completeInput':True,'restoreVerified':True,
+            'cleanup':value['proof']['cleanup']}
+        return value
+
+    def private_complete(self, value):
+        return D.private_completion((json.dumps(value,separators=(',',':'))+'\n').encode(),b'',0)
+
+    def test_private_completion_has_its_own_owner_data_ledger(self):
+        value = self.private_result()
+        report = self.private_complete(value)
+        self.assertTrue(report['accepted'])
+        self.assertEqual(report,self.S.checked_completion(report))
+        self.assertEqual(sum(row['depth']==1 for row in value['proof']['cases']),22)
+        self.assertEqual(len(D.RESTORED_TABLES),19)
+        self.assertEqual(len(set(D.RESTORED_TABLES)),19)
+        self.assertFalse(self.private_complete(self.semantic_result())['accepted'])
+        self.assertFalse(self.complete(value)['accepted'])
+
+    def test_private_requires_every_authentication_and_retirement_flag(self):
+        for key in ('archiveAuthenticated','receiptBound','completeInput','restoreVerified','ownerData'):
+            for bad in (False,1,None):
+                value = self.private_result();value['proof'][key] = bad
+                self.assertEqual(self.private_complete(value)['code'],'json-proof')
+        for bad in (True,0,None):
+            value = self.private_result();value['proof']['syntheticOnly'] = bad
+            self.assertEqual(self.private_complete(value)['code'],'json-proof')
+        for key in ('stopped','physicalSettled','clientsClosed','childExited'):
+            value = self.private_result();value['cleanup'][key] = False
+            self.assertEqual(self.private_complete(value)['code'],'json-cleanup')
+        for key,bad in (('pending',True),('dropped',False),('oid','4294967296')):
+            value = self.private_result();value['proof']['cleanup']['databases'][0][key] = bad
+            self.assertEqual(self.private_complete(value)['code'],'json-cleanup')
+
+    def test_private_refuses_missing_duplicate_reordered_or_semantic_cases(self):
+        for change in ('missing','duplicate','order','bool-depth','semantic','extra'):
+            value = self.private_result();cases = value['proof']['cases']
+            if change == 'missing':cases.pop()
+            elif change == 'duplicate':cases[4] = cases[5]
+            elif change == 'order':cases[4],cases[5] = cases[5],cases[4]
+            elif change == 'bool-depth':cases[4]['depth'] = True
+            elif change == 'semantic':value['proof']['cases'] = self.semantic_result()['proof']['cases']
+            else:cases[4]['payload'] = 'untrusted'
+            self.assertEqual(self.private_complete(value)['code'],'json-cases',change)
+
+    def test_closed_private_cli_cannot_select_a_path_or_host(self):
+        seen = []
+        def fake_execute(digest,private):
+            seen.append((digest,private));return {'accepted':True}
+        with patch.object(D,'execute',fake_execute),contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(D.main(['a'*64]),0)
+            self.assertEqual(D.main(['private-restore','b'*64]),0)
+            for args in (['private-restore'],['restore','a'*64],['private-restore','a'*64,'D:/other'],
+                ['private-restore','A'*64],['private-restore','http://localhost']):
+                self.assertEqual(D.main(args),2)
+        self.assertEqual(seen,[('a'*64,False),('b'*64,True)])
+
+    def test_private_control_uses_separate_purpose_and_claim(self):
+        def check(normal):
+            with patch.object(D,'PRIVATE_RUNS_ROOT',normal.root/'private-runs'):
+                run = D.OwnedRun(self.I,True)
+                run.prepare(normal.catalog,hashlib.sha256(normal.catalog).hexdigest())
+                self.assertNotEqual(run.runs_root,normal.runs_root)
+                self.assertEqual(json.loads(run.marker)['schema'],'private-hierarchy-native-owned-run')
+                claim = self.I.canonical_json({'schema':'private-hierarchy-native-child-claim',
+                    'nonce':run.nonce,'catalogSha256':hashlib.sha256(run.catalog).hexdigest(),
+                    'markerSha256':hashlib.sha256(run.marker).hexdigest(),'pid':1234})
+                (run.root/'child.pending').write_bytes(claim)
+                os.link(run.root/'child.pending',run.root/'child.claim')
+                run.check(1234)
+                wrong = json.loads(claim);wrong['schema'] = normal.claim_schema
+                (run.root/'child.pending').write_bytes(self.I.canonical_json(wrong))
+                with self.assertRaises(self.I.Refusal):run.check(1234)
+        self._owned_run_test(check)
+
+    def _inputs_test(self, callback):
+        def check(run):
+            filename = run.root/'invented-encrypted-input'
+            raw = b'pure-invented-encrypted-bytes'
+            filename.write_bytes(raw)
+            streams = []
+            def opener(path):
+                stream = path.open('rb',buffering=0);streams.append(stream);return stream
+            guard = D.PrivateInputs(self.I,opener=opener,clock=lambda:D.STARTED+1)
+            with patch.object(D,'PRIVATE_INPUTS',((filename,len(raw),hashlib.sha256(raw).hexdigest()),)):
+                try:callback(guard,streams,filename)
+                finally:guard.close()
+            self.assertTrue(all(s.closed for s in streams))
+        self._owned_run_test(check)
+
+    def test_private_inputs_remain_open_until_verified_final_retirement(self):
+        def check(guard,streams,filename):
+            guard.prepare();guard.check()
+            self.assertFalse(streams[0].closed)
+            self.assertFalse(guard.verified)
+            guard.finish(D.STARTED+20)
+            self.assertTrue(guard.verified)
+            self.assertTrue(guard.closed)
+            guard.close()
+            with self.assertRaises(self.I.Refusal):guard.check()
+        self._inputs_test(check)
+
+    def test_private_hash_change_and_original_deadline_refuse(self):
+        def check(guard,streams,filename):
+            guard.prepare()
+            filename.write_bytes(b'mutated')
+            with self.assertRaises(self.I.Refusal):guard.check()
+            self.assertFalse(guard.verified)
+        self._inputs_test(check)
+        def expired(guard,streams,filename):
+            guard.clock = lambda:D.STARTED+361
+            with self.assertRaises(self.I.Refusal):guard.prepare()
+            self.assertEqual(streams,[])
+        self._inputs_test(expired)
+
+    def test_private_open_and_fstat_failures_close_all_original_handles(self):
+        def failed_stat(guard,streams,filename):
+            with patch.object(D.os,'fstat',side_effect=OSError('invented-stat-failure')):
+                with self.assertRaises(OSError):guard.prepare()
+            self.assertEqual(len(streams),1)
+            self.assertTrue(streams[0].closed)
+            self.assertFalse(guard.verified)
+        self._inputs_test(failed_stat)
+        def failed_open(guard,streams,filename):
+            guard.opener = lambda _: (_ for _ in ()).throw(PermissionError('invented'))
+            with self.assertRaises(PermissionError):guard.prepare()
+            self.assertEqual(streams,[])
+        self._inputs_test(failed_open)
+
+    def test_wrong_encrypted_input_digest_closes_handle_and_never_verifies(self):
+        def check(guard,streams,filename):
+            size = filename.stat().st_size
+            with patch.object(D,'PRIVATE_INPUTS',((filename,size,'0'*64),)):
+                with self.assertRaises(self.I.Refusal):guard.prepare()
+            self.assertTrue(streams[0].closed)
+            self.assertFalse(guard.verified)
+        self._inputs_test(check)
+
+    def test_failed_final_close_cannot_authorize_private_completion(self):
+        def check(guard,streams,filename):
+            original = guard.opener
+            class FailCloseOnce:
+                def __init__(self,stream):self.stream,self.failed = stream,False
+                def __getattr__(self,name):return getattr(self.stream,name)
+                def close(self):
+                    if not self.failed:
+                        self.failed = True
+                        raise OSError('invented-close-failure')
+                    self.stream.close()
+            guard.opener = lambda path:FailCloseOnce(original(path))
+            guard.prepare()
+            with self.assertRaises(OSError):guard.finish(D.STARTED+20)
+            self.assertFalse(guard.verified)
+            self.assertFalse(guard.closed)
+            guard.close()
+            self.assertTrue(guard.closed)
+        self._inputs_test(check)
+
+    def test_private_launch_cannot_choose_other_entry_or_inherit_credentials(self):
+        run = types.SimpleNamespace(output=D.PRIVATE_RUNS_ROOT/('run-'+'b'*48)/'output',private=True)
+        seen = []
+        def create_process(executable,command,ps,ts,inherit,flags,environment,cwd,startup,info):
+            seen.append(command.value)
+            self.assertEqual(executable,D.NODE)
+            self.assertEqual(flags,0x8040C)
+            self.assertIs(inherit,True)
+            values = dict(item.split('=',1) for item in environment[:].split('\0') if item)
+            self.assertEqual(set(values),{'OMP_NUM_THREADS','PATH','SystemRoot','TEMP','TMP','UV_THREADPOOL_SIZE','WINDIR'})
+            self.assertEqual(values['TEMP'],str(run.output/'temp'))
+            info._obj.process,info._obj.thread,info._obj.pid = 111,222,333
+            return True
+        api = object.__new__(D.native_api_type(self.W,run))
+        api.m,api.k = self.B,types.SimpleNamespace(CreateProcessW=create_process)
+        api.create_process((ctypes.create_string_buffer(16),None),11,12,13)
+        self.assertEqual(seen,['"'+D.NODE+'" --max-old-space-size=64 "'+str(D.REPO/D.PRIVATE_ENTRY)+'"'])
+
+    def test_private_tree_can_hold_real_database_without_raising_default_bound(self):
+        def check(private,size):
+            run = types.SimpleNamespace(cluster=Path('D:/invented-only/cluster'),private=private)
+            tree = D.cluster_tree_type(self.S,self.I,run)()
+            tree.prepared = True
+            directory = tree.parent/'nhpg-invented'
+            directory_stat = lambda path:types.SimpleNamespace(st_dev=1,st_ino=1 if path==tree.parent else 2)
+            tree.directory_info = directory_stat
+            data_stat = types.SimpleNamespace(st_mode=stat.S_IFREG,st_size=size)
+            top = types.SimpleNamespace(name='nhpg-invented')
+            data = types.SimpleNamespace(name='invented-table',path=str(directory/'invented-table'),stat=lambda **_:data_stat)
+            @contextlib.contextmanager
+            def scan(path):yield iter([top] if path==tree.parent else [data])
+            with patch.object(D.os,'scandir',scan),patch.object(D.os.path,'lexists',side_effect=lambda path:path==tree.parent):
+                tree.check()
+        check(True,700*D.MIB)
+        with self.assertRaises(self.I.Refusal):check(False,700*D.MIB)
+        check(True,6144*D.MIB)
+        with self.assertRaises(self.I.Refusal):check(True,6144*D.MIB+1)
+
+    def test_bad_input_and_failed_close_preserve_original_input_failure(self):
+        def check(guard,streams,filename):
+            original = guard.opener
+            class FailCloseOnce:
+                def __init__(self,stream):self.stream,self.failed = stream,False
+                def __getattr__(self,name):return getattr(self.stream,name)
+                def close(self):
+                    if not self.failed:
+                        self.failed = True
+                        raise OSError('invented-secondary-close')
+                    self.stream.close()
+            guard.opener = lambda path:FailCloseOnce(original(path))
+            with patch.object(D,'PRIVATE_INPUTS',((filename,filename.stat().st_size,'0'*64),)):
+                with self.assertRaises(self.I.Refusal) as observed:guard.prepare()
+            self.assertEqual(observed.exception.metadata['code'],'private-input-pin')
+            self.assertTrue(guard.close_failed)
+            self.assertFalse(guard.verified)
+            guard.close()
+        self._inputs_test(check)
+
+    def test_final_input_close_failure_preserves_failed_controller_publication(self):
+        events = []
+        I,S = self.I,self.S
+        class FakeInputs:
+            closed = close_failed = False
+            def __init__(self,*args):pass
+            def prepare(self):events.append('input-held')
+            def check(self):pass
+            def close(self):events.append('close-refused');raise OSError('invented-close')
+        class FakeCatalog:
+            raw = b'{}'
+            def __init__(self,*args):pass
+            def authenticate(self):pass
+            def end_pins(self):pass
+        class FakeRun:
+            output,cluster = Path('D:/invented/output'),Path('D:/invented/cluster')
+            def __init__(self,*args):pass
+            def prepare(self,*args):pass
+            def check(self,*args):pass
+        class FakePublisher:
+            prepared = False
+            def prepare(self):self.prepared = True
+            def check(self):pass
+            def publish(self,result,stdout,stderr,checkpoint):
+                checkpoint();events.append(('published',result,stdout,stderr))
+        class FakeTree:
+            def prepare(self):pass
+            def check(self):pass
+        class FakeController:
+            remember = S.Controller.remember
+            def __init__(self,**ports):
+                self.ports,self.primary,self.cleanup = ports,None,None
+                self.boundary,self.normal_deadline = None,None
+                self.buffers = {'stdout':b'invented-failure','stderr':b''}
+            def now(self,*args):pass
+            def run(self):
+                self.ports['authenticate']()
+                self.primary = {'code':'original-controller-failure','counter':None,'value':None}
+                events.append('original-retired')
+                return {'accepted':False,'primary':self.primary,'cleanup':None}
+        baseline = types.SimpleNamespace(abi=lambda:{'valid':True},WindowsNative=lambda:types.SimpleNamespace(resources=lambda _: {'dFree':11264*D.MIB}))
+        libraries = {'supervisor':S,'windows':self.W,'baseline':baseline}
+        with patch.object(D,'load_pinned',side_effect=lambda name:libraries[name]),patch.object(D,'catalog_type',return_value=FakeCatalog),\
+            patch.object(D,'OwnedRun',FakeRun),patch.object(D,'PrivateInputs',FakeInputs),\
+            patch.object(D,'publisher_type',return_value=FakePublisher),patch.object(D,'cluster_tree_type',return_value=FakeTree),\
+            patch.object(D,'diagnostic_controller_type',return_value=FakeController):
+            result = D.execute('a'*64,True)
+        self.assertFalse(result['accepted'])
+        self.assertEqual(result['primary']['code'],'original-controller-failure')
+        self.assertEqual(result['cleanup']['code'],'private-input-close')
+        self.assertEqual(events[:3],['input-held','original-retired','close-refused'])
+        self.assertEqual(events[3],('published',result,b'invented-failure',b''))
 
 
 if __name__ == '__main__':

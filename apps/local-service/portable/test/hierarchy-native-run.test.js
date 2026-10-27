@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {createOwnedRunReader} from '../integration/hierarchy-native-run.js';
+import {createOwnedRunReader,createPrivateOwnedRunReader} from '../integration/hierarchy-native-run.js';
+import {PRIVATE_RUN_ROOT} from '../integration/private-owner-storage.js';
 import {createFileOps,createOwnedScopedPostgres,verifyScopedOwnership,FIXED} from '../integration/hierarchy-native-cluster.js';
 
 const ROOT='D:\\GITProjekts\\universal-discussion-bootstrap\\apps\\local-service\\portable\\data\\hierarchy-native-runs';
@@ -22,13 +23,14 @@ test('all cluster dependency seams require the exact canonical fixed run parent 
  const cluster=valid+'\\nhpg-Fake',dataDirectory=cluster+'\\pgdata',marker={schema:FIXED.marker,nonce,runDirectory:cluster};
  assert.equal(verifyScopedOwnership({ownedParent:valid,runDirectory:cluster,dataDirectory,marker,pid:123,markerText:JSON.stringify(marker),pidText:`123\n${dataDirectory}\n1700000000\n55433\n`}),1700000000);
 });
-function fixture(){
+function fixture(privateMode=false){
+ const root=privateMode?PRIVATE_RUN_ROOT:ROOT,runDirectory=root+'\\run-'+nonce,temp=runDirectory+'\\output\\temp';
  const entries=new Map(),events=[];let serial=1,writeFailure=false,linkFailure=false;
  function entry(bytes=null){return {ino:serial++,dev:1,mtimeMs:1,ctimeMs:1,bytes:bytes===null?null:Buffer.from(bytes),symbolic:false};}
  function stats(e){return {ino:e.ino,dev:e.dev,size:e.bytes?.length??0,mtimeMs:e.mtimeMs,ctimeMs:e.ctimeMs,isFile:()=>e.bytes!==null,isDirectory:()=>e.bytes===null,isSymbolicLink:()=>e.symbolic};}
  function addDirs(name){while(!entries.has(name)){entries.set(name,entry());const next=path.win32.dirname(name);if(next===name)break;name=next;}}
  addDirs(temp);
- const catalog=Buffer.from('{"invented":true}\n'),marker={schema:'hierarchy-native-owned-run',nonce,runDirectory,catalogSha256:sha(catalog)};
+ const catalog=Buffer.from('{"invented":true}\n'),marker={schema:privateMode?'private-hierarchy-native-owned-run':'hierarchy-native-owned-run',nonce,runDirectory,catalogSha256:sha(catalog)};
  const mark=entry(canonical(marker));entries.set(runDirectory+'\\run.json',mark);entries.set(runDirectory+'\\run.pending',mark);
  entries.set(runDirectory+'\\reviewed-sources.json',entry(catalog));
  const missing=()=>Object.assign(new Error('missing'),{code:'ENOENT'});
@@ -44,11 +46,18 @@ function fixture(){
   },
   async link(from,to){events.push(['link',from,to]);if(linkFailure)throw new Error('invented link failure');if(entries.has(to))throw Object.assign(new Error('exists'),{code:'EEXIST'});entries.set(to,entries.get(from));},
  };
- return {entries,events,fs,marker,reader:()=>createOwnedRunReader({fs,temp,pid:123}),
+ return {entries,events,fs,marker,temp,runDirectory,reader:()=>privateMode?createPrivateOwnedRunReader({fs,temp,pid:123}):createOwnedRunReader({fs,temp,pid:123}),
   setWriteFailure(){writeFailure=true;},setLinkFailure(){linkFailure=true;},
   rewriteMarker(value){const e=entries.get(runDirectory+'\\run.json');e.bytes=Buffer.from(canonical(value));},
  };
 }
+test('private binding has a disjoint fixed root/purpose and permanent private child claim',async()=>{
+ const f=fixture(true),binding=await f.reader()();assert.equal(binding.runDirectory,f.runDirectory);assert.ok(binding.clusterParent.startsWith(PRIVATE_RUN_ROOT));
+ const claim=JSON.parse(f.entries.get(f.runDirectory+'\\child.claim').bytes);assert.equal(claim.schema,'private-hierarchy-native-child-claim');
+ const g=fixture(true);await assert.rejects(createOwnedRunReader({fs:g.fs,temp:g.temp,pid:123})(),{code:'OWNED_RUN_BINDING'});assert.equal(g.events.length,0);
+ const h=fixture();await assert.rejects(createPrivateOwnedRunReader({fs:h.fs,temp:h.temp,pid:123})(),{code:'OWNED_RUN_BINDING'});assert.equal(h.events.length,0);
+ const i=fixture(true);i.rewriteMarker({...i.marker,schema:'hierarchy-native-owned-run'});await assert.rejects(i.reader()(),{code:'OWNED_RUN_BINDING'});
+});
 
 test('owned run validates raw pins, closes canonical permanent claim and caches only its completed binding',async()=>{
  const f=fixture(),read=f.reader(),binding=await read();

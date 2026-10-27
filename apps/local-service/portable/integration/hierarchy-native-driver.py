@@ -22,11 +22,25 @@ NODE = 'C:/Program Files/nodejs/node.exe'
 ENTRY = OWN + 'semantic-native-check.js'
 SEMANTIC_LEDGER = 'apps/local-service/portable/test/semantic-native-cases.json'
 RUNS_ROOT = REPO / 'apps/local-service/portable/data/hierarchy-native-runs'
+PRIVATE_ENTRY = OWN + 'owner-restore-native-check.js'
+BACKUP_ROOT = REPO / 'apps/local-service/data/canonical-migration-backups'
+PRIVATE_RUNS_ROOT = BACKUP_ROOT / 'hierarchy-private-restore-runs'
+PRIVATE_RECEIPT = REPO / 'apps/local-service/data/postgres-hierarchy-backup-receipt-20261027.json'
+PRIVATE_ARCHIVE = BACKUP_ROOT / 'postgres-canonical-2026-10-27T05-31-32-647Z-62729438-e09b-428d-b39e-9bdbe7f40677.murmingle-pgbackup'
+PRIVATE_INPUTS = (
+    (PRIVATE_RECEIPT,6249,'7783f57371f1284c39892bcafae89b22c1976e4136897cecca65d4a6a211933e'),
+    (PRIVATE_ARCHIVE,779153511,'e8026bc09c4ad53049d44bb5870cc28928ea0427ebd0d14a647a8bb1128ad831'),
+)
+RESTORED_TABLES = ('schema_migrations','meta','id_registry','topics','discussions','sources',
+    'embeddings','source_links','topic_memberships','fixed_references','contributions',
+    'revisions','operation_receipts','import_ledger','runtime_state','command_receipts',
+    'runtime_source_stamps','ingestion_jobs','catalog_ingest_lane')
 MAP_KEY = OWN + 'hierarchy-native-reviewed-sources.json'
 NORMAL_SCOPE_ABSENCES = frozenset([
     'apps/local-service/src/http/package.json',
     'apps/local-service/test/package.json',
     'apps/local-service/src/ai/package.json',
+    'apps/local-service/src/ops/package.json',
 ])
 MIB = 1048576
 CREATE_FLAGS = 0x8040C
@@ -113,6 +127,14 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/portable/test/semantic-dashboard-counts.test.js',
     'apps/topic-dashboard/src/data/postgres-catalog.js',
     'apps/topic-dashboard/test/postgres-catalog.test.js',
+    PRIVATE_ENTRY, OWN + 'owner-restore-native-check.test.js',
+    OWN + 'private-owner-storage.js',
+    'apps/local-service/portable/test/private-owner-storage.test.js',
+    'apps/local-service/portable/test/hierarchy-native-cluster.test.js',
+    'apps/local-service/src/ops/postgres-backup-operator.js',
+    'apps/local-service/test/postgres-backup-operator.test.js',
+    'apps/local-service/src/ops/windows-backup-protection.js',
+    'apps/local-service/portable/src/windows-dpapi-password.js',
 ])
 PINS = {
     'inventory': (OLD+'inventory.py', '3dfc2dcdb0c09a46d6215b5cf0781829f27a70f03c8106e6bb70db18bf28f385'),
@@ -274,6 +296,227 @@ def semantic_completion(stdout, stderr, exit_code):
     return result
 
 
+def private_completion(stdout, stderr, exit_code):
+    """Separate owner-data proof, with no semantic or synthetic case aliases."""
+    result = {'schema':'native-hierarchy-postgres-json-report/v2','accepted':False,
+        'code':'input-type','stdoutBytes':0,'stderrBytes':0,'stdoutSha256':None,
+        'stderrSha256':None,'testPoints':0,'outerTests':0}
+    def refuse(code):
+        result['code'] = code
+        return result
+    def shape(value, names):
+        return type(value) is dict and set(value) == set(names.split())
+    def integer(value, expected):
+        return type(value) is int and value == expected
+    def unique(items):
+        value = {}
+        for key, item in items:
+            if key in value:
+                raise ValueError('duplicate')
+            value[key] = item
+        return value
+    if type(stdout) is not bytes or type(stderr) is not bytes:
+        return result
+    result.update(stdoutBytes=len(stdout),stderrBytes=len(stderr),
+        stdoutSha256=hashlib.sha256(stdout).hexdigest(),stderrSha256=hashlib.sha256(stderr).hexdigest())
+    if len(stdout) > 262144:
+        return refuse('stdout-limit')
+    if len(stderr) > 65536:
+        return refuse('stderr-limit')
+    if type(exit_code) is not int or exit_code != 0:
+        return refuse('exit-status')
+    try:
+        if not stdout.endswith(b'\n') or stdout.count(b'\n') != 1:
+            return refuse('json-encoding')
+        value = json.loads(stdout.decode('utf8'),object_pairs_hook=unique,
+            parse_constant=lambda _: (_ for _ in ()).throw(ValueError('constant')))
+    except (ValueError,UnicodeError,RecursionError):
+        return refuse('json-encoding')
+    if not shape(value,'schema accepted primary server cleanup proof'):
+        return refuse('json-shape')
+    if value['schema'] != 'owner-restore-postgres-result/v1' or value['accepted'] is not True or value['primary'] is not None:
+        return refuse('json-proof')
+    server = value['server']
+    if (not shape(server,'port version ownershipVerified') or not integer(server['port'],55433)
+            or not integer(server['version'],170011) or server['ownershipVerified'] is not True):
+        return refuse('json-proof')
+    cleanup = value['cleanup']
+    if (not shape(cleanup,'reason stopped childExited clientsClosed physicalSettled directoryRetained')
+            or cleanup['reason'] != 'verified-own-server-smart-stopped'
+            or not all(cleanup[key] is True for key in cleanup if key != 'reason')):
+        return refuse('json-cleanup')
+    proof = value['proof']
+    if not shape(proof,'schema status primary cases pendingAssertions ownerData syntheticOnly archiveAuthenticated receiptBound completeInput restoreVerified cleanup'):
+        return refuse('json-shape')
+    if (proof['schema'] != 'owner-restore-postgres-proof/v1' or proof['status'] != 'passed'
+            or proof['primary'] is not None or not integer(proof['pendingAssertions'],0)
+            or proof['ownerData'] is not True or proof['syntheticOnly'] is not False
+            or not all(proof[key] is True for key in ('archiveAuthenticated','receiptBound','completeInput','restoreVerified'))):
+        return refuse('json-proof')
+    expected = []
+    groups = (
+        ('Private restored schema and grant boundaries',(
+            'Restored fixed schema9 identities and primary-key collations',
+            'Restored owner and execute-only role boundaries')),
+        ('Private full-data snapshot fingerprints',tuple('Restored snapshot table: '+name for name in RESTORED_TABLES)),
+        ('Private restored generated ordinal safety',('Restored identity and ordinal sequences cannot reuse stored keys',)),
+    )
+    for name, children in groups:
+        expected.append({'name':name,'depth':0,'status':'passed'})
+        expected.extend({'name':child,'depth':1,'status':'passed'} for child in children)
+    cases = proof['cases']
+    if (type(cases) is not list or len(cases) != 25 or cases != expected
+            or any(not shape(row,'name depth status') or type(row['depth']) is not int for row in cases)):
+        return refuse('json-cases')
+    result.update(testPoints=25,outerTests=3)
+    dbs = proof['cleanup']
+    if (not shape(dbs,'status used finished adminClosed failureCount databases') or dbs['status'] != 'passed'
+            or not integer(dbs['used'],2) or dbs['finished'] is not True or dbs['adminClosed'] is not True
+            or not integer(dbs['failureCount'],0) or type(dbs['databases']) is not list or len(dbs['databases']) != 2):
+        return refuse('json-cleanup')
+    for index, row in enumerate(dbs['databases']):
+        if (not shape(row,'name oid created closed dropped pending cleanupFailures')
+                or row['name'] != 'murmingle_hierarchy_fixture_20261026_'+('a' if index == 0 else 'b')
+                or type(row['oid']) is not str or not 1 <= len(row['oid']) <= 10
+                or not all('0' <= char <= '9' for char in row['oid']) or row['oid'].startswith('0')
+                or not 0 < int(row['oid']) <= 4294967295
+                or not all(row[key] is True for key in ('created','closed','dropped'))
+                or not integer(row['pending'],0) or not integer(row['cleanupFailures'],0)):
+            return refuse('json-cleanup')
+    if dbs['databases'][0]['oid'] == dbs['databases'][1]['oid']:
+        return refuse('json-cleanup')
+    result.update(accepted=True,code='complete')
+    return result
+
+
+def open_locked_read(path):
+    """Read-only Windows handle denies concurrent write/delete while held.
+
+    Inert until called by the separately authorized private attempt. No path
+    enters from the CLI. Child authentication still checks the complete GCM.
+    """
+    import msvcrt
+    kernel = ctypes.WinDLL('kernel32',use_last_error=True)
+    kernel.CreateFileW.argtypes = [ctypes.c_wchar_p,ctypes.c_uint32,ctypes.c_uint32,
+        ctypes.c_void_p,ctypes.c_uint32,ctypes.c_uint32,ctypes.c_void_p]
+    kernel.CreateFileW.restype = ctypes.c_void_p
+    kernel.CloseHandle.argtypes = [ctypes.c_void_p]
+    kernel.CloseHandle.restype = ctypes.c_int
+    handle = kernel.CreateFileW(str(path),0x80000000,1,None,3,0x08200000,None)
+    if handle in (None,ctypes.c_void_p(-1).value):
+        raise OSError('private-input-open')
+    try:
+        fd = msvcrt.open_osfhandle(handle,os.O_RDONLY | os.O_BINARY)
+    except BaseException:
+        kernel.CloseHandle(handle)
+        raise
+    try:
+        return os.fdopen(fd,'rb',buffering=0)
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+class PrivateInputs:
+    """Fixed encrypted data is held separately from the bounded code catalog."""
+    def __init__(self, inventory, opener=open_locked_read, clock=time.monotonic):
+        self.i,self.opener,self.clock = inventory,opener,clock
+        self.files = []
+        self.prepared = self.closed = False
+        self.verified = False
+        self.close_failed = False
+        self.deadline = STARTED+360
+
+    def _time(self):
+        self.i.require(self.clock() < self.deadline,'private-input-deadline')
+
+    @staticmethod
+    def identity(info):
+        return (info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,
+            info.st_birthtime_ns if os.name == 'nt' else info.st_ctime_ns)
+
+    def check(self):
+        I = self.i
+        I.require(self.prepared and not self.closed,'private-input-state')
+        self._time()
+        for path,size,digest,stream,before,opened in self.files:
+            directory_info(path.parent,I)
+            after,held = path.lstat(),os.fstat(stream.fileno())
+            I.require(I.no_reparse(after) and stat.S_ISREG(after.st_mode)
+                and self.identity(before) == self.identity(after) == self.identity(opened) == self.identity(held)
+                and before.st_ctime_ns == after.st_ctime_ns
+                and opened.st_ctime_ns == held.st_ctime_ns,'private-input-changed')
+
+    def _hash(self, record):
+        path,size,digest,stream,_,_ = record
+        stream.seek(0)
+        hashed,used = hashlib.sha256(),0
+        while True:
+            self._time()
+            raw = stream.read(65536)
+            if not raw:
+                break
+            used += len(raw)
+            self.i.require(used <= size,'private-input-size')
+            hashed.update(raw)
+        self.i.require(used == size and hashed.hexdigest() == digest,'private-input-pin')
+
+    def prepare(self):
+        I = self.i
+        I.require(not self.prepared and not self.files and not self.closed,'private-input-state')
+        try:
+            for path,size,digest in PRIVATE_INPUTS:
+                self._time()
+                directory_info(path.parent,I)
+                before = path.lstat()
+                I.require(I.no_reparse(before) and stat.S_ISREG(before.st_mode) and before.st_size == size,'private-input-size')
+                stream = self.opener(path)
+                # Register before any observation that can fail, so cleanup
+                # cannot forget a successfully opened handle.
+                record = (path,size,digest,stream,before,None)
+                self.files.append(record)
+                record = (path,size,digest,stream,before,os.fstat(stream.fileno()))
+                self.files[-1] = record
+                self._hash(record)
+            self.prepared = True
+            self.check()
+        except BaseException:
+            # Preserve the original input failure. The enclosing driver records
+            # an unverified close independently as cleanup failure.
+            try:
+                self.close()
+            except BaseException:
+                self.close_failed = True
+            raise
+
+    def finish(self, deadline):
+        self.i.require(type(deadline) in (int,float) and STARTED < deadline <= STARTED+380,'private-input-deadline')
+        self.deadline = deadline
+        self.check()
+        for record in self.files:
+            self._hash(record)
+        self.check()
+        self.close()
+        self.i.require(not self.close_failed,'private-input-close')
+        self.verified = True
+
+    def close(self):
+        first = None
+        for record in self.files:
+            stream = record[3]
+            try:
+                if not stream.closed:
+                    stream.close()
+                self.i.require(stream.closed,'private-input-close')
+            except BaseException as error:
+                if first is None:
+                    first = error
+        self.closed = all(record[3].closed for record in self.files)
+        if first is not None:
+            self.close_failed = True
+            raise first
+
+
 def load_pinned(name):
     key, expected = PINS[name]
     path = REPO/key
@@ -308,6 +551,9 @@ def native_api_type(windows, run):
     require = windows.require
     wintypes = windows.wintypes
     TEMP = run.output / 'temp'
+    # A closed mode chooses between two reviewed entries. The native method
+    # below remains AST-identical to the frozen suspended-launch implementation.
+    ENTRY = PRIVATE_ENTRY if getattr(run, 'private', False) else globals()['ENTRY']
 
     class NativeAPI(windows._WinAPI):
         def create_process(self, attributes, stdin, stdout, stderr):
@@ -369,10 +615,15 @@ class OwnedRun:
     Output512KiB and cluster512MiB remain separately bounded. Control metadata
     (one catalog snapshot, marker and permanent child claim) is capped at1MiB.
     """
-    def __init__(self, inventory):
+    def __init__(self, inventory, private=False):
+        inventory.require(type(private) is bool, 'run-purpose')
         self.i = inventory
+        self.private = private
+        self.runs_root = PRIVATE_RUNS_ROOT if private else RUNS_ROOT
+        self.marker_schema = 'private-hierarchy-native-owned-run' if private else 'hierarchy-native-owned-run'
+        self.claim_schema = 'private-hierarchy-native-child-claim' if private else 'hierarchy-native-child-claim'
         self.nonce = os.urandom(24).hex()
-        self.root = RUNS_ROOT / ('run-' + self.nonce)
+        self.root = self.runs_root / ('run-' + self.nonce)
         self.output, self.cluster = self.root/'output', self.root/'cluster'
         self.prepared = False
         self.root_id = self.parent_id = self.marker = self.catalog = None
@@ -382,17 +633,17 @@ class OwnedRun:
         I, require = self.i, self.i.require
         require(not self.prepared and type(raw) is bytes and len(raw)+4096 <= I.CATALOG_LIMIT
                 and hashlib.sha256(raw).hexdigest() == external_sha, 'run-catalog')
-        directory_info(RUNS_ROOT.parent, I)
+        directory_info(self.runs_root.parent, I)
         try:
-            RUNS_ROOT.mkdir()
+            self.runs_root.mkdir()
         except FileExistsError:
             pass
-        info = directory_info(RUNS_ROOT, I)
+        info = directory_info(self.runs_root, I)
         self.parent_id = (info.st_dev, info.st_ino)
         self.root.mkdir()  # Exclusive; even an empty existing run is refused.
         info = directory_info(self.root, I)
         self.root_id = (info.st_dev, info.st_ino)
-        self.marker = I.canonical_json({'schema':'hierarchy-native-owned-run',
+        self.marker = I.canonical_json({'schema':self.marker_schema,
             'nonce':self.nonce, 'runDirectory':str(self.root), 'catalogSha256':external_sha})
         self.catalog = raw
         for name, data in [('run.pending', self.marker), ('reviewed-sources.json', raw)]:
@@ -419,7 +670,7 @@ class OwnedRun:
     def check(self, child_pid=None):
         I, require = self.i, self.i.require
         require(self.prepared, 'run-not-prepared')
-        parent, root = directory_info(RUNS_ROOT,I), directory_info(self.root,I)
+        parent, root = directory_info(self.runs_root,I), directory_info(self.root,I)
         require((parent.st_dev,parent.st_ino) == self.parent_id
                 and (root.st_dev,root.st_ino) == self.root_id, 'run-replaced')
         allowed = {'run.pending','run.json','reviewed-sources.json','child.pending','child.claim','output','cluster'}
@@ -454,7 +705,7 @@ class OwnedRun:
             require(os.path.lexists(self.root/'child.pending') and type(child_pid) is int and child_pid>0, 'run-child-identity')
             claim, ci = self._read('child.claim',1024)
             claimed_pending, cpi = self._read('child.pending',1024)
-            expected = I.canonical_json({'schema':'hierarchy-native-child-claim',
+            expected = I.canonical_json({'schema':self.claim_schema,
                 'nonce':self.nonce,'catalogSha256':hashlib.sha256(self.catalog).hexdigest(),
                 'markerSha256':hashlib.sha256(self.marker).hexdigest(),'pid':child_pid})
             require(claim == claimed_pending == expected and (ci.st_dev,ci.st_ino) == (cpi.st_dev,cpi.st_ino), 'run-child-identity')
@@ -487,6 +738,8 @@ def publisher_type(supervisor, inventory, run):
 def cluster_tree_type(supervisor, inventory, run):
     I, require = inventory, inventory.require
     hash_regular_file = inventory.hash_regular_file
+    cluster_byte_limit = (6144 if getattr(run, 'private', False) else 512)*MIB
+    cluster_marker = 'private-native-hierarchy-postgres/maintained' if getattr(run, 'private', False) else 'native-hierarchy-postgres/maintained'
 
     class ClusterTree(supervisor.ClusterTree):
         def __init__(self):
@@ -526,7 +779,7 @@ def cluster_tree_type(supervisor, inventory, run):
                             if stat.S_ISDIR(info.st_mode):pending.append((Path(entry.path),depth+1))
                             else:
                                 require(stat.S_ISREG(info.st_mode) and info.st_size>=0,'cluster-kind')
-                                total+=info.st_size;require(total<=512*MIB,'cluster-byte-cap')
+                                total+=info.st_size;require(total<=cluster_byte_limit,'cluster-byte-cap')
                 except FileNotFoundError:
                     require(root!=directory,'cluster-disappeared')
             require(self.directory_info(directory).st_ino==self.directory_id[1],'cluster-replaced')
@@ -538,7 +791,7 @@ def cluster_tree_type(supervisor, inventory, run):
                 final_hash=hash_regular_file(self.parent,names[0]+'/ownership.json',info.st_size)
                 require(hashlib.sha256(raw).hexdigest()==final_hash,'cluster-marker')
                 value=json.loads(raw,object_pairs_hook=I._unique_pairs)
-                require(type(value) is dict and set(value)=={'schema','nonce','runDirectory'} and value['schema']=='native-hierarchy-postgres/maintained' and
+                require(type(value) is dict and set(value)=={'schema','nonce','runDirectory'} and value['schema']==cluster_marker and
                     type(value['nonce']) is str and re.fullmatch('[a-f0-9]{48}',value['nonce']) is not None and
                     type(value['runDirectory']) is str and value['runDirectory'].replace('\\','/').casefold()==str(directory).replace('\\','/').casefold(),'cluster-marker')
                 pending_info=(directory/'ownership.pending').lstat()
@@ -550,25 +803,32 @@ def cluster_tree_type(supervisor, inventory, run):
     return ClusterTree
 
 
-def execute(external_sha):
+def execute(external_sha, private=False):
     S = load_pinned('supervisor')
     I = S.I  # Keep the controller's exact refusal type and authenticated helper.
+    I.require(type(private) is bool,'run-purpose')
     I.require(sys.flags.isolated and sys.flags.no_site and sys.flags.dont_write_bytecode, 'python-flags')
     I.require(sys.platform == 'win32' and Path(sys.executable).resolve() == I.RUNTIME_PINS['@python'][0].resolve(), 'python-path')
     I.require(str(REPO).replace(chr(92), '/').casefold() == 'd:/gitprojekts/universal-discussion-bootstrap', 'fixed-repo')
     catalog = catalog_type(I)(external_sha)
-    run = OwnedRun(I)
+    run = OwnedRun(I,private)
     publisher = publisher_type(S, I, run)()
     tree = cluster_tree_type(S, I, run)()
     modules, host_native = {'windows':load_pinned('windows')}, []
+    inputs = PrivateInputs(I) if private else None
 
     def authenticate():
         catalog.authenticate()
+        if inputs is not None:
+            inputs.prepare()
         run.prepare(catalog.raw, external_sha)
         publisher.prepare()
         tree.prepare()
         modules['baseline'] = load_pinned('baseline')
         I.require(modules['baseline'].abi()['valid'], 'abi')
+        if private:
+            sample = host()
+            I.require(sample['dFree'] >= 11264*MIB,'private-disk-admission','dFree',sample['dFree'])
 
     def host():
         if not host_native:
@@ -579,15 +839,36 @@ def execute(external_sha):
         run.check(controller.boundary.pid if controller.boundary is not None else None)
         publisher.check()
         tree.check()
+        if inputs is not None and not inputs.closed:
+            inputs.check()
 
     def boundary():
         W, B = modules['windows'], modules['baseline']
         return W.OwnedFixtureProcess(B, api=native_api_type(W, run)(B))
 
-    controller = diagnostic_controller_type(S, modules['windows'])(authenticate=authenticate, end_pins=catalog.end_pins,
-        host_sample=host, boundary_factory=boundary, validate=semantic_completion,
+    def end_pins():
+        catalog.end_pins()
+        if inputs is not None:
+            if not inputs.closed:
+                inputs.finish(controller.normal_deadline if controller.normal_deadline is not None else STARTED+380)
+            I.require(inputs.verified and inputs.closed,'private-input-retirement')
+
+    controller = diagnostic_controller_type(S, modules['windows'])(authenticate=authenticate, end_pins=end_pins,
+        host_sample=host, boundary_factory=boundary, validate=private_completion if private else semantic_completion,
         clock=time.monotonic, pause=time.sleep, workspace_check=workspace, started_at=STARTED)
-    result = controller.run()
+    try:
+        result = controller.run()
+    finally:
+        if inputs is not None and not inputs.closed:
+            try:
+                inputs.close()
+            except BaseException:
+                # Never mask the controller's original failure or bypass the
+                # failed-attempt publisher because a final close also failed.
+                inputs.close_failed = True
+    if inputs is not None and (inputs.close_failed or not inputs.closed):
+        controller.remember(I.Refusal('private-input-close'),cleanup=True)
+        result.update(accepted=False,cleanup=controller.cleanup)
     if publisher.prepared:
         def final_checkpoint():
             controller.now(controller.normal_deadline-controller.started if result['accepted'] else 390)
@@ -600,12 +881,15 @@ def execute(external_sha):
 
 def main(argv=None):
     args = sys.argv[1:] if argv is None else argv
+    private = type(args) is list and len(args) == 2 and args[0] == 'private-restore'
+    if private:
+        args = args[1:]
     if (type(args) is not list or len(args) != 1 or type(args[0]) is not str
             or len(args[0]) != 64 or any(c not in '0123456789abcdef' for c in args[0])):
-        sys.stderr.write('Exactly one reviewed hierarchy catalog SHA256 is required.\n')
+        sys.stderr.write('Expected reviewed catalog SHA256 or private-restore followed by that SHA256.\n')
         return 2
     try:
-        result = execute(args[0])
+        result = execute(args[0],private)
         sys.stdout.write(json.dumps({'schema':'native-hierarchy-postgres-invocation/v2',
             'accepted':result['accepted']}, sort_keys=True, separators=(',', ':'))+'\n')
         return 0 if result['accepted'] else 1
