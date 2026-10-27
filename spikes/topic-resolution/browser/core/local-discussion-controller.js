@@ -1,7 +1,7 @@
 import { classifyActiveTabSnapshot, sameActiveTabObservation } from "./active-tab-policy.js";
 import { validateAndProjectActiveTabResponse } from "./indicator-contract.js";
 import { localServiceSourceId } from "../fixtures/local-service-fixture-bridge.js";
-import { readPostOrigin, isAccountActorId, readId, record, readSemanticTarget, readSemanticTargetRequest } from "./local-service-contract.js";
+import { readPostOrigin, isAccountActorId, readId, record, readSemanticTarget, readSemanticTargetRequest, HIERARCHY_SOURCE_POLICY } from "./local-service-contract.js";
 import { isRidgeTopicView, requiresReferenceTopicView } from "./topic-view-mode.js";
 import { resolveDiscussionTarget } from "./discussion-target.js";
 import { projectPageResolution, isReadyPageResolution, samePageResolution } from "./page-resolution-contract.js";
@@ -59,7 +59,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     draft: { body: "", detached: false, mode: "root", targetId: null }, busy: false, needsFreshRead: false, resolution: null,
     createdPost: null, serviceConnection: "unverified", readRetryable: false,
     enrichmentPending: false, relatedError: null, semanticSelection: null, semanticError: null,
-    semanticWritePending: false, semanticAiAvailable: false };
+    semanticWritePending: false, semanticAiAvailable: false, semanticTopicsAvailable: false };
   let epoch = 0;
   let abort = new AbortController();
   let stopObservation = () => {};
@@ -82,6 +82,18 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   // exact packet privately and refuse automatic reconstruction or reissue.
   let pendingSemanticCommand = null;
   let enrichmentTimer = null, enrichmentAttempts = 0;
+  const usesSemanticTopics = () => state.semanticTopicsAvailable === true ||
+    state.catalog?.sources.find(source => source.id === state.sourceId)?.assignmentPolicy === HIERARCHY_SOURCE_POLICY;
+  function setSemanticTopicsAvailable(value) {
+    if (disposed || typeof value !== 'boolean' || state.semanticTopicsAvailable === value) return;
+    if (value) {
+      alternateRequest++;
+      if (enrichmentTimer !== null) cancelSchedule(enrichmentTimer);
+      enrichmentTimer = null;
+    }
+    publish({semanticTopicsAvailable:value,...(value?{alternateDiscussion:null,alternateError:null,
+      related:null,relatedError:null,relatedDiscussions:[],enrichmentPending:false}:{})});
+  }
   const optionalError = error => ["unavailable", "capacity", "conflict", "invalid-response", "not-found"].includes(error?.code)
     ? error.code : "unavailable";
   async function readCatalogContext(sourceId, topicId, options) {
@@ -189,6 +201,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       observed.revision >= expected.revision;
   }
   async function loadAlternateView(ownEpoch) {
+    if (usesSemanticTopics()) return;
     const sourceId = state.sourceId, catalog = state.catalog, discussion = state.discussion;
     const requestNumber = ++alternateRequest;
     const source = catalog?.sources.find((entry) => entry.id === sourceId);
@@ -204,13 +217,13 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       if (typeof client.alternateDiscussion !== "function") throw { code: "unavailable" };
       const view = await client.alternateDiscussion(sourceId, catalog, discussion, { signal: abort.signal });
       if (!isRidgeTopicView(view)) throw { code: "unavailable" };
-      if (ownEpoch !== epoch || requestNumber !== alternateRequest || disposed || !required && state.topicViewMode !== "experimental" ||
+      if (usesSemanticTopics() || ownEpoch !== epoch || requestNumber !== alternateRequest || disposed || !required && state.topicViewMode !== "experimental" ||
           state.sourceId !== sourceId || state.phase !== "ready" || state.needsFreshRead ||
           !sameVersion(state.catalog?.version, catalog.version) ||
           !sameVersion(state.discussion?.version, discussion.version)) return;
       publish({ alternateDiscussion: view, alternateError: null });
     } catch (error) {
-      if (ownEpoch !== epoch || requestNumber !== alternateRequest || disposed || !required && state.topicViewMode !== "experimental") return;
+      if (usesSemanticTopics() || ownEpoch !== epoch || requestNumber !== alternateRequest || disposed || !required && state.topicViewMode !== "experimental") return;
       if (error?.code === "unauthorized") { await failure(error, ownEpoch); return; }
       // The combined enrichment request remains the authoritative fallback.
       // A fast scoped projection losing a global-revision race must not flash an
@@ -378,7 +391,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   }
   async function enrichmentAuthority(ownEpoch, sourceId, topicId, resolution, context, actorId) {
     const currentActor = readPostingActor();
-    if (disposed || ownEpoch !== epoch || mutationPending || state.busy || state.needsFreshRead ||
+    if (usesSemanticTopics() || disposed || ownEpoch !== epoch || mutationPending || state.busy || state.needsFreshRead ||
         state.phase !== "ready" || state.sourceId !== sourceId || state.topicId !== topicId || state.actorId !== actorId ||
         currentActor !== undefined && currentActor !== actorId) return false;
     if (context) {
@@ -393,14 +406,14 @@ export function createLocalDiscussionController({ client, session, readActiveTab
           !samePageResolution(state.resolution, current)) return false;
     }
     const finalActor = readPostingActor();
-    return !disposed && ownEpoch === epoch && !mutationPending && !state.busy && !state.needsFreshRead &&
+    return !usesSemanticTopics() && !disposed && ownEpoch === epoch && !mutationPending && !state.busy && !state.needsFreshRead &&
       state.sourceId === sourceId && state.topicId === topicId && state.actorId === actorId &&
       (finalActor === undefined || finalActor === actorId);
   }
   function loadEnrichment(ownEpoch) {
     const sourceId = state.sourceId, topicId = state.topicId,
       includeAlternate = state.topicViewMode === "experimental" || requiresReferenceTopicView(state.catalog, state.sourceId);
-    if (!sourceId || !topicId || state.phase !== "ready" || typeof client.enrichment !== "function" || disposed || ownEpoch !== epoch)
+    if (usesSemanticTopics() || !sourceId || !topicId || state.phase !== "ready" || typeof client.enrichment !== "function" || disposed || ownEpoch !== epoch)
       return Promise.resolve();
     if (enrichmentFlight?.epoch === ownEpoch && enrichmentFlight.sourceId === sourceId && enrichmentFlight.topicId === topicId &&
         enrichmentFlight.includeAlternate === includeAlternate) return enrichmentFlight.promise;
@@ -445,7 +458,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
           retryEnrichment();
         else enrichmentAttempts = 0;
       } catch (error) {
-        if (disposed || ownEpoch !== epoch || state.sourceId !== sourceId || state.topicId !== topicId) return;
+        if (usesSemanticTopics() || disposed || ownEpoch !== epoch || state.sourceId !== sourceId || state.topicId !== topicId) return;
         if (error?.code === "unauthorized") { await failure(error, ownEpoch); return; }
         const code = optionalError(error);
         publish({ enrichmentPending: false, relatedError: code, priorDiscussionsError: code,
@@ -458,7 +471,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         }
       }
       function retryEnrichment() {
-        if (enrichmentAttempts < 4 && enrichmentTimer === null) {
+        if (!usesSemanticTopics() && enrichmentAttempts < 4 && enrichmentTimer === null) {
           const delay = [1000, 2000, 4000, 5000][enrichmentAttempts++];
           enrichmentTimer = schedule(() => {
             enrichmentTimer = null;
@@ -509,10 +522,11 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       }
       publish({ catalog, discussion, actorId: postingActor(catalog), phase: topicId ? "ready" : "choose-topic", readRetryable: false });
       let [related, prior] = await Promise.all([
-        sourceId ? client.related(sourceId, 20, options) : null,
+        sourceId && !usesSemanticTopics() ? client.related(sourceId, 20, options) : null,
         sourceId ? readPrior() : null,
       ]);
       if (ownEpoch !== epoch || disposed) return;
+      if (usesSemanticTopics()) related = null;
       function priorMatchesSelection(value, currentDiscussion, currentCatalog) {
         return value?.sourceId === sourceId && value.currentTopicId === topicId &&
           (!currentDiscussion || (value.version.generation === currentDiscussion.version.generation &&
@@ -527,11 +541,11 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         try {
           const [freshCatalog, freshDiscussion, freshRelated, freshPrior] = await Promise.all([
             readCatalogContext(sourceId, topicId, options), topicId ? client.discussion(topicId, options) : null,
-            client.related(sourceId, 20, options), readPrior(),
+            usesSemanticTopics() ? null : client.related(sourceId, 20, options), readPrior(),
           ]);
           if (ownEpoch !== epoch || disposed) return;
           if (freshPrior.value && priorMatchesSelection(freshPrior.value, freshDiscussion, freshCatalog)) {
-            catalog = freshCatalog; discussion = freshDiscussion; related = freshRelated; prior = freshPrior;
+            catalog = freshCatalog; discussion = freshDiscussion; related = usesSemanticTopics() ? null : freshRelated; prior = freshPrior;
           } else prior = { value: null, error: freshPrior.error ?? "stale-prior-discussions" };
         } catch (error) {
           if (ownEpoch !== epoch || disposed) return;
@@ -539,14 +553,15 @@ export function createLocalDiscussionController({ client, session, readActiveTab
           prior = { value: null, error: error?.code ?? "unavailable" };
         }
       }
-      publish({ catalog, discussion, related, relatedDiscussions: [], priorDiscussions: prior?.value ?? null,
+      publish({ catalog, discussion, related: usesSemanticTopics() ? null : related, relatedDiscussions: [], priorDiscussions: prior?.value ?? null,
         priorDiscussionsError: prior?.error ?? null, phase: topicId ? "ready" : "choose-topic" });
       if (state.topicViewMode === "experimental") void loadAlternateView(ownEpoch);
-      void loadRelatedDiscussions(ownEpoch, catalog, discussion, related, sourceId, topicId, options);
+      if (!usesSemanticTopics()) void loadRelatedDiscussions(ownEpoch, catalog, discussion, related, sourceId, topicId, options);
       const earlierLoad = loadEarlierDiscussions(ownEpoch, catalog, discussion, prior?.value, sourceId, topicId, options);
       if (mutationPending) await earlierLoad;
       else void earlierLoad;
     } catch (error) {
+      if (usesSemanticTopics() && ownEpoch === epoch && state.phase === "ready" && error?.code !== "unauthorized") return;
       if (ownEpoch === epoch && state.phase === "ready" && error?.code !== "unauthorized")
         publish({ relatedError: optionalError(error), enrichmentPending: false });
       else await failure(error, ownEpoch, true);
@@ -1390,7 +1405,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       ...(semanticDraft?{draft:{body:'',detached:false,mode:'root',targetId:null}}:{}) });
     void open();
   }
-  return Object.freeze({ currentState, open, pair, disconnect, selectTopic, selectActor, selectSemanticTarget, acknowledgeSemanticWriteUncertainty,
+  return Object.freeze({ currentState, open, pair, disconnect, selectTopic, selectActor, selectSemanticTarget, acknowledgeSemanticWriteUncertainty, setSemanticTopicsAvailable,
     selectSource, setTopicViewMode, canReplyToAlternate, setDraft, reattachDraft, begin, discardDraft, submitDraft, attestPrivateStart, shareInsight, withdraw, createTopic, reset,
     updatePageResolution, invalidateContext, accountChanged, correctSource, forgetSource, deleteLearnedTopic, clearLearnedData, dispose });
 }

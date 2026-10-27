@@ -176,6 +176,11 @@ export function readHealth(value) {
   oneOf(item.protocol, ["local-service/v1"]); oneOf(item.capability, ["paired-demo", "paired-durable-v1"]);
   return item;
 }
+export function readSemanticCapabilities(value) {
+  const item = record(value, ["protocol"]);
+  oneOf(item.protocol, ["semantic-topics/v1"]);
+  return Object.freeze(item);
+}
 export function readCatalog(value) {
   const item = record(value, ["version", "model", "actors", "topics", "sources"]);
   const actors = unique(array(item.actors, MAX_CATALOG_ENTRIES, (value) => {
@@ -192,15 +197,19 @@ export function readCatalog(value) {
   const topicIds = new Set(topics.map((item) => item.id));
   const sources = unique(array(item.sources, MAX_CATALOG_ENTRIES, (value) => {
     const hasMemberships = Object.hasOwn(value ?? {}, "topicIds");
-    const source = record(value, ["id", "url", "title", "provenance", "topicId", ...(hasMemberships ? ["topicIds"] : [])]);
+    const hasPolicy = Object.hasOwn(value ?? {}, "assignmentPolicy");
+    const source = record(value, ["id", "url", "title", "provenance", "topicId", ...(hasMemberships ? ["topicIds"] : []),
+      ...(hasPolicy ? ["assignmentPolicy"] : [])]);
     const topicId = nullableId(source.topicId);
     if (topicId !== null && !topicIds.has(topicId)) invalid();
     const memberships = hasMemberships ? topicMemberships(source.topicIds, topicId) : null;
     if (memberships && (source.provenance !== "owner-local-page-embedding/v1" ||
         memberships.some(id => !topicIds.has(id)))) invalid();
+    if (hasPolicy && (source.provenance !== "owner-local-page-embedding/v1" || !LEARNED_POLICIES.includes(source.assignmentPolicy))) invalid();
+    if (source.assignmentPolicy === HIERARCHY_SOURCE_POLICY && !memberships) invalid();
     return { id: readId(source.id), url: retainedSourceDtoUrl(source.url), title: text(source.title, 512),
       provenance: oneOf(source.provenance, ["project-created-hand-authored-demo/1", "project-created-reserved-domain-bridge/1", "owner-local-page-embedding/v1"]), topicId,
-      ...(memberships ? { topicIds: memberships } : {}) };
+      ...(memberships ? { topicIds: memberships } : {}), ...(hasPolicy ? { assignmentPolicy: source.assignmentPolicy } : {}) };
   }));
   return { version: readVersion(item.version), model: model(item.model), actors, topics, sources };
 }

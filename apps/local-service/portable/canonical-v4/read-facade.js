@@ -260,6 +260,7 @@ function publicSource(value, link, membershipIds) {
     url: value.url,
     title: value.title,
     provenance: value.provenance,
+    ...(value.provenance === 'owner-local-page-embedding/v1' ? { assignmentPolicy: value.policyVersion } : {}),
     topicId: link?.topicId ?? null,
     ...(Object.hasOwn(value, 'topicIds') ? { topicIds: [...membershipIds] } : {}),
   };

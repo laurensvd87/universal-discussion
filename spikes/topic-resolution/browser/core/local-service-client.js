@@ -3,7 +3,7 @@ import { freeze, readActorId, readCatalog, readCommand, readConfirmation, readDi
   readIngestion, readIngestionOutcome, readAlternateDiscussion, isAccountActorId,
   readEnrichmentRequest, readEnrichment, readSemanticFeedRequest, readSemanticThreadRequest, readSemanticTargetRequest,
   readSemanticFeed, readSemanticThread, readSemanticTarget, readSemanticTopicsRequest, readSemanticContextRequest,
-  readSemanticTopics, readSemanticContext } from "./local-service-contract.js";
+  readSemanticTopics, readSemanticContext, readSemanticCapabilities } from "./local-service-contract.js";
 import { LocalServiceSessionProxyError } from "./local-service-session.js";
 import { readAccountAuthError } from "./account-auth-response.js";
 import { readDiscovery, readPrivateResponse, readAccountPublicChatsRequest, readAccountPublicChatsResponse } from "./community-contract.js";
@@ -20,10 +20,12 @@ const encoder = new TextEncoder();
 const confirmedIngestionConflicts = new WeakSet();
 const confirmedIngestionRejections = new WeakSet();
 const confirmedCommandRejections = new WeakSet();
+const missingSemanticCapabilities = new WeakSet();
 // Construction/code properties cannot manufacture evidence of a received response.
 export function isConfirmedIngestionConflict(error) { return confirmedIngestionConflicts.has(error); }
 export function isConfirmedIngestionRejection(error) { return confirmedIngestionRejections.has(error); }
 export function isConfirmedCommandRejection(error) { return confirmedCommandRejections.has(error); }
+export function isMissingSemanticCapabilities(error) { return missingSemanticCapabilities.has(error); }
 
 export class LocalServiceClientError extends Error {
   constructor(code) { super("Local service request failed"); this.name = "LocalServiceClientError"; this.code = code; }
@@ -86,7 +88,8 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
       if (response.status !== 200) {
         let confirmedRejection = null;
         let commandRejection=path==='/commands'?{400:'invalid-request',401:'unauthorized',403:'forbidden',404:'not-found',409:'conflict'}[response.status]:null;
-        if ((path === "/sources/ingest" && [409, 413].includes(response.status) || commandRejection) &&
+        const missingCapabilities=path==='/semantic/capabilities'&&response.status===404;
+        if ((path === "/sources/ingest" && [409, 413].includes(response.status) || commandRejection || missingCapabilities) &&
             /^application\/json(?:\s*;\s*charset=utf-8)?$/iu.test(response.headers?.get("content-type") ?? "") &&
             response.body && typeof response.body.getReader === "function") {
           const length = response.headers?.get("content-length");
@@ -108,7 +111,7 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
                 // Exact canonical server bytes exclude duplicate keys, extra fields,
                 // truncated streams, ambiguous envelopes and arbitrary 409 responses.
                 const received = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-                const expected = commandRejection?JSON.stringify({error:commandRejection}):response.status === 409 ? '{"error":"conflict"}' : '{"error":"capacity"}';
+                const expected = missingCapabilities?'{"error":"not-found"}':commandRejection?JSON.stringify({error:commandRejection}):response.status === 409 ? '{"error":"conflict"}' : '{"error":"capacity"}';
                 if (received === expected && !controller.signal.aborted) confirmedRejection = response.status;
                 else if(commandRejection && response.status===401 && received==='{"error":"authentication-required"}' && !controller.signal.aborted){
                   commandRejection='authentication-required';confirmedRejection=response.status;
@@ -132,7 +135,8 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
         const code = { 400: "invalid-request", 401: "unauthorized", 409: "conflict", 413: "capacity" }[response.status] ?? "unavailable";
         if (confirmedRejection && !controller.signal.aborted) {
           const error = new LocalServiceClientError(code);
-          if(commandRejection)confirmedCommandRejections.add(error);
+          if(missingCapabilities)missingSemanticCapabilities.add(error);
+          else if(commandRejection)confirmedCommandRejections.add(error);
           else {confirmedIngestionRejections.add(error);
             if (confirmedRejection === 409) confirmedIngestionConflicts.add(error);}
           throw error;
@@ -179,6 +183,9 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
     }
   }
   return Object.freeze({
+    semanticCapabilities({ signal, beforeDispatch } = {}) {
+      return request("/semantic/capabilities", {}, undefined, readSemanticCapabilities, signal, undefined, beforeDispatch);
+    },
     semanticTopics(value = {}, { signal, beforeDispatch } = {}) {
       const body = input(() => readSemanticTopicsRequest(value));
       return request("/semantic/topics", body, undefined, readSemanticTopics, signal, undefined, beforeDispatch);

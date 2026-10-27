@@ -172,18 +172,19 @@ function preflight(request, config, accountsEnabled = false, accountWrites = fal
 
 async function route(request, service, ai, durablePairing, accounts = null, origin = null, transportContext = null, revalidateCapability = () => {}, topicSpaces = null) {
   const path = request.url.pathname;
+  function publicReadCurrent() {
+    if (transportContext?.signal?.aborted || transportContext?.isCurrent && !transportContext.isCurrent()) return false;
+    revalidateCapability();
+    if (accounts && Object.hasOwn(request.headers, "x-account-session")) accounts.me(request.headers["x-account-session"]);
+    return true;
+  }
   async function publicRead(method, input = null) {
     // PostgreSQL read facades own one repeatable-read snapshot (and any
     // cross-call version agreement) internally. Sampling the global revision
     // around them would reject a coherent page whenever the crawler commits.
     const expected = service.coherentSnapshotReads === true ? null :
       typeof service.version === "function" ? await service.version() : null;
-    const isCurrent = () => {
-      if (transportContext?.signal?.aborted || transportContext?.isCurrent && !transportContext.isCurrent()) return false;
-      revalidateCapability();
-      if (accounts && Object.hasOwn(request.headers, "x-account-session")) accounts.me(request.headers["x-account-session"]);
-      return true;
-    };
+    const isCurrent = publicReadCurrent;
     if (!isCurrent()) fail("unavailable", "Read unavailable");
     if (expected !== null) {
       const current = await service.version();
@@ -313,6 +314,12 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
   if (request.method === "POST" && path === "/v1/discussions/page") return publicRead("discussionPage", parseJsonBody(request));
   if (request.method === "POST" && path === "/v1/semantic/feed" && typeof service.semanticFeed === "function")
     return publicRead("semanticFeed", parseJsonBody(request));
+  if (request.method === "POST" && path === "/v1/semantic/capabilities" && typeof service.semanticTopics === "function") {
+    // A display capability only: no database, current model or posting grant.
+    readRecord(parseJsonBody(request), []);
+    if (!publicReadCurrent()) fail("unavailable", "Read unavailable");
+    return { status: 200, value: { protocol: "semantic-topics/v1" }, isCurrent: publicReadCurrent };
+  }
   if (request.method === "POST" && path === "/v1/semantic/thread" && typeof service.semanticThread === "function")
     return publicRead("semanticThread", parseJsonBody(request));
   if (request.method === "POST" && path === "/v1/semantic/target" && typeof service.semanticTarget === "function")

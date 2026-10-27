@@ -13,6 +13,8 @@ export function isReferenceTopicView(value) {
 }
 export function requiresReferenceTopicView(catalog, sourceId) {
   const source = catalog?.sources?.find(entry => entry.id === sourceId);
+  if (source?.assignmentPolicy !== undefined) return source.provenance === "owner-local-page-embedding/v1" &&
+    source.assignmentPolicy === REFERENCE_TOPIC_POLICY && Array.isArray(source.topicIds);
   return source?.provenance === "owner-local-page-embedding/v1" && Array.isArray(source.topicIds);
 }
 

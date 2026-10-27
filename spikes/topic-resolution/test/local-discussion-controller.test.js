@@ -23,6 +23,48 @@ function enrichmentBundle(ui, sourceId, topicId) {
     alternateDiscussion: null, errors: { related: null, prior: null, alternate: null } };
 }
 
+test('semantic topic availability suppresses old global enrichment without widening human readiness',async t=>{
+  let calls=0;const ui=harness({client:{async enrichment(){calls++;assert.fail('No old global enrichment');}}});
+  t.after(()=>ui.controller.dispose());ui.controller.setSemanticTopicsAvailable(true);
+  assert.equal(ui.controller.currentState().humanPostingReady,false);
+  await ui.controller.open();await turn();const state=ui.controller.currentState();
+  assert.equal(state.phase,'ready');assert.equal(state.semanticTopicsAvailable,true);assert.equal(calls,0);
+  assert.equal(state.enrichmentPending,false);assert.equal(state.related,null);
+  ui.controller.setDraft('Still an ordinary human draft');assert.equal(ui.controller.currentState().draft.body,'Still an ordinary human draft');
+});
+
+test('switching to semantic topics fences an already running old enrichment and its late failure',async t=>{
+  for(const reject of [false,true]){
+    const held=deferred();let calls=0;const ui=harness({client:{async enrichment(){calls++;return held.promise;}}});
+    t.after(()=>ui.controller.dispose());await ui.controller.open();await turn();const before=ui.controller.currentState();assert.equal(calls,1);
+    ui.controller.setDraft('Keep this draft');ui.controller.setSemanticTopicsAvailable(true);
+    if(reject)held.reject(Object.assign(Error('Old optional failure'),{code:'unavailable'}));else held.resolve(enrichmentBundle(ui,before.sourceId,before.topicId));
+    await turn();const after=ui.controller.currentState();assert.equal(after.phase,'ready');assert.equal(after.draft.body,'Keep this draft');
+    assert.equal(after.related,null);assert.equal(after.relatedError,null);assert.equal(after.enrichmentPending,false);assert.equal(calls,1);
+  }
+});
+
+test('semantic legacy fallback retries cheap stale history without launching old global related work',async t=>{
+  let calls=0,ui;
+  ui=harness({client:{async related(){assert.fail('No global related scan');},async priorDiscussions(sourceId){
+    calls++;const catalog=ui.service.catalog(),source=catalog.sources.find(source=>source.id===sourceId);
+    return {version:{...catalog.version,revision:calls===1?catalog.version.revision+1:catalog.version.revision},sourceId,currentTopicId:source.topicId,topics:[]};
+  }}});t.after(()=>ui.controller.dispose());ui.controller.setSemanticTopicsAvailable(true);
+  await ui.controller.open();await turn();assert.equal(calls,2);const state=ui.controller.currentState();
+  assert.equal(state.phase,'ready');assert.equal(state.priorDiscussionsError,null);assert.equal(state.related,null);
+});
+
+test('enabling semantic topics during held legacy related work rejects late success and failure',async t=>{
+  for(const fail of [false,true]){
+    const held=deferred(),entered=deferred();let ui;
+    ui=harness({client:{async related(){entered.resolve();return held.promise;}}});t.after(()=>ui.controller.dispose());
+    const opening=ui.controller.open();await entered.promise;const before=ui.controller.currentState();
+    ui.controller.setSemanticTopicsAvailable(true);
+    if(fail)held.reject(Object.assign(Error('Late old scan failure'),{code:'unavailable'}));else held.resolve(ui.service.related(before.sourceId,20));
+    await opening;await turn();const state=ui.controller.currentState();assert.equal(state.phase,'ready');assert.equal(state.related,null);assert.equal(state.relatedError,null);
+  }
+});
+
 test("production enrichment stays one-flight and cannot delay canonical Ready or verified connection", async t => {
   const optional = deferred(); let calls = 0;
   const ui = harness({ client: { async enrichment() { calls++; return optional.promise; } } });
