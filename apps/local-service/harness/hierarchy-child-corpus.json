@@ -2208,122 +2208,497 @@
       "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
       "testBodyRead": false,
       "labelRevisionAfterPredictionsAllowed": false
+    },
+    {
+      "id": "child-cal-08",
+      "split": "calibration",
+      "title": "Platypus",
+      "url": "https://www.qld.gov.au/environment/plants-animals/animals/discovering-wildlife/platypus",
+      "groupId": "platypus-species-profile",
+      "sourceFamily": "queensland-government",
+      "documentFamily": "platypus-species-profile",
+      "expectedRootId": "nature",
+      "labels": {
+        "video-games": false,
+        "animals": true,
+        "koalas": false
+      },
+      "rationale": "Official species profile concerns a platypus, not koalas; shared Australian habitat is insufficient.",
+      "language": "en",
+      "origin": "https://www.qld.gov.au",
+      "reviewMode": "primary-publisher-search-result-title-and-excerpt-only",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false,
+      "selectionEvidence": {
+        "publisherUrl": "https://www.qld.gov.au/environment/plants-animals/animals/discovering-wildlife/platypus",
+        "accessMethod": "search-result-only; no direct open/capture",
+        "reviewedOn": "2026-10-27",
+        "scope": "Main-subject identity only; not rights, availability, body uniqueness or predictions."
+      }
+    },
+    {
+      "id": "child-cal-09",
+      "split": "calibration",
+      "title": "Lemuroid ringtail possum",
+      "url": "https://www.qld.gov.au/environment/plants-animals/animals/discovering-wildlife/possum/lemuroid-ringtail-possum",
+      "groupId": "lemuroid-ringtail-possum-species-profile",
+      "sourceFamily": "queensland-government",
+      "documentFamily": "lemuroid-ringtail-possum-species-profile",
+      "expectedRootId": "nature",
+      "labels": {
+        "video-games": false,
+        "animals": true,
+        "koalas": false
+      },
+      "rationale": "Official profile identifies Hemibelideus lemuroides, not koalas; a leaf-eating arboreal marsupial supplies a within-animal negative.",
+      "language": "en",
+      "origin": "https://www.qld.gov.au",
+      "reviewMode": "primary-publisher-search-result-title-and-excerpt-only",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false,
+      "selectionEvidence": {
+        "publisherUrl": "https://www.qld.gov.au/environment/plants-animals/animals/discovering-wildlife/possum/lemuroid-ringtail-possum",
+        "accessMethod": "search-result-only; no direct open/capture",
+        "reviewedOn": "2026-10-27",
+        "scope": "Main-subject identity only; not rights, availability, body uniqueness or predictions."
+      }
+    },
+    {
+      "id": "child-test-08",
+      "split": "test",
+      "title": "Short-beaked echidna",
+      "url": "https://www.nationalparks.nsw.gov.au/plants-and-animals/short-beaked-echidna",
+      "groupId": "short-beaked-echidna-species-profile",
+      "sourceFamily": "new-south-wales-government",
+      "documentFamily": "short-beaked-echidna-species-profile",
+      "expectedRootId": "nature",
+      "labels": {
+        "video-games": false,
+        "animals": true,
+        "koalas": false
+      },
+      "rationale": "Primary parks profile identifies a non-koala animal; no parent STOP is inferred.",
+      "language": "en",
+      "origin": "https://www.nationalparks.nsw.gov.au",
+      "reviewMode": "primary-publisher-search-result-title-and-excerpt-only",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false,
+      "selectionEvidence": {
+        "publisherUrl": "https://www.nationalparks.nsw.gov.au/plants-and-animals/short-beaked-echidna",
+        "accessMethod": "search-result-only; no direct open/capture",
+        "reviewedOn": "2026-10-27",
+        "scope": "Main-subject identity only; not rights, availability, body uniqueness or predictions."
+      }
+    },
+    {
+      "id": "child-test-09",
+      "split": "test",
+      "title": "Red kangaroo",
+      "url": "https://www.nationalparks.nsw.gov.au/plants-and-animals/red-kangaroo",
+      "groupId": "red-kangaroo-species-profile",
+      "sourceFamily": "new-south-wales-government",
+      "documentFamily": "red-kangaroo-species-profile",
+      "expectedRootId": "nature",
+      "labels": {
+        "video-games": false,
+        "animals": true,
+        "koalas": false
+      },
+      "rationale": "Primary parks profile centrally concerns the red kangaroo; shared marsupial terminology is insufficient for koala membership.",
+      "language": "en",
+      "origin": "https://www.nationalparks.nsw.gov.au",
+      "reviewMode": "primary-publisher-search-result-title-and-excerpt-only",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false,
+      "selectionEvidence": {
+        "publisherUrl": "https://www.nationalparks.nsw.gov.au/plants-and-animals/red-kangaroo",
+        "accessMethod": "search-result-only; no direct open/capture",
+        "reviewedOn": "2026-10-27",
+        "scope": "Main-subject identity only; not rights, availability, body uniqueness or predictions."
+      }
+    },
+    {
+      "id": "child-test-10",
+      "split": "test",
+      "title": "Lace monitor",
+      "url": "https://www.nationalparks.nsw.gov.au/plants-and-animals/lace-monitor",
+      "groupId": "lace-monitor-species-profile",
+      "sourceFamily": "new-south-wales-government",
+      "documentFamily": "lace-monitor-species-profile",
+      "expectedRootId": "nature",
+      "labels": {
+        "video-games": false,
+        "animals": true,
+        "koalas": false
+      },
+      "rationale": "Primary parks profile identifies Varanus varius, broadening animal negatives beyond mammals.",
+      "language": "en",
+      "origin": "https://www.nationalparks.nsw.gov.au",
+      "reviewMode": "primary-publisher-search-result-title-and-excerpt-only",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false,
+      "selectionEvidence": {
+        "publisherUrl": "https://www.nationalparks.nsw.gov.au/plants-and-animals/lace-monitor",
+        "accessMethod": "search-result-only; no direct open/capture",
+        "reviewedOn": "2026-10-27",
+        "scope": "Main-subject identity only; not rights, availability, body uniqueness or predictions."
+      }
+    },
+    {
+      "id": "child-test-11",
+      "split": "test",
+      "title": "Factorio game content",
+      "url": "https://www.factorio.com/game/content",
+      "groupId": "factorio-game",
+      "sourceFamily": "wube-factorio-developer",
+      "documentFamily": "factorio-game",
+      "expectedRootId": "games",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "rationale": "Original developer identifies a factory-building electronic game, distinct from archived entities.",
+      "language": "en",
+      "origin": "https://www.factorio.com",
+      "reviewMode": "primary-publisher-search-result-title-and-excerpt-only",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false,
+      "selectionEvidence": {
+        "publisherUrl": "https://www.factorio.com/game/content",
+        "accessMethod": "search-result-only; no direct open/capture",
+        "reviewedOn": "2026-10-27",
+        "scope": "Main-subject identity only; not rights, availability, body uniqueness or predictions."
+      }
+    },
+    {
+      "id": "child-test-12",
+      "split": "test",
+      "title": "Hades FAQ",
+      "url": "https://www.supergiantgames.com/blog/hades-faq/",
+      "groupId": "hades-game",
+      "sourceFamily": "supergiant-games",
+      "documentFamily": "hades-game",
+      "expectedRootId": "games",
+      "labels": {
+        "video-games": true,
+        "animals": false,
+        "koalas": false
+      },
+      "rationale": "Original developer FAQ identifies the electronic dungeon-crawler game; mythology is contextual.",
+      "language": "en",
+      "origin": "https://www.supergiantgames.com",
+      "reviewMode": "primary-publisher-search-result-title-and-excerpt-only",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false,
+      "selectionEvidence": {
+        "publisherUrl": "https://www.supergiantgames.com/blog/hades-faq/",
+        "accessMethod": "search-result-only; no direct open/capture",
+        "reviewedOn": "2026-10-27",
+        "scope": "Main-subject identity only; not rights, availability, body uniqueness or predictions."
+      }
+    },
+    {
+      "id": "child-test-13",
+      "split": "test",
+      "title": "Ticket to Ride board game",
+      "url": "https://www.daysofwonder.com/game/ticket-to-ride/",
+      "groupId": "ticket-to-ride-board-game",
+      "sourceFamily": "days-of-wonder",
+      "documentFamily": "ticket-to-ride-board-game",
+      "expectedRootId": "games",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "rationale": "Publisher lists a physical board, plastic trains and cards; digital adaptations do not change this page subject.",
+      "language": "en",
+      "origin": "https://www.daysofwonder.com",
+      "reviewMode": "primary-publisher-search-result-title-and-excerpt-only",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false,
+      "selectionEvidence": {
+        "publisherUrl": "https://www.daysofwonder.com/game/ticket-to-ride/",
+        "accessMethod": "search-result-only; no direct open/capture",
+        "reviewedOn": "2026-10-27",
+        "scope": "Main-subject identity only; not rights, availability, body uniqueness or predictions."
+      }
+    },
+    {
+      "id": "child-test-14",
+      "split": "test",
+      "title": "Patchwork board game",
+      "url": "https://www.lookout-spiele.de/en/games/patchwork.html",
+      "groupId": "patchwork-board-game",
+      "sourceFamily": "lookout-games",
+      "documentFamily": "patchwork-board-game",
+      "expectedRootId": "games",
+      "labels": {
+        "video-games": false,
+        "animals": false,
+        "koalas": false
+      },
+      "rationale": "Publisher lists physical boards, patches and tokens of the original 2014 game; not a digital adaptation or separate edition.",
+      "language": "en",
+      "origin": "https://www.lookout-spiele.de",
+      "reviewMode": "primary-publisher-search-result-title-and-excerpt-only",
+      "collectorApproved": false,
+      "collectorAttempted": false,
+      "robotsAndTdmReviewed": false,
+      "embeddingGenerated": false,
+      "metadataAvailability": "public-title-and-url-indexed; collector-response-unverified",
+      "testBodyRead": false,
+      "labelRevisionAfterPredictionsAllowed": false,
+      "selectionEvidence": {
+        "publisherUrl": "https://www.lookout-spiele.de/en/games/patchwork.html",
+        "accessMethod": "search-result-only; no direct open/capture",
+        "reviewedOn": "2026-10-27",
+        "scope": "Main-subject identity only; not rights, availability, body uniqueness or predictions."
+      }
     }
   ],
   "requestBudget": {
-    "maximumRequests": 34,
-    "subjectRequests": 16,
-    "originPolicyRequests": 18,
-    "totalRequests": 34,
-    "originCount": 9,
-    "perOrigin": [
+    "maximumRequestsPerInvocation": 34,
+    "batches": [
       {
-        "origin": "https://savethekoala.com",
-        "subjectIds": [
+        "name": "train-cal-only",
+        "ids": [
           "child-train-01",
-          "child-train-02"
-        ],
-        "robotsRequests": 1,
-        "tdmRequests": 1,
-        "pageRequests": 2,
-        "totalRequests": 4
-      },
-      {
-        "origin": "https://www.qld.gov.au",
-        "subjectIds": [
+          "child-train-02",
           "child-cal-01",
           "child-cal-02",
           "child-cal-03",
-          "child-cal-04"
+          "child-cal-04",
+          "child-cal-05",
+          "child-cal-06",
+          "child-cal-07",
+          "child-cal-08",
+          "child-cal-09"
         ],
-        "robotsRequests": 1,
-        "tdmRequests": 1,
-        "pageRequests": 4,
-        "totalRequests": 6
+        "subjectRequests": 11,
+        "originCount": 5,
+        "originPolicyRequests": 10,
+        "totalRequests": 21,
+        "perOrigin": [
+          {
+            "origin": "https://au-koala.gorgias.help",
+            "subjectIds": [
+              "child-cal-06"
+            ],
+            "robotsRequests": 1,
+            "tdmRequests": 1,
+            "pageRequests": 1,
+            "totalRequests": 3
+          },
+          {
+            "origin": "https://github.com",
+            "subjectIds": [
+              "child-cal-05"
+            ],
+            "robotsRequests": 1,
+            "tdmRequests": 1,
+            "pageRequests": 1,
+            "totalRequests": 3
+          },
+          {
+            "origin": "https://savethekoala.com",
+            "subjectIds": [
+              "child-train-01",
+              "child-train-02"
+            ],
+            "robotsRequests": 1,
+            "tdmRequests": 1,
+            "pageRequests": 2,
+            "totalRequests": 4
+          },
+          {
+            "origin": "https://www.qld.gov.au",
+            "subjectIds": [
+              "child-cal-01",
+              "child-cal-02",
+              "child-cal-03",
+              "child-cal-04",
+              "child-cal-08",
+              "child-cal-09"
+            ],
+            "robotsRequests": 1,
+            "tdmRequests": 1,
+            "pageRequests": 6,
+            "totalRequests": 8
+          },
+          {
+            "origin": "https://www.worldothello.org",
+            "subjectIds": [
+              "child-cal-07"
+            ],
+            "robotsRequests": 1,
+            "tdmRequests": 1,
+            "pageRequests": 1,
+            "totalRequests": 3
+          }
+        ]
       },
       {
-        "origin": "https://github.com",
-        "subjectIds": [
-          "child-cal-05"
-        ],
-        "robotsRequests": 1,
-        "tdmRequests": 1,
-        "pageRequests": 1,
-        "totalRequests": 3
-      },
-      {
-        "origin": "https://au-koala.gorgias.help",
-        "subjectIds": [
-          "child-cal-06"
-        ],
-        "robotsRequests": 1,
-        "tdmRequests": 1,
-        "pageRequests": 1,
-        "totalRequests": 3
-      },
-      {
-        "origin": "https://www.worldothello.org",
-        "subjectIds": [
-          "child-cal-07"
-        ],
-        "robotsRequests": 1,
-        "tdmRequests": 1,
-        "pageRequests": 1,
-        "totalRequests": 3
-      },
-      {
-        "origin": "https://www.environment.nsw.gov.au",
-        "subjectIds": [
+        "name": "frozen-test-only",
+        "ids": [
           "child-test-01",
           "child-test-02",
-          "child-test-04"
-        ],
-        "robotsRequests": 1,
-        "tdmRequests": 1,
-        "pageRequests": 3,
-        "totalRequests": 5
-      },
-      {
-        "origin": "https://www.nationalparks.nsw.gov.au",
-        "subjectIds": [
           "child-test-03",
-          "child-test-05"
+          "child-test-04",
+          "child-test-05",
+          "child-test-06",
+          "child-test-07",
+          "child-test-08",
+          "child-test-09",
+          "child-test-10",
+          "child-test-11",
+          "child-test-12",
+          "child-test-13",
+          "child-test-14"
         ],
-        "robotsRequests": 1,
-        "tdmRequests": 1,
-        "pageRequests": 2,
-        "totalRequests": 4
-      },
-      {
-        "origin": "https://www.stardewvalley.net",
-        "subjectIds": [
-          "child-test-06"
-        ],
-        "robotsRequests": 1,
-        "tdmRequests": 1,
-        "pageRequests": 1,
-        "totalRequests": 3
-      },
-      {
-        "origin": "https://consumercare.hasbro.com",
-        "subjectIds": [
-          "child-test-07"
-        ],
-        "robotsRequests": 1,
-        "tdmRequests": 1,
-        "pageRequests": 1,
-        "totalRequests": 3
+        "subjectRequests": 14,
+        "originCount": 8,
+        "originPolicyRequests": 16,
+        "totalRequests": 30,
+        "perOrigin": [
+          {
+            "origin": "https://consumercare.hasbro.com",
+            "subjectIds": [
+              "child-test-07"
+            ],
+            "robotsRequests": 1,
+            "tdmRequests": 1,
+            "pageRequests": 1,
+            "totalRequests": 3
+          },
+          {
+            "origin": "https://www.daysofwonder.com",
+            "subjectIds": [
+              "child-test-13"
+            ],
+            "robotsRequests": 1,
+            "tdmRequests": 1,
+            "pageRequests": 1,
+            "totalRequests": 3
+          },
+          {
+            "origin": "https://www.environment.nsw.gov.au",
+            "subjectIds": [
+              "child-test-01",
+              "child-test-02",
+              "child-test-04"
+            ],
+            "robotsRequests": 1,
+            "tdmRequests": 1,
+            "pageRequests": 3,
+            "totalRequests": 5
+          },
+          {
+            "origin": "https://www.factorio.com",
+            "subjectIds": [
+              "child-test-11"
+            ],
+            "robotsRequests": 1,
+            "tdmRequests": 1,
+            "pageRequests": 1,
+            "totalRequests": 3
+          },
+          {
+            "origin": "https://www.lookout-spiele.de",
+            "subjectIds": [
+              "child-test-14"
+            ],
+            "robotsRequests": 1,
+            "tdmRequests": 1,
+            "pageRequests": 1,
+            "totalRequests": 3
+          },
+          {
+            "origin": "https://www.nationalparks.nsw.gov.au",
+            "subjectIds": [
+              "child-test-03",
+              "child-test-05",
+              "child-test-08",
+              "child-test-09",
+              "child-test-10"
+            ],
+            "robotsRequests": 1,
+            "tdmRequests": 1,
+            "pageRequests": 5,
+            "totalRequests": 7
+          },
+          {
+            "origin": "https://www.stardewvalley.net",
+            "subjectIds": [
+              "child-test-06"
+            ],
+            "robotsRequests": 1,
+            "tdmRequests": 1,
+            "pageRequests": 1,
+            "totalRequests": 3
+          },
+          {
+            "origin": "https://www.supergiantgames.com",
+            "subjectIds": [
+              "child-test-12"
+            ],
+            "robotsRequests": 1,
+            "tdmRequests": 1,
+            "pageRequests": 1,
+            "totalRequests": 3
+          }
+        ]
       }
     ],
-    "deadlineMs": 240000,
+    "maximumDurationMsPerInvocation": 240000,
     "perRequestTimeoutMs": 15000,
     "minimumSequentialSpacingMs": 5000,
-    "pacing": "At least max(5000ms, applicable robots delay); sequential requests and one attempt per subject.",
-    "idealPacingOnlyMs": 165000,
     "completionWithinDeadlineGuaranteed": false,
-    "budgetAssumptions": "One robots request and one TDM request per exact origin, then each selected page once. Redirects, retries and alternative URLs are not budgeted or permitted.",
-    "rightsOrPolicyFailure": "Retain unavailable result; never replace a subject or lower calibration minimums.",
-    "collectorChangeRequired": "Existing fixed collector accepts only en.wikipedia.org. Every new official origin needs a separate closed-origin source review/grant with existing SSRF, robots, response and document restrictions preserved."
+    "splitExecution": "TRAIN/CAL first; TEST only after candidate artifact/policy is frozen and independently accepted. No mixed invocation or request refund.",
+    "policy": "One robots and one TDM request per exact origin per invocation; normal fetcher, sequential max(5000ms, robots delay), no redirects/retries/subject replacements.",
+    "collectorChangeRequired": "Current collector remains Wikipedia-only. Every new literal origin and ID requires source review before collection.",
+    "unavailableSupport": "Retain unavailable rows; no waived minimums or replacements after predictions."
   },
   "separation": {
     "legacyPublisherOverlap": "Archived TRAIN and CAL share Wikimedia. Original splits and exact document groups are retained; no publisher-heldout or independent-population claim is made for reused data.",
@@ -2331,10 +2706,11 @@
     "newDocumentFamiliesSplitDisjoint": true,
     "targetConceptOverlap": "Koala documents necessarily share the target species. Groups describe distinct editorial documents, not invented species or independent populations.",
     "withinSplitCorrelation": "Two AKF TRAIN documents share a publisher. QLD CAL and NSW TEST each share governmental templates and related subjects. Counts are development support, not population confidence.",
-    "nearDuplicateAudit": "Before any fit, compare captured document hashes/text families without predictions. Confirm proposed documents are distinct; collapse/refuse dependent duplicates without moving split or fabricating group IDs. A resulting support shortfall disables the head.",
-    "testReservation": "Seven fresh TEST URLs were selected using public search titles and URLs only. Bodies were not displayed/read for this curation, and cannot enter TRAIN/CAL or tuning.",
+    "nearDuplicateAudit": "Before fit, compare TRAIN/CAL normalized URLs, editorial-document identities, exact body hashes and boilerplate-stripped paragraph/5-word-shingle overlap against one another and archived rosters. At TEST evaluation repeat fixed collision audit before scoring, never exposing TEST to fitting. Exact body equality, translations/editions of the same editorial document, or >=0.80 shingle containment in either direction quarantines connected families; ambiguous syndication requires review blind to predictions. For named-game identity tasks, repeated pages/ports/editions about the same game entity count as one group. Distinct koala biology/care documents are NOT duplicates merely because they concern the same species: shared species and publisher correlation remain explicit. Never move split or substitute subjects; surviving-support shortfall disables unsupported detail.",
+    "testReservation": "Fourteen TEST URLs are predeclared. Revision adds primary publisher search metadata only: no direct page open, saved TEST body read, capture, vector or prediction. Search results may return extended excerpts; no claim that no text was visible.",
     "knownHeldoutDocumentCollision": "gta-train-03 reuses Grand Theft Auto IV, also root-expansion-final-001. Annotation is known but reuseEligible=false; historical roles remain explicit.",
-    "collisionScope": "Exact archived URL collisions checked against preserved root-expansion TEST and curated root-web metadata. New official URLs differ from those Wikipedia documents; all-future-corpus and syndication equivalence are not guaranteed."
+    "collisionScope": "Exact archived URL collisions checked against preserved root-expansion TEST and curated root-web metadata. New official URLs differ from those Wikipedia documents; all-future-corpus and syndication equivalence are not guaranteed.",
+    "publisherUmbrellaRule": "Treat NSW environment and national parks as one government publisher umbrella, TEST-only; all Queensland Government sites are CAL. Preserve original sourceFamily strings, but separate hostnames do not prove publisher independence."
   },
   "unselectedAvailabilityObservations": [
     {
@@ -2354,11 +2730,19 @@
     }
   ],
   "acceptanceLimitations": {
-    "videoGamesFreshPositiveTestDocuments": 1,
-    "videoGamesTestScope": "One electronic-game FAQ is a limited check, not genre-wide or franchise-independent precision evidence. A stronger claim requires a separately predeclared bounded TEST batch before fitting or seeing TEST predictions, not expansion in response to outcomes.",
+    "videoGamesFreshPositiveTestDocuments": 3,
+    "videoGamesTestScope": "Three electronic-game entities (Stardew Valley, Factorio, Hades) and three physical-game entities (Connect 4, Ticket to Ride, Patchwork) are predeclared; small curated publisher-correlated evidence, not representative validation.",
     "koalaTrainingScope": "Two distinct documents from one publisher may fail the future duplicate-family audit. The support minimum must not be waived if they are dependent.",
     "newCandidateEligibilityEstablished": false,
-    "qualityOrInstallationAcceptance": false
+    "qualityOrInstallationAcceptance": false,
+    "koalaParentConditionedSupport": {
+      "freshCalibrationAnimalNegatives": 3,
+      "archivedCalibrationAnimalNegatives": 1,
+      "freshTestAnimalNegatives": 4,
+      "freshTestKoalaPositives": 3,
+      "requireActualAcceptedParentBeforeCountingGatedSupport": true,
+      "noAvailabilityOrDuplicateMinimumWaiver": true
+    }
   },
   "executionConditions": [
     "Independent source/label review before capture or fit.",
@@ -2368,6 +2752,20 @@
     "Fresh capture requires separate exact-origin rights/robots/TDM/SSRF review; metadata browsing is not collector approval.",
     "A capture failure, rights restriction, duplicate conflict or inseparable cut disables unsupported detail rather than causing retries or minimum changes.",
     "Freeze model/policy before separate fresh TEST evaluation; retain failures and availability in the full roster.",
-    "Root model, GTA head, canonical IDs, owner policy and installation remain unchanged."
-  ]
+    "Root model, GTA head, canonical IDs, owner policy and installation remain unchanged.",
+    "Report root, Animals and Koalas parent-conditioned gates separately; software/brand/off-root negatives do not establish animal-level hard-negative performance. Preserve root/GTA models and consumed TEST outcomes unchanged."
+  ],
+  "selectionRevision": {
+    "reason": "Pre-prediction animal hard negatives and fresh video-games TEST support",
+    "originalFreshRows": 16,
+    "originalFreshRowsSha256": "f08476bff786a267534e753c7d1d54f6b9b4f58907b19302fea8f41ffc3e8017",
+    "historicalRosterSha256": "b2feef0fdf8c3ed4d0627ddb075d2ebe71f326c684e84f1178bd3fc6af228bb8",
+    "newRows": 9,
+    "predictionsSeen": false,
+    "testCaptureExecuted": false,
+    "rejectedCandidate": {
+      "url": "https://www.catan.com/catan",
+      "reason": "Same CATAN game entity already in archived TRAIN; not fresh group support."
+    }
+  }
 }

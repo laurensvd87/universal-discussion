@@ -10,6 +10,20 @@ import {RECIPE_CAL_PROBES,RECIPE_TEST_PROBES} from './hierarchy-recipe-corpus.js
 import {GTA_TRAIN_PROBES,GTA_CAL_PROBES,GTA_TEST_PROBES} from './hierarchy-gta-corpus.js';
 
 const ORIGIN='https://en.wikipedia.org',MAX_REQUESTS=34,MAX_DURATION=240000,MIN_DELAY=5000;
+// Closed development TRAIN/CAL batch. TEST IDs/URLs are deliberately absent.
+const CHILD_TRAIN_CAL=Object.freeze([
+ ['child-train-01','https://savethekoala.com/about-koalas/koalas-diet-digestion/'],
+ ['child-train-02','https://savethekoala.com/about-koalas/distribution/'],
+ ['child-cal-01','https://www.qld.gov.au/environment/plants-animals/animals/living-with/koalas/koala-information/koala-facts'],
+ ['child-cal-02','https://www.qld.gov.au/environment/plants-animals/animals/living-with/koalas/helping-koalas-in-the-community/koala-breeding-season'],
+ ['child-cal-03','https://www.qld.gov.au/environment/plants-animals/animals/living-with/koalas/koala-rescue-and-rehabilitation/sick%2C-injured%2C-orphaned-or-dead-koalas'],
+ ['child-cal-04','https://www.qld.gov.au/environment/plants-animals/animals/discovering-wildlife/possum/common-brushtail-possum'],
+ ['child-cal-05','https://github.com/oklai/koala'],
+ ['child-cal-06','https://au-koala.gorgias.help/en-US/What-does-the-Koala-Warranty-cover-and-for-how-long-8100194'],
+ ['child-cal-07','https://www.worldothello.org/about/about-othello/othello-rules/official-rules/english'],
+ ['child-cal-08','https://www.qld.gov.au/environment/plants-animals/animals/discovering-wildlife/platypus'],
+ ['child-cal-09','https://www.qld.gov.au/environment/plants-animals/animals/discovering-wildlife/possum/lemuroid-ringtail-possum'],
+].map(([id,url])=>Object.freeze({id,url})));
 const CODES=new Set(['already-attempted','deadline','aborted','clock-invalid','request-limit','robots-denied','policy-unavailable',
  'page-unavailable','redirect-refused','response-invalid','header-restricted','tdm-ambiguous','tdm-reserved','document-invalid','document-restricted','insufficient-text','pace-unavailable',
  'origin-paused','rate-limited','access-denied','upstream-unavailable','fetch-unavailable']);
@@ -48,18 +62,21 @@ function defaultSleep(milliseconds,signal){
 /** Dependencies are trusted seams. Actual collection uses the normal public
  * fetcher and its DNS/TLS/response limits; no URL/header/state override exists.
  */
-export function createHierarchyPublicCapture({fetchPublic=fetchPublicResource,clock=Date.now,sleep=defaultSleep,signal,deadline}={}){
+export function createHierarchyPublicCapture(dependencies={}){return createCapture(dependencies,false);}
+export function createHierarchyChildTrainCalCapture(dependencies={}){return createCapture(dependencies,true);}
+function createCapture({fetchPublic=fetchPublicResource,clock=Date.now,sleep=defaultSleep,signal,deadline},child){
  if(typeof fetchPublic!=='function'||typeof clock!=='function'||typeof sleep!=='function')throw new TypeError('Invalid fixed public capture dependencies');
  const start=clock();if(!Number.isFinite(start)||start<0)throw new TypeError('Invalid fixed public capture clock');
  deadline??=start+MAX_DURATION;
  if(!Number.isFinite(deadline)||deadline<=start||deadline>start+MAX_DURATION||signal!==undefined&&(!signal||typeof signal.aborted!=='boolean'))throw new TypeError('Invalid fixed public capture deadline or signal');
- const approved=[...PUBLIC_HIERARCHY_PROBES,...RECIPE_CAL_PROBES,...RECIPE_TEST_PROBES,...GTA_TRAIN_PROBES,...GTA_CAL_PROBES,...GTA_TEST_PROBES];
+ const approved=child?CHILD_TRAIN_CAL:[...PUBLIC_HIERARCHY_PROBES,...RECIPE_CAL_PROBES,...RECIPE_TEST_PROBES,...GTA_TRAIN_PROBES,...GTA_CAL_PROBES,...GTA_TEST_PROBES];
+ const origins=new Set(child?CHILD_TRAIN_CAL.map(p=>new URL(p.url).origin):[ORIGIN]);
  const probes=new Map(approved.map(p=>[p.id,p]));
- if(probes.size!==64||probes.size!==approved.length||[...probes.values()].some(p=>normalizeCrawlUrl(p.url,undefined,[])!==p.url||new URL(p.url).origin!==ORIGIN))throw new TypeError('Invalid fixed probe source');
- const attempted=new Set();let chain=Promise.resolve(),policyPromise=null,requests=0,lastRequest=null,lastClock=start,originStopped=false;
+ if(probes.size!==(child?11:64)||probes.size!==approved.length||[...probes.values()].some(p=>normalizeCrawlUrl(p.url,undefined,[])!==p.url||!origins.has(new URL(p.url).origin)))throw new TypeError('Invalid fixed probe source');
+ const attempted=new Set(),policies=new Map(),stoppedOrigins=new Set();let chain=Promise.resolve(),requests=0,lastRequest=null,lastClock=start;
  function check(){if(signal?.aborted)fail('aborted');const now=clock();if(!Number.isFinite(now)||now<lastClock)fail('clock-invalid');lastClock=now;if(now>=deadline)fail('deadline');return now;}
  async function request(url,resourceKind,delay=0){
-  if(new URL(url).origin!==ORIGIN)fail('response-invalid');
+  if(!origins.has(new URL(url).origin))fail('response-invalid');
   let now=check();const earliest=lastRequest===null?now:lastRequest+Math.max(MIN_DELAY,delay),wait=Math.max(0,earliest-now);
   if(now+wait>=deadline)fail('deadline');
   if(wait){try{await sleep(wait,signal);}catch{check();fail('pace-unavailable');}now=check();if(now<earliest)fail('pace-unavailable');}
@@ -77,19 +94,19 @@ export function createHierarchyPublicCapture({fetchPublic=fetchPublicResource,cl
   }catch(error){if(missing(error))return null;fail(code(error)??'policy-unavailable');}
   finally{wipe(response);}
  }
- async function policy(){
-  const robotsText=await policyText(ORIGIN+'/robots.txt','robots',0);
+ async function policy(origin){
+  const robotsText=await policyText(origin+'/robots.txt','robots',0);
   let robots;try{robots=parseRobotsTxt(robotsText??'');}catch{fail('policy-unavailable');}
-  const tdmUrl=tdmRepUrlFor(ORIGIN),allowed=evaluateRobots(robots,tdmUrl);
+  const tdmUrl=tdmRepUrlFor(origin),allowed=evaluateRobots(robots,tdmUrl);
   if(!allowed.allowed)fail('policy-unavailable');
   const tdmText=await policyText(tdmUrl,'tdmrep',allowed.crawlDelayMs);
   let tdm=null;try{if(tdmText!==null)tdm=parseTdmRepJson(tdmText);}catch{fail('policy-unavailable');}
   return {robots,tdm,robotsSha256:sha(robotsText??''),tdmRepSha256:tdmText===null?null:sha(tdmText)};
  }
  async function collect(probe){
-  let response;
+  let response;const origin=new URL(probe.url).origin;
   try{
-   check();if(originStopped)fail('origin-paused');policyPromise??=policy();const originPolicy=await policyPromise;check();
+   check();if(stoppedOrigins.has(origin))fail('origin-paused');if(!policies.has(origin))policies.set(origin,policy(origin));const originPolicy=await policies.get(origin);check();
    const robots=evaluateRobots(originPolicy.robots,probe.url);if(!robots.allowed)fail('robots-denied');
    response=await request(probe.url,'page',robots.crawlDelayMs);
    if(response?.kind==='redirect')fail('redirect-refused');
@@ -113,7 +130,7 @@ export function createHierarchyPublicCapture({fetchPublic=fetchPublicResource,cl
    check();return Object.freeze({id:probe.id,url:probe.url,status:'available',title:capture.title,text:capture.text,
     extractorVersion:capture.extractorVersion,responseSha256,htmlTextSha256,titleSha256,bodySha256,rightsEvidenceHash,sourceInputHash,
     provenance:'fresh-public-crawler-static-html-paired-observation/v1',nativeObservation:false,productionValidated:false,assignmentAuthority:false});
-  }catch(error){const stopped=originFailure(error);if(stopped)originStopped=true;return unavailable(probe,code(error)??stopped??'page-unavailable');}
+  }catch(error){const stopped=originFailure(error);if(stopped)stoppedOrigins.add(origin);return unavailable(probe,code(error)??stopped??'page-unavailable');}
   finally{wipe(response);}
  }
  function capture(probeId){
@@ -122,5 +139,5 @@ export function createHierarchyPublicCapture({fetchPublic=fetchPublicResource,cl
   const result=chain.then(()=>collect(probe));chain=result.then(()=>{},()=>{});return result;
  }
  return Object.freeze({capture,snapshot:()=>Object.freeze({attempted:attempted.size,requests,maxRequests:MAX_REQUESTS,deadline,
-  minimumOriginDelayMs:MIN_DELAY,pacing:'local-only-not-coordinated-with-live-crawler',originStopped,nativeObservation:false,productionValidated:false,assignmentAuthority:false})});
+  minimumOriginDelayMs:MIN_DELAY,pacing:'local-only-not-coordinated-with-live-crawler',originStopped:stoppedOrigins.size>0,nativeObservation:false,productionValidated:false,assignmentAuthority:false})});
 }

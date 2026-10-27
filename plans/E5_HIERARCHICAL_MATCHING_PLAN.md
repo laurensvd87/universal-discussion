@@ -1,5 +1,11 @@
 # E5 matching across broad and specific topics
 
+27 October latest: corrected Chrome check passes all17 UI cases after the
+first-page staging fix. Real SQL/HTTP and synthetic-browser evidence are separate.
+The next child-data batch contains11 fixed TRAIN/CAL URLs across5 exact origins;
+fresh TEST remains excluded until fitting/calibration is frozen. Historical
+annotations and existing root/GTA numeric assets remain unchanged.
+
 27 October: full real PostgreSQL snapshot migration to schema17 preserves all18
 legacy table fingerprints and passes16 real HTTP cases in the isolated application.
 Chrome passes14/17 UI cases, then catches a first-page promotion composition gap.

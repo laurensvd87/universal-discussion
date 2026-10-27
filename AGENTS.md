@@ -8,7 +8,16 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
-Current27Oct ChromeONE failed14/17 atpromotionIME;3428ms/ownedexit/profilecleanup/
+Current27Oct correctedChrome17/17PASS3459ms after1d7bc096PUSHED. All31rawGitpins/
+containment/ownedexit/profilecleanupTRUE;3viewportboundsPASS. Independent14784B
+b242d743...57b3 hashverified, scopeSOURCEpins separatelyjoined byRoot. RealUI with
+inventedbackend/model/provider, notrealE5/load/provider/browser-to-DB proof. Child
+corpus/closedTRAINCALcollector4+runner2 SOURCEindependentlyaccepted065a18e0...936/
+48b8ec20...63a0 RootFULLread/auth;22purePASS. HistoricalUTF8+original16preserved,
+11developmentURLs/5origins,14TESTblocked,34requests/240s/5s unchanged. Rootjoined
+resources/capture39PASS296ms. Actualcollectionnext, nofit/predictions/livegrant.
+
+Earlier27Oct ChromeONE failed14/17 atpromotionIME;3428ms/ownedexit/profilecleanup/
 containmentallTRUE. Audit15038B0a8a29b1...bbbc0 RootFULLread/auth; exactcomposite
 failedfieldUNKNOWN. Realcontrollerpublications expose readyresolution/nullIDs gap
 disablinglocaltextarea/resettingIME. MinimalallowreadyONLYexistingprivatebinding

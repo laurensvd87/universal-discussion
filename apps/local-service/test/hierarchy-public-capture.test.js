@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {createHierarchyPublicCapture} from '../harness/hierarchy-public-capture.js';
+import {createHierarchyPublicCapture,createHierarchyChildTrainCalCapture} from '../harness/hierarchy-public-capture.js';
+import {readFileSync} from 'node:fs';
 import {PUBLIC_HIERARCHY_PROBES as probes} from '../harness/hierarchy-public-probes.js';
 import {RECIPE_CAL_PROBES,RECIPE_TEST_PROBES} from '../harness/hierarchy-recipe-corpus.js';
 import {GTA_TRAIN_PROBES,GTA_CAL_PROBES,GTA_TEST_PROBES} from '../harness/hierarchy-gta-corpus.js';
@@ -23,6 +24,30 @@ function fixture({robots='',tdm=null,page=()=>html(),onRequest}={}){
  const options={fetchPublic,clock:()=>time,sleep:async ms=>{sleeps.push(ms);time+=ms;},deadline:240000};
  return {capture:createHierarchyPublicCapture(options),options,calls,buffers,sleeps,advance:ms=>{time+=ms;},content};
 }
+
+const childPlan=JSON.parse(readFileSync(new URL('../harness/hierarchy-child-corpus.json',import.meta.url),'utf8'));
+const childRows=childPlan.freshCandidates.filter(r=>r.split!=='test');
+test('closed child TRAIN/CAL batch matches exact plan and uses independent five-origin policies under unchanged caps',async()=>{
+ const f=fixture(),capture=createHierarchyChildTrainCalCapture(f.options);
+ for(const row of childRows){const result=await capture.capture(row.id);assert.equal(result.url,row.url);assert.equal(result.status,'available',row.id);}
+ assert.equal(f.calls.length,21);assert.equal(f.calls.filter(c=>c.resourceKind==='page').length,11);
+ for(const origin of new Set(childRows.map(r=>r.origin))){assert.equal(f.calls.filter(c=>new URL(c.url).origin===origin&&c.resourceKind==='robots').length,1);assert.equal(f.calls.filter(c=>new URL(c.url).origin===origin&&c.resourceKind==='tdmrep').length,1);}
+ for(let i=1;i<f.calls.length;i++)assert.ok(f.calls[i].time-f.calls[i-1].time>=5000);
+ assert.equal(capture.snapshot().maxRequests,34);assert.equal(capture.snapshot().deadline,240000);
+ assert.equal((await capture.capture(childRows[0].id)).reason,'already-attempted');assert.equal(f.calls.length,21);
+ for(const row of childPlan.freshCandidates.filter(r=>r.split==='test'))await assert.rejects(capture.capture(row.id));
+ await assert.rejects(capture.capture('https://www.qld.gov.au/foreign'));await assert.rejects(capture.capture(probes[0].id));
+ await assert.rejects(f.capture.capture(childRows[0].id));assert.equal(f.calls.length,21);
+});
+test('child origin stop affects only that origin and policy failures cannot be retried',async()=>{
+ const f=fixture({onRequest(url,options,content){if(options.resourceKind==='robots')return content(url,'','robots');if(options.resourceKind==='tdmrep')throw new PublicFetchError('http-status',{status:404});if(new URL(url).origin==='https://savethekoala.com')throw new PublicFetchError('http-status',{status:429});return content(url,html(),'page');}});
+ const capture=createHierarchyChildTrainCalCapture(f.options);
+ assert.equal((await capture.capture('child-train-01')).reason,'rate-limited');const count=f.calls.length;
+ assert.equal((await capture.capture('child-train-02')).reason,'origin-paused');assert.equal(f.calls.length,count);
+ assert.equal((await capture.capture('child-cal-01')).status,'available');assert.equal((await capture.capture('child-cal-02')).status,'available');
+ const g=fixture({onRequest(url,options,content){if(new URL(url).origin==='https://savethekoala.com')throw new PublicFetchError('http-status',{status:403});if(options.resourceKind==='robots')return content(url,'','robots');if(options.resourceKind==='tdmrep')throw new PublicFetchError('http-status',{status:404});return content(url,html(),'page');}});
+ const other=createHierarchyChildTrainCalCapture(g.options);assert.equal((await other.capture('child-train-01')).reason,'policy-unavailable');assert.equal((await other.capture('child-train-02')).reason,'policy-unavailable');assert.equal(g.calls.length,1);assert.equal((await other.capture('child-cal-01')).status,'available');
+});
 
 test('fresh same-response title and body use real extraction, bounded hashes and cleared buffers',async()=>{
  const f=fixture(),row=await f.capture.capture(probes[0].id);
