@@ -31,6 +31,16 @@ export const OWNER_RESTORE_CASES=Object.freeze(GROUPS.flatMap(group=>[Object.fre
 export const OWNER_RESTORE_PHASES=Object.freeze(['callback-enter','archive-hash-start','archive-hash-complete','backup-auth-start','archive-authenticated','empty-target-verified',
  'restore-dispatched','restore-retired','schema-verified','grants-verified',...Object.keys(TABLES).map(table=>'table-'+table+'-verified'),
  'sequences-verified','scratch-a-retired','scratch-b-retired','inputs-closed']);
+const LEGACY_TABLES=Object.freeze(Object.keys(TABLES).filter(table=>table!=='schema_migrations'));
+const UPGRADE_GROUPS=Object.freeze([
+ Object.freeze({name:'Private schema9 upgrade entry boundaries',children:Object.freeze(['Original schema9 identities and primary-key collations','Original owner and execute-only role boundaries'])}),
+ Object.freeze({name:'Private migrated snapshot equality',children:Object.freeze(['Installed hierarchy17 manifest and original runtime version',...LEGACY_TABLES.map(table=>'Preserved original snapshot table: '+table)])}),
+ Object.freeze({name:'Private migrated generated ordinal safety',children:Object.freeze(['Migrated identity and ordinal sequences cannot reuse stored keys'])}),
+]);
+export const OWNER_UPGRADE_CASES=Object.freeze(UPGRADE_GROUPS.flatMap(group=>[Object.freeze({name:group.name,depth:0}),...group.children.map(name=>Object.freeze({name,depth:1}))]));
+export const OWNER_UPGRADE_PHASES=Object.freeze([...OWNER_RESTORE_PHASES.slice(0,8),'schema9-identity-verified','schema9-grants-verified',
+ 'hierarchy17-installed','hierarchy17-manifest-verified',...LEGACY_TABLES.map(table=>'legacy-table-'+table+'-verified'),
+ 'migrated-sequences-verified','application-verified','scratch-a-retired','scratch-b-retired','inputs-closed']);
 const error=code=>Object.assign(new Error('Private owner restore unavailable'),{code});
 const hash=value=>createHash('sha256').update(value).digest('hex');
 function requireThat(condition,code){if(!condition)throw error(code);}
@@ -41,14 +51,15 @@ function array(value,max){requireThat(Array.isArray(value)&&!types.isProxy(value
  return Array.from({length:n},(_,i)=>{const d=Object.getOwnPropertyDescriptor(value,String(i));requireThat(d?.enumerable&&Object.hasOwn(d,'value'),'RESTORE_ARRAY');return d.value;});}
 function integer(value,max=Number.MAX_SAFE_INTEGER){requireThat(typeof value==='number'&&Number.isSafeInteger(value)&&value>=0&&value<=max,'RESTORE_INTEGER');return value;}
 function code(value){try{if(value&&typeof value==='object'&&!types.isProxy(value)){const d=Object.getOwnPropertyDescriptor(value,'code');if(d&&Object.hasOwn(d,'value')&&typeof d.value==='string'&&/^[A-Z0-9_]{1,64}$/u.test(d.value))return d.value;}}catch{}return 'PRIVATE_RESTORE_FAILURE';}
-function ledger(){let index=0,pending=0;const rows=[];return {
- async test(name,body,depth=0){const expected=OWNER_RESTORE_CASES[index++];requireThat(expected?.name===name&&expected.depth===depth,'RESTORE_LEDGER');
+function ledger(cases=OWNER_RESTORE_CASES){let index=0,pending=0;const rows=[];return {
+ async test(name,body,depth=0){const expected=cases[index++];requireThat(expected?.name===name&&expected.depth===depth,'RESTORE_LEDGER');
   const row={name,depth,status:'running'};rows.push(row);pending++;try{await body({test:(child,fn)=>this.test(child,fn,1)});row.status='passed';}
   catch(e){row.status='failed';throw e;}finally{pending--;}
  },snapshot:()=>({cases:rows.map(row=>({...row})),pendingAssertions:pending}),
  finish(){requireThat(index===25&&pending===0&&rows.every(row=>row.status==='passed'),'RESTORE_LEDGER');},
 };}
-function createPhaseWriter({fs,output,now,epoch,checkDeadline}){
+function createPhaseWriter({fs,output,now,epoch,checkDeadline},upgrade=false){
+ const stages=upgrade?OWNER_UPGRADE_PHASES:OWNER_RESTORE_PHASES,schema=upgrade?'private-owner-upgrade-phase/v1':'private-owner-restore-phase/v1';
  const prefix=PRIVATE_RUN_ROOT+'\\run-',suffix='\\output';
  requireThat(typeof output==='string'&&output.startsWith(prefix)&&output.endsWith(suffix)&&/^[a-f0-9]{48}$/u.test(output.slice(prefix.length,-suffix.length))&&
   path.win32.normalize(output)===output&&typeof now==='function'&&typeof checkDeadline==='function'&&Number.isFinite(epoch)&&epoch>=0,'RESTORE_PHASE_SCOPE');
@@ -59,10 +70,10 @@ function createPhaseWriter({fs,output,now,epoch,checkDeadline}){
   if(outputIdentity===null)outputIdentity=identity(stat);else requireThat(isDeepStrictEqual(outputIdentity,identity(stat)),'RESTORE_PHASE_DIRECTORY');
  }
  return Object.freeze({async write(stage){
-  requireThat(!busy&&!failed&&index<OWNER_RESTORE_PHASES.length&&OWNER_RESTORE_PHASES[index]===stage,'RESTORE_PHASE_ORDER');busy=true;
+  requireThat(!busy&&!failed&&index<stages.length&&stages[index]===stage,'RESTORE_PHASE_ORDER');busy=true;
   try{
    checkDeadline();await directory();const elapsedMs=Math.round(now()-epoch);requireThat(Number.isSafeInteger(elapsedMs)&&elapsedMs>=lastElapsed&&elapsedMs<=360000,'RESTORE_PHASE_CLOCK');
-   const record={elapsedMs,ordinal:index,schema:'private-owner-restore-phase/v1',stage},bytes=Buffer.from(JSON.stringify(record)+'\n');requireThat(bytes.length<=1024,'RESTORE_PHASE_BOUND');
+   const record={elapsedMs,ordinal:index,schema,stage},bytes=Buffer.from(JSON.stringify(record)+'\n');requireThat(bytes.length<=1024,'RESTORE_PHASE_BOUND');
    const base=path.win32.join(output,'phase-'+String(index).padStart(2,'0')),pending=base+'.pending',closed=base+'.json';
    checkDeadline();const fd=await fs.open(pending,'wx',0o600);let hadPrimary=false,primary;
    try{checkDeadline();await fd.writeFile(bytes);checkDeadline();await fd.sync();checkDeadline();}
@@ -73,10 +84,11 @@ function createPhaseWriter({fs,output,now,epoch,checkDeadline}){
    requireThat(after.isFile()&&!after.isSymbolicLink()&&after.size===bytes.length&&isDeepStrictEqual(identity(before),identity(after)),'RESTORE_PHASE_LINK');
    await directory();checkDeadline();lastElapsed=elapsedMs;index++;
   }catch(e){failed=true;throw e;}finally{busy=false;}
- },finish(){checkDeadline();requireThat(!busy&&!failed&&index===OWNER_RESTORE_PHASES.length,'RESTORE_PHASE_INCOMPLETE');}});
+ },finish(){checkDeadline();requireThat(!busy&&!failed&&index===stages.length,'RESTORE_PHASE_INCOMPLETE');}});
 }
 /** Invented filesystem/clock seam; cannot select the normal entry's directory. */
 export function createOwnerRestorePhaseWriterForTest(dependencies){return createPhaseWriter(dependencies);}
+export function createOwnerUpgradePhaseWriterForTest(dependencies){return createPhaseWriter(dependencies,true);}
 function validateReceipt(raw,inputs,manifest){requireThat(Buffer.isBuffer(raw)&&raw.length<=65536&&hash(raw)===inputs.receiptSha256,'RESTORE_RECEIPT_PIN');
  let receipt;try{receipt=JSON.parse(new TextDecoder('utf8',{fatal:true}).decode(raw));}catch{throw error('RESTORE_RECEIPT_ENCODING');}
  requireThat(field(receipt,'verified')===true&&field(receipt,'cleanupVerified')===true&&field(receipt,'filename')===inputs.filename&&
@@ -128,13 +140,18 @@ async function fingerprintTable(tx,table,order){
  return {table,rows,sha256:digest.digest('hex')};
 }
 
-async function verifyDatabase(db,receipt,manifest,checks,check,phase){
+async function verificationTransaction(db,check,work){
  return db.transaction(async raw=>{const tx={query:async(sql,args=[])=>{check();const result=await raw.query(sql,args);check();return result;}};
   await tx.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
   await tx.query('SET LOCAL search_path=pg_catalog');
   await tx.query("SET LOCAL TimeZone='UTC'");await tx.query("SET LOCAL DateStyle='ISO, YMD'");await tx.query('SET LOCAL extra_float_digits=3');
-  await checks.test(GROUPS[0].name,async t=>{
-   await t.test(GROUPS[0].children[0],async()=>{
+  return work(tx);
+ });
+}
+async function verifyBoundaries(tx,receipt,manifest,checks,phase,upgrade=false){
+ const groups=upgrade?UPGRADE_GROUPS:GROUPS;
+  await checks.test(groups[0].name,async t=>{
+   await t.test(groups[0].children[0],async()=>{
     const migrations=(await tx.query('SELECT version,hash FROM canonical_v4.schema_migrations ORDER BY version')).rows;
     requireThat(migrations.length===9&&migrations.every((row,i)=>Number(row.version)===i+1&&row.hash===manifest[i].hash),'RESTORE_MIGRATIONS');
     const version=await one(tx,'SELECT generation,revision::text FROM canonical_v4.runtime_state WHERE singleton');
@@ -148,9 +165,9 @@ async function verifyDatabase(db,receipt,manifest,checks,check,phase){
      JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum=k.attnum JOIN pg_type ty ON ty.oid=a.atttypid
      LEFT JOIN pg_collation co ON co.oid=a.attcollation WHERE n.nspname='canonical_v4' AND i.indisprimary AND ty.typcategory='S'`)).rows;
     requireThat(isDeepStrictEqual(pks.map(row=>row.table_name+'.'+row.attname).sort(),TEXT_PKS)&&pks.every(row=>row.collname==='C'),'RESTORE_PK_COLLATION');
-    await phase('schema-verified');
+    await phase(upgrade?'schema9-identity-verified':'schema-verified');
    });
-   await t.test(GROUPS[0].children[1],async()=>{
+   await t.test(groups[0].children[1],async()=>{
     const schema=await one(tx,"SELECT pg_get_userbyid(nspowner) AS owner FROM pg_namespace WHERE nspname='canonical_v4'");requireThat(schema.owner==='murmingle_owner','RESTORE_OWNER');
     const roles=(await tx.query(`SELECT rolname,rolsuper,rolcreatedb,rolcreaterole,rolreplication,rolbypassrls,rolcanlogin FROM pg_roles
      WHERE rolname IN('murmingle_owner','murmingle_app','murmingle_crawler_submitter','murmingle_ingest_worker')`)).rows;
@@ -182,15 +199,21 @@ async function verifyDatabase(db,receipt,manifest,checks,check,phase){
     const sequenceGrants=await one(tx,`SELECT count(*)::text AS n FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace CROSS JOIN pg_roles r
      WHERE n.nspname='canonical_v4' AND c.relkind='S' AND r.rolname IN('murmingle_app','murmingle_crawler_submitter','murmingle_ingest_worker')
      AND has_sequence_privilege(r.rolname,c.oid,'USAGE,SELECT,UPDATE')`);requireThat(sequenceGrants.n==='0','RESTORE_SEQUENCE_GRANTS');
-    await phase('grants-verified');
+    await phase(upgrade?'schema9-grants-verified':'grants-verified');
    });
   });
+}
+
+async function verifyFingerprints(tx,receipt,checks,phase){
   const observed=[];
   await checks.test(GROUPS[1].name,async t=>{for(const [i,[table,order]]of Object.entries(TABLES).entries())await t.test(GROUPS[1].children[i],async()=>{
    const fingerprint=await fingerprintTable(tx,table,order);requireThat(isDeepStrictEqual(fingerprint,receipt.currentRowsFingerprint.tables[i]),'RESTORE_TABLE_FINGERPRINT');observed.push(fingerprint);
    await phase('table-'+table+'-verified');
   });requireThat(hash(JSON.stringify(observed))===receipt.currentRowsFingerprint.sha256,'RESTORE_COMPOSITE_FINGERPRINT');});
-  await checks.test(GROUPS[2].name,async t=>{await t.test(GROUPS[2].children[0],async()=>{
+}
+async function verifySequences(tx,checks,phase,upgrade=false){
+ const groups=upgrade?UPGRADE_GROUPS:GROUPS;
+  await checks.test(groups[2].name,async t=>{await t.test(groups[2].children[0],async()=>{
    const sequences=(await tx.query(`SELECT c.relname AS name,pg_get_userbyid(c.relowner) AS owner,s.seqincrement::text AS increment,s.seqcycle AS cycle
     FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace JOIN pg_sequence s ON s.seqrelid=c.oid WHERE n.nspname='canonical_v4'`)).rows;
    requireThat(sequences.length===7&&new Set(sequences.map(row=>row.name)).size===7,'RESTORE_SEQUENCE_SET');
@@ -198,23 +221,29 @@ async function verifyDatabase(db,receipt,manifest,checks,check,phase){
     const [table,key]=SEQUENCES[row.name],state=await one(tx,`SELECT last_value::text,is_called FROM canonical_v4.${row.name}`),maximum=await one(tx,`SELECT max(${key})::text AS maximum FROM canonical_v4.${table}`);
     const last=decimal(state.last_value);requireThat(typeof state.is_called==='boolean','RESTORE_SEQUENCE');const next=last+(state.is_called?1n:0n);
     requireThat(next<=9223372036854775807n&&(maximum.maximum===null||next>decimal(maximum.maximum)),'RESTORE_SEQUENCE_REUSE');}
-   await phase('sequences-verified');
+   await phase(upgrade?'migrated-sequences-verified':'sequences-verified');
   });});
+}
+async function verifyDatabase(db,receipt,manifest,checks,check,phase){
+ return verificationTransaction(db,check,async tx=>{
+  await verifyBoundaries(tx,receipt,manifest,checks,phase);
+  await verifyFingerprints(tx,receipt,checks,phase);
+  await verifySequences(tx,checks,phase);
   checks.finish();return true;
  });
 }
 
-function buildCheck(deps,inputs,afterVerified=null){return async()=>deps.lifecycle(async capability=>{
+function buildCheck(deps,inputs,application=null){return async()=>deps.lifecycle(async capability=>{
  const {connectFixedRole,restoreArchive,deadline,checkDeadline}=capability;requireThat(typeof connectFixedRole==='function'&&typeof restoreArchive==='function'&&typeof checkDeadline==='function'&&Number.isFinite(deadline),'RESTORE_CAPABILITY');
  const epoch=deps.now();requireThat(Number.isFinite(epoch)&&epoch>=0,'RESTORE_PHASE_CLOCK');
  let openScope=true,originalClient=null,db=null,data=null,receiptBound=false,archiveAuthenticated=false,completeInput=false,restoreVerified=false,hadPrimary=false,primary;
  const check=()=>{requireThat(openScope,'RESTORE_SCOPE_RETIRED');checkDeadline();};
  let phases=null;
  const phase=async stage=>{check();await phases.write(stage);check();};
- const controller=deps.controller({connectFixedRole:async(request,guard)=>{const client=await connectFixedRole(request,guard);if(request.database===NAMES[0]&&request.role==='postgres'){requireThat(originalClient===null,'RESTORE_TARGET_REUSE');originalClient=client;}return client;},getOwnedIdentity:deps.getOwnedIdentity,guard:check}),checks=ledger();
- let cleanup;
+ const controller=deps.controller({connectFixedRole:async(request,guard)=>{const client=await connectFixedRole(request,guard);if(request.database===NAMES[0]&&request.role==='postgres'){requireThat(originalClient===null,'RESTORE_TARGET_REUSE');originalClient=client;}return client;},getOwnedIdentity:deps.getOwnedIdentity,guard:check}),checks=ledger(application===null?OWNER_RESTORE_CASES:OWNER_UPGRADE_CASES);
+ let cleanup,applicationDirectories=null;
  try{
-  check();phases=await deps.openPhases({epoch,checkDeadline:check});check();await phase('callback-enter');await phase('archive-hash-start');
+  check();phases=await deps.openPhases({epoch,checkDeadline:check},application!==null);check();await phase('callback-enter');await phase('archive-hash-start');
   data=await deps.readData(check);check();requireThat(data.archiveSha256===inputs.archiveSha256&&Number.isSafeInteger(data.archiveBytes)&&data.archiveBytes>inputs.dumpBytes&&data.archiveBytes<=MAX_ARCHIVE,'RESTORE_ARCHIVE_PIN');
   await phase('archive-hash-complete');
   const manifest=await deps.manifest();check();const receipt=validateReceipt(data.receiptRaw,inputs,manifest);receiptBound=true;
@@ -229,10 +258,13 @@ function buildCheck(deps,inputs,afterVerified=null){return async()=>deps.lifecyc
    verifyRestored:async value=>{check();requireThat(hash(JSON.stringify(value.header))===inputs.headerSha256&&value.header.dumpSha256===inputs.dumpSha256&&value.header.dumpBytes===inputs.dumpBytes&&
     isDeepStrictEqual(value.header.version,receipt.version)&&isDeepStrictEqual(value.header.migrations,receipt.migrations)&&isDeepStrictEqual(value.header.counts,receipt.counts),'RESTORE_HEADER_BINDING');
     const identity=checkedIdentity(await one(db,IDENTITY_SQL),deps.getOwnedIdentity(originalClient),NAMES[0]);requireThat(identity.oid===target.oid&&Number(identity.started)===Number(target.started),'RESTORE_TARGET_REPLACED');
-    return verifyDatabase(db,receipt,manifest,checks,check,phase);},
+    if(application===null)return verifyDatabase(db,receipt,manifest,checks,check,phase);
+    await verificationTransaction(db,check,tx=>verifyBoundaries(tx,receipt,manifest,checks,phase,true));
+    applicationDirectories=await verifyUpgrade({database:db,receipt,connectFixedRole,getOwnedIdentity:deps.getOwnedIdentity,checkDeadline:check,deadline},application,checks,phase);
+    return true;},
   };
   await phase('backup-auth-start');const result=await deps.restore(inputs.filename,port);check();requireThat(result.restored===true&&result.dumpSha256===inputs.dumpSha256&&result.targetDatabase===NAMES[0]&&result.targetOid===target.oid,'RESTORE_RESULT');restoreVerified=true;
-  if(afterVerified!==null){await afterVerified({database:db,receipt,connectFixedRole,getOwnedIdentity:deps.getOwnedIdentity,checkDeadline:check,deadline});check();}
+  if(application!==null){await runVerifiedApplication({database:db,connectFixedRole,getOwnedIdentity:deps.getOwnedIdentity,checkDeadline:check,deadline},application,applicationDirectories);check();await phase('application-verified');}
   await db.close();db=null;check();await phase('scratch-a-retired');const second=await controller.acquire();check();await emptySchema(second);await second.close();check();await phase('scratch-b-retired');
  }catch(e){hadPrimary=true;primary=e;}
  finally{
@@ -242,15 +274,15 @@ function buildCheck(deps,inputs,afterVerified=null){return async()=>deps.lifecyc
   if(!hadPrimary)try{await phase('inputs-closed');phases.finish();}catch(e){hadPrimary=true;primary=e;}
   openScope=false;
  }
- const state=checks.snapshot();return {schema:'owner-restore-postgres-proof/v1',status:!hadPrimary&&restoreVerified&&cleanup?.status==='passed'?'passed':'failed',primary:hadPrimary?code(primary):null,
-  cases:state.cases,pendingAssertions:state.pendingAssertions,ownerData:true,syntheticOnly:false,archiveAuthenticated,receiptBound,completeInput,restoreVerified,cleanup};
+ const state=checks.snapshot();return {schema:application===null?'owner-restore-postgres-proof/v1':'owner-upgrade-postgres-proof/v1',status:!hadPrimary&&restoreVerified&&cleanup?.status==='passed'?'passed':'failed',primary:hadPrimary?code(primary):null,
+  cases:state.cases,pendingAssertions:state.pendingAssertions,ownerData:true,syntheticOnly:false,archiveAuthenticated,receiptBound,completeInput,...(application===null?{restoreVerified}:{migratedLegacyDataVerified:restoreVerified,schema9RecoveryRepeated:false,schemaVersion:17,preservedLegacyTables:18}),cleanup};
  });}
 
 // Trusted fake-port seam only. Normal invocation never accepts dependencies,
 // alternate data pins, callbacks, credentials, filenames or target selectors.
 export function createOwnerRestoreCheckForTest(dependencies,inputs){return buildCheck(dependencies,inputs);}
 const INSTALLED_MATCHER='eead1b2dcd6508ebf3d5c45358c71be95e81363da7c0b8325f7466ce487ed21c';
-async function afterVerifiedApplication(context,ports){
+async function verifyUpgrade(context,ports,checks,phase){
  const {database,receipt,checkDeadline:check}=context;check();const directories=await ports.directories(database,check);check();
  let hadPrimary=false,primary;
  try{
@@ -258,16 +290,34 @@ async function afterVerifiedApplication(context,ports){
   const installed=await ports.install({database,expectedHeadRevision:0,expectedPolicyRevision:0,policy:{defaultMaxDepth:1,overrides:[]}});check();
   requireThat(installed.schemaVersion===17&&installed.matcherIdentityHash===INSTALLED_MATCHER&&installed.headRevision===1&&
    isDeepStrictEqual(installed.policy,{revision:1,defaultMaxDepth:1,overrides:[]}),'RESTORE_APPLICATION_INSTALLATION');
+  await phase('hierarchy17-installed');
   const manifest=await ports.manifest();check();requireThat(manifest.length===17&&isDeepStrictEqual(manifest.slice(0,9).map(row=>row.hash),receipt.migrations),'RESTORE_APPLICATION_MIGRATIONS');
-  await database.transaction(async raw=>{const tx={query:async(sql,args=[])=>{check();const result=await raw.query(sql,args);check();return result;}};
-   await tx.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');await tx.query('SET LOCAL search_path=pg_catalog');
-   await tx.query("SET LOCAL TimeZone='UTC'");await tx.query("SET LOCAL DateStyle='ISO, YMD'");await tx.query('SET LOCAL extra_float_digits=3');
-   const {rows}=await tx.query('SELECT version,hash FROM canonical_v4.schema_migrations ORDER BY version');
-   requireThat(rows.length===17&&rows.every((row,i)=>Number(row.version)===i+1&&row.hash===manifest[i].hash),'RESTORE_APPLICATION_MIGRATIONS');
-   for(const [i,[table,order]]of Object.entries(TABLES).entries())if(table!=='schema_migrations'){
-    requireThat(isDeepStrictEqual(await fingerprintTable(tx,table,order),receipt.currentRowsFingerprint.tables[i]),'RESTORE_TABLE_FINGERPRINT');
-   }
+  await verificationTransaction(database,check,async tx=>{
+   await checks.test(UPGRADE_GROUPS[1].name,async t=>{
+    await t.test(UPGRADE_GROUPS[1].children[0],async()=>{
+     const {rows}=await tx.query('SELECT version,hash FROM canonical_v4.schema_migrations ORDER BY version');
+     requireThat(rows.length===17&&rows.every((row,i)=>Number(row.version)===i+1&&row.hash===manifest[i].hash),'RESTORE_APPLICATION_MIGRATIONS');
+     const version=await one(tx,'SELECT generation,revision::text FROM canonical_v4.runtime_state WHERE singleton');
+     requireThat(version.generation===receipt.version.generation&&version.revision===String(receipt.version.revision),'RESTORE_VERSION');
+     await phase('hierarchy17-manifest-verified');
+    });
+    for(const [i,table]of LEGACY_TABLES.entries())await t.test(UPGRADE_GROUPS[1].children[i+1],async()=>{
+     const original=receipt.currentRowsFingerprint.tables[Object.keys(TABLES).indexOf(table)];
+     requireThat(isDeepStrictEqual(await fingerprintTable(tx,table,TABLES[table]),original),'RESTORE_TABLE_FINGERPRINT');
+     await phase('legacy-table-'+table+'-verified');
+    });
+   });
+   await verifySequences(tx,checks,phase,true);
+   checks.finish();
   });check();
+  return directories;
+ }catch(e){hadPrimary=true;primary=e;throw e;}
+ finally{try{await database.exec('RESET ROLE');}catch(e){if(!hadPrimary)throw e;}if(hadPrimary)void primary;}
+}
+async function runVerifiedApplication(context,ports,directories){
+ const {database,checkDeadline:check}=context;let hadPrimary=false,primary;
+ try{
+  await database.exec('SET ROLE murmingle_owner');check();
   const result=await ports.application({connectFixedRole:context.connectFixedRole,ownerDatabase:database,getOwnedIdentity:context.getOwnedIdentity,
    clusterDirectory:directories.clusterDirectory,outputDirectory:directories.outputDirectory,checkDeadline:check,deadline:context.deadline,
    upgrade:Object.freeze({schemaVersion:17,preservedLegacyTables:18,legacyRowsUnchanged:true})});check();
@@ -277,29 +327,36 @@ async function afterVerifiedApplication(context,ports){
  finally{try{await database.exec('RESET ROLE');}catch(e){if(!hadPrimary)throw e;}if(hadPrimary)void primary;}
 }
 /** Trusted invented SQL/application ports only; no real callback selector. */
-export function createOwnerHttpCheckForTest(dependencies,inputs){return buildCheck(dependencies,inputs,context=>afterVerifiedApplication(context,dependencies.http));}
+export function createOwnerHttpCheckForTest(dependencies,inputs){return buildCheck(dependencies,inputs,dependencies.http);}
 function requiredBoolean(value){requireThat(typeof value==='boolean','RESTORE_PROJECTION');return value;}
-export function projectOwnerRestoreResult(lifecycle){
+function projectOwnerResult(lifecycle,upgrade=false){
+ const casesExpected=upgrade?OWNER_UPGRADE_CASES:OWNER_RESTORE_CASES,proofSchema=upgrade?'owner-upgrade-postgres-proof/v1':'owner-restore-postgres-proof/v1',
+  completionField=upgrade?'migratedLegacyDataVerified':'restoreVerified';
  const server=field(lifecycle,'server'),retirement=field(lifecycle,'cleanup'),proof=field(lifecycle,'checks'),dbCleanup=field(proof,'cleanup');
  const primary=field(proof,'primary');requireThat(primary===null||typeof primary==='string'&&/^[A-Z0-9_]{1,64}$/u.test(primary),'RESTORE_PROJECTION');
- const cases=array(field(proof,'cases'),25).map((row,i)=>{requireThat(field(row,'name')===OWNER_RESTORE_CASES[i].name&&field(row,'depth')===OWNER_RESTORE_CASES[i].depth&&['passed','failed','running'].includes(field(row,'status')),'RESTORE_PROJECTION');return {name:row.name,depth:row.depth,status:row.status};});
+ const cases=array(field(proof,'cases'),25).map((row,i)=>{requireThat(field(row,'name')===casesExpected[i].name&&field(row,'depth')===casesExpected[i].depth&&['passed','failed','running'].includes(field(row,'status')),'RESTORE_PROJECTION');return {name:row.name,depth:row.depth,status:row.status};});
  const databases=array(field(dbCleanup,'databases'),2).map((row,i)=>{requireThat(field(row,'name')===NAMES[i],'RESTORE_PROJECTION');const oid=field(row,'oid');requireThat(oid===null||typeof oid==='string'&&/^[1-9][0-9]{0,9}$/u.test(oid)&&BigInt(oid)<=4294967295n,'RESTORE_PROJECTION');
   return {name:NAMES[i],oid,...Object.fromEntries(['created','closed','dropped'].map(key=>[key,requiredBoolean(field(row,key))])),pending:integer(field(row,'pending'),32),cleanupFailures:array(field(row,'sessionCleanupFailures'),64).length};});
- const status=field(proof,'status'),cleanupStatus=field(dbCleanup,'status');requireThat(['passed','failed'].includes(status)&&['passed','failed'].includes(cleanupStatus)&&field(proof,'schema')==='owner-restore-postgres-proof/v1','RESTORE_PROJECTION');
- const projected={schema:'owner-restore-postgres-result/v1',accepted:false,primary,
+ const status=field(proof,'status'),cleanupStatus=field(dbCleanup,'status');requireThat(['passed','failed'].includes(status)&&['passed','failed'].includes(cleanupStatus)&&field(proof,'schema')===proofSchema,'RESTORE_PROJECTION');
+ const projected={schema:upgrade?'owner-upgrade-postgres-result/v1':'owner-restore-postgres-result/v1',accepted:false,primary,
   server:{port:integer(field(server,'port'),65535),version:integer(field(server,'version')),ownershipVerified:requiredBoolean(field(server,'ownershipVerified'))},
   cleanup:{reason:field(retirement,'reason'),...Object.fromEntries(['stopped','childExited','clientsClosed','physicalSettled','directoryRetained'].map(key=>[key,requiredBoolean(field(retirement,key))]))},
-  proof:{schema:'owner-restore-postgres-proof/v1',status,primary,cases,pendingAssertions:integer(field(proof,'pendingAssertions'),64),
-   ...Object.fromEntries(['ownerData','syntheticOnly','archiveAuthenticated','receiptBound','completeInput','restoreVerified'].map(key=>[key,requiredBoolean(field(proof,key))])),
+  proof:{schema:proofSchema,status,primary,cases,pendingAssertions:integer(field(proof,'pendingAssertions'),64),
+   ...Object.fromEntries(['ownerData','syntheticOnly','archiveAuthenticated','receiptBound','completeInput',completionField].map(key=>[key,requiredBoolean(field(proof,key))])),
+   ...(upgrade?{schema9RecoveryRepeated:requiredBoolean(field(proof,'schema9RecoveryRepeated')),schemaVersion:integer(field(proof,'schemaVersion'),17),preservedLegacyTables:integer(field(proof,'preservedLegacyTables'),18)}:{}),
    cleanup:{status:cleanupStatus,used:integer(field(dbCleanup,'used'),2),finished:requiredBoolean(field(dbCleanup,'finished')),adminClosed:requiredBoolean(field(dbCleanup,'adminClosed')),
     failureCount:array(field(dbCleanup,'failures'),64).length,databases}}};
  requireThat(['verified-own-server-smart-stopped','verified-smart-stop-refused-or-timed-out-no-kill','unknown-work-client-or-ownership-no-stop','own-server-still-running','own-server-exited','not-started'].includes(projected.cleanup.reason),'RESTORE_PROJECTION');
  projected.accepted=field(lifecycle,'status')==='passed'&&field(lifecycle,'syntheticOnly')===false&&primary===null&&projected.server.port===55433&&projected.server.version===170011&&projected.server.ownershipVerified&&
   projected.cleanup.reason==='verified-own-server-smart-stopped'&&['stopped','childExited','clientsClosed','physicalSettled','directoryRetained'].every(key=>projected.cleanup[key])&&status==='passed'&&cases.length===25&&cases.every(row=>row.status==='passed')&&
-  projected.proof.pendingAssertions===0&&projected.proof.ownerData&&!projected.proof.syntheticOnly&&['archiveAuthenticated','receiptBound','completeInput','restoreVerified'].every(key=>projected.proof[key])&&
+  projected.proof.pendingAssertions===0&&projected.proof.ownerData&&!projected.proof.syntheticOnly&&['archiveAuthenticated','receiptBound','completeInput',completionField].every(key=>projected.proof[key])&&
+  (!upgrade||!projected.proof.schema9RecoveryRepeated&&projected.proof.schemaVersion===17&&projected.proof.preservedLegacyTables===18)&&
   cleanupStatus==='passed'&&projected.proof.cleanup.used===2&&projected.proof.cleanup.finished&&projected.proof.cleanup.adminClosed&&projected.proof.cleanup.failureCount===0&&databases.length===2&&databases[0].oid!==databases[1].oid&&databases.every(row=>row.oid!==null&&row.created&&row.closed&&row.dropped&&row.pending===0&&row.cleanupFailures===0);
  requireThat(Buffer.byteLength(JSON.stringify(projected))<=32768,'RESTORE_RESULT_BOUND');return projected;
 }
+
+export function projectOwnerRestoreResult(lifecycle){return projectOwnerResult(lifecycle);}
+export function projectOwnerUpgradeResult(lifecycle){return projectOwnerResult(lifecycle,true);}
 
 const DATA=new URL('../../data/',import.meta.url);
 async function regularFile(url,max){const before=await lstat(url);requireThat(before.isFile()&&!before.isSymbolicLink()&&before.size<=max,'RESTORE_INPUT_FILE');const fd=await open(url,'r');
@@ -312,17 +369,17 @@ async function readFixedData(check){let receipt,archive;
   while(position<archive.size){check();const b=Buffer.alloc(Math.min(65536,archive.size-position));try{const {bytesRead}=await archive.fd.read(b,0,b.length,position);check();requireThat(bytesRead===b.length,'RESTORE_INPUT_TRUNCATED');digest.update(b);position+=bytesRead;}finally{b.fill(0);}}
   await archive.verify();check();return {receiptRaw,archiveSha256:digest.digest('hex'),archiveBytes:archive.size,verify:archive.verify,close:()=>archive.fd.close()};
  }catch(e){try{await receipt?.fd.close();}catch{}try{await archive?.fd.close();}catch{}throw e;}}
-async function openFixedPhases({epoch,checkDeadline}){
+async function openFixedPhases({epoch,checkDeadline},upgrade=false){
  checkDeadline();const binding=await readOwnedPrivateRunBinding();checkDeadline();
- return createPhaseWriter({fs:{open,link,lstat,realpath},output:path.win32.join(binding.runDirectory,'output'),now:()=>performance.now(),epoch,checkDeadline});
+ return createPhaseWriter({fs:{open,link,lstat,realpath},output:path.win32.join(binding.runDirectory,'output'),now:()=>performance.now(),epoch,checkDeadline},upgrade);
 }
 let used=false;
 async function runFixed(application){
  requireThat(!used,'RESTORE_ONESHOT');used=true;
  const [{runWithPrivateOwnedScopedPostgres},{restorePostgresBackupToOwnedFixture}]=await Promise.all([import('./hierarchy-native-cluster.js'),import('../../src/ops/postgres-backup-operator.js')]);
  const run=buildCheck({lifecycle:runWithPrivateOwnedScopedPostgres,controller:createFixtureController,getOwnedIdentity,manifest:()=>readCanonicalV4MigrationManifest(),readData:readFixedData,
-  openPhases:openFixedPhases,now:()=>performance.now(),restore:restorePostgresBackupToOwnedFixture},INPUTS,application?fixedApplicationHook:null);
- return projectOwnerRestoreResult(await run());
+  openPhases:openFixedPhases,now:()=>performance.now(),restore:restorePostgresBackupToOwnedFixture},INPUTS,application?await fixedApplicationPorts():null);
+ return application?projectOwnerUpgradeResult(await run()):projectOwnerRestoreResult(await run());
 }
 async function fixedApplicationDirectories(database,check){
  check();const binding=await readOwnedPrivateRunBinding();check();const row=await one(database,"SELECT current_setting('data_directory') AS data_directory");check();
@@ -333,9 +390,9 @@ async function fixedApplicationDirectories(database,check){
  for(const directory of [clusterDirectory,outputDirectory]){const stat=await lstat(directory);check();requireThat(stat.isDirectory()&&!stat.isSymbolicLink()&&await realpath(directory)===directory,'RESTORE_APPLICATION_DIRECTORY');check();}
  return {clusterDirectory,outputDirectory};
 }
-async function fixedApplicationHook(context){
- const [{installInstalledHierarchy},{runPrivateApplicationRehearsal}]=await Promise.all([import('../canonical-v4/hierarchy-installation.js'),import('./private-application-rehearsal.js')]);context.checkDeadline();
- return afterVerifiedApplication(context,{install:installInstalledHierarchy,manifest:()=>readCanonicalV4MigrationManifest('hierarchy17'),directories:fixedApplicationDirectories,application:runPrivateApplicationRehearsal});
+async function fixedApplicationPorts(){
+ const [{installInstalledHierarchy},{runPrivateApplicationRehearsal}]=await Promise.all([import('../canonical-v4/hierarchy-installation.js'),import('./private-application-rehearsal.js')]);
+ return Object.freeze({install:installInstalledHierarchy,manifest:()=>readCanonicalV4MigrationManifest('hierarchy17'),directories:fixedApplicationDirectories,application:runPrivateApplicationRehearsal});
 }
 export async function runOwnerRestoreNativeCheck(){requireThat(arguments.length===0,'RESTORE_ONESHOT');return runFixed(false);}
 export async function runOwnerHttpNativeCheck(){requireThat(arguments.length===0,'RESTORE_ONESHOT');return runFixed(true);}

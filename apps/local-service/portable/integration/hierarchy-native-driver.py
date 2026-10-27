@@ -40,6 +40,19 @@ PRIVATE_PHASES = ('callback-enter','archive-hash-start','archive-hash-complete',
     'archive-authenticated','empty-target-verified','restore-dispatched','restore-retired',
     'schema-verified','grants-verified') + tuple('table-'+name+'-verified' for name in RESTORED_TABLES) + (
     'sequences-verified','scratch-a-retired','scratch-b-retired','inputs-closed')
+UPGRADE_TABLES = RESTORED_TABLES[1:]
+UPGRADE_GROUPS = (
+    ('Private schema9 upgrade entry boundaries',(
+        'Original schema9 identities and primary-key collations',
+        'Original owner and execute-only role boundaries')),
+    ('Private migrated snapshot equality',('Installed hierarchy17 manifest and original runtime version',)
+        + tuple('Preserved original snapshot table: '+name for name in UPGRADE_TABLES)),
+    ('Private migrated generated ordinal safety',('Migrated identity and ordinal sequences cannot reuse stored keys',)),
+)
+UPGRADE_PHASES = PRIVATE_PHASES[:8] + (
+    'schema9-identity-verified','schema9-grants-verified','hierarchy17-installed','hierarchy17-manifest-verified',
+) + tuple('legacy-table-'+name+'-verified' for name in UPGRADE_TABLES) + (
+    'migrated-sequences-verified','application-verified','scratch-a-retired','scratch-b-retired','inputs-closed')
 HTTP_CASES = ('hierarchy17-http-health','independent-semantic-directory','saved-page-canonical-read',
     'normal-login-unavailable','named-private-session','human-root-and-reply',
     'cross-actor-edit-withdraw-denied','human-edit-and-withdraw','forged-session-denied',
@@ -388,8 +401,8 @@ def semantic_completion(stdout, stderr, exit_code):
     return result
 
 
-def private_completion(stdout, stderr, exit_code):
-    """Separate owner-data proof, with no semantic or synthetic case aliases."""
+def private_completion(stdout, stderr, exit_code, upgrade=False):
+    """Distinct fixed recovery/upgrade proofs; no cross-mode case aliases."""
     result = {'schema':'native-hierarchy-postgres-json-report/v2','accepted':False,
         'code':'input-type','stdoutBytes':0,'stderrBytes':0,'stdoutSha256':None,
         'stderrSha256':None,'testPoints':0,'outerTests':0}
@@ -407,6 +420,8 @@ def private_completion(stdout, stderr, exit_code):
                 raise ValueError('duplicate')
             value[key] = item
         return value
+    if type(upgrade) is not bool:
+        return refuse('purpose-type')
     if type(stdout) is not bytes or type(stderr) is not bytes:
         return result
     result.update(stdoutBytes=len(stdout),stderrBytes=len(stderr),
@@ -426,7 +441,8 @@ def private_completion(stdout, stderr, exit_code):
         return refuse('json-encoding')
     if not shape(value,'schema accepted primary server cleanup proof'):
         return refuse('json-shape')
-    if value['schema'] != 'owner-restore-postgres-result/v1' or value['accepted'] is not True or value['primary'] is not None:
+    result_schema = 'owner-upgrade-postgres-result/v1' if upgrade else 'owner-restore-postgres-result/v1'
+    if value['schema'] != result_schema or value['accepted'] is not True or value['primary'] is not None:
         return refuse('json-proof')
     server = value['server']
     if (not shape(server,'port version ownershipVerified') or not integer(server['port'],55433)
@@ -438,15 +454,24 @@ def private_completion(stdout, stderr, exit_code):
             or not all(cleanup[key] is True for key in cleanup if key != 'reason')):
         return refuse('json-cleanup')
     proof = value['proof']
-    if not shape(proof,'schema status primary cases pendingAssertions ownerData syntheticOnly archiveAuthenticated receiptBound completeInput restoreVerified cleanup'):
+    fields = 'schema status primary cases pendingAssertions ownerData syntheticOnly archiveAuthenticated receiptBound completeInput cleanup '
+    fields += 'migratedLegacyDataVerified schema9RecoveryRepeated schemaVersion preservedLegacyTables' if upgrade else 'restoreVerified'
+    if not shape(proof,fields):
         return refuse('json-shape')
-    if (proof['schema'] != 'owner-restore-postgres-proof/v1' or proof['status'] != 'passed'
+    proof_schema = 'owner-upgrade-postgres-proof/v1' if upgrade else 'owner-restore-postgres-proof/v1'
+    if (proof['schema'] != proof_schema or proof['status'] != 'passed'
             or proof['primary'] is not None or not integer(proof['pendingAssertions'],0)
             or proof['ownerData'] is not True or proof['syntheticOnly'] is not False
-            or not all(proof[key] is True for key in ('archiveAuthenticated','receiptBound','completeInput','restoreVerified'))):
+            or not all(proof[key] is True for key in ('archiveAuthenticated','receiptBound','completeInput'))):
+        return refuse('json-proof')
+    if upgrade:
+        if (proof['migratedLegacyDataVerified'] is not True or proof['schema9RecoveryRepeated'] is not False
+                or not integer(proof['schemaVersion'],17) or not integer(proof['preservedLegacyTables'],18)):
+            return refuse('json-proof')
+    elif proof['restoreVerified'] is not True:
         return refuse('json-proof')
     expected = []
-    groups = (
+    groups = UPGRADE_GROUPS if upgrade else (
         ('Private restored schema and grant boundaries',(
             'Restored fixed schema9 identities and primary-key collations',
             'Restored owner and execute-only role boundaries')),
@@ -611,20 +636,23 @@ class PrivateInputs:
 
 class PrivatePhases:
     """Sample closed checkpoint prefixes; a checkpoint is never SQL authority."""
-    def __init__(self, inventory, run):
+    def __init__(self, inventory, run, upgrade=False):
+        inventory.require(type(upgrade) is bool,'private-phase-purpose')
         self.i,self.run = inventory,run
+        self.phases = UPGRADE_PHASES if upgrade else PRIVATE_PHASES
+        self.schema = 'private-owner-upgrade-phase/v1' if upgrade else 'private-owner-restore-phase/v1'
         self.pending_ids,self.closed = {},[]
 
     def check(self):
         I,root = self.i,self.run.output
         directory_info(root,I)
-        allowed = {'phase-%02d.%s'%(index,suffix) for index in range(len(PRIVATE_PHASES))
+        allowed = {'phase-%02d.%s'%(index,suffix) for index in range(len(self.phases))
             for suffix in ('pending','json')}
         with os.scandir(root) as entries:
             for entry in entries:
                 if entry.name.startswith('phase-'):
                     I.require(entry.name in allowed,'private-phase-name')
-        for index in range(len(PRIVATE_PHASES)):
+        for index in range(len(self.phases)):
             pending = root/('phase-%02d.pending'%index)
             if os.path.lexists(pending):
                 info = pending.lstat()
@@ -639,7 +667,7 @@ class PrivatePhases:
                 I.require(index not in self.pending_ids,'private-phase-disappeared')
         # Read permanent paths in prefix order, rather than interpreting one
         # directory enumeration as an atomic snapshot of legal publication.
-        for index,stage in enumerate(PRIVATE_PHASES):
+        for index,stage in enumerate(self.phases):
             final = root/('phase-%02d.json'%index)
             if not os.path.lexists(final):
                 I.require(index >= len(self.closed),'private-phase-disappeared')
@@ -659,7 +687,7 @@ class PrivatePhases:
             except (ValueError,UnicodeError,RecursionError):
                 raise I.Refusal('private-phase-record') from None
             I.require(type(value) is dict and set(value) == {'schema','ordinal','stage','elapsedMs'}
-                and value['schema'] == 'private-owner-restore-phase/v1' and type(value['ordinal']) is int
+                and value['schema'] == self.schema and type(value['ordinal']) is int
                 and value['ordinal'] == index and value['stage'] == stage and type(value['elapsedMs']) is int
                 and 0 <= value['elapsedMs'] <= 360000 and raw == I.canonical_json(value),'private-phase-record')
             if index:
@@ -672,7 +700,7 @@ class PrivatePhases:
 
     def complete(self):
         self.check()
-        self.i.require(len(self.closed) == len(PRIVATE_PHASES),'private-phase-incomplete')
+        self.i.require(len(self.closed) == len(self.phases),'private-phase-incomplete')
 
 
 class PrivateHttpProof:
@@ -1046,7 +1074,7 @@ def execute(external_sha, private=False, http=False):
     tree = cluster_tree_type(S, I, run)()
     modules, host_native = {'windows':load_pinned('windows')}, []
     inputs = PrivateInputs(I) if private else None
-    phases = PrivatePhases(I,run) if private else None
+    phases = PrivatePhases(I,run,http) if private else None
     application = PrivateHttpProof(I,run) if http else None
 
     def authenticate():
@@ -1094,7 +1122,7 @@ def execute(external_sha, private=False, http=False):
             I.require(inputs.verified and inputs.closed,'private-input-retirement')
 
     def validate(stdout,stderr,exit_code):
-        value = private_completion(stdout,stderr,exit_code) if private else semantic_completion(stdout,stderr,exit_code)
+        value = private_completion(stdout,stderr,exit_code,http) if private else semantic_completion(stdout,stderr,exit_code)
         if private and value['accepted']:
             phases.complete()
             if http:

@@ -8,6 +8,22 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current27Oct SOURCE checkpoint: one-pass HTTP correction independently accepted.
+Root44purePythonPASS/38guardedNodePASS, independentd249b44d...893a2 FULLread/auth.
+HTTP uses own25ledger/35phases and owner-upgrade proof/result, not normalrestore
+proof. Cheap9identity/security -> install17 -> ALL18DIRECToriginalreceipt hashes
+once +17manifest/originalversion/7sequences -> existing16HTTP. Normal19/25/33
+sourceand savedactualprojection/parser compatibility preserved. No cap increase,
+newcontroller, MVCC substitute, rebaseline or newactualgrant. Retargeted same
+retirement script/test accepted12fakePASS; reviewfbf2a22a...3392f FULLread/auth.
+TargetONLY failedaaa/nhpg-pALDNp/pgdata, PID18340/start1793090791/CPU300.078125;
+alloutside/backup/priorreceipts preserved. FreshRootabsencequerysuccess0+ports0;
+D10309218304B fails11GiB newtest admission. Separate realAuditOnly/retire decisions
+still required before reclaiming1.89GB regenerablefailedfixturedata. Initial
+firstseenpage UIgap confirmed: no localdraft untilE5+ingest; savedpage regressions
+do not provefirstseen readiness. Plannedboundedlocaldraftfix(noearlyserverpost).
+Pushstillpendingownerexportapproval, doNOTretry. GoalACTIVE/notlive/noqualityclaim.
+
 Latest27Oct: ONEprivate-http actual58343 CLOSEDexit1, localSOURCE016b2520/catalog
 117028cb...83660. Runaaa554dbcf8fc863644e1aafc631b4b7446f8737e06d55a1 retains
 snapshot/claim/output/nhpg-pALDNp data. Parent primaryresource-limit/jobCpuSeconds

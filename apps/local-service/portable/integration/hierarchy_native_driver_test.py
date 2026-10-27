@@ -453,8 +453,56 @@ class MaintainedDriverTest(unittest.TestCase):
             'cleanup':value['proof']['cleanup']}
         return value
 
-    def private_complete(self, value):
-        return D.private_completion((json.dumps(value,separators=(',',':'))+'\n').encode(),b'',0)
+    def private_complete(self, value, upgrade=False):
+        return D.private_completion((json.dumps(value,separators=(',',':'))+'\n').encode(),b'',0,upgrade)
+
+    def upgrade_result(self):
+        value = self.private_result()
+        value['schema'] = 'owner-upgrade-postgres-result/v1'
+        proof = value['proof']
+        proof['schema'] = 'owner-upgrade-postgres-proof/v1'
+        del proof['restoreVerified']
+        proof.update(migratedLegacyDataVerified=True,schema9RecoveryRepeated=False,
+                     schemaVersion=17,preservedLegacyTables=18)
+        proof['cases'] = []
+        for name,children in D.UPGRADE_GROUPS:
+            proof['cases'].append({'name':name,'depth':0,'status':'passed'})
+            proof['cases'].extend({'name':child,'depth':1,'status':'passed'} for child in children)
+        return value
+
+    def test_upgrade_proof_accepts_only_its_final_data_claim_and_own_ledger(self):
+        value = self.upgrade_result()
+        report = self.private_complete(value,True)
+        self.assertTrue(report['accepted'])
+        self.assertEqual(report,self.S.checked_completion(report))
+        self.assertEqual((report['testPoints'],report['outerTests']),(25,3))
+        self.assertFalse(self.private_complete(value)['accepted'])
+        self.assertFalse(self.private_complete(self.private_result(),True)['accepted'])
+        self.assertFalse(self.private_complete(self.semantic_result(),True)['accepted'])
+        value['proof']['cases'] = self.private_result()['proof']['cases']
+        self.assertEqual(self.private_complete(value,True)['code'],'json-cases')
+
+    def test_upgrade_proof_refuses_recovery_aliases_missing_data_and_weakened_retirement(self):
+        faults = (
+            ('migratedLegacyDataVerified',False),('migratedLegacyDataVerified',1),
+            ('schema9RecoveryRepeated',True),('schema9RecoveryRepeated',0),
+            ('schemaVersion',9),('schemaVersion',17.0),('preservedLegacyTables',17),
+            ('archiveAuthenticated',False),('receiptBound',False),('completeInput',False),
+        )
+        for key,bad in faults:
+            value = self.upgrade_result();value['proof'][key] = bad
+            self.assertEqual(self.private_complete(value,True)['code'],'json-proof',key)
+        for fault in ('missing-table','duplicate-table','wrong-order','bool-depth','old-field','missing-field','pending'):
+            value = self.upgrade_result();proof = value['proof']
+            if fault=='missing-table':proof['cases'].pop(10)
+            elif fault=='duplicate-table':proof['cases'][10] = proof['cases'][11]
+            elif fault=='wrong-order':proof['cases'][10:12] = reversed(proof['cases'][10:12])
+            elif fault=='bool-depth':proof['cases'][10]['depth'] = True
+            elif fault=='old-field':proof['restoreVerified'] = True
+            elif fault=='missing-field':del proof['schema9RecoveryRepeated']
+            else:proof['cleanup']['databases'][0]['pending'] = 1
+            self.assertFalse(self.private_complete(value,True)['accepted'],fault)
+        self.assertEqual(self.private_complete(self.upgrade_result(),1)['code'],'purpose-type')
 
     def test_private_completion_has_its_own_owner_data_ledger(self):
         value = self.private_result()
@@ -725,18 +773,41 @@ class MaintainedDriverTest(unittest.TestCase):
         self.assertEqual(events[:3],['input-held','original-retired','close-refused'])
         self.assertEqual(events[3],('published',result,b'invented-failure',b''))
 
-    def _phase_test(self,callback):
+    def _phase_test(self,callback,upgrade=False):
         def check(run):
             run.output.mkdir()
-            phases = D.PrivatePhases(self.I,run)
+            phases = D.PrivatePhases(self.I,run,upgrade)
+            stages = D.UPGRADE_PHASES if upgrade else D.PRIVATE_PHASES
             def publish(index,elapsed=None):
-                value = {'schema':'private-owner-restore-phase/v1','ordinal':index,
-                    'stage':D.PRIVATE_PHASES[index],'elapsedMs':index if elapsed is None else elapsed}
+                value = {'schema':'private-owner-upgrade-phase/v1' if upgrade else 'private-owner-restore-phase/v1',
+                    'ordinal':index,'stage':stages[index],'elapsedMs':index if elapsed is None else elapsed}
                 pending = run.output/('phase-%02d.pending'%index)
                 pending.write_bytes(self.I.canonical_json(value))
                 os.link(pending,run.output/('phase-%02d.json'%index))
             callback(run,phases,publish)
         self._owned_run_test(check)
+
+    def test_upgrade_requires_all_35_own_phases_including_application_and_retirement(self):
+        def check(run,phases,publish):
+            self.assertEqual(len(D.UPGRADE_PHASES),35)
+            self.assertEqual(D.UPGRADE_PHASES[8:12],('schema9-identity-verified','schema9-grants-verified',
+                'hierarchy17-installed','hierarchy17-manifest-verified'))
+            self.assertEqual(D.UPGRADE_PHASES[30:32],('migrated-sequences-verified','application-verified'))
+            for index in range(33):publish(index)
+            phases.check()
+            with self.assertRaises(self.I.Refusal):phases.complete()
+            publish(33);publish(34);phases.complete()
+            self.assertEqual(len(phases.closed),35)
+            with self.assertRaises(self.I.Refusal):D.PrivatePhases(self.I,run).check()
+        self._phase_test(check,True)
+
+    def test_upgrade_phase_reader_refuses_old_schema_even_with_shared_prefix(self):
+        def check(run,phases,publish):
+            publish(0)
+            p = run.output/'phase-00.pending';value = json.loads(p.read_bytes())
+            value['schema'] = 'private-owner-restore-phase/v1';p.write_bytes(self.I.canonical_json(value))
+            with self.assertRaises(self.I.Refusal):phases.check()
+        self._phase_test(check,True)
 
     def test_closed_private_phase_prefix_accepts_complete_history_and_partial_next_write(self):
         def check(run,phases,publish):

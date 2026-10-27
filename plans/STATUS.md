@@ -1,5 +1,27 @@
 # Project status
 
+## Current: one-pass migration verifier reviewed; execution pending
+
+The one-pass application verifier is implemented and independently source-reviewed:
+44 pure Python and38 guarded Node tests pass. It verifies schema9 boundaries,
+installs17, then hashes every one of the18 preserved tables once against the
+original authenticated receipt before any account, HTTP or policy work. Exact
+migration hashes, runtime version and sequence safety remain required. Its own
+upgrade proof/35 phases cannot substitute for standalone recovery evidence.
+The normal recovery mode retains its19 hashes/25 ledger points/33 phases.
+
+The fixed failed-fixture cleanup script was narrowly retargeted and reviewed;
+12 managed-fake tests pass. Real audit and cleanup decisions remain separate.
+Its1.89GB of duplicate test data currently leaves insufficient disk admission
+headroom for another full application run. The backup and all prior evidence
+will be preserved. No resource budget was increased and no new run is claimed.
+
+A product audit also confirmed that genuinely first-seen pages still hide the
+composer until browser E5 and ingestion finish. Local draft staging must be
+extended to those pages, with document/account/session fences; server submission
+still needs the authoritative Source and destination. Saved-page tests did not
+cover this gap. No matching-quality or live activation claim is made.
+
 ## Current: application rehearsal failed its CPU-work limit
 
 The first real-application attempt (session58343, local commit `016b2520`)

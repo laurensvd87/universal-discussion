@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {OWNER_RESTORE_CASES,OWNER_RESTORE_PHASES,createOwnerRestoreCheckForTest,createOwnerHttpCheckForTest,createOwnerRestorePhaseWriterForTest,projectOwnerRestoreResult,main,runOwnerRestoreNativeCheck} from './owner-restore-native-check.js';
+import {OWNER_RESTORE_CASES,OWNER_RESTORE_PHASES,OWNER_UPGRADE_CASES,OWNER_UPGRADE_PHASES,projectOwnerUpgradeResult,createOwnerUpgradePhaseWriterForTest,createOwnerRestoreCheckForTest,createOwnerHttpCheckForTest,createOwnerRestorePhaseWriterForTest,projectOwnerRestoreResult,main,runOwnerRestoreNativeCheck} from './owner-restore-native-check.js';
 import {PRIVATE_RUN_ROOT} from './private-owner-storage.js';
 
 const sha=value=>createHash('sha256').update(value).digest('hex');
@@ -40,7 +40,7 @@ function fixture({fault=null}={}){
   else if(sql.includes('pg_depend'))rows=[{owner:'postgres',objects:'0'}];
   else if(sql==='DROP SCHEMA canonical_v4'){assert.equal(index,0);assert.equal(restored,false);events.push('drop-empty');rows=[];}
   else if(sql.includes('SELECT version,hash'))rows=activeManifest;
-  else if(sql.includes('SELECT generation,revision::text'))rows=[{generation:version.generation,revision:String(version.revision)}];
+  else if(sql.includes('SELECT generation,revision::text'))rows=[activeManifest.length===17&&fault?.runtimeVersion?fault.runtimeVersion:{generation:version.generation,revision:String(version.revision)}];
   else if(sql.includes('SELECT extversion'))rows=[{extversion:'0.8.2'}];
   else if(sql.includes('SELECT datcollate'))rows=[{datcollate:'German_Germany.1252',datctype:'German_Germany.1252'}];
   else if(sql.includes("c.relkind='r' ORDER BY"))rows=[...tables].sort().map(name=>({name,owner:'murmingle_owner'}));
@@ -69,9 +69,9 @@ function fixture({fault=null}={}){
   return {rows};
  }
  const deps={manifest:async()=>manifest,getOwnedIdentity:client=>identities.get(client),now:()=>0,
-  openPhases:async({epoch,checkDeadline})=>{assert.equal(epoch,0);checkDeadline();return {
-   write:async stage=>{checkDeadline();assert.equal(stage,OWNER_RESTORE_PHASES[phases.length]);if(fault?.phase===stage)throw fault.phaseValue;phases.push(stage);},
-   finish:()=>assert.deepEqual(phases,OWNER_RESTORE_PHASES),
+  openPhases:async({epoch,checkDeadline},upgrade=false)=>{const stages=upgrade?OWNER_UPGRADE_PHASES:OWNER_RESTORE_PHASES;assert.equal(epoch,0);checkDeadline();return {
+   write:async stage=>{checkDeadline();assert.equal(stage,stages[phases.length]);if(fault?.phase===stage)throw fault.phaseValue;phases.push(stage);},
+   finish:()=>assert.deepEqual(phases,stages),
   };},
   readData:async check=>{check();events.push('read-pins');return {receiptRaw,archiveSha256:inputs.archiveSha256,archiveBytes:plaintext.length+100,
    verify:async()=>events.push('verify-held-data'),close:async()=>events.push('close-held-data')};},
@@ -99,9 +99,9 @@ function httpPorts(f,{application=async()=>applicationResult(),installFailure=nu
  const manifest=[...f.manifest,...Array.from({length:8},(_,i)=>({version:i+10,hash:sha('added-migration-'+i)}))];
  f.deps.http={manifest:async()=>manifest,directories:async()=>({clusterDirectory:'invented-private-cluster',outputDirectory:'invented-private-output'}),
   install:async value=>{f.events.push('install');assert.deepEqual(value.policy,{defaultMaxDepth:1,overrides:[]});assert.equal(value.expectedHeadRevision,0);assert.equal(value.expectedPolicyRevision,0);
-   assert.equal(f.queries.filter(sql=>sql.startsWith('DECLARE')).length,19);if(installFailure)throw installFailure;f.setManifest(manifest);
+   assert.equal(f.queries.filter(sql=>sql.startsWith('DECLARE')).length,0);if(installFailure)throw installFailure;f.setManifest(manifest);
    return {schemaVersion:17,matcherIdentityHash:'eead1b2dcd6508ebf3d5c45358c71be95e81363da7c0b8325f7466ce487ed21c',headRevision:1,policy:{revision:1,defaultMaxDepth:1,overrides:[]}};},
-  application:async context=>{f.events.push('application-enter');assert.equal(f.queries.filter(sql=>sql.startsWith('DECLARE')).length,37);assert.equal(context.deadline,195000);
+  application:async context=>{f.events.push('application-enter');assert.equal(f.queries.filter(sql=>sql.startsWith('DECLARE')).length,18);assert.equal(context.deadline,195000);
    assert.deepEqual(context.upgrade,{schemaVersion:17,preservedLegacyTables:18,legacyRowsUnchanged:true});assert.ok(Object.isFrozen(context.upgrade));
    const result=await application(context);f.events.push('application-retired');return result;},
  };
@@ -123,31 +123,32 @@ test('all19 fingerprints, schema/grants/sequences and AthenB retirement compose 
  assert.ok(!f.queries.some(sql=>/nextval\(|setval\(/u.test(sql)));assert.ok(f.events.includes('rr-commit'));
  assert.deepEqual(f.phases,OWNER_RESTORE_PHASES);assert.equal(f.phases.length,33);
 });
-test('HTTP hook installs only after verified restore, proves18 unchanged tables before application and preserves original25/33',async()=>{
- const f=fixture(),run=httpPorts(f),result=projectOwnerRestoreResult(await run());assert.equal(result.accepted,true);
- assert.equal(result.proof.cases.length,25);assert.deepEqual(f.phases,OWNER_RESTORE_PHASES);assert.equal(f.queries.filter(sql=>sql.startsWith('DECLARE')).length,37);
- assert.equal(f.queries.filter(sql=>sql.startsWith('DECLARE')&&sql.includes('FROM canonical_v4.schema_migrations ')).length,1);
+test('HTTP upgrade verifies original boundaries then hashes each of18 tables once with its distinct25/35 contract',async()=>{
+ const f=fixture(),run=httpPorts(f),result=projectOwnerUpgradeResult(await run());assert.equal(result.accepted,true);
+ assert.equal(result.proof.cases.length,25);assert.deepEqual(result.proof.cases.map(({name,depth})=>({name,depth})),OWNER_UPGRADE_CASES);
+ assert.equal(result.schema,'owner-upgrade-postgres-result/v1');assert.equal(result.proof.schema9RecoveryRepeated,false);assert.equal(result.proof.migratedLegacyDataVerified,true);assert.equal(result.proof.schemaVersion,17);assert.equal(result.proof.preservedLegacyTables,18);assert.equal(Object.hasOwn(result.proof,'restoreVerified'),false);assert.deepEqual(f.phases,OWNER_UPGRADE_PHASES);assert.equal(f.queries.filter(sql=>sql.startsWith('DECLARE')).length,18);
+ assert.equal(f.queries.filter(sql=>sql.startsWith('DECLARE')&&sql.includes('FROM canonical_v4.schema_migrations ')).length,0);
  assert.ok(f.queries.includes('SET ROLE murmingle_owner'));assert.ok(f.queries.includes('RESET ROLE'));
  assert.ok(f.events.indexOf('application-retired')<f.events.indexOf('retire-0'));assert.ok(f.events.indexOf('retire-0')<f.events.indexOf('retire-1'));
 });
 test('HTTP install failure or changed post-upgrade canonical row cannot reach the application or pass restoration',async()=>{
  const a=fixture(),installFailure=Object.assign(new Error('invented install refusal'),{code:'INSTALL_REFUSED'}),installRun=httpPorts(a,{installFailure});
- const refused=projectOwnerRestoreResult(await installRun());assert.equal(refused.accepted,false);assert.equal(refused.primary,'INSTALL_REFUSED');assert.ok(!a.events.includes('application-enter'));assert.ok(a.queries.includes('RESET ROLE'));
+ const refused=projectOwnerUpgradeResult(await installRun());assert.equal(refused.accepted,false);assert.equal(refused.primary,'INSTALL_REFUSED');assert.ok(!a.events.includes('application-enter'));assert.ok(a.queries.includes('RESET ROLE'));
  const fault={},b=fixture({fault}),run=httpPorts(b),originalInstall=b.deps.http.install;b.deps.http.install=async value=>{const result=await originalInstall(value);fault.fingerprint='sources';return result;};
- const changed=projectOwnerRestoreResult(await run());assert.equal(changed.accepted,false);assert.equal(changed.primary,'RESTORE_TABLE_FINGERPRINT');
- assert.equal(changed.proof.cases.length,25);assert.ok(!b.events.includes('application-enter'));assert.ok(b.queries.includes('RESET ROLE'));
+ const changed=projectOwnerUpgradeResult(await run());assert.equal(changed.accepted,false);assert.equal(changed.primary,'RESTORE_TABLE_FINGERPRINT');
+ assert.ok(changed.proof.cases.length<25);assert.equal(changed.proof.migratedLegacyDataVerified,false);assert.ok(!b.events.includes('application-enter'));assert.ok(b.queries.includes('RESET ROLE'));
  assert.ok(b.events.includes('finish-controller'));assert.equal(b.events.at(-1),'close-held-data');
 });
 test('pending original HTTP hook delays A/B and input closure; falsy failure survives RESET ROLE cleanup failure',async()=>{
  const f=fixture();let release,entered=false;const run=httpPorts(f,{application:async()=>{entered=true;return new Promise(resolve=>{release=resolve;});}}),pending=run();
  while(!entered)await new Promise(resolve=>setImmediate(resolve));assert.ok(!f.events.includes('retire-0'));assert.ok(!f.events.includes('finish-controller'));assert.ok(!f.events.includes('close-held-data'));
- release(applicationResult());assert.equal(projectOwnerRestoreResult(await pending).accepted,true);
- const g=fixture({fault:{query:sql=>sql==='RESET ROLE'?{throw:true,value:Object.assign(new Error('secondary'),{code:'RESET_SECONDARY'})}:null}}),fail=httpPorts(g,{application:async()=>{throw false;}});
- const failed=projectOwnerRestoreResult(await fail());assert.equal(failed.accepted,false);assert.equal(failed.primary,'PRIVATE_RESTORE_FAILURE');assert.ok(g.events.includes('finish-controller'));assert.equal(g.events.at(-1),'close-held-data');
+ release(applicationResult());assert.equal(projectOwnerUpgradeResult(await pending).accepted,true);
+ let resets=0;const g=fixture({fault:{query:sql=>sql==='RESET ROLE'&&++resets===2?{throw:true,value:Object.assign(new Error('secondary'),{code:'RESET_SECONDARY'})}:null}}),fail=httpPorts(g,{application:async()=>{throw false;}});
+ const failed=projectOwnerUpgradeResult(await fail());assert.equal(failed.accepted,false);assert.equal(failed.primary,'PRIVATE_RESTORE_FAILURE');assert.ok(g.events.includes('finish-controller'));assert.equal(g.events.at(-1),'close-held-data');
 });
 test('failed or missing application proof envelope cannot pass the HTTP-mode restore proof',async()=>{
  for(const envelope of [{status:'failed',proofSha256:sha('failed'),proofBytes:123},{status:'passed'},{status:'passed',proofSha256:'unsafe',proofBytes:123}]){
-  const f=fixture(),run=httpPorts(f,{application:async()=>envelope}),result=projectOwnerRestoreResult(await run());assert.equal(result.accepted,false);
+  const f=fixture(),run=httpPorts(f,{application:async()=>envelope}),result=projectOwnerUpgradeResult(await run());assert.equal(result.accepted,false);
   assert.equal(result.primary,'RESTORE_APPLICATION_CHECKS');
   assert.ok(f.queries.includes('RESET ROLE'));assert.ok(f.events.includes('close-held-data'));
  }
@@ -192,7 +193,7 @@ test('a failed phase publication fails the rehearsal and preserves its first fal
  assert.deepEqual(f.phases,['callback-enter','archive-hash-start']);assert.equal(f.invocations,0);assert.ok(f.events.includes('finish-controller'));assert.ok(f.events.includes('close-held-data'));
 });
 
-function phaseFixture({writeFailure=false,closeFailure=false,linkFailure=false}={}){
+function phaseFixture({writeFailure=false,closeFailure=false,linkFailure=false,upgrade=false}={}){
  const output=PRIVATE_RUN_ROOT+'\\run-'+'a'.repeat(48)+'\\output',files=new Map(),events=[];let serial=1,time=100,expired=false;
  const stat=node=>({dev:1,ino:node?.ino??0,size:node?.bytes?.length??0,isDirectory:()=>!node,isFile:()=>!!node,isSymbolicLink:()=>false});
  const fs={lstat:async filename=>{if(filename===output)return stat(null);assert.ok(files.has(filename));return stat(files.get(filename));},realpath:async filename=>filename,
@@ -205,7 +206,7 @@ function phaseFixture({writeFailure=false,closeFailure=false,linkFailure=false}=
    if(files.has(to))throw Object.assign(new Error('exists'),{code:'EEXIST'});files.set(to,files.get(from));},
  };
  const dependencies={fs,output,epoch:100,now:()=>time,checkDeadline:()=>{if(expired)throw Object.assign(new Error('elapsed'),{code:'OWNED_DEADLINE'});}};
- return {writer:createOwnerRestorePhaseWriterForTest(dependencies),dependencies,files,events,output,advance:()=>time++,expire:()=>{expired=true;}};
+ return {writer:(upgrade?createOwnerUpgradePhaseWriterForTest:createOwnerRestorePhaseWriterForTest)(dependencies),dependencies,files,events,output,advance:()=>time++,expire:()=>{expired=true;}};
 }
 test('bounded phase writer publishes all33 canonical records only after original write/sync/close, using exclusive hardlinks',async()=>{
  const f=phaseFixture();for(const stage of OWNER_RESTORE_PHASES){await f.writer.write(stage);f.advance();}f.writer.finish();assert.equal(f.files.size,66);
@@ -240,4 +241,51 @@ test('finite projection rejects unsafe descriptors and cannot accept missing aut
  const order=structuredClone(lifecycle);order.checks.cases.reverse();assert.throws(()=>projectOwnerRestoreResult(order));
  let hooks=0;const accessor=structuredClone(lifecycle);Object.defineProperty(accessor.checks,'receiptBound',{get(){hooks++;return true;}});assert.throws(()=>projectOwnerRestoreResult(accessor));assert.equal(hooks,0);
  assert.throws(()=>projectOwnerRestoreResult(new Proxy(lifecycle,{get(){hooks++;return null;}})));assert.equal(hooks,0);
+});
+
+
+test('upgrade hashes every unchanged table exactly once after install and retains binary64 hashing',async()=>{
+ const f=fixture();await httpPorts(f)();
+ const scans=f.queries.filter(sql=>sql.startsWith('DECLARE'));
+ assert.deepEqual(scans.map(sql=>/FROM canonical_v4\.([a-z_]+) t/.exec(sql)[1]),tables.filter(name=>name!=='schema_migrations'));
+ assert.equal(scans.filter(sql=>sql.includes('array_send(t.values_double)')).length,2);
+ assert.equal(f.queries.filter(sql=>sql.startsWith('SELECT last_value')).length,7);
+ assert.equal(OWNER_UPGRADE_PHASES.length,35);assert.equal(OWNER_UPGRADE_CASES.length,25);
+ assert.equal(OWNER_UPGRADE_CASES.filter(row=>row.depth===0).length,3);
+ assert.ok(Object.isFrozen(OWNER_UPGRADE_PHASES)&&Object.isFrozen(OWNER_UPGRADE_CASES)&&OWNER_UPGRADE_CASES.every(Object.isFrozen));
+});
+test('post-upgrade manifest and original runtime version are verified before data or application work',async()=>{
+ for(const runtimeVersion of [{generation:'other',revision:'7'},{generation:'invented-generation',revision:'8'}]){
+  const f=fixture({fault:{runtimeVersion}}),result=projectOwnerUpgradeResult(await httpPorts(f)());
+  assert.equal(result.accepted,false);assert.equal(result.primary,'RESTORE_VERSION');assert.equal(result.proof.migratedLegacyDataVerified,false);
+  assert.equal(f.queries.filter(sql=>sql.startsWith('DECLARE')).length,0);assert.ok(!f.events.includes('application-enter'));
+  assert.equal(f.phases.at(-1),'hierarchy17-installed');
+ }
+ const f=fixture(),run=httpPorts(f),install=f.deps.http.install;
+ f.deps.http.install=async value=>{const result=await install(value);f.setManifest([...f.manifest,...Array.from({length:8},(_,i)=>({version:i+10,hash:sha('wrong-'+i)}))]);return result;};
+ const result=projectOwnerUpgradeResult(await run());assert.equal(result.primary,'RESTORE_APPLICATION_MIGRATIONS');assert.equal(result.accepted,false);
+ assert.equal(f.queries.filter(sql=>sql.startsWith('DECLARE')).length,0);assert.ok(!f.events.includes('application-enter'));
+});
+test('upgrade writer publishes35 distinct canonical phases with the same exclusive closed-file discipline',async()=>{
+ const f=phaseFixture({upgrade:true});
+ for(const stage of OWNER_UPGRADE_PHASES){await f.writer.write(stage);f.advance();}f.writer.finish();assert.equal(f.files.size,70);
+ for(let i=0;i<35;i++){
+  const base=f.output+'\\phase-'+String(i).padStart(2,'0'),pending=f.files.get(base+'.pending'),closed=f.files.get(base+'.json');
+  assert.equal(pending,closed);assert.ok(closed.bytes.length<=1024);
+  assert.equal(closed.bytes.toString(),JSON.stringify({elapsedMs:i,ordinal:i,schema:'private-owner-upgrade-phase/v1',stage:OWNER_UPGRADE_PHASES[i]})+'\n');
+ }
+ await assert.rejects(f.writer.write('inputs-closed'),{code:'RESTORE_PHASE_ORDER'});
+ const failed=phaseFixture({upgrade:true,writeFailure:true,closeFailure:true});
+ await assert.rejects(failed.writer.write('callback-enter'),value=>value===false);
+ await assert.rejects(failed.writer.write('callback-enter'),{code:'RESTORE_PHASE_ORDER'});assert.equal(failed.files.size,1);
+});
+test('upgrade projection cannot borrow normal recovery ledger or claim repeated schema9 recovery',async()=>{
+ const f=fixture(),lifecycle=await httpPorts(f)();assert.equal(projectOwnerUpgradeResult(lifecycle).accepted,true);
+ assert.throws(()=>projectOwnerRestoreResult(lifecycle));assert.throws(()=>projectOwnerUpgradeResult({...lifecycle,checks:{...lifecycle.checks,cases:OWNER_RESTORE_CASES.map(row=>({...row,status:'passed'}))}}));
+ for(const [key,value]of [['schema9RecoveryRepeated',true],['migratedLegacyDataVerified',false],['schemaVersion',16],['preservedLegacyTables',17],['archiveAuthenticated',false],['receiptBound',false],['completeInput',false]]){
+  const changed=structuredClone(lifecycle);changed.checks[key]=value;assert.equal(projectOwnerUpgradeResult(changed).accepted,false);
+ }
+ let hooks=0;const changed=structuredClone(lifecycle);Object.defineProperty(changed.checks,'migratedLegacyDataVerified',{get(){hooks++;return true;}});
+ assert.throws(()=>projectOwnerUpgradeResult(changed));assert.equal(hooks,0);
+ assert.throws(()=>projectOwnerUpgradeResult(new Proxy(lifecycle,{get(){hooks++;}})));assert.equal(hooks,0);
 });

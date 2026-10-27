@@ -7,12 +7,12 @@ if(@($errors).Count){throw 'retirement source parse failed'}
 $tests=0
 function Check([bool]$Value){if(-not $Value){throw 'pure retirement regression failed'}}
 function Reject([scriptblock]$Work){$failed=$false;try{& $Work}catch{$failed=$true};Check $failed}
-$wanted=@('Refuse','Check-Time','Assert-Target','Assert-AclRecords','Assert-Absence','Assert-ParentProof','Parse-PidMetadata','Hash-Bytes','Witness','Read-Pinned','Inventory-Pgdata')
+$wanted=@('Refuse','Check-Time','Assert-Target','Assert-AclRecords','Assert-Absence','Assert-ParentProof','Parse-PidMetadata','Hash-Bytes','Witness','Read-Pinned','Inventory-Pgdata','Prepare-ReceiptDirectory')
 $functions=@($ast.FindAll({param($node)$node -is [System.Management.Automation.Language.FunctionDefinitionAst]},$true))
 foreach($name in $wanted){$match=@($functions|Where-Object{$_.Name -ceq $name});Check ($match.Count -eq 1);Invoke-Expression $match[0].Extent.Text}
 $OwnerSid='S-1-5-21-invented-owner'
 $Clock=[pscustomobject]@{Elapsed=[pscustomobject]@{TotalSeconds=0}}
-$Target='D:\GITProjekts\universal-discussion-bootstrap\apps\local-service\data\canonical-migration-backups\hierarchy-private-restore-runs\run-2a5d7e4541290b2bccac9edd86498e1a35f722e3e2465640\cluster\nhpg-EDfH2R\pgdata'
+$Target='D:\GITProjekts\universal-discussion-bootstrap\apps\local-service\data\canonical-migration-backups\hierarchy-private-restore-runs\run-aaa554dbcf8fc863644e1aafc631b4b7446f8737e06d55a1\cluster\nhpg-pALDNp\pgdata'
 
 # Managed fake only. No DllImport or actual filesystem handle is used.
 Add-Type -TypeDefinition @'
@@ -26,11 +26,11 @@ namespace PrivatePgdataRetirement {
 '@
 
 Assert-Target $Target
-foreach($bad in @($Target.ToLowerInvariant(),($Target+'\x'),($Target+'\..\pgdata'),$Target.Replace('D:','C:'),$Target.Replace('nhpg-EDfH2R','nhpg-OTHER1'))){Reject {Assert-Target $bad}};$tests++
+foreach($bad in @($Target.ToLowerInvariant(),($Target+'\x'),($Target+'\..\pgdata'),$Target.Replace('D:','C:'),$Target.Replace('nhpg-pALDNp','nhpg-OTHER1'),$Target.Replace('aaa554dbcf8fc863644e1aafc631b4b7446f8737e06d55a1','2a5d7e4541290b2bccac9edd86498e1a35f722e3e2465640'))){Reject {Assert-Target $bad}};$tests++
 
-$validPid="32820`n$($Target.Replace('\','/'))`n1793083187`n55433`n"
-$p=Parse-PidMetadata $validPid;Check ($p.pid -eq 32820 -and $p.pidStart -eq 1793083187 -and $p.port -eq 55433)
-foreach($bad in @($validPid.Replace('32820','032820'),$validPid.Replace('1793083187','1793083188'),$validPid.Replace('55433','55432'),$validPid.Replace('nhpg-EDfH2R','nhpg-OTHER1'),('x'*4097))){Reject {Parse-PidMetadata $bad}};$tests++
+$validPid="18340`n$($Target.Replace('\','/'))`n1793090791`n55433`n"
+$p=Parse-PidMetadata $validPid;Check ($p.pid -eq 18340 -and $p.pidStart -eq 1793090791 -and $p.port -eq 55433)
+foreach($bad in @($validPid.Replace('18340','018340'),$validPid.Replace('18340','32820'),$validPid.Replace('1793090791','1793083187'),$validPid.Replace('55433','55432'),$validPid.Replace('nhpg-pALDNp','nhpg-OTHER1'),('x'*4097))){Reject {Parse-PidMetadata $bad}};$tests++
 
 function Rule([string]$Sid,[string]$Type='Allow',[string]$Rights='FullControl',[string]$Flags='ContainerInherit, ObjectInherit'){
  return [pscustomobject]@{IdentityReference=[pscustomobject]@{Value=$Sid};AccessControlType=$Type;FileSystemRights=$Rights;InheritanceFlags=$Flags;PropagationFlags='None'}
@@ -42,18 +42,18 @@ Reject {Assert-AclRecords $OwnerSid @((Rule $OwnerSid),(Rule 'S-1-5-18' 'Deny'))
 Reject {Assert-AclRecords $OwnerSid @((Rule $OwnerSid),(Rule 'S-1-5-18' 'Allow' 'Read')) $true};$tests++
 
 $script:ProcessRows=@();$script:ListenerRows=@();$script:CimFails=$false;$script:TcpFails=$false;$script:ProbeEvents=New-Object 'Collections.Generic.List[string]'
-function Get-CimInstance {[CmdletBinding()]param($ClassName,$Filter,$OperationTimeoutSec) Check ($ClassName -ceq 'Win32_Process' -and $Filter -ceq 'ProcessId=32820' -and $OperationTimeoutSec -eq 5);$script:ProbeEvents.Add('process');if($script:CimFails){throw 'invented CIM denial'};return $script:ProcessRows}
+function Get-CimInstance {[CmdletBinding()]param($ClassName,$Filter,$OperationTimeoutSec) Check ($ClassName -ceq 'Win32_Process' -and $Filter -ceq 'ProcessId=18340' -and $OperationTimeoutSec -eq 5);$script:ProbeEvents.Add('process');if($script:CimFails){throw 'invented CIM denial'};return $script:ProcessRows}
 function Get-NetTCPConnection {[CmdletBinding()]param($State) Check ($State -ceq 'Listen');$script:ProbeEvents.Add('listeners');if($script:TcpFails){throw 'invented TCP denial'};return $script:ListenerRows}
-Assert-Absence 32820;Check ($script:ProbeEvents.Count -eq 2)
-$script:CimFails=$true;Reject {Assert-Absence 32820};$script:CimFails=$false
-$script:TcpFails=$true;Reject {Assert-Absence 32820};$script:TcpFails=$false
-$script:ProcessRows=@([pscustomobject]@{ProcessId=32820});Reject {Assert-Absence 32820};$script:ProcessRows=@()
-$script:ListenerRows=@([pscustomobject]@{LocalPort=55433});Reject {Assert-Absence 32820};$script:ListenerRows=@([pscustomobject]@{LocalPort=55432});Assert-Absence 32820;$tests++
+Assert-Absence 18340;Check ($script:ProbeEvents.Count -eq 2)
+$script:CimFails=$true;Reject {Assert-Absence 18340};$script:CimFails=$false
+$script:TcpFails=$true;Reject {Assert-Absence 18340};$script:TcpFails=$false
+$script:ProcessRows=@([pscustomobject]@{ProcessId=18340});Reject {Assert-Absence 18340};$script:ProcessRows=@()
+$script:ListenerRows=@([pscustomobject]@{LocalPort=55433});Reject {Assert-Absence 18340};$script:ListenerRows=@([pscustomobject]@{LocalPort=55432});Assert-Absence 18340;$tests++
 
-function Parent-Proof {return ('{"schema":"native-hierarchy-postgres-supervisor/v2","accepted":false,"completion":null,"cleanupClassification":"owned-emergency","endPinsChecked":true,"native":{"initialized":true,"processCreated":true,"assigned":true,"membershipVerified":true,"resumed":true,"exited":true,"emergency":true,"allHandlesClosed":true,"completeEmptyJob":true,"stdoutEof":true,"stderrEof":true,"closeFailure":false,"stdoutBytes":0,"stderrBytes":0,"exitCode":1,"limits":{"flags":8712,"jobMemoryBytes":1073741824,"activeProcessLimit":32}},"primary":{"code":"resource-limit","counter":"jobCpuSeconds","value":60.015625}}'|ConvertFrom-Json)}
+function Parent-Proof {return ('{"schema":"native-hierarchy-postgres-supervisor/v2","accepted":false,"completion":null,"cleanupClassification":"owned-emergency","endPinsChecked":true,"native":{"initialized":true,"processCreated":true,"assigned":true,"membershipVerified":true,"resumed":true,"exited":true,"emergency":true,"allHandlesClosed":true,"completeEmptyJob":true,"stdoutEof":true,"stderrEof":true,"closeFailure":false,"stdoutBytes":0,"stderrBytes":0,"exitCode":1,"limits":{"flags":8712,"jobMemoryBytes":1073741824,"activeProcessLimit":32}},"primary":{"code":"resource-limit","counter":"jobCpuSeconds","value":300.078125}}'|ConvertFrom-Json)}
 Assert-ParentProof (Parent-Proof)
 foreach($key in @('allHandlesClosed','completeEmptyJob','stdoutEof','stderrEof','emergency','membershipVerified')){$proof=Parent-Proof;$proof.native.$key=$false;Reject {Assert-ParentProof $proof}}
-$proof=Parent-Proof;$proof.accepted=$true;Reject {Assert-ParentProof $proof};$proof=Parent-Proof;$proof.primary.counter='unknown';Reject {Assert-ParentProof $proof};$tests++
+$proof=Parent-Proof;$proof.accepted=$true;Reject {Assert-ParentProof $proof};$proof=Parent-Proof;$proof.primary.counter='unknown';Reject {Assert-ParentProof $proof};$proof=Parent-Proof;$proof.primary.value=60.015625;Reject {Assert-ParentProof $proof};$tests++
 
 $w=Witness ([pscustomobject]@{}) $false;Check ($w.links -eq 1 -and $w.size -eq 3)
 [PrivatePgdataRetirement.Native]::Links=2;Reject {Witness ([pscustomobject]@{}) $false};[PrivatePgdataRetirement.Native]::Links=1
@@ -79,6 +79,20 @@ $script:Children[$Target]=@([pscustomobject]@{FullName=$Target+'-foreign\data'})
 
 $largeChildren=@();foreach($number in 1..7){$name=$Target+'\'+$number;$script:Graph[$name]=[pscustomobject]@{PSIsContainer=$false;Attributes=0};$largeChildren+=@([pscustomobject]@{FullName=$name})};$script:Children[$Target]=$largeChildren;$script:MockFileSize=1073741824
 Reject {Inventory-Pgdata};$script:MockFileSize=3;$tests++
+
+# Existing protected receipt parent is reusable, never existing nonce leaves.
+# These actual guard calls see ONLY mocks; no directory or file is created.
+$ProtectedRoot='D:\invented-protected-backups';$RetirementRoot=$ProtectedRoot+'\hierarchy-private-retirements'
+$PreReceipt=$RetirementRoot+'\aaa554dbcf8fc863644e1aafc631b4b7446f8737e06d55a1-preflight.json'
+$DoneReceipt=$RetirementRoot+'\aaa554dbcf8fc863644e1aafc631b4b7446f8737e06d55a1-complete.json'
+$script:ReceiptCollision=$null;$script:BadReceiptWitness=$false;$script:BadReceiptAcl=$false;$script:ReceiptEvents=New-Object 'Collections.Generic.List[string]'
+function Test-Path {[CmdletBinding()]param($LiteralPath) Check ($LiteralPath -cin @($RetirementRoot,$PreReceipt,$DoneReceipt));$script:ReceiptEvents.Add('exists:'+ $LiteralPath);if($LiteralPath -ceq $RetirementRoot){return $true};return $LiteralPath -ceq $script:ReceiptCollision}
+function Assert-Acl {param($Path,$Directory) Check ($Path -cin @($ProtectedRoot,$RetirementRoot));$script:ReceiptEvents.Add('acl:'+ $Path);if($script:BadReceiptAcl -and $Path -ceq $RetirementRoot){throw 'invented unsafe ACL'}}
+function Directory-Witness {param($Path) Check ($Path -ceq $RetirementRoot);$script:ReceiptEvents.Add('witness');if($script:BadReceiptWitness){throw 'invented reparse/hardlink/refused directory'};return [ordered]@{identity='invented';size=0;write='fixed';links=1}}
+Prepare-ReceiptDirectory;Check ($script:ReceiptEvents.Contains('exists:'+ $PreReceipt) -and $script:ReceiptEvents.Contains('exists:'+ $DoneReceipt));$tests++
+foreach($collision in @($PreReceipt,$DoneReceipt)){$script:ReceiptCollision=$collision;Reject {Prepare-ReceiptDirectory}};$script:ReceiptCollision=$null
+$script:BadReceiptWitness=$true;Reject {Prepare-ReceiptDirectory};$script:BadReceiptWitness=$false
+$script:BadReceiptAcl=$true;Reject {Prepare-ReceiptDirectory};$script:BadReceiptAcl=$false;$tests++
 
 # The actual script's only deletion is the reviewed fixed target, with LiteralPath.
 $deletes=@($ast.FindAll({param($node)$node -is [System.Management.Automation.Language.CommandAst] -and $node.GetCommandName() -ceq 'Remove-Item'},$true))

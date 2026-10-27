@@ -152,3 +152,44 @@ No intermediate baseline or MVCC substitute is proposed. This preserves final
 data equality and should reduce work; the failed run's exact cause and whether
 the complete application rehearsal fits its budget remain unproven. Separate
 source review/implementation and actual decisions are still required.
+
+## One-pass correction: accepted design and bounded source grant
+
+Lead, Maintained and the independent reviewer accept the one-pass design for
+final migrated-data equality. This replaces the earlier HTTP-only requirement
+to repeat standalone schema9 row verification before migration. It does not
+change the original standalone recovery mode or its separately retained evidence.
+No new actual attempt, adoption, cleanup, resource increase or live action follows.
+
+The closed HTTP mode uses `owner-upgrade-postgres-result/v1` and
+`owner-upgrade-postgres-proof/v1`. Its proof replaces `restoreVerified` with
+`migratedLegacyDataVerified:true`, `schema9RecoveryRepeated:false`,
+`schemaVersion:17` and `preservedLegacyTables:18`. An old restoration result
+cannot satisfy the new upgrade parser, or the reverse. HTTP still requires its
+separate passed16-case application proof and completed original work/cleanup.
+
+Its own25 ordered ledger points are3 groups plus2 schema9 identity/security
+checks,19 post-migration checks (exact17 manifest/original runtime version and
+all18 legacy table fingerprints), and1 check of all7 legacy sequences. Compare
+every table directly to the original authenticated receipt using the existing
+PK-ordered JSONB/binary64 algorithm, rendering settings and bounded cursor.
+No intermediate baseline, omitted table, reclassified synthetic result or MVCC
+identity substitute is permitted. This proves final equality, not absence of
+transient migration changes.
+
+Its35 phases use `private-owner-upgrade-phase/v1`: the existing8 common phases
+through restore-retired; schema9-identity-verified; schema9-grants-verified;
+hierarchy17-installed; hierarchy17-manifest-verified;18 legacy-table-NAME-verified
+phases; migrated-sequences-verified; application-verified; scratch-a-retired;
+scratch-b-retired; inputs-closed. Keep bounded exclusive pending/hardlink
+publication and original monotonic deadlines. The supervisor must require this
+exact phase grammar and new25-point ledger, plus the separate16-case proof.
+
+Maintained owns only the existing owner-restore-native-check.js/test and thin
+owner-http-native-check.js/test. Reuse auth, restore, hashing, issued connections
+and lifecycle; preserve normal restore's25/33/default schema and behaviour.
+Lead owns the existing driver/test, catalog and documentation integration. No
+copied/versioned controller or caller-selected real port is added. Platform's
+normal16-case application module stays unchanged. Only fake/pure tests and
+source review are granted. The unchanged CPU300/1GiB/Node64/process32 and
+360/380/390 epochs remain an unproven budget for the full application rehearsal.
