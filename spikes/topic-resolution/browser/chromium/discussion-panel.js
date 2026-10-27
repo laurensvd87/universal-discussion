@@ -1065,6 +1065,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
       .flatMap((entry) => [entry, ...(entry.replies ?? [])])
       .find((entry) => entry.id === state.draft.targetId && entry.state === "visible") : null;
     composer.setAttribute("data-composer-mode", state.draft.mode);
+    composer.setAttribute("data-semantic-reply", String(semanticDraft));
     composer.setAttribute("data-inline-target", uiMode === "user" && state.draft.mode === "reply" &&
       replyTarget && !state.draft.detached ? "valid" : "unavailable");
     submit.disabled = posting || !(ready || humanSubmitReady) || state.draft.detached || !state.draft.body.trim() ||

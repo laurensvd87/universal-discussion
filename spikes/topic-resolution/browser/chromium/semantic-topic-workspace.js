@@ -6,6 +6,7 @@ import {isMissingSemanticCapabilities} from '../core/local-service-client.js';
 // or private posting binding. Capability absence alone enables legacy discovery.
 export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoot,client,controller,discussionPanel,navigate,
   onAvailability=()=>{}}={}) {
+  discussionRoot.className=[discussionRoot.className,'semantic-topic-workspace'].filter(Boolean).join(' ');
   let disposed=false,connected=false,discoverActive=false,pageState=null,accountKey=null,pageKey=null;
   let capability='unknown',availability='disconnected',serviceEpoch=0,epoch=0,contextEpoch=0;
   let capabilityAbort=null,contextAbort=null,intentAbort=new AbortController();

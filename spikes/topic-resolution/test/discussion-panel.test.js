@@ -407,6 +407,7 @@ function semanticComposerState(patch={}){
 
 test('semantic composer shows canonical Topic A quote and page actors without altering the foreground graph',()=>{
   const ui=harness();const current=semanticComposerState(),before=structuredClone(current);ui.panel.render(current);
+  assert.equal(ui.byId('discussion-composer').attributes['data-semantic-reply'],'true');
   assert.equal(ui.byId('discussion-reply-context').hidden,false);assert.equal(ui.created.find(n=>n.className==='discussion-new-thread-heading').textContent,'Reply in <Original topic A>');
   assert.equal(ui.created.find(n=>n.className==='discussion-reply-author').textContent,'Replying to @<Actual Blair>');
   assert.equal(ui.created.find(n=>n.className==='discussion-reply-excerpt').textContent,'Public text semantic-target');
@@ -415,7 +416,8 @@ test('semantic composer shows canonical Topic A quote and page actors without al
   assert.equal(descendants(ui.byId('discussion-feed')).some(n=>n.attributes['data-post-id']==='semantic-root'),false);assert.deepEqual(current,before);
   const agent=structuredClone(current);Object.assign(agent.semanticSelection.root.replies[0],{actorType:'agent',authorId:'demo-imported-ai',insight:{kind:'generated',operatorId:'demo-blair'}});
   ui.panel.render(agent);assert.equal(ui.created.find(n=>n.className==='discussion-reply-author').textContent,'Replying to AI · @<Actual Blair>');
-  assert.equal(descendants(ui.root).some(n=>n.tag==='script'||n.tag==='img'),false);ui.panel.dispose();
+  assert.equal(descendants(ui.root).some(n=>n.tag==='script'||n.tag==='img'),false);ui.panel.render(state());
+  assert.equal(ui.byId('discussion-composer').attributes['data-semantic-reply'],'false');ui.panel.dispose();
 });
 
 test('semantic human composer uses submitDraft and treats @AI as text without invoking the foreground provider',async()=>{

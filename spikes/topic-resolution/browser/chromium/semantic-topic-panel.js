@@ -11,6 +11,7 @@ export const SEMANTIC_TOPIC_EN = Object.freeze({
 export function mountSemanticTopicPanel(document, root, {client, messages={}, onReply, onSelectionChange,
   idPrefix='semantic-topic-',contextMode=false,onRefresh}={}) {
   if(typeof idPrefix!=='string'||!/^[A-Za-z][A-Za-z0-9_-]{0,63}$/u.test(idPrefix))throw new TypeError('Invalid panel prefix');
+  root.className=[root.className,'semantic-topic-panel'].filter(Boolean).join(' ');
   const t=key=>messages[key]??SEMANTIC_TOPIC_EN[key];
   let active=false, connected=false, disposed=false, epoch=0, pending=null, busy=false, context='';
   let directory=null, offset=0, selection=null, page=null, cursor=null, history=[],topicContext=null;

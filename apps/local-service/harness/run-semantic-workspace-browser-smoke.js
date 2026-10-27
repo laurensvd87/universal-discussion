@@ -74,7 +74,7 @@ export function describeSemanticBoundaryFailure(error){
   }
   return {code:'boundary-failure'};
 }
-const UI_ASSERT_CODES=new Set(['composer-heading-mismatch','horizontal-overflow']);
+const UI_ASSERT_CODES=new Set(['composer-heading-mismatch','horizontal-overflow','composer-content-clipped','topic-button-unreadable']);
 export function describeSemanticUiFailure(error){
   if(error===null||typeof error!=='object'||types.isProxy(error))return {code:'ui-step-failed'};
   let code,nativeCode,message;try{
@@ -236,17 +236,33 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     if(value.exceptionDetails)throw new Error('Browser fixture evaluation failed');return value.result.value;}
   async function waitFor(expression){const limit=Date.now()+9000;while(Date.now()<limit){if(timedOut||protocolFailure)throw new Error('Browser boundary failed');if(await evaluate(expression))return;await pause(40);}throw new Error('Browser fixture state timeout');}
   async function capture(width){uiStep='layout-'+width;await browser.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:false},sessionId);await pause(100);
-    const layout=await evaluate(`(()=>{const ids=['app-view-discussion','local-discussion','discussion-feed','discussion-root-dock','discussion-composer','discussion-body','discussion-reply-context','semantic-context-results'];
+    const layout=await evaluate(`(()=>{const ids=['app-view-discussion','local-discussion','discussion-feed','discussion-root-dock','discussion-composer','discussion-body','discussion-reply-context','discussion-submit','discussion-mention-status','discussion-origin-disclosure','semantic-context-results'];
+      const luminance=color=>{const rgb=color.match(/[0-9.]+/g)?.map(Number);if(!rgb||rgb.length<3||rgb.length>3&&rgb[3]!==1)return null;
+        const linear=rgb.slice(0,3).map(value=>{const v=value/255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;});return .2126*linear[0]+.7152*linear[1]+.0722*linear[2];};
       return {width:innerWidth,scrollWidth:document.documentElement.scrollWidth,bodyWidth:document.body.getBoundingClientRect().width,
         overflow:document.documentElement.scrollWidth>innerWidth,surface:document.body.dataset.uiSurface==='sidepanel'?'sidepanel':document.body.dataset.uiSurface==='popup'?'popup':'other',
         elements:ids.map(id=>{const node=document.getElementById(id);if(!node)return {id,present:false};const r=node.getBoundingClientRect();return {id,present:true,hidden:node.hidden,
+          visible:r.width>0&&r.height>0&&getComputedStyle(node).visibility==='visible',
           left:Math.round(r.left*100)/100,right:Math.round(r.right*100)/100,width:Math.round(r.width*100)/100,scrollWidth:node.scrollWidth,clientWidth:node.clientWidth};}),
         semanticHostInsideFeed:document.querySelector('.semantic-discussion-panel')?.parentElement?.id==='discussion-feed',
-        composerDocked:document.querySelector('#discussion-composer')?.parentElement?.id==='discussion-root-dock'};})()`);
+        composerDocked:document.querySelector('#discussion-composer')?.parentElement?.id==='discussion-root-dock',
+        replyHeadingVisible:(()=>{const n=document.querySelector('.discussion-new-thread-heading');if(!n)return false;const r=n.getBoundingClientRect();return r.width>0&&r.height>0&&getComputedStyle(n).visibility==='visible';})(),
+        buttonContrast:['semantic-workspace-saved-toggle','semantic-context-back','semantic-context-refresh'].map(id=>{const node=document.getElementById(id);
+          if(!node)return {id,present:false};const style=getComputedStyle(node),r=node.getBoundingClientRect(),fg=luminance(style.color),bg=luminance(style.backgroundColor);
+          return {id,present:true,visible:r.width>0&&r.height>0&&style.visibility==='visible',disabled:node.disabled,
+            ratio:fg===null||bg===null?null:(Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05)};})};})()`);
     layoutChecks.push(layout);
     // Preserve the failing image and metrics BEFORE asserting overflow.
     const result=await browser.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},sessionId),name='semantic-'+width+'.png';checkedPath(attempt);writeFileSync(checkedPath(path.join(attempt,name)),Buffer.from(result.data,'base64'),{flag:'wx'});screenshots.push({name,...layout});
-    checkUi(!layout.overflow,'horizontal-overflow');}
+    checkUi(!layout.overflow,'horizontal-overflow');
+    const byId=Object.fromEntries(layout.elements.map(item=>[item.id,item])),composer=byId['discussion-composer'];
+    const context=byId['discussion-reply-context'],body=byId['discussion-body'],dock=byId['discussion-root-dock'];
+    checkUi(layout.replyHeadingVisible&&composer.visible&&context.visible&&body.visible&&byId['discussion-submit'].visible&&context.width>=composer.clientWidth*.8&&
+      composer.scrollWidth<=composer.clientWidth+1&&context.scrollWidth<=context.clientWidth+1&&dock.scrollWidth<=dock.clientWidth+1&&
+      ['discussion-body','discussion-reply-context','discussion-submit','discussion-mention-status','discussion-origin-disclosure'].every(id=>{
+        const item=byId[id];return item.hidden||item.visible&&item.left>=composer.left&&item.right<=composer.right;
+      }),'composer-content-clipped');
+    checkUi(layout.buttonContrast.every(item=>item.present&&item.visible&&!item.disabled&&item.ratio>=4.5),'topic-button-unreadable');}
   const timer=setTimeout(()=>{timedOut=true;void browser?.close();},120000);
   let outcome='failed';
   try{
