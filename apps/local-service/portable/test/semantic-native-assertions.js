@@ -19,6 +19,7 @@ import {createStoredSourceHierarchyPreparation} from '../canonical-v4/semantic-s
 import {createCanonicalV4ReadFacade} from '../canonical-v4/read-facade.js';
 import {createPostgresCanonicalService} from '../../src/application/create-postgres-canonical-service.js';
 import {createRequestHandler} from '../../src/http/request-handler.js';
+import {readSemanticFeed,readSemanticThread,readSemanticTarget} from '../../../../spikes/topic-resolution/browser/core/local-service-contract.js';
 import {sourceStamp} from '../../src/domain/source-threads.js';
 import {RIDGE_PARAMETER_SHA256} from '../../src/domain/ridge-topic-adapter.js';
 import semanticGroups from './semantic-native-cases.json' with {type:'json'};
@@ -361,12 +362,50 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     const edited='Latest edited selected-root reply';await appLifecycle.command(await fixture.header(),{type:'edit',contributionId:replyIds[1],body:edited},actor);bodies.set(replyIds[1],edited);
     const sibling=await appRuntime.command({actorId:actor.id,requestId:'semantic-other-root-reply',expected:await fixture.header(),
      command:{type:'reply',discussionId:originalDestination.discussionId,rootId:aiRoot,replyToId:aiRoot,body:'Other root must not enter selected thread',originSourceId:A.sourceId}});
+    const feedRequest={nodeId:'invented-game-branch',limit:50,cursor:null};
+    const parsedFeed=readSemanticFeed(await service.semanticFeed(feedRequest),feedRequest);
+    assert.deepEqual(parsedFeed.roots.map(card=>card.root.id).sort(),[humanRoot,aiRoot,manualRoot].sort());
+    assert.deepEqual(parsedFeed.actors.map(a=>a.id),[actor.id]);assert.equal(parsedFeed.actors[0].type,'human');assert.ok(parsedFeed.actors[0].displayName);
+    const firstRequest={nodeId:'invented-game-branch',rootId:humanRoot,limit:1,cursor:null};
+    const first=readSemanticThread(await service.semanticThread(firstRequest),firstRequest);assert.ok(first.nextCursor);
+    assert.equal(first.root.replies.some(r=>r.id===replyIds[1]),false,'edited target is genuinely outside the first reply page');
+    const targetRequest={nodeId:'invented-game-branch',rootId:humanRoot,targetId:replyIds[1]};
+    const exact=readSemanticTarget(await service.semanticTarget(targetRequest),targetRequest);
+    assert.equal(exact.topic.id,originalDestination.topicId);assert.equal(exact.discussionId,originalDestination.discussionId);
+    assert.equal(exact.root.id,humanRoot);assert.equal(exact.root.replies.length,1);assert.equal(exact.root.replies[0].id,replyIds[1]);
+    assert.equal(exact.root.replies[0].body,edited);assert.equal(exact.root.replies[0].origin.sourceId,A.sourceId);
+    assert.equal(exact.rootRevision,Number((await scalar(owner,'SELECT revision_count FROM canonical_v4.contributions WHERE id=$1',[humanRoot])).revision_count));
+    assert.equal(exact.targetRevision,2);assert.deepEqual(exact.actors.map(a=>a.id),[actor.id]);
+    const rootRequest={...targetRequest,targetId:humanRoot},rootTarget=readSemanticTarget(await service.semanticTarget(rootRequest),rootRequest);
+    assert.deepEqual(rootTarget.root.replies,[]);assert.equal(rootTarget.rootRevision,rootTarget.targetRevision);
+    await assert.rejects(service.semanticTarget({...targetRequest,rootId:aiRoot}),e=>e.code==='not-found');
+    await assert.rejects(service.semanticTarget({...targetRequest,nodeId:'nature'}),e=>e.code==='not-found');
+    const siblingRequest={nodeId:'invented-game-branch',rootId:aiRoot,targetId:sibling.result.contributionId};
+    await appLifecycle.command(await fixture.header(),{type:'withdraw',contributionId:siblingRequest.targetId},actor);
+    await assert.rejects(service.semanticTarget(siblingRequest),e=>e.code==='not-found');
+    // Simulate the generic metadata version increment made by anchor maintenance,
+    // without editing the root body or pretending that a canonical command ran.
+    const metadata=await scalar(owner,'SELECT write_version::text,revision_count FROM canonical_v4.contributions WHERE id=$1',[humanRoot]);
+    await owner.query('UPDATE canonical_v4.contributions SET write_version=write_version+1 WHERE id=$1',[humanRoot]);
+    const afterMetadata=await scalar(owner,'SELECT write_version::text,revision_count FROM canonical_v4.contributions WHERE id=$1',[humanRoot]);
+    assert.equal(afterMetadata.write_version,String(BigInt(metadata.write_version)+1n));assert.equal(afterMetadata.revision_count,metadata.revision_count);
+    const nextRequest={...firstRequest,cursor:first.nextCursor};
+    const continued=readSemanticThread(await service.semanticThread(nextRequest),nextRequest);assert.equal(continued.root.replies[0].id,replyIds[1]);
+    await appLifecycle.command(await fixture.header(),{type:'edit',contributionId:humanRoot,body:'Edited original root body invalidates its reply cursor'},actor);
+    await assert.rejects(service.semanticThread(nextRequest),e=>e.code==='conflict');
     const paged=[];let cursor=null;
-    for(let page=0;page<4;page++){const result=await reads.semanticThread({nodeId:'invented-game-branch',rootId:humanRoot,limit:1,cursor});
+    for(let page=0;page<4;page++){const request={nodeId:'invented-game-branch',rootId:humanRoot,limit:1,cursor},result=readSemanticThread(await service.semanticThread(request),request);
      assert.equal(result.discussionId,originalDestination.discussionId);assert.equal(result.topic.id,originalDestination.topicId);assert.equal(result.root.id,humanRoot);
+     assert.deepEqual(result.actors.map(a=>a.id),[actor.id]);
      assert.ok(result.root.replies.length<=1);paged.push(...result.root.replies);cursor=result.nextCursor;if(cursor===null)break;}
     assert.equal(cursor,null);assert.deepEqual(paged.map(r=>r.id).sort(),replyIds.sort());assert.equal(paged.some(r=>r.id===sibling.result.contributionId),false);
     for(const r of paged){assert.equal(r.rootId,humanRoot);assert.equal(r.body,bodies.get(r.id));assert.equal(r.origin.sourceId,A.sourceId);}
+    await appLifecycle.command(await fixture.header(),{type:'withdraw',contributionId:replyIds[2]},actor);
+    const tombstoneRequest={nodeId:'invented-game-branch',rootId:humanRoot,limit:50,cursor:null};
+    const withTombstone=readSemanticThread(await service.semanticThread(tombstoneRequest),tombstoneRequest);
+    assert.deepEqual(withTombstone.root.replies.find(r=>r.id===replyIds[2]),
+     {id:replyIds[2],rootId:humanRoot,replyToId:humanRoot,state:'deleted',label:'Deleted by user'});
+    assert.equal(withTombstone.root.replies.filter(r=>r.state==='visible').length,2);
     const refs=(await feed('invented-game-branch')).references;assert.equal(refs.length,3);
     assert.equal(refs.find(r=>r.rootId===manualRoot).discussionId,MANUAL_DISCUSSION);assert.equal(refs.find(r=>r.rootId===humanRoot).discussionId,originalDestination.discussionId);
    });
@@ -451,6 +490,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     assert.deepEqual(visible.map(r=>r.rootId).sort(),[humanRoot,manualRoot,legacyRoot].sort());
     assert.equal((await reads.semanticFeed({nodeId:'invented-game-branch',limit:50,cursor:null})).roots.some(c=>c.root.id===aiRoot),false);
     await assert.rejects(reads.semanticThread({nodeId:'games',rootId:aiRoot,limit:1,cursor:null}),e=>e.code==='not-found');
+    await assert.rejects(service.semanticTarget({nodeId:'games',rootId:aiRoot,targetId:aiRoot}),e=>e.code==='not-found');
     const rollback=new Error('controlled visibility rollback');
     await assert.rejects(owner.transaction(async tx=>{
      await tx.query(`UPDATE canonical_v4.contributions SET visibility='local-private',

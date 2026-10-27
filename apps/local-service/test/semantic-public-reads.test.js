@@ -11,7 +11,7 @@ const defer=()=>{let resolve;const promise=new Promise(done=>{resolve=done;});re
 function fixture({enabled=false,feed=async()=>({version,roots:[]}),stamp=async()=>({generation:version.generation,revision:'f'.repeat(64)})}={}){
  const never=()=>assert.fail('Unrelated canonical read or mutation');
  const reads={version:async()=>version,catalogContext:never,catalogPage:never,discussionPage:never,exactSource:never,urlSelection:never,
-  semanticFeed:feed,semanticThread:async()=>({version,root:{id:'canonical-root'}}),semanticStamp:stamp};
+  semanticFeed:feed,semanticThread:async()=>({version,root:{id:'canonical-root'}}),semanticTarget:async()=>({version,root:{id:'canonical-root'},targetId:'canonical-root'}),semanticStamp:stamp};
  return createPostgresCanonicalService({reads,runtime:{command:never},semanticDiscussions:enabled});
 }
 
@@ -34,7 +34,7 @@ test('concurrent semantic readers share one physical read with independent cance
  const survivors=Array.from({length:100},()=>service.semanticFeed(input));
  await Promise.resolve();await Promise.resolve();await Promise.resolve();assert.equal(calls,1);
  aborted.abort();current=false;const result=Object.freeze({version,roots:[]});gate.resolve(result);
- await rejected;await revoked;assert.ok((await Promise.all(survivors)).every(value=>value===result));
+ await rejected;await revoked;const completed=await Promise.all(survivors);assert.ok(completed.every(value=>value===completed[0]));assert.deepEqual(completed[0],{...result,actors:[]});
 });
 
 test('a reader after background adoption cannot join a pending older absence at the same canonical revision',async()=>{
@@ -46,10 +46,10 @@ test('a reader after background adoption cannot join a pending older absence at 
  older.resolve({version,roots:[]});assert.deepEqual((await pending).roots,[]);
 });
 
-for(const route of ['feed','thread'])for(const invalidation of ['none','pairing','session','transport','abort'])
+for(const route of ['feed','thread','target'])for(const invalidation of ['none','pairing','session','transport','abort'])
  test(`semantic ${route} HTTP delivery revalidates ${invalidation}`,async()=>{
   let release,paired=true,active=true,session=true,calls=0;const abort=new AbortController();
-  const method=route==='feed'?'semanticFeed':'semanticThread';
+  const method={feed:'semanticFeed',thread:'semanticThread',target:'semanticTarget'}[route];
   const service={coherentSnapshotReads:true,[method]:()=>assert.fail('Must use guarded public read'),
    readPublic(selected,value,guards){calls++;assert.equal(selected,method);assert.equal(guards.signal,abort.signal);
     return new Promise(resolve=>{release=()=>resolve(Object.freeze({publicMarker:'SEMANTIC_BODY_MUST_NOT_ESCAPE'}));});}};

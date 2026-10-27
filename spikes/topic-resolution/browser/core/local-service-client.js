@@ -1,7 +1,8 @@
 import { freeze, readActorId, readCatalog, readCommand, readConfirmation, readDiscussion, readHealth,
   readId, readLimit, readOutcome, readPairingToken, readRelated, readPriorDiscussions, readReset, readVersion,
   readIngestion, readIngestionOutcome, readAlternateDiscussion, isAccountActorId,
-  readEnrichmentRequest, readEnrichment } from "./local-service-contract.js";
+  readEnrichmentRequest, readEnrichment, readSemanticFeedRequest, readSemanticThreadRequest, readSemanticTargetRequest,
+  readSemanticFeed, readSemanticThread, readSemanticTarget } from "./local-service-contract.js";
 import { LocalServiceSessionProxyError } from "./local-service-session.js";
 import { readAccountAuthError } from "./account-auth-response.js";
 import { readDiscovery, readPrivateResponse, readAccountPublicChatsRequest, readAccountPublicChatsResponse } from "./community-contract.js";
@@ -168,6 +169,18 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
     }
   }
   return Object.freeze({
+    semanticFeed(value, { signal, beforeDispatch } = {}) {
+      const body = input(() => readSemanticFeedRequest(value));
+      return request("/semantic/feed", body, undefined, value => readSemanticFeed(value, body), signal, undefined, beforeDispatch);
+    },
+    semanticThread(value, { signal, beforeDispatch } = {}) {
+      const body = input(() => readSemanticThreadRequest(value));
+      return request("/semantic/thread", body, undefined, value => readSemanticThread(value, body), signal, undefined, beforeDispatch);
+    },
+    semanticTarget(value, { signal, beforeDispatch } = {}) {
+      const body = input(() => readSemanticTargetRequest(value));
+      return request("/semantic/target", body, undefined, value => readSemanticTarget(value, body), signal, undefined, beforeDispatch);
+    },
     topicSpaces(value, { signal } = {}) {
       const payload = input(() => parseTopicSpaceQueryRequest(value));
       return request("/topic-spaces/query", payload, undefined, parseTopicSpacesResponse, signal);

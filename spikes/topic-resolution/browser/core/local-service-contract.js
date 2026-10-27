@@ -219,14 +219,14 @@ export function readPriorDiscussions(value, sourceId) {
   }));
   return { version: readVersion(item.version), sourceId, currentTopicId, topics };
 }
-function contribution(value, rootId, isRoot) {
+function contribution(value, rootId, isRoot, { preview = false, partial = false } = {}) {
   const state = Object.getOwnPropertyDescriptor(value ?? {}, "state")?.value;
   const fields = state === "deleted" ? ["id", "rootId", "replyToId", "state", "label"] :
     ["id", "rootId", "replyToId", "state", "authorId", "actorType", "body", "createdAt", "edited"];
   if (state === "visible" && Object.hasOwn(value ?? {}, "origin")) fields.push("origin");
   if (state === "visible" && Object.hasOwn(value ?? {}, "insight")) fields.push("insight");
   if (state === "visible" && isRoot && Object.hasOwn(value ?? {}, "regrouped")) fields.push("regrouped");
-  const item = record(value, isRoot ? [...fields, "replies"] : fields);
+  const item = record(value, isRoot && !preview ? [...fields, "replies"] : fields);
   const projected = { id: readId(item.id), rootId: nullableId(item.rootId), replyToId: nullableId(item.replyToId), state: oneOf(item.state, ["deleted", "visible"]) };
   if (projected.rootId !== rootId || (isRoot && projected.replyToId !== null)) invalid();
   if (state === "deleted") projected.label = oneOf(item.label, ["Deleted by user"]);
@@ -248,9 +248,80 @@ function contribution(value, rootId, isRoot) {
     if (item.regrouped !== true) invalid();
     projected.regrouped = true;
   }
-  if (isRoot) projected.replies = array(item.replies, 1000, (reply) => contribution(reply, projected.id, false));
+  if (isRoot && !preview) projected.replies = array(item.replies, partial ? 50 : 1000, (reply) => contribution(reply, projected.id, false));
   return projected;
 }
+function semanticNode(value) { return text(value, 160); }
+function semanticCursor(value) {
+  if (value === null) return null;
+  if (typeof value !== "string" || value.length < 1 || value.length > 2048 || !/^[A-Za-z0-9_-]+$/u.test(value)) invalid();
+  return value;
+}
+function semanticRequest(value, thread) {
+  const item = record(value, ["nodeId", ...(thread ? ["rootId"] : []), "limit", "cursor"]);
+  if (!Number.isInteger(item.limit) || item.limit < 1 || item.limit > 50) invalid();
+  return { nodeId: semanticNode(item.nodeId), ...(thread ? { rootId: readId(item.rootId) } : {}), limit: item.limit, cursor: semanticCursor(item.cursor) };
+}
+export function readSemanticFeedRequest(value) { return semanticRequest(value, false); }
+export function readSemanticThreadRequest(value) { return semanticRequest(value, true); }
+export function readSemanticTargetRequest(value) {
+  const item = record(value, ["nodeId", "rootId", "targetId"]);
+  return { nodeId: semanticNode(item.nodeId), rootId: readId(item.rootId), targetId: readId(item.targetId) };
+}
+function semanticActors(value, posts) {
+  const actors = unique(array(value, 104, value => {
+    const actor = record(value, ["id", "displayName", "type"]);
+    return { id: readActorId(actor.id), displayName: text(actor.displayName, 200), type: oneOf(actor.type, ["human"]) };
+  }));
+  const ids = new Set(actors.map(a => a.id));
+  const needed = new Set(posts.filter(post => post.state === "visible").map(post => post.actorType === "agent" ? post.insight.operatorId : post.authorId));
+  if (ids.size !== needed.size || [...needed].some(id => !ids.has(id))) invalid();
+  return actors;
+}
+function semanticHeader(item, expected) {
+  if (!Number.isSafeInteger(item.policyRevision) || item.policyRevision < 0) invalid();
+  const nodeId = semanticNode(item.nodeId);
+  if (expected && nodeId !== expected.nodeId) invalid();
+  return { version: readVersion(item.version), policyRevision: item.policyRevision, nodeId };
+}
+export function readSemanticFeed(value, expected = null) {
+  const item = record(value, ["version", "policyRevision", "nodeId", "roots", "nextCursor", "actors"]);
+  const header = semanticHeader(item, expected);
+  const roots = array(item.roots, expected?.limit ?? 50, value => {
+    const card = record(value, ["topic", "discussionId", "root"]), root = contribution(card.root, null, true, { preview: true });
+    if (root.state !== "visible") invalid();
+    return { topic: topic(card.topic), discussionId: readId(card.discussionId), root };
+  });
+  if (new Set(roots.map(card => card.root.id)).size !== roots.length) invalid();
+  const destinations = new Map(), topics = new Map();
+  for (const card of roots) {
+    if (destinations.has(card.discussionId) && destinations.get(card.discussionId) !== card.topic.id ||
+        topics.has(card.topic.id) && topics.get(card.topic.id) !== card.discussionId) invalid();
+    destinations.set(card.discussionId, card.topic.id); topics.set(card.topic.id, card.discussionId);
+  }
+  return { ...header, roots, nextCursor: semanticCursor(item.nextCursor), actors: semanticActors(item.actors, roots.map(card => card.root)) };
+}
+function semanticThread(value, expected, target) {
+  const item = record(value, ["version", "policyRevision", "nodeId", "topic", "discussionId", "root",
+    ...(target ? ["targetId", "rootRevision", "targetRevision"] : ["nextCursor"]), "actors"]);
+  const header = semanticHeader(item, expected), root = contribution(item.root, null, true, { partial: true });
+  if (root.state !== "visible" || expected && root.id !== expected.rootId || root.replies.length > (target ? 1 : expected?.limit ?? 50)) invalid();
+  unique([root, ...root.replies]);
+  if (root.replies.some(reply => reply.id === reply.replyToId)) invalid();
+  const tail = target ? { targetId: readId(item.targetId), rootRevision: item.rootRevision, targetRevision: item.targetRevision } : { nextCursor: semanticCursor(item.nextCursor) };
+  if (target) {
+    if (![tail.rootRevision, tail.targetRevision].every(n => Number.isSafeInteger(n) && n > 0) || expected && tail.targetId !== expected.targetId) invalid();
+    if (tail.targetId === root.id) {
+      if (root.replies.length !== 0 || tail.targetRevision !== tail.rootRevision) invalid();
+    } else if (root.replies.length !== 1 || root.replies[0].id !== tail.targetId || root.replies[0].state !== "visible") invalid();
+  }
+  // A reply's parent may be on another page. Its root binding remains exact;
+  // canonical destination comes from this card, never from the foreground page.
+  return { ...header, topic: topic(item.topic), discussionId: readId(item.discussionId), root, ...tail,
+    actors: semanticActors(item.actors, [root, ...root.replies]) };
+}
+export function readSemanticThread(value, expected = null) { return semanticThread(value, expected, false); }
+export function readSemanticTarget(value, expected = null) { return semanticThread(value, expected, true); }
 export function readDiscussion(value, topicId) {
   const item = record(value, ["version", "topic", "discussionId", "roots"]);
   const projectedTopic = topic(item.topic);
