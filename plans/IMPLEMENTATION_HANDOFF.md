@@ -1,5 +1,22 @@
 # Implementation handoff: local-service discussion MVP
 
+LATESTactual012+application:bab0c4c1/session79840 CLOSEDexit0/25PASS, run5b084d1c...
+2e2ec. Parent862Bdee0023f...e4bf/stdout4553Bd48e3a07...24a9e/stderr0/child5169B
+31460f77...6a78a. Actual app SQL feed/thread/latestbody/keyset/originalIDs+handler,
+storedSource/title reuse/reclass/no canonicalwrites, explicitlegacy adoption and
+freshness, default-zero import/binary64, privacy/roles/erase allproved on invented
+fixtures. Independent8310Baudite5723b5a...0263e authenticated/FULLread. Normalowned
+smartstop andparentJobretirement distinctPASS, OIDs16384/17406dropped; all2381endpins
+and45rawGitbab0blobs PASS. This is not realmodel/UI/manyuser/live activation.
+10-12 remain unregistered; Sourcecodecan evolve through normalreviewedGit while
+retaining all consumedrun snapshots/frozenstudy files. Crawler/services unchanged.
+Next concrete frontend protocol is at planfront: independentsemanticselection,
+boundedtargetread+visibleactors, preservePageBdoc proof whileRootA staysatits own
+destination, null humanpublicationorigin ifB notlinked. CrossSourceAI requires
+server inspectFollowup/job/generated-proof changes together, notjustclient resolver.
+Also add Source-context/topic search metadata and realmodel/worker/coordinator
+wiring, then real UI/load and live cutover. GoalACTIVE; no genuineblocker.
+
 Next actual SOURCE is ready:012 storedSource verification/reclassification/adoption,
 semantic-source-repository/preparation, canonical readFacade semanticStamp/feed/
 thread and opt-in service/HTTP routes. Root36guardedNodePASS189ms+18PythonPASS278ms,

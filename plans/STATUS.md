@@ -1,5 +1,31 @@
 # Project status
 
+## Latest: stored-data preparation and application reads passed real PostgreSQL
+
+Sourcebab0c4c1/session79840 passed the expanded25-point isolated native suite.
+The real app-role read facade returned bounded root/thread pages with current
+edited bodies and original destinations; the HTTP handler returned that feed.
+Stored Source material was verified and reclassified with retained title vectors,
+without changing canonical Sources, receipts, queue state or revision. Explicit
+legacy adoption became visible through the separate semantic revision. A genuine
+default-zero Source with nontrivial float coordinates was prepared without an
+invented refresh. Repeat operations stayed unchanged; visibility/erasure checks pass.
+
+The owned server shut down normally, both scratch databases were dropped, stderr
+is empty and all2381 input end pins verify. Independent audite5723b5a...0263e is
+authenticated and fully read. The fixture used invented vectors/title encoder and
+a direct HTTP handler with fixture bearer; it did not test real E5, browser UI,
+many-user throughput or live activation. Evidence: portable/data/hierarchy-native-runs/
+run-5b084d1c54c54821d15aa046df28fd638106c5860a02e2ec.
+
+Code is pushed. Next connect real startup/shared encoding/background processing,
+semantic topic/source metadata and the browser. Cross-page thread replies need
+their original canonical IDs, bounded target reads and page-local actor names;
+the current page's document binding must remain intact. Live services/crawler stay
+unchanged until the complete integrated path passes UI and load checks.
+
+## Earlier source checkpoint (superseded by the actual result above)
+
 The next production slice is source-reviewed: verified stored-data classification
 and explicit legacy-root adoption, plus bounded canonical feed/thread reads through
 the service and guarded HTTP routes. Stored input is reconstructed and checked

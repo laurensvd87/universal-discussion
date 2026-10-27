@@ -8,6 +8,26 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+CURRENT27Oct storedSource+application actualbab0c4c1/session79840 CLOSEDexit0/PASS.
+Run5b084d1c54c54821d15aa046df28fd638106c5860a02e2ec; expanded25 literalpoints
+prove app-role feed/thread hydration/latestbody/keysets/originalIDs +fixtureBearer
+handler, exactstoredSource reclass/titleReuse/no canonicalmutation, explicitlegacy
+basis/adoption/idempotence, backgroundsemanticStamp freshness, genuine default0
+import/nontrivialbinary64/worklist, roles/privacy/erase. Parent862Bdee0023f...e4bf,
+stdout4553Bd48e3a07...24a9e/stderr0; child5169B31460f77...6a78a. OIDs16384/17406
+dropped; ownedPG41028smartstop +parentnormal/emptyJob/handles/EOF/endpinsTRUE,
+emergencyFALSE. Independent8310Baudite5723b5a1765a68a8ebe7c16bbf40959fd391ba08487d87b11315d344670263e
+data/semantic-hierarchy-stored-native-actual-audit-20261027.json authenticated/FULLread.
+All2381/274015543B and45rawGitbab0blobs PASS;2337baseline+1intentionalordinary
+readFacadeevolution, frozenstudies/prioroutputs unchanged. NO realE5/provider/UI/
+manyuserload/liveactivation proof. Crawler4060 same start advancing3670/stderr0;
+API19868worker36616dashboard6644 originalstarts/55433absent. Migrations10-12 still
+UNREGISTERED/liveuntouched; service semantic routes opt-infalse. Nextactualproduct
+startup/sharedmodel/backgroundcoordinator/sourcecontext+SearchTopics metadata,
+clientparsers/semanticselection/actor subset/exacttargetread +crossSourcehuman null
+origin and deliberateAIproof update. PreservePageBdocumentbinding whenopeningRootA;
+neverretargetRootA or pretendSourceA wascaptured. See planfront. GoalACTIVE.
+
 CURRENT27Oct storedSource+realapplication reads SOURCE Root+Trustaccepted:
 01229092B9af5affa...574aa, SourceRepo/preparation exacttyped/payload/binary64/
 receipt/stamp/titleinclusive digest; generation+matcher+version boundresults;

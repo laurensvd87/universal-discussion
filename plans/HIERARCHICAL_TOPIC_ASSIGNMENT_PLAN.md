@@ -1,5 +1,48 @@
 # Hierarchical topic assignment and discussion plan
 
+Latestactualbab0c4c1/session79840 now proves012storedSource verification/reclass/
+explicitadoption/freshness/default-zero plus app SQL feed/thread/HTTP-handler
+projections on the isolated invented fixture. Independent audite5723b5a...0263e
+verifies normalcleanup/all2381endpins/Git45. Full model/startup/client/load and
+live activation remain required; no realmodel/AI-provider/browser claim from this run.
+
+## Next product protocol
+
+Keep semantic browsing alongside the foreground page selection. Opening RootA
+from PageB must retain B's catalog, privacy/account/session/native document witness
+and saved posting binding. The semantic selection separately carries its node,
+original TopicA/DiscussionA/RootA and current target body/destination binding.
+
+- Add dedicated bounded semantic feed/thread client contracts. The existing
+  complete-discussion parser cannot validate a partial reply page. Discovery's
+  page-independent Search Topics must use semantic topic metadata; replace full
+  discussion fetching/local slicing with the new bounded reads.
+- Add an exact target read for a clicked reply outside the first page. Return only
+  root, requested target and necessary context after membership/visibility checks.
+  Return bounded public actor projections for visible authors/operators, avoiding
+  a dependency on PageB's catalog or a full user list merely to obtain usernames.
+- Before replying, re-read the semantic target, preserve original destination and
+  unchanged target/root bodies, and renew all existing document/account/privacy
+  and post-await checks. Do not put semantic cards into the same-Source earlier-
+  discussion list. Attach SourceB only if its verified canonical/historical origin
+  qualifies for TopicA; otherwise a human reply uses null origin. Never substitute
+  SourceA based solely on the displayed root origin or replace RootA with TopicB.
+- Use body revision/visibility/destination for target freshness. A root's generic
+  write_version can also change when a crawler unpins an anchor without changing
+  its body; that metadata change must not unnecessarily invalidate reply drafts.
+- Cross-Source @AI needs an explicit server protocol. inspectFollowup currently
+  rejects different-topic/current-Source mismatches. Verify RootA/TargetA separately
+  from B's attested article evidence and publish with null origin when B is not
+  destination-linked. Update generated job/review/proof bindings together, preserve
+  question-language/configured-language behavior, and test real requests. Widening
+  the human resolver alone does not authorize or fix this AI flow.
+
+Implement startup with the accepted packaged matcher and one shared title encoder,
+then resumable stored-data preparation/adoption outside user requests. Add current
+Source topic context and policy-aware Search Topics metadata. Install migrations,
+register/activate and perform the approved orderly crawler restart only after real
+page/browser and simultaneous-user tests pass. Preserve all prior evidence.
+
 Latest backend evidence:6dadf6fd/session76811 expanded native25PASS now covers
 root semantic snapshots, indexed ancestor/child feeds, owner policy consumption,
 human/generated root creation/replay, historical replies/manual IDs, visibility/
