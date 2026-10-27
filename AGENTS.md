@@ -39,8 +39,10 @@ Independent review found missing URL-selection coverage; the same saved-page
 case now checks the actual URL route and mismatched Source/topic/version refusal.
 Explicit140 NORMAL files/11 absent package scopes close the
 literal startup imports. No new actual/model/provider/browser/live grant yet.
-Source review04fb5469...708fa FULLread/auth; catalog547e3a4a...a885d authenticates
-2478files275417597B/379237B. One metadata-only child corpus is accepted as a
+Source review04fb5469...708fa FULLread/auth; catalog117028cb...83660 authenticates
+2478files275417157B/379237B. Two newly included ordinary JS dependencies were
+normalized CRLF->exact retained rawGit LF; no semantic change or old artifact edit.
+One metadata-only child corpus is accepted as a
 prospective candidate plan with leakage/independence caveats, not fit eligibility;
 no new capture/fit/weights. Broader fine-topic
 coverage, actual application latency, existing-page preparation/adoption, owner

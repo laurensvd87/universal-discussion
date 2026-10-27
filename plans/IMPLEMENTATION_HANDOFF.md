@@ -20,7 +20,8 @@ strict16-case proof, real9->17 upgrade/18 preservedfingerprints beforeHTTPwrites
 original25/33/caps/epochs unchanged. Root40purePythonPASS2.046s/34guardedNodePASS
 210.7ms; notactualSQL/HTTP. Literalimports closed140NORMAL/11absentpackageScopes.
 IndependentURLselectioncoverage finding fixed with realroute+negativeassertions.
-Catalog547e3a4a...a885d/2478files275417597B/379237B authenticates+endpins.
+Catalog117028cb...83660/2478files275417157B/379237B authenticates+endpins;
+newclosurestartup+workerresourcesCRLFnormalizedtoexactrawGitLF/no semanticchange.
 Noactualgrant yet.
 Source+candidate-onlycorpusreview04fb5469...708fa RootFULLread/auth; nofiteligibility/
 independentsampleclaim, nocapture/fit. Finalcommittedcatalog/rawGitcheckpending.
