@@ -23,6 +23,16 @@ const MIGRATION_FILES = Object.freeze([
   '008-independent-new-ingestion-admission.sql',
   '009-fail-fast-new-ingestion-locks.sql',
 ]);
+const HIERARCHY_MIGRATION_FILES = Object.freeze([...MIGRATION_FILES,
+  '010-semantic-hierarchy.sql', '011-semantic-discussion-feeds.sql',
+  '012-semantic-stored-source-preparation.sql', '013-semantic-public-topic-metadata.sql',
+  '014-semantic-source-containers.sql', '015-semantic-reply-witness.sql', '016-semantic-insight-reply.sql',
+]);
+export function canonicalV4SchemaVersion(profile = 'legacy9') {
+  if (profile === 'legacy9') return 9;
+  if (profile === 'hierarchy16') return 16;
+  throw new TypeError('Invalid canonical schema profile');
+}
 const ACTIVE_KINDS = Object.freeze([
   ['topics', 'topics'],
   ['discussions', 'discussions'],
@@ -271,17 +281,18 @@ export async function extractCanonicalV4Snapshot(sqlitePath) {
   }
 }
 
-export async function readCanonicalV4MigrationManifest() {
-  const migrations = await Promise.all(MIGRATION_FILES.map(async (filename, index) => {
+export async function readCanonicalV4MigrationManifest(profile = 'legacy9') {
+  const files = canonicalV4SchemaVersion(profile) === 9 ? MIGRATION_FILES : HIERARCHY_MIGRATION_FILES;
+  const migrations = await Promise.all(files.map(async (filename, index) => {
     const sql = await readFile(new URL(`./migrations/${filename}`, import.meta.url), 'utf8');
     return Object.freeze({ version: index + 1, sql, hash: digestText(sql) });
   }));
   return Object.freeze(migrations);
 }
 
-export async function migrateCanonicalV4(database) {
+export async function migrateCanonicalV4(database, profile = 'legacy9') {
   if (!database || typeof database.transaction !== 'function') invalid('PostgreSQL database required');
-  const migrations = await readCanonicalV4MigrationManifest();
+  const migrations = await readCanonicalV4MigrationManifest(profile);
   return database.transaction(async (tx) => {
     if (tx.dialect === 'pg') {
       await tx.query('SELECT pg_advisory_xact_lock(914092004)');

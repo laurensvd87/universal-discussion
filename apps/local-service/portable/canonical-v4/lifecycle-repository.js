@@ -9,7 +9,7 @@ import {
   readRecord,
   readText,
 } from '../../src/domain/validation.js';
-import { readCanonicalV4MigrationManifest } from './index.js';
+import { readCanonicalV4MigrationManifest, canonicalV4SchemaVersion } from './index.js';
 
 const SCHEMA_VERSION = 9;
 const GENERATED_AUTHOR = 'demo-imported-ai';
@@ -166,27 +166,30 @@ function withdrawalResponse(text) {
   return frozenClone({ withdrawn: safeInteger(record.withdrawn, 'withdrawal count') });
 }
 
-async function schemaHealth(database) {
+async function schemaHealth(database, schemaProfile) {
+  const schemaVersion = canonicalV4SchemaVersion(schemaProfile);
   const { rows } = await database.query(
     'SELECT version,hash FROM canonical_v4.schema_migrations ORDER BY version');
   let manifest;
-  try { manifest = await readCanonicalV4MigrationManifest(); }
+  try { manifest = await readCanonicalV4MigrationManifest(schemaProfile); }
   catch { fail('unavailable', 'Canonical lifecycle schema unavailable'); }
-  if (rows.length !== SCHEMA_VERSION || rows.length !== manifest.length || rows.some((row, index) =>
+  if (rows.length !== schemaVersion || rows.length !== manifest.length || rows.some((row, index) =>
     Number(row.version) !== manifest[index].version || row.hash !== manifest[index].hash))
     fail('unavailable', 'Canonical lifecycle schema unavailable');
-  return Object.freeze({ schemaVersion: SCHEMA_VERSION });
+  return Object.freeze({ schemaVersion });
 }
 
 export function createCanonicalV4LifecycleRepository({ database,
+  schemaProfile = 'legacy9',
   nextId = (kind) => `${kind}-${randomUUID()}`,
   now = () => new Date().toISOString() } = {}) {
+  canonicalV4SchemaVersion(schemaProfile);
   if (!database || typeof database.query !== 'function' ||
       typeof nextId !== 'function' || typeof now !== 'function')
     throw new TypeError('Invalid canonical PostgreSQL lifecycle dependencies');
 
   return Object.freeze({
-    health: () => schemaHealth(database),
+    health: () => schemaHealth(database, schemaProfile),
 
     async command(expectedValue, commandValue, actor, generatedProof = null) {
       const actorId = actorIdFor(actor);

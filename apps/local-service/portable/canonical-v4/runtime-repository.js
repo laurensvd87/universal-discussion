@@ -3,7 +3,7 @@ import { types } from 'node:util';
 import { isAccountActor } from '../../src/accounts/account-principal.js';
 import { ServiceError, fail } from '../../src/domain/errors.js';
 import { frozenClone, readBody, readExpectedVersion, readId, readRecord, readText } from '../../src/domain/validation.js';
-import { readCanonicalV4MigrationManifest } from './index.js';
+import { readCanonicalV4MigrationManifest, canonicalV4SchemaVersion } from './index.js';
 
 const RUNTIME_SCHEMA_VERSION = 9;
 // These are the only non-account human actors accepted by the canonical state
@@ -116,9 +116,11 @@ function storageFailure(error) {
 }
 
 export function createCanonicalV4RuntimeRepository({ database,
+  schemaProfile = 'legacy9',
   nextId = (kind) => `${kind}-${randomUUID()}`,
   now = () => new Date().toISOString(),
   beforeWatermark = null } = {}) {
+  const schemaVersion = canonicalV4SchemaVersion(schemaProfile);
   if (!database || typeof database.query !== 'function' || typeof database.transaction !== 'function' ||
       typeof nextId !== 'function' || typeof now !== 'function' ||
       beforeWatermark !== null && typeof beforeWatermark !== 'function')
@@ -128,13 +130,13 @@ export function createCanonicalV4RuntimeRepository({ database,
     async health() {
       const { rows } = await database.query('SELECT version,hash FROM canonical_v4.schema_migrations ORDER BY version');
       let migrations;
-      try { migrations = await readCanonicalV4MigrationManifest(); }
+      try { migrations = await readCanonicalV4MigrationManifest(schemaProfile); }
       catch { fail('unavailable', 'Canonical runtime schema unavailable'); }
-      if (rows.length !== RUNTIME_SCHEMA_VERSION || rows.length !== migrations.length || rows.some((row, index) =>
+      if (rows.length !== schemaVersion || rows.length !== migrations.length || rows.some((row, index) =>
         Number(row.version) !== migrations[index].version || row.hash !== migrations[index].hash))
         fail('unavailable', 'Canonical runtime schema unavailable');
       const state = await runtimeHeader(database);
-      return frozenClone({ schemaVersion: RUNTIME_SCHEMA_VERSION, version: {
+      return frozenClone({ schemaVersion, version: {
         generation: state.generation, revision: state.revision,
       } });
     },

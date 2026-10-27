@@ -10,6 +10,8 @@ import {createCanonicalV4IngestionRepository} from '../../portable/canonical-v4/
 import {createCanonicalV4SemanticRepository} from '../../portable/canonical-v4/semantic-repository.js';
 import {createCanonicalV4SemanticSourceRepository} from '../../portable/canonical-v4/semantic-source-repository.js';
 import {startPostgresIngestionWorkerLoop} from './postgres-ingestion-worker-loop.js';
+import {createCanonicalV4SemanticMetadataRepository} from '../../portable/canonical-v4/semantic-metadata-repository.js';
+import {readId,readRecord} from '../domain/validation.js';
 
 const LIMIT=8,MODEL='e5-small-q8-browser-main-prefix-v1';
 const unavailable=()=>Object.assign(new Error('Hierarchy worker resources unavailable'),{code:'unavailable'});
@@ -32,20 +34,49 @@ function workerOptions(value){
 }
 function freeze(value){if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;}
 
+// Used by both explicit runtime composition and the direct production factory.
+// This is verification only: it cannot migrate, register, activate or claim.
+export async function verifyInstalledHierarchyWorkerReadiness(database,installed){
+ try{
+  await createCanonicalV4IngestionRepository({database,schemaProfile:'hierarchy16'}).health();
+  const rows=(await database.query(`SELECT pg_catalog.to_regprocedure($1) IS NOT NULL AS container_installed,
+   pg_catalog.has_function_privilege(current_user,pg_catalog.to_regprocedure($2),'EXECUTE') AS semantic_execute,
+   coalesce(pg_catalog.has_function_privilege(current_user,pg_catalog.to_regprocedure($1),'EXECUTE'),false) AS container_execute,
+   coalesce(pg_catalog.has_function_privilege(current_user,pg_catalog.to_regprocedure($3),'EXECUTE'),false) AS legacy_execute`,[
+    'canonical_v4.semantic_apply_source_container(text,text,text,double precision[],text,text,text,text,text,text,boolean)',
+    'canonical_v4.semantic_ingest_apply(text,text,text,double precision[],text,text,text,text,text,text,boolean,text,double precision[],text[])',
+    'canonical_v4.ingest_apply(text,text,text,double precision[],text,text,text,text,text,text,boolean)'])).rows;
+  if(rows.length!==1)throw unavailable();
+  const rights=readRecord(rows[0],['container_installed','semantic_execute','container_execute','legacy_execute']);
+  if(rights.container_installed!==true||rights.semantic_execute!==true||rights.container_execute!==false||rights.legacy_execute!==false)throw unavailable();
+  const revisions=(await database.query('SELECT * FROM canonical_v4.semantic_read_revision()')).rows;
+  if(revisions.length!==1)throw unavailable();const stamp=readRecord(revisions[0],['generation','revision']);
+  readId(stamp.generation);if(typeof stamp.revision!=='string'||!/^[a-f0-9]{64}$/u.test(stamp.revision))throw unavailable();
+  const topology=await createCanonicalV4SemanticMetadataRepository({database}).topics({generation:stamp.generation});
+  const expected=[...installed.descriptor.matcherIdentity.nodes].sort((a,b)=>Buffer.compare(Buffer.from(a.id),Buffer.from(b.id)));
+  if(topology.matcherIdentityHash!==installed.descriptor.matcherIdentityHash||
+      JSON.stringify(topology.nodes.map(({id,parentId})=>({id,parentId})))!==JSON.stringify(expected))throw unavailable();
+  return stamp.generation;
+ }catch{throw unavailable();}
+}
+
 async function openResources(options,dependencies,productionBinding){
  const a=fields(options,['database','referenceMatcher','nextId','now']);
  if(!a.database||typeof a.database.query!=='function'||typeof a.referenceMatcher?.represent!=='function'||typeof a.nextId!=='function'||typeof a.now!=='function')invalid();
  const represent=a.referenceMatcher.represent.bind(a.referenceMatcher);
  const installed=await dependencies.loadInstalled();let encoder=null;
  try{
+  const ingest=dependencies.createIngestionRepository({database:a.database,nextId:a.nextId,now:a.now,schemaProfile:'hierarchy16'});
+  if(productionBinding)await verifyInstalledHierarchyWorkerReadiness(a.database,installed);
+  else await ingest.health(); // Trusted test composition never claims production readiness.
   // Packaged production opener verifies all nine encoder assets and creates
   // its fixed runtime before any loop, claim or externally callable prep exists.
   encoder=await dependencies.openEncoder(installed);
   if(encoder?.modelId!==MODEL||typeof encoder.embed!=='function'||typeof encoder.close!=='function')throw unavailable();
-  const ingest=dependencies.createIngestionRepository({database:a.database,nextId:a.nextId,now:a.now});
+  if(productionBinding)await verifyInstalledHierarchyWorkerReadiness(a.database,installed);
   const semantic=dependencies.createSemanticRepository({database:a.database,nextId:a.nextId,now:a.now});
   const stored=dependencies.createStoredRepository({database:a.database});
-  let closed=false,started=false,worker=null,closing=null,admitted=0,tail=Promise.resolve();
+  let closed=false,started=false,worker=null,closing=null,admitted=0,firstClaimChecked=false,tail=Promise.resolve();
   const encoding=new Map(),preparations=new Set(),sqlCalls=new Set();
   async function embedTitle(title){
    if(closed)throw unavailable();
@@ -72,7 +103,11 @@ async function openResources(options,dependencies,productionBinding){
    return prepare(livePrep,{operationId:claim.operationId,operationDigest:claim.operationDigest,requestMaterial:claim.requestMaterial,input:claim.input});
   }
   const repository=Object.freeze({
-   claim:value=>{if(closed)throw unavailable();return ingest.claim(value);},
+   claim:async value=>{
+    if(closed)throw unavailable();
+    if(productionBinding&&!firstClaimChecked){await verifyInstalledHierarchyWorkerReadiness(a.database,installed);if(closed)throw unavailable();firstClaimChecked=true;}
+    return ingest.claim(value);
+   },
    failClaim:(...args)=>ingest.failClaim(...args),
    apply:(claim,value)=>{if(closed)throw unavailable();return semantic.apply(claim,value);},
   });

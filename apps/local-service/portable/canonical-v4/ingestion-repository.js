@@ -13,7 +13,7 @@ import { frozenClone, readExpectedVersion, readId, readRecord, readText } from '
 import { RIDGE_PARAMETER_SHA256 } from '../../src/domain/ridge-topic-adapter.js';
 import { qualifyRetainedTopicContext } from '../../src/domain/guarded-body-topic-planner.js';
 import { inspectPageUrl } from '../../../../spikes/topic-resolution/browser/core/page-content-policy.js';
-import { readCanonicalV4MigrationManifest } from './index.js';
+import { readCanonicalV4MigrationManifest, canonicalV4SchemaVersion } from './index.js';
 
 const SCHEMA_VERSION = 9;
 const MIN_SECONDS = 1;
@@ -228,21 +228,24 @@ function decodeClaim(row) {
   });
 }
 
-async function schemaHealth(database) {
+async function schemaHealth(database, schemaProfile) {
+  const schemaVersion = canonicalV4SchemaVersion(schemaProfile);
   const { rows } = await database.query(
     'SELECT version,hash FROM canonical_v4.schema_migrations ORDER BY version');
   let manifest;
-  try { manifest = await readCanonicalV4MigrationManifest(); }
+  try { manifest = await readCanonicalV4MigrationManifest(schemaProfile); }
   catch { fail('unavailable', 'Canonical ingestion schema unavailable'); }
-  if (rows.length !== SCHEMA_VERSION || rows.length !== manifest.length || rows.some((row, index) =>
+  if (rows.length !== schemaVersion || rows.length !== manifest.length || rows.some((row, index) =>
     Number(row.version) !== manifest[index].version || row.hash !== manifest[index].hash))
     fail('unavailable', 'Canonical ingestion schema unavailable');
-  return Object.freeze({ schemaVersion: SCHEMA_VERSION });
+  return Object.freeze({ schemaVersion });
 }
 
 export function createCanonicalV4IngestionRepository({ database,
+  schemaProfile = 'legacy9',
   nextId = (kind) => `${kind}-${randomUUID()}`,
   now = () => new Date().toISOString() } = {}) {
+  canonicalV4SchemaVersion(schemaProfile);
   if (!database || typeof database.query !== 'function')
     throw new TypeError('Invalid canonical PostgreSQL ingestion dependencies');
   if (typeof nextId !== 'function' || typeof now !== 'function')
@@ -266,7 +269,7 @@ export function createCanonicalV4IngestionRepository({ database,
   };
 
   return Object.freeze({
-    health: () => schemaHealth(database),
+    health: () => schemaHealth(database, schemaProfile),
 
     enqueueInteractive(value, options) {
       return enqueue('interactive', value, options);

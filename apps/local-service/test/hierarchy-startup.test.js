@@ -4,8 +4,8 @@ import {fileURLToPath} from 'node:url';
 import {openDormantPostgresApplication} from '../src/startup.js';
 import {readCanonicalV4MigrationManifest} from '../portable/canonical-v4/index.js';
 
-async function fixture(){
- const manifest=await readCanonicalV4MigrationManifest(),calls=[];
+async function fixture(profile='legacy9'){
+ const manifest=await readCanonicalV4MigrationManifest(profile),calls=[];
  const database={async query(sql){
   calls.push(['canonical-query',sql]);
   if(sql==='SELECT version,hash FROM canonical_v4.schema_migrations ORDER BY version')
@@ -24,7 +24,7 @@ async function fixture(){
 }
 
 test('trusted hierarchy startup exposes semantic reads without opening an encoder, worker, or legacy Topic Spaces index',async()=>{
- const f=await fixture();
+ const f=await fixture('hierarchy16');
  const application=await openDormantPostgresApplication({...f.options,hierarchicalTopics:true,
   alternateRidgeAdapter:new Proxy({}, {get(){assert.fail('API-only startup must not touch the old index or worker encoder');}}),
   canonicalDatabaseOwned:true});
@@ -56,20 +56,22 @@ test('an embedded hierarchy worker rejects a missing migration or excessive priv
   {container_installed:false,semantic_execute:false,container_execute:false,legacy_execute:false},
   {container_installed:true,semantic_execute:true,container_execute:true,legacy_execute:false},
  ]){
-  const f=await fixture();let workerQueries=0;
-  const workerDatabase={async query(sql){workerQueries++;assert.ok(sql.includes('AS container_installed'));
+  const f=await fixture('hierarchy16'),manifest=await readCanonicalV4MigrationManifest('hierarchy16');let workerQueries=0;
+  const workerDatabase={async query(sql){workerQueries++;
+   if(sql==='SELECT version,hash FROM canonical_v4.schema_migrations ORDER BY version')return {rows:manifest.map(({version,hash})=>({version,hash}))};
+   assert.ok(sql.includes('AS container_installed'));
    return {rows:[rights]};},async close(){f.calls.push(['worker-close']);}};
   await assert.rejects(openDormantPostgresApplication({...f.options,hierarchicalTopics:true,
    canonicalDatabaseOwned:true,ingestionWorkerDatabase:workerDatabase,ingestionWorkerDatabaseOwned:true,
    referenceMatcher:{represent:()=>assert.fail('Must not prepare a claim')},
   }),error=>error.code==='unavailable');
-  assert.equal(workerQueries,1);assert.deepEqual(f.calls.filter(([kind])=>!kind.endsWith('query')).map(([kind])=>kind),
+  assert.equal(workerQueries,2);assert.deepEqual(f.calls.filter(([kind])=>!kind.endsWith('query')).map(([kind])=>kind),
    ['ai-dispose','worker-close','canonical-close']);
  }
 });
 
 test('cleanup attempts all independently owned pools and preserves even a falsy first failure',async()=>{
- const f=await fixture(),urlPool={query:async()=>assert.fail('No URL read'),transaction:()=>assert.fail('No URL transaction'),
+ const f=await fixture('hierarchy16'),urlPool={query:async()=>assert.fail('No URL read'),transaction:()=>assert.fail('No URL transaction'),
   async close(){f.calls.push(['url-close']);throw Error('Later cleanup failure');}};
  const application=await openDormantPostgresApplication({...f.options,hierarchicalTopics:true,
   canonicalDatabaseOwned:true,urlSelectionDatabase:urlPool,urlSelectionDatabaseOwned:true,

@@ -99,9 +99,11 @@ test('single owned worker and closed option allowlist prevent replacing reposito
  await assert.rejects(openInstalledHierarchyWorkerResources({...f.options,encoder:'caller-selected'}),TypeError);
 });
 
-test('startup failure closes an opened encoder and exposes no claim-capable resources',async()=>{
+test('early repository failure avoids encoder allocation; later startup failure closes an opened encoder',async()=>{
  const f=setup({repositoryFailure:true});await assert.rejects(f.open(),{message:'Repository startup failed'});
- assert.equal(f.state.encoderClosed,1);assert.equal(f.state.claims,0);
+ assert.equal(f.state.encoderClosed,0);assert.equal(f.state.claims,0);assert.equal(f.state.events.includes('encoder-ready'),false);
+ const later=setup();later.dependencies.createSemanticRepository=()=>{throw Error('Late startup failed');};
+ await assert.rejects(later.open(),{message:'Late startup failed'});assert.equal(later.state.encoderClosed,1);assert.equal(later.state.claims,0);
 });
 
 test('closing retains exact outstanding SQL originals and suppresses late delivery without cancellation or retry',async()=>{
@@ -114,13 +116,27 @@ test('closing retains exact outstanding SQL originals and suppresses late delive
 });
 
 test('health and stored SQL share a finite eight-call admission limit',async()=>{
- const held=defer(),f=setup();let calls=0;
- f.dependencies.createIngestionRepository=()=>({health:()=>{calls++;return held.promise;},claim:async()=>null,failClaim:async()=>true});
+ const held=defer(),f=setup();let calls=0,startup=true;
+ f.dependencies.createIngestionRepository=()=>({health:()=>{if(startup){startup=false;return Promise.resolve({schemaVersion:16});}calls++;return held.promise;},claim:async()=>null,failClaim:async()=>true});
  f.dependencies.createStoredRepository=()=>({candidates:()=>{calls++;return held.promise;},reclassify:()=>{calls++;return held.promise;}});
  const r=await f.open(),work=[r.health(),r.storedSources.candidates({}),r.storedSources.reclassify({}),...Array.from({length:5},()=>r.health())];
  const settled=Promise.allSettled(work);await assert.rejects(r.health(),{code:'unavailable'});assert.equal(calls,8);
  const closing=r.close();held.resolve({ready:true});const outcomes=await settled;assert.ok(outcomes.every(o=>o.status==='rejected'&&o.reason.code==='unavailable'));await closing;
  assert.equal(f.state.encoderClosed,1);
+});
+
+test('direct production resources refuse unregistered hierarchy schema before encoder allocation or claims',async()=>{
+ const f=setup(),queries=[];
+ await assert.rejects(openInstalledHierarchyWorkerResources({...f.options,database:{async query(sql){queries.push(sql);return {rows:[]};}}}),{code:'unavailable'});
+ assert.deepEqual(queries,['SELECT version,hash FROM canonical_v4.schema_migrations ORDER BY version']);
+ assert.equal(f.state.claims,0);assert.equal(f.state.encodes,0);
+});
+
+test('trusted resource composition selects16 health before opening its encoder',async()=>{
+ const f=setup();let opened=false;
+ f.dependencies.createIngestionRepository=options=>{assert.equal(options.schemaProfile,'hierarchy16');return {health:async()=>{throw Error('Invalid16 schema');}};};
+ f.dependencies.openEncoder=async()=>{opened=true;assert.fail('Schema must precede encoder');};
+ await assert.rejects(f.open(),{message:'Invalid16 schema'});assert.equal(opened,false);assert.equal(f.state.claims,0);
 });
 
 test('invalid database shape rejects before installed assets or encoder startup',async()=>{

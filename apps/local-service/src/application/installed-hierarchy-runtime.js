@@ -3,17 +3,8 @@
 import {ServiceError} from '../domain/errors.js';
 import {readId,readRecord} from '../domain/validation.js';
 import {loadInstalledHierarchyMatcher} from './installed-hierarchy-matcher.js';
-import {openInstalledHierarchyWorkerResources} from './hierarchy-worker-resources.js';
+import {openInstalledHierarchyWorkerResources,verifyInstalledHierarchyWorkerReadiness} from './hierarchy-worker-resources.js';
 import {createStoredHierarchyCoordinator} from './stored-hierarchy-coordinator.js';
-import {createCanonicalV4SemanticMetadataRepository} from '../../portable/canonical-v4/semantic-metadata-repository.js';
-
-const CONTAINER='canonical_v4.semantic_apply_source_container(text,text,text,double precision[],text,text,text,text,text,text,boolean)';
-const LEGACY='canonical_v4.ingest_apply(text,text,text,double precision[],text,text,text,text,text,text,boolean)';
-const APPLY='canonical_v4.semantic_ingest_apply(text,text,text,double precision[],text,text,text,text,text,text,boolean,text,double precision[],text[])';
-const PRIVILEGES=`SELECT pg_catalog.to_regprocedure($1) IS NOT NULL AS container_installed,
- pg_catalog.has_function_privilege(current_user,pg_catalog.to_regprocedure($2),'EXECUTE') AS semantic_execute,
- coalesce(pg_catalog.has_function_privilege(current_user,pg_catalog.to_regprocedure($1),'EXECUTE'),false) AS container_execute,
- coalesce(pg_catalog.has_function_privilege(current_user,pg_catalog.to_regprocedure($3),'EXECUTE'),false) AS legacy_execute`;
 const unavailable=()=>new ServiceError('unavailable','Installed hierarchy startup unavailable');
 function one(result,keys){if(!Array.isArray(result?.rows)||result.rows.length!==1)throw unavailable();return readRecord(result.rows[0],keys);}
 async function generation(database){
@@ -22,17 +13,7 @@ async function generation(database){
  }catch{throw unavailable();}
 }
 async function readiness(database,installed){
- try{
-  const rights=one(await database.query(PRIVILEGES,[CONTAINER,APPLY,LEGACY]),['container_installed','semantic_execute','container_execute','legacy_execute']);
-  if(rights.container_installed!==true||rights.semantic_execute!==true||rights.container_execute!==false||rights.legacy_execute!==false)throw unavailable();
-  const currentGeneration=await generation(database),metadata=createCanonicalV4SemanticMetadataRepository({database});
-  const topology=await metadata.topics({generation:currentGeneration});
-  if(topology.matcherIdentityHash!==installed.descriptor.matcherIdentityHash)throw unavailable();
-  const actual=topology.nodes.map(({id,parentId})=>({id,parentId}));
-  const expected=[...installed.descriptor.matcherIdentity.nodes].sort((a,b)=>Buffer.compare(Buffer.from(a.id),Buffer.from(b.id)));
-  if(JSON.stringify(actual)!==JSON.stringify(expected))throw unavailable();
-  return currentGeneration;
- }catch{throw unavailable();}
+ try{return await verifyInstalledHierarchyWorkerReadiness(database,installed);}catch{throw unavailable();}
 }
 async function open(options,openResources,testComposition){
  const a=readRecord(options,['database','referenceMatcher','nextId','now','workerOptions'],['database','referenceMatcher','nextId','now']);

@@ -119,10 +119,11 @@ export async function openDormantPostgresApplication({ config: input, databasePa
   const reads = createCanonicalV4ReadFacade({ database: canonicalDatabase });
   const urlSelectionReads = urlSelectionDatabase === null ? reads :
     createCanonicalV4ReadFacade({ database: urlSelectionDatabase });
-  const commands = createCanonicalV4RuntimeRepository({ database: canonicalDatabase, nextId, now });
-  const contributionLifecycle = createCanonicalV4LifecycleRepository({ database: canonicalDatabase, nextId, now });
+  const schemaProfile = hierarchicalTopics ? 'hierarchy16' : 'legacy9';
+  const commands = createCanonicalV4RuntimeRepository({ database: canonicalDatabase, nextId, now, schemaProfile });
+  const contributionLifecycle = createCanonicalV4LifecycleRepository({ database: canonicalDatabase, nextId, now, schemaProfile });
   const appIngestionRepository = ingestion?.enqueueInteractive ? ingestion :
-    createCanonicalV4IngestionRepository({ database: canonicalDatabase, nextId, now });
+    createCanonicalV4IngestionRepository({ database: canonicalDatabase, nextId, now, schemaProfile });
   const interactiveIngestion = ingestion?.ingest ? ingestion :
     createPostgresInteractiveIngestion({ repository: appIngestionRepository });
   const lifecycleBoundary = lifecycle ?? Object.freeze({
@@ -134,7 +135,7 @@ export async function openDormantPostgresApplication({ config: input, databasePa
     withdrawAccountContributions: (actorId) => contributionLifecycle.withdrawAccountContributions(actorId),
   });
   if (!hierarchicalTopics && ingestionWorkerDatabase !== null && ingestionWorkerRepository === null)
-    ingestionWorkerRepository = createCanonicalV4IngestionRepository({ database: ingestionWorkerDatabase, nextId, now });
+    ingestionWorkerRepository = createCanonicalV4IngestionRepository({ database: ingestionWorkerDatabase, nextId, now, schemaProfile });
   let accounts = null, accountRepository = null, privateDiscussions = null, accountLifecycle = null, runtime = null, worker = null,
     topicSpaces = null;
   async function cleanup() {
