@@ -1,7 +1,7 @@
 import { classifyActiveTabSnapshot, sameActiveTabObservation } from "./active-tab-policy.js";
 import { validateAndProjectActiveTabResponse } from "./indicator-contract.js";
 import { localServiceSourceId } from "../fixtures/local-service-fixture-bridge.js";
-import { readPostOrigin, isAccountActorId, readId, record, readSemanticTarget, readSemanticTargetRequest, HIERARCHY_SOURCE_POLICY } from "./local-service-contract.js";
+import { readPostOrigin, isAccountActorId, readId, record, readSemanticTarget, readSemanticTargetRequest, HIERARCHY_SOURCE_POLICY, MAX_CATALOG_ENTRIES } from "./local-service-contract.js";
 import { isRidgeTopicView, requiresReferenceTopicView } from "./topic-view-mode.js";
 import { resolveDiscussionTarget } from "./discussion-target.js";
 import { projectPageResolution, isReadyPageResolution, samePageResolution } from "./page-resolution-contract.js";
@@ -304,7 +304,8 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     }
     if (relatedDiscussions.length && stillCurrent()) publish({ relatedDiscussions });
   }
-  async function loadEarlierDiscussions(ownEpoch, catalog, discussion, prior, sourceId, topicId, options) {
+  async function loadEarlierDiscussions(ownEpoch, catalog, discussion, prior, sourceId, topicId, options,
+    readCurrent = null, prefetched = new Map()) {
     if (!sourceId || !topicId || !discussion || !prior?.topics?.length ||
         !sameVersion(catalog?.version, discussion.version) ||
         !sameVersion(catalog.version, prior.version) ||
@@ -320,16 +321,24 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     }
     const earlierDiscussions = [];
     for (let offset = 0; offset < entries.length; offset += 4) {
-      if (!stillCurrent()) return;
+      if (!stillCurrent() || readCurrent && !await readCurrent()) return;
       const batch = entries.slice(offset, offset + 4);
-      const outcomes = await Promise.allSettled(batch.map((entry) => client.discussion(entry.id, options)));
-      if (!stillCurrent()) return;
+      const outcomes = await Promise.allSettled(batch.map((entry) =>
+        prefetched.has(entry.id) ? prefetched.get(entry.id) : client.discussion(entry.id, options)));
+      if (!stillCurrent() || readCurrent && !await readCurrent()) return;
       const unauthorized = outcomes.find((outcome) => outcome.status === "rejected" &&
         outcome.reason?.code === "unauthorized");
       if (unauthorized) { await failure(unauthorized.reason, ownEpoch); return; }
+      if (readCurrent) {
+        const failed = outcomes.find(outcome => outcome.status === "rejected");
+        if (failed) publish({ priorDiscussionsError: optionalError(failed.reason) }, true);
+      }
       for (let index = 0; index < outcomes.length; index += 1) {
         if (outcomes[index].status !== "fulfilled") continue;
         const view = outcomes[index].value, entry = batch[index];
+        if (readCurrent && !sameVersion(catalog.version, view?.version)) {
+          publish({ priorDiscussionsError: "conflict" }, true); continue;
+        }
         if (!sameGenerationAtOrAfter(catalog.version, view?.version) ||
             view?.topic?.id !== entry.id || view.topic.title !== entry.title ||
             view.topic.kind !== entry.kind || typeof view.discussionId !== "string" ||
@@ -345,6 +354,119 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       }
       if (stillCurrent()) publish({ earlierDiscussions: [...earlierDiscussions] });
     }
+  }
+  let savedThreadsFlight = null;
+  // Explicit, Source-scoped history read. It never launches matching enrichment
+  // or changes the foreground page's canonical destination.
+  function refreshSavedThreads() {
+    if (savedThreadsFlight) return savedThreadsFlight;
+    if (disposed || state.phase !== "ready" || state.busy || mutationPending || state.needsFreshRead ||
+        !state.sourceId || !state.topicId || !state.discussion || typeof client.selection !== "function" ||
+        typeof client.priorDiscussions !== "function") return Promise.resolve(false);
+    const ownEpoch = epoch, sourceId = state.sourceId, topicId = state.topicId,
+      actorId = state.actorId, selection = state.selection, context = activeContext,
+      resolution = state.resolution, source = state.catalog.sources.find(item => item.id === sourceId),
+      discussionId = state.discussion.discussionId;
+    let catalog = state.catalog;
+    const options = { signal: abort.signal };
+    function current() {
+      const actor = readPostingActor();
+      return !disposed && epoch === ownEpoch && state.phase === "ready" && !state.busy && !mutationPending &&
+        !state.needsFreshRead && state.sourceId === sourceId && state.topicId === topicId &&
+        state.selection === selection && state.actorId === actorId && (actor === undefined || actor === actorId) &&
+        state.catalog === catalog && state.discussion?.discussionId === discussionId && activeContext === context &&
+        sameProjectedResolution(state.resolution, resolution);
+    }
+    async function readCurrent() {
+      if (!current()) return false;
+      try {
+        if (context) {
+          const tab = await readActiveTab();
+          if (!current() || tab.tabId !== context.tabId || tab.url !== context.url ||
+              context.windowId !== undefined && tab.windowId !== context.windowId) return false;
+          if (attestActiveContext && !await attestActiveContext(context)) return false;
+          if (!current()) return false;
+        }
+        if (readPageResolution) {
+          const fresh = await freshResolution();
+          if (!current() || !sameProjectedResolution(resolution, fresh)) return false;
+        }
+        return current();
+      } catch { return false; }
+    }
+    const conflict = () => Object.assign(new Error("Saved history changed"), { code: "conflict" });
+    const work = (async () => {
+      try {
+        for (let attempt = 0; attempt < 2; attempt++) {
+          if (!await readCurrent()) return false;
+          const selected = await client.selection({ sourceId, topicId }, options);
+          if (!await readCurrent()) return false;
+          const incoming = selected.catalog?.sources.find(item => item.id === sourceId);
+          if (!sameVersion(selected.catalog?.version, selected.discussion?.version) ||
+              !sameGenerationAtOrAfter(catalog.version, selected.catalog.version) ||
+              incoming?.topicId !== topicId || incoming.url !== source?.url || incoming.provenance !== source?.provenance ||
+              selected.discussion.topic.id !== topicId || selected.discussion.discussionId !== discussionId ||
+              postingActor(selected.catalog) !== actorId) throw conflict();
+          const prior = await client.priorDiscussions(sourceId, options);
+          if (!await readCurrent()) return false;
+          if (!sameVersion(prior?.version, selected.catalog.version)) {
+            if (attempt === 0) continue;
+            throw conflict();
+          }
+          if (prior.sourceId !== sourceId || prior.currentTopicId !== topicId ||
+              prior.topics.some(entry => entry.id === topicId)) throw conflict();
+          const topics = [...selected.catalog.topics], prefetched = new Map();
+          let drift = false;
+          for (let offset = 0; offset < prior.topics.length; offset += 4) {
+            if (!await readCurrent()) return false;
+            const missing = prior.topics.slice(offset, offset + 4).filter(entry => !topics.some(topic => topic.id === entry.id));
+            const views = await Promise.all(missing.map(entry => client.selection({ sourceId: null, topicId: entry.id }, options)));
+            if (!await readCurrent()) return false;
+            for (let index = 0; index < missing.length; index++) {
+              const entry = missing[index], view = views[index];
+              if (!sameVersion(view.catalog?.version, selected.catalog.version) ||
+                  !sameVersion(view.discussion?.version, selected.catalog.version)) { drift = true; break; }
+              const topic = view.catalog.topics.find(item => item.id === entry.id);
+              if (!topic || topic.title !== entry.title || topic.kind !== entry.kind ||
+                  view.discussion.topic.id !== entry.id || view.discussion.topic.title !== entry.title ||
+                  view.discussion.topic.kind !== entry.kind) throw conflict();
+              // Only the authenticated destination Topic is retained. The scoped
+              // read's member Sources, actors and other Topics are not merged.
+              if (topics.length >= MAX_CATALOG_ENTRIES)
+                throw Object.assign(new Error("Saved history capacity reached"), { code: "capacity" });
+              topics.push(topic); prefetched.set(entry.id, view.discussion);
+            }
+            if (drift) break;
+          }
+          if (drift) { if (attempt === 0) continue; throw conflict(); }
+          if (prior.topics.some(entry => !topics.some(topic => topic.id === entry.id &&
+              topic.title === entry.title && topic.kind === entry.kind))) throw conflict();
+          if (!await readCurrent()) return false;
+          const nextCatalog = { ...selected.catalog, topics };
+          const nextState = { ...targetState(), catalog: nextCatalog, discussion: selected.discussion,
+            priorDiscussions: prior, earlierDiscussions: [] };
+          if (!state.draft.semantic && !state.draft.detached &&
+              (state.draft.mode === "edit" && !editTargetMatches(state.draft, selected.discussion) ||
+               state.draft.mode === "reply" && !resolveDiscussionTarget(nextState, state.draft.targetId, state.draft.targetBinding)))
+            state.draft = { ...state.draft, detached: true };
+          catalog = nextCatalog;
+          publish({ catalog, discussion: selected.discussion, priorDiscussions: prior,
+            priorDiscussionsError: null, earlierDiscussions: [] }, true);
+          await loadEarlierDiscussions(ownEpoch, catalog, selected.discussion, prior, sourceId, topicId,
+            options, readCurrent, prefetched);
+          return await readCurrent();
+        }
+      } catch (error) {
+        if (current()) {
+          if (error?.code === "unauthorized") await failure(error, ownEpoch);
+          else publish({ priorDiscussionsError: optionalError(error) }, true);
+        }
+      }
+      return false;
+    })();
+    savedThreadsFlight = work;
+    void work.finally(() => { if (savedThreadsFlight === work) savedThreadsFlight = null; });
+    return work;
   }
   function loadSelection(ownEpoch, refreshCatalog = false) {
     const sourceId = state.sourceId, topicId = state.topicId;
@@ -1405,7 +1527,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       ...(semanticDraft?{draft:{body:'',detached:false,mode:'root',targetId:null}}:{}) });
     void open();
   }
-  return Object.freeze({ currentState, open, pair, disconnect, selectTopic, selectActor, selectSemanticTarget, acknowledgeSemanticWriteUncertainty, setSemanticTopicsAvailable,
+  return Object.freeze({ currentState, open, pair, disconnect, selectTopic, selectActor, selectSemanticTarget, acknowledgeSemanticWriteUncertainty, setSemanticTopicsAvailable, refreshSavedThreads,
     selectSource, setTopicViewMode, canReplyToAlternate, setDraft, reattachDraft, begin, discardDraft, submitDraft, attestPrivateStart, shareInsight, withdraw, createTopic, reset,
     updatePageResolution, invalidateContext, accountChanged, correctSource, forgetSource, deleteLearnedTopic, clearLearnedData, dispose });
 }

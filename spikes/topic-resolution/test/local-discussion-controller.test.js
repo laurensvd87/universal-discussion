@@ -16,6 +16,152 @@ const deferred = () => {
   return { promise, resolve, reject };
 };
 const turn = () => new Promise((resolve) => setImmediate(resolve));
+
+function explicitHistoryFixture({ held = null, stale = false, changedTopic = false, controllerOptions = {}, clientExtras = {} } = {}) {
+  let ui;
+  const calls = [];
+  const oldTopic = { id: "old-saved-route", title: "Old saved route", kind: "general" };
+  ui = harness({ ...controllerOptions, client: {
+    async enrichment() { assert.fail("No matching enrichment"); },
+    async related() { assert.fail("No related scan"); },
+    async alternateDiscussion() { assert.fail("No alternate scan"); },
+    async selection({ sourceId, topicId }) {
+      calls.push(["selection", sourceId, topicId]);
+      const catalog = structuredClone(ui.service.catalog());
+      if (sourceId !== null) return { catalog, discussion: ui.service.discussion(topicId) };
+      if (held) await held.promise;
+      if (stale) catalog.version.revision++;
+      catalog.topics.push(oldTopic, { id: "unrequested-topic", title: "Not selected", kind: "general" });
+      catalog.sources.push({ id: "unrequested-source", topicId: oldTopic.id });
+      catalog.actors.push({ id: "unrequested-actor" });
+      return { catalog, discussion: { version: catalog.version,
+        topic: changedTopic ? { ...oldTopic, title: "Changed" } : oldTopic,
+        discussionId: "old-saved-discussion", roots: [{ id: "old-saved-root", state: "visible", body: "Original saved body",
+          authorId: "demo-alex", actorType: "human", origin: { sourceId: "reserved-example-com", url: "https://example.com/", title: "Saved" },
+          replies: [] }, { id: "foreign-root", state: "visible", body: "Other page",
+          origin: { sourceId: "reserved-example-org" }, replies: [] }] } };
+    },
+    async priorDiscussions(sourceId) {
+      calls.push(["prior", sourceId]);
+      return { version: ui.service.catalog().version, sourceId, currentTopicId: "reserved-domain-demo",
+        topics: [{ ...oldTopic, rootCount: 1 }] };
+    },
+    ...clientExtras,
+  } });
+  ui.controller.setSemanticTopicsAvailable(true);
+  return { ...ui, calls, oldTopic };
+}
+
+test("explicit saved history hydrates only verified missing Topic metadata and preserves canonical Source and draft", async t => {
+  const ui = explicitHistoryFixture(); t.after(() => ui.controller.dispose());
+  await ui.controller.open();
+  assert.equal(ui.calls.length, 1); // Canonical selection only; history is explicit.
+  const before = ui.controller.currentState();
+  ui.controller.setDraft("Keep my unsent root");
+  assert.equal(await ui.controller.refreshSavedThreads(), true);
+  const after = ui.controller.currentState();
+  assert.equal(after.phase, "ready"); assert.equal(after.sourceId, before.sourceId);
+  assert.equal(after.topicId, before.topicId); assert.equal(after.discussion.discussionId, before.discussion.discussionId);
+  assert.equal(after.draft.body, "Keep my unsent root"); assert.equal(after.draft.detached, false);
+  assert.deepEqual(after.earlierDiscussions[0].roots.map(root => root.id), ["old-saved-root"]);
+  assert.ok(after.catalog.topics.some(topic => topic.id === ui.oldTopic.id));
+  assert.equal(after.catalog.topics.some(topic => topic.id === "unrequested-topic"), false);
+  assert.equal(after.catalog.sources.some(source => source.id === "unrequested-source"), false);
+  assert.equal(after.catalog.actors.some(actor => actor.id === "unrequested-actor"), false);
+  assert.equal(ui.calls.filter(([kind, sourceId]) => kind === "selection" && sourceId === null).length, 1);
+  ui.controller.discardDraft();
+  assert.equal(ui.controller.begin("reply", "old-saved-root"), true);
+  assert.equal(ui.controller.currentState().draft.targetBinding.discussionId, "old-saved-discussion");
+  assert.equal(ui.controller.currentState().sourceId, before.sourceId);
+});
+
+test("explicit saved history refuses stale or mismatched prior selections without merging graph data", async t => {
+  for (const options of [{ stale: true }, { changedTopic: true }]) {
+    const ui = explicitHistoryFixture(options); t.after(() => ui.controller.dispose());
+    await ui.controller.open(); const before = ui.controller.currentState();
+    ui.controller.setDraft("Unaffected draft");
+    assert.equal(await ui.controller.refreshSavedThreads(), false);
+    const after = ui.controller.currentState();
+    assert.deepEqual(after.catalog, before.catalog); assert.deepEqual(after.discussion, before.discussion);
+    assert.equal(after.priorDiscussionsError, "conflict"); assert.equal(after.draft.body, "Unaffected draft");
+    assert.equal(ui.calls.filter(([kind, sourceId]) => kind === "selection" && sourceId === null).length, options.stale ? 2 : 1);
+  }
+});
+
+test("saved history coalesces reads and fences navigation while the prior route is pending", async t => {
+  const held = deferred(), ui = explicitHistoryFixture({ held }); t.after(() => ui.controller.dispose());
+  await ui.controller.open(); ui.controller.setDraft("Retain on navigation");
+  const pending = ui.controller.refreshSavedThreads();
+  assert.equal(ui.controller.refreshSavedThreads(), pending);
+  await turn(); assert.equal(ui.controller.currentState().phase, "ready");
+  ui.controller.invalidateContext(); held.resolve();
+  assert.equal(await pending, false);
+  const after = ui.controller.currentState(); assert.equal(after.sourceId, null);
+  assert.deepEqual(after.earlierDiscussions, []); assert.equal(after.draft.body, "Retain on navigation");
+});
+
+test("saved history rechecks native tab and actor after a pending scoped selection", async t => {
+  for (const change of ["url", "actor", "native"]) {
+    let url = "https://example.com/", actor = "demo-alex", native = true;
+    const held = deferred(), ui = explicitHistoryFixture({ held, controllerOptions: {
+      readActiveTab: async () => ({ tabId: 7, url }), readPostingActor: () => actor,
+      attestActiveContext: async () => native,
+    } }); t.after(() => ui.controller.dispose());
+    await ui.controller.open(); const before = ui.controller.currentState();
+    const pending = ui.controller.refreshSavedThreads(); await turn();
+    if (change === "url") url = "https://example.org/";
+    if (change === "actor") actor = "demo-sam";
+    if (change === "native") native = false;
+    held.resolve(); assert.equal(await pending, false);
+    const after = ui.controller.currentState();
+    assert.deepEqual(after.catalog, before.catalog); assert.deepEqual(after.discussion, before.discussion);
+    assert.deepEqual(after.earlierDiscussions, []);
+  }
+});
+
+test("explicit history preserves the private semantic reply binding and its original destination", async t => {
+  let ui, ids, target;
+  const writes = [];
+  ui = explicitHistoryFixture({ clientExtras: {
+    async semanticTarget() { return target(); },
+    async command(expected, value) { writes.push(value); return { version: expected, result: { contributionId: "saved-semantic-reply" } }; },
+  } }); t.after(() => ui.controller.dispose());
+  const topicId = "harbor-s2";
+  const rootId = ui.service.command(ui.service.catalog().version,
+    { type: "create-root", topicId, body: "Other canonical root", originSourceId: "harbor-overview" }, "demo-alex").result.contributionId;
+  const view = ui.service.discussion(topicId);
+  ids = { nodeId: "opaque-semantic-node", topicId, discussionId: view.discussionId, rootId, targetId: rootId };
+  target = () => ({ version: ui.service.catalog().version, policyRevision: 1, nodeId: ids.nodeId,
+    topic: view.topic, discussionId: view.discussionId, root: view.roots.find(root => root.id === rootId),
+    targetId: rootId, rootRevision: 1, targetRevision: 1, actors: ui.service.catalog().actors.filter(actor => actor.id === "demo-alex") });
+  await ui.controller.open(); const before = ui.controller.currentState();
+  assert.equal(await ui.controller.selectSemanticTarget(ids), true);
+  ui.controller.setDraft("Keep exact semantic reply");
+  assert.equal(await ui.controller.refreshSavedThreads(), true);
+  assert.equal(ui.controller.currentState().draft.semantic, true);
+  assert.equal(ui.controller.currentState().draft.detached, false);
+  assert.equal(await ui.controller.submitDraft(), true);
+  assert.equal(writes.length, 1); assert.equal(writes[0].discussionId, view.discussionId);
+  assert.equal(writes[0].replyToId, rootId); assert.equal(writes[0].originSourceId, null);
+  assert.equal(ui.controller.currentState().sourceId, before.sourceId);
+  assert.equal(ui.controller.currentState().topicId, before.topicId);
+});
+
+test("saved history refresh detaches a changed canonical reply target without rewriting unsent text", async t => {
+  const ui = explicitHistoryFixture(); t.after(() => ui.controller.dispose());
+  const rootId = ui.service.command(ui.service.catalog().version,
+    { type: "create-root", topicId: "reserved-domain-demo", body: "Original target", originSourceId: "reserved-example-com" },
+    "demo-alex").result.contributionId;
+  await ui.controller.open(); assert.equal(ui.controller.begin("reply", rootId), true);
+  ui.controller.setDraft("Reply to original wording");
+  const binding = ui.controller.currentState().draft.targetBinding;
+  ui.service.command(ui.service.catalog().version, { type: "edit", contributionId: rootId, body: "Changed target" }, "demo-alex");
+  assert.equal(await ui.controller.refreshSavedThreads(), true);
+  const after = ui.controller.currentState(); assert.equal(after.draft.detached, true);
+  assert.equal(after.draft.body, "Reply to original wording"); assert.deepEqual(after.draft.targetBinding, binding);
+  assert.equal(after.discussion.roots.find(root => root.id === rootId).body, "Changed target");
+  assert.equal(await ui.controller.submitDraft(), false);
+});
 function enrichmentBundle(ui, sourceId, topicId) {
   const catalog = ui.service.catalog();
   return { catalog, discussion: ui.service.discussion(topicId), related: ui.service.related(sourceId, 20),

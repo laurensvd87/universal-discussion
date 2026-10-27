@@ -5,7 +5,7 @@ import {EventEmitter} from 'node:events';
 import {PassThrough} from 'node:stream';
 import vm from 'node:vm';
 import path from 'node:path';
-import {describeSemanticBoundaryFailure,validateSemanticBrowserSmokeSource} from '../harness/run-semantic-workspace-browser-smoke.js';
+import {describeSemanticBoundaryFailure,validateSemanticBrowserSmokeSource,quarantinePausedSemanticTarget} from '../harness/run-semantic-workspace-browser-smoke.js';
 
 // Evaluate the ACTUAL launcher with an in-memory child and pipes. No subprocess,
 // network, native API, profile or filesystem write occurs in these tests.
@@ -72,4 +72,30 @@ test('unknown diagnostic text, URLs, tokens, methods and accessor messages never
 });
 test('runner source-check compiles the browser fixture and stays import-inert',()=>{
   assert.deepEqual(validateSemanticBrowserSmokeSource(),{schema:'semantic-workspace-browser-source-check/v1',browserLaunched:false,fixtureCompiles:true});
+});
+
+const paused=()=>({waiting:true,originClass:'extension',ready:false,resumeIssued:false,recursiveAttachInstalled:true,offlineInstalled:true,fetchInstalled:true});
+const deferred=()=>{let resolve;const promise=new Promise(yes=>{resolve=yes;});return {resolve,promise};};
+test('foreign target remains paused and unready after containment and exact identity verification',async()=>{
+  const entry=paused(),gate=deferred(),calls=[];let settled=false;
+  const pending=quarantinePausedSemanticTarget(entry,{verifyIdentity:async()=>{calls.push('identity');return gate.promise;},
+    closeTarget:async()=>{assert.fail('quarantine must not close a target');},resume:async()=>{assert.fail('quarantine must not resume a target');}}).then(()=>{settled=true;});
+  await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(calls,['identity']);assert.equal(settled,false);assert.equal(entry.quarantined,undefined);
+  gate.resolve(true);await pending;assert.equal(entry.quarantined,true);assert.equal(entry.stage,'quarantined-paused');assert.equal(entry.resumeIssued,false);assert.equal(entry.ready,false);
+});
+test('quarantine refuses executing, resumed, non-extension or incompletely contained targets without closing',async()=>{
+  for(const patch of [{waiting:false},{resumeIssued:true},{ready:true},{originClass:'blank'},{recursiveAttachInstalled:false},{offlineInstalled:false},{fetchInstalled:false}]){
+    let calls=0;await assert.rejects(quarantinePausedSemanticTarget({...paused(),...patch},{verifyIdentity:async()=>{calls++;return true;}}),/Quarantine precondition refused/);
+    assert.equal(calls,0);
+  }
+});
+test('identity mismatch never qualifies a paused target as quarantined',async()=>{
+  const entry=paused();await assert.rejects(quarantinePausedSemanticTarget(entry,{verifyIdentity:async()=>false}),/Quarantine identity refused/);
+  assert.equal(entry.quarantined,undefined);assert.equal(entry.resumeIssued,false);assert.equal(entry.ready,false);
+});
+test('a late resume or boundary loss during identity verification prevents quarantine qualification',async()=>{
+  for(const patch of [{resumeIssued:true},{offlineInstalled:false}]){const gate=deferred(),entry=paused();
+    const pending=quarantinePausedSemanticTarget(entry,{verifyIdentity:()=>gate.promise});Object.assign(entry,patch);gate.resolve(true);
+    await assert.rejects(pending,/Quarantine precondition refused/);assert.equal(entry.quarantined,undefined);
+  }
 });

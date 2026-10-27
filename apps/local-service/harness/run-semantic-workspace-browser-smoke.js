@@ -31,14 +31,25 @@ const ELIGIBLE_TARGETS=new Set(['page','iframe','other','service_worker','worker
 const AUTO_ATTACH={autoAttach:true,waitForDebuggerOnStart:true,flatten:true,
   filter:[...ELIGIBLE_TARGETS].map(type=>({type,exclude:false})).concat({exclude:true})};
 const BOUNDARY_METHODS=new Set(['Target.setAutoAttach','Network.enable','Network.emulateNetworkConditions','Fetch.enable',
-  'Runtime.enable','Page.enable','Runtime.runIfWaitingForDebugger']);
+  'Runtime.enable','Page.enable','Runtime.runIfWaitingForDebugger','Target.getTargetInfo']);
+export async function quarantinePausedSemanticTarget(entry,{verifyIdentity}={}){
+  const eligible=()=>entry.waiting===true&&entry.originClass==='extension'&&!entry.resumeIssued&&!entry.ready&&
+    entry.recursiveAttachInstalled&&entry.offlineInstalled&&entry.fetchInstalled;
+  if(!eligible())throw new Error('Quarantine precondition refused');
+  entry.stage='quarantine-identity';if(await verifyIdentity()!==true)throw new Error('Quarantine identity refused');
+  if(!eligible())throw new Error('Quarantine precondition refused');
+  // No Runtime resume or close command is issued. Exact owned-browser exit is
+  // required later before this quarantine can count as retired or QA can pass.
+  entry.quarantined=true;entry.stage='quarantined-paused';return true;
+}
 export function describeSemanticBoundaryFailure(error){
   if(error===null||typeof error!=='object'||types.isProxy(error))return {code:'boundary-failure'};
   let message;try{message=Object.getOwnPropertyDescriptor(error,'message')?.value;}catch{return {code:'boundary-failure'};}
   if(typeof message!=='string'||message.length>256)return {code:'boundary-failure'};
   const known={'Target cap':'target-cap','Unexpected target type':'unexpected-target-type',
     'Executable target already running':'target-already-executing','Unexpected executable target':'unexpected-target-origin',
-    'Foreign extension target':'foreign-extension-target'};
+    'Foreign extension target':'foreign-extension-target','Quarantine precondition refused':'quarantine-precondition',
+    'Quarantine identity refused':'quarantine-identity'};
   if(Object.hasOwn(known,message))return {code:known[message]};
   const rejected=/^Chromium protocol rejected ([A-Za-z]+\.[A-Za-z]+) \(code (-?[0-9]{1,10})\)$/u.exec(message);
   if(rejected&&BOUNDARY_METHODS.has(rejected[1])){const numericCode=Number(rejected[2]);if(Number.isInteger(numericCode)&&numericCode>=-2147483648&&numericCode<=2147483647)
@@ -110,6 +121,7 @@ export async function runSemanticWorkspaceBrowserSmoke(){
   const profileResolved=realpathSync(profile),dataResolved=realpathSync(DATA);assert.ok(contained(workspaceRoot(),dataResolved));assert.ok(contained(workspaceRoot(),profileResolved));
   let browser=null,sessionId=null,origin=null,phase='initial',closing=false,timedOut=false,profileRemoved=false;
   const started=Date.now(),failures=[],exceptions=[],screenshots=[],cases=[],interceptions=[],commands=[],pendingTasks=new Set(),targets=new Map(),held=[];
+  const targetGroups=new Map();
   let remoteResponses=0,retiredInterceptions=0,protocolFailure=false,browserVersion=null,initialBlankAccepted=false,extensionLoadStarted=false,firstBoundaryFailure=null;
   let publishOrigin;const originKnown=new Promise(resolve=>{publishOrigin=resolve;});
   const mode={capability:'available',context:'classified',holdTarget:false,command:'ok'};
@@ -193,9 +205,12 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     browser.on('Network.responseReceived',({response})=>{if(/^https?:/u.test(response.url)){remoteResponses++;const headers=Object.fromEntries(Object.entries(response.headers??{}).map(([k,v])=>[k.toLowerCase(),v]));if(headers['x-murmingle-qa-intercepted']!=='1')fail('unintercepted-response');}});
     browser.on('Fetch.requestPaused',(event,incoming)=>{track(intercept(event,incoming).catch(async()=>{fail('interception-failed');await abortRequest(event.requestId,incoming);}));});
     browser.on('Target.attachedToTarget',({sessionId:attached,targetInfo,waitingForDebugger})=>{
+      if(targets.size>=32){protocolFailure=true;fail('target-cap');void browser.close();return;}
+      let group=targetGroups.get(targetInfo.targetId);
+      if(!group){group={firstOrdinal:targets.size+1,resumeIssued:false,quarantineStarted:false};targetGroups.set(targetInfo.targetId,group);}
       const entry={ordinal:targets.size+1,type:ELIGIBLE_TARGETS.has(targetInfo.type)?targetInfo.type:'unexpected',targetId:targetInfo.targetId,
         waiting:waitingForDebugger===true,originClass:targetInfo.url==='about:blank'?'blank':/^chrome-extension:\/\//u.test(targetInfo.url)?'extension':'other',
-        stage:'validate-target-count',ready:false,firstFailure:null};targets.set(attached,entry);
+        stage:'validate-target-count',ready:false,resumeIssued:false,quarantined:false,duplicateOf:group.firstOrdinal===targets.size+1?null:group.firstOrdinal,firstFailure:null};targets.set(attached,entry);
       entry.setup=track((async()=>{
         if(targets.size>32)throw new Error('Target cap');
         entry.stage='validate-target-type';
@@ -208,7 +223,9 @@ export async function runSemanticWorkspaceBrowserSmoke(){
         entry.stage='validate-origin';
         const extensionUrl=/^chrome-extension:\/\/[a-p]{32}\//u.test(targetInfo.url);
         if(!initialBlank&&!(targetInfo.url==='about:blank'&&['page','iframe'].includes(targetInfo.type))&&
-          !(extensionUrl&&extensionLoadStarted&&(!origin||targetInfo.url.startsWith(origin+'/'))))throw new Error('Unexpected executable target');
+          !(extensionUrl&&extensionLoadStarted))throw new Error('Unexpected executable target');
+        // A paused foreign extension may proceed only to containment/quarantine.
+        // It still cannot pass the exact owned-origin execution gate below.
         // Browser-scope attachment does not cover every descendant. Install the
         // same paused recursive policy on EACH eligible attached target first.
         entry.stage='recursive-auto-attach';await protocol('Target.setAutoAttach',AUTO_ATTACH,attached);entry.recursiveAttachInstalled=true;
@@ -220,12 +237,22 @@ export async function runSemanticWorkspaceBrowserSmoke(){
         entry.fetchInstalled=true;
         // Extension workers can attach before loadUnpacked returns its ID. They
         // stay paused until that exact owned origin is known and checked.
-        if(extensionUrl){entry.stage='await-owned-origin';const ownedOrigin=origin??await originKnown;if(closing||!ownedOrigin||!targetInfo.url.startsWith(ownedOrigin+'/'))throw new Error('Foreign extension target');}
+        if(extensionUrl){entry.stage='await-owned-origin';const ownedOrigin=origin??await originKnown;if(closing||!ownedOrigin)throw new Error('Foreign extension target');
+          if(!targetInfo.url.startsWith(ownedOrigin+'/')){
+            group.quarantineStarted=true;await quarantinePausedSemanticTarget(entry,{
+              verifyIdentity:async()=>{const current=await protocol('Target.getTargetInfo',{targetId:entry.targetId});const info=current?.targetInfo;
+                return !closing&&!group.resumeIssued&&info?.targetId===entry.targetId&&info?.type===targetInfo.type&&info?.url===targetInfo.url&&
+                  /^chrome-extension:\/\/[a-p]{32}\//u.test(info.url)&&!info.url.startsWith(ownedOrigin+'/');}});return;
+          }
+        }
+        if(group.quarantineStarted)throw new Error('Foreign extension target');
         entry.stage='runtime-enable';await protocol('Runtime.enable',{},attached);
         if(targetInfo.type==='page'){entry.stage='page-enable';await protocol('Page.enable',{},attached);}
-        if(waitingForDebugger){entry.stage='resume';await protocol('Runtime.runIfWaitingForDebugger',{},attached);}
+        if(group.quarantineStarted)throw new Error('Foreign extension target');
+        if(waitingForDebugger){entry.stage='resume';entry.resumeIssued=true;group.resumeIssued=true;await protocol('Runtime.runIfWaitingForDebugger',{},attached);}
         entry.ready=true;entry.stage='ready';
-      })().catch(error=>{entry.firstFailure??={stage:entry.stage,...describeSemanticBoundaryFailure(error)};
+      })().catch(error=>{
+        entry.firstFailure??={stage:entry.stage,...describeSemanticBoundaryFailure(error)};
         firstBoundaryFailure??={ordinal:entry.ordinal,type:entry.type,waiting:entry.waiting,originClass:entry.originClass,...entry.firstFailure};
         protocolFailure=true;fail('target-boundary-installation');void browser.close();}));
     });
@@ -288,13 +315,21 @@ export async function runSemanticWorkspaceBrowserSmoke(){
       rmSync(profileResolved,{recursive:true,force:false,maxRetries:3,retryDelay:100});profileRemoved=true;
     }catch{if(ownedProcessExited)fail('owned-profile-cleanup-unverified');}
     let endPins=null;try{endPins=pins();if(JSON.stringify(endPins)!==JSON.stringify(startPins))fail('source-pins-changed');}catch{fail('source-end-pins-unreadable');}
+    const allExecutableTargetsContained=targets.size>0&&[...targets.values()].every(entry=>entry.recursiveAttachInstalled&&entry.offlineInstalled&&entry.fetchInstalled&&
+      (entry.ready||entry.quarantined&&entry.waiting&&!entry.resumeIssued&&ownedProcessExited));
+    if(!allExecutableTargetsContained)fail('target-containment-unverified');
     const result={schema:'semantic-workspace-browser-qa/v1',outcome:failures.length?'failed':outcome,scope:'Synthetic browser composition; no SQL, actual document attestation, provider, quality, load or live posting authority.',
       elapsedMs:Date.now()-started,timedOut,closing,closeReturned,ownedProcessExited,profileRemoved,ownedProfileRetained:!profileRemoved,
       attempt:path.relative(REPO,attempt).replaceAll('\\','/'),continuedHttpRequests:0,
       offlineAllTargets:targets.size>0&&[...targets.values()].every(entry=>entry.offlineInstalled&&entry.fetchInstalled&&entry.recursiveAttachInstalled),targets:targets.size,httpResponsesObserved:remoteResponses,browserVersion,
+      physicalTargets:targetGroups.size,quarantinedTargets:new Set([...targets.values()].filter(entry=>entry.quarantined).map(entry=>entry.targetId)).size,
+      quarantinedTargetsRetired:ownedProcessExited,quarantineMode:'paused-until-owned-exit',
+      quarantineScope:'Foreign extension targets verified debugger-paused after network containment, never resumed; retirement requires the exact owned-browser exit event. No identity or cause attribution.',
+      allExecutableTargetsContained,
       firstBoundaryFailure,targetStates:[...targets.values()].map(entry=>({ordinal:entry.ordinal,type:entry.type,waiting:entry.waiting,originClass:entry.originClass,
         stage:entry.stage,ready:entry.ready,recursiveAttachInstalled:entry.recursiveAttachInstalled===true,offlineInstalled:entry.offlineInstalled===true,
-        fetchInstalled:entry.fetchInstalled===true,firstFailure:entry.firstFailure})),
+        fetchInstalled:entry.fetchInstalled===true,resumeIssued:entry.resumeIssued,quarantined:entry.quarantined,duplicateOf:entry.duplicateOf,
+        firstFailure:entry.firstFailure})),
       interceptions,retiredInterceptions,commands,cases,exceptions,failures,screenshots,sourcePins:startPins,endPins};
     checkedPath(attempt);writeFileSync(checkedPath(path.join(attempt,'result.json')),JSON.stringify(result,null,2)+'\n',{flag:'wx'});
     if(result.outcome!=='passed')throw new Error('Semantic browser QA failed; preserved result.json');
