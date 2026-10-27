@@ -1,34 +1,34 @@
-# Fixed one-off disposition of an audited, failed private restore's PGDATA.
+# Fixed one-off disposition of an audited, completed private HTTP scratch cluster's PGDATA.
 # SOURCE review only until a separate decision authorizes either real mode.
 [CmdletBinding(PositionalBinding=$false)]
-param([switch]$AuditOnly,[switch]$RetireKnownFailedPgData)
+param([switch]$AuditOnly,[switch]$RetireConsumedScratchPgData)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-if($AuditOnly.IsPresent -eq $RetireKnownFailedPgData.IsPresent){throw 'Select exactly one reviewed retirement mode'}
-$Run='D:\GITProjekts\universal-discussion-bootstrap\apps\local-service\data\canonical-migration-backups\hierarchy-private-restore-runs\run-aaa554dbcf8fc863644e1aafc631b4b7446f8737e06d55a1'
-$Cluster=$Run+'\cluster\nhpg-pALDNp'
+if($AuditOnly.IsPresent -eq $RetireConsumedScratchPgData.IsPresent){throw 'Select exactly one reviewed retirement mode'}
+$Run='D:\GITProjekts\universal-discussion-bootstrap\apps\local-service\data\canonical-migration-backups\hierarchy-private-restore-runs\run-446b3ab1615d45d45e522f86a2c6c90c42b78ea4c3e324ca'
+$Cluster=$Run+'\cluster\nhpg-DV327b'
 $Target=$Cluster+'\pgdata'
 $ProtectedRoot='D:\GITProjekts\universal-discussion-bootstrap\apps\local-service\data\canonical-migration-backups'
-$AuditPath='D:\GITProjekts\universal-discussion-bootstrap\apps\local-service\data\hierarchy-private-http-actual-audit-20261027.json'
+$AuditPath='D:\GITProjekts\universal-discussion-bootstrap\apps\local-service\data\hierarchy-private-http-storage-corrected-actual-audit-20261027.json'
 $RetirementRoot=$ProtectedRoot+'\hierarchy-private-retirements'
-$PreReceipt=$RetirementRoot+'\aaa554dbcf8fc863644e1aafc631b4b7446f8737e06d55a1-preflight.json'
-$DoneReceipt=$RetirementRoot+'\aaa554dbcf8fc863644e1aafc631b4b7446f8737e06d55a1-complete.json'
+$PreReceipt=$RetirementRoot+'\446b3ab1615d45d45e522f86a2c6c90c42b78ea4c3e324ca-preflight.json'
+$DoneReceipt=$RetirementRoot+'\446b3ab1615d45d45e522f86a2c6c90c42b78ea4c3e324ca-complete.json'
 $OwnerSid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $Clock=[Diagnostics.Stopwatch]::StartNew()
 $Pins=@(
- @('run.json',397,'ec4c6fa8d5c287a43ff3c39cd67d595fa719474092c7662220dfea826077037e'),
- @('child.claim',286,'801bc0e75c15eb059471448529fe08b3b8b5190ec76e8028fed28f3026e2eab0'),
- @('reviewed-sources.json',379237,'117028cbca8710a20cd9d3a696faa896af5f4a62a3e63bcefb8300c20e283660'),
- @('output\result.json',612,'282c701ffa37dc841e6d707372f890d84b820dd92bb6558dc527d92c48e61cdb'),
- @('output\stdout.bin',0,'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'),
+ @('run.json',397,'8bdebf01452dd93bd7c0b7cb08b34b0e2dec383e4138a29ed1b831053de4cb50'),
+ @('child.claim',286,'45fd3a6b8d5a6ec08897b39e0056d64741b47f94d9d4bf3a60af3eedad31d4e8'),
+ @('reviewed-sources.json',379238,'ced9a517bb4d0aa9188cae325ec82e3148936224ca20cc88b46855d85d589361'),
+ @('output\result.json',862,'e3eb3e3e83dbc0a4cd1eb93ae829b24efcd2629c02652c0e5eeb43588f005c29'),
+ @('output\stdout.bin',3226,'bf838c4bbf14abb4190f52d0b2fd5963f5ac813cdcb8ceb5c551458f90f26291'),
  @('output\stderr.bin',0,'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'),
- @('cluster\nhpg-pALDNp\ownership.json',346,'07d1d0b4d0588ccd7de64273dd0f625c1b9d053458f040ea5c90e3c9064458e3'))
+ @('cluster\nhpg-DV327b\ownership.json',346,'4903cf613589b5cd0abcc130b25badedb697968f1f718793e2dd1059a55f6c8a'))
 
 function Refuse { throw 'Fixed private PGDATA retirement refused' }
 function Check-Time { if($Clock.Elapsed.TotalSeconds -ge 360){Refuse} }
 function Hash-Bytes([byte[]]$Bytes){$h=[Security.Cryptography.SHA256]::Create();try{return ([BitConverter]::ToString($h.ComputeHash($Bytes))).Replace('-','').ToLowerInvariant()}finally{$h.Dispose()}}
 function Assert-Target([string]$Value){
- if($Value -cne 'D:\GITProjekts\universal-discussion-bootstrap\apps\local-service\data\canonical-migration-backups\hierarchy-private-restore-runs\run-aaa554dbcf8fc863644e1aafc631b4b7446f8737e06d55a1\cluster\nhpg-pALDNp\pgdata' -or [IO.Path]::GetFullPath($Value) -cne $Value){Refuse}
+ if($Value -cne 'D:\GITProjekts\universal-discussion-bootstrap\apps\local-service\data\canonical-migration-backups\hierarchy-private-restore-runs\run-446b3ab1615d45d45e522f86a2c6c90c42b78ea4c3e324ca\cluster\nhpg-DV327b\pgdata' -or [IO.Path]::GetFullPath($Value) -cne $Value){Refuse}
 }
 function Assert-AclRecords([string]$ActualOwner,[object[]]$Rules,[bool]$Directory){
  if($ActualOwner -cne $OwnerSid -or $Rules.Count -ne 2){Refuse};$seen=@{}
@@ -54,16 +54,22 @@ function Assert-Absence([uint32]$PostmasterPid){
  Check-Time
 }
 function Assert-ParentProof($Value){
- if($Value.schema -cne 'native-hierarchy-postgres-supervisor/v2' -or $Value.accepted -cne $false -or $null -ne $Value.completion -or $Value.cleanupClassification -cne 'owned-emergency' -or $Value.endPinsChecked -cne $true){Refuse}
+ if($Value.schema -cne 'native-hierarchy-postgres-supervisor/v2' -or $Value.accepted -cne $true -or $Value.cleanupClassification -cne 'verified-normal' -or $Value.endPinsChecked -cne $true -or $null -ne $Value.primary -or $null -ne $Value.cleanup){Refuse}
+ $c=$Value.completion
+ if($c.accepted -cne $true -or $c.code -cne 'complete' -or $c.testPoints -ne 25 -or $c.outerTests -ne 3 -or $c.stdoutBytes -ne 3226 -or $c.stderrBytes -ne 0 -or $c.stdoutSha256 -cne $Pins[4][2] -or $c.stderrSha256 -cne $Pins[5][2]){Refuse}
  $n=$Value.native
- foreach($key in @('initialized','processCreated','assigned','membershipVerified','resumed','exited','emergency','allHandlesClosed','completeEmptyJob','stdoutEof','stderrEof')){if($n.$key -cne $true){Refuse}}
- if($n.closeFailure -cne $false -or $n.stdoutBytes -ne 0 -or $n.stderrBytes -ne 0 -or $n.exitCode -ne 1 -or $n.limits.flags -ne 8712 -or $n.limits.jobMemoryBytes -ne 1073741824 -or $n.limits.activeProcessLimit -ne 32){Refuse}
- if($Value.primary.code -cne 'resource-limit' -or $Value.primary.counter -cne 'jobCpuSeconds' -or $Value.primary.value -ne 300.078125){Refuse}
+ foreach($key in @('initialized','processCreated','assigned','membershipVerified','resumed','exited','allHandlesClosed','completeEmptyJob','stdoutEof','stderrEof')){if($n.$key -cne $true){Refuse}}
+ if($n.emergency -cne $false -or $n.closeFailure -cne $false -or $n.stdoutBytes -ne 3226 -or $n.stderrBytes -ne 0 -or $n.exitCode -ne 0 -or $n.limits.flags -ne 8712 -or $n.limits.jobMemoryBytes -ne 1073741824 -or $n.limits.activeProcessLimit -ne 32){Refuse}
 }
-function Parse-PidMetadata([string]$Text){
- if([Text.Encoding]::UTF8.GetByteCount($Text) -gt 4096){Refuse};$lines=$Text -split '\r?\n'
- if($lines.Count -lt 4 -or $lines[0] -cne '18340' -or $lines[2] -cne '1793090791' -or $lines[3] -cne '55433' -or [IO.Path]::GetFullPath($lines[1]) -cne $Target){Refuse}
- return [ordered]@{pid=18340;pidStart=1793090791;port=55433;dataDirectory=$Target;proofDomain='PID-file cleanup ownership only; not SQL startup identity'}
+function Assert-LifecycleProof($Value){
+ if($Value.schema -cne 'native-hierarchy-postgres-lifecycle/v2' -or $Value.status -cne 'passed' -or $Value.syntheticOnly -cne $false -or $Value.ownerData -cne $true -or $Value.runDirectory -cne $Cluster){Refuse}
+ if($Value.server.postmasterPid -ne 15412 -or $Value.server.port -ne 55433 -or $Value.server.ownershipVerified -cne $true -or $Value.startup.pidStart -ne 1793094079){Refuse}
+ foreach($key in @('stopped','childExited','clientsClosed','physicalSettled','directoryRetained')){if($Value.cleanup.$key -cne $true){Refuse}}
+ if($Value.cleanup.reason -cne 'verified-own-server-smart-stopped' -or $Value.checks.status -cne 'passed' -or $null -ne $Value.checks.primary -or $Value.checks.pendingAssertions -ne 0){Refuse}
+}
+function Assert-PidFileAbsent {
+ # Normal smartstop removes this file. Never treat a surviving PID file as safe.
+ if(Test-Path -LiteralPath ($Target+'\postmaster.pid') -ErrorAction Stop){Refuse}
 }
 
 # Read-only Win32 file witnesses; no filesystem mutation occurs in this ABI.
@@ -122,24 +128,26 @@ function Assert-Ancestors {
  }
 }
 function Check-Controls {
- $audit=Read-Pinned $AuditPath 14372 '5c10b647e1e01fc84dd059ae0b45af959287f67e8cd4b646be6951a273045ca1' 1 32768
+ $audit=Read-Pinned $AuditPath 20698 'f5f6215c725bcdc9ed5fe09cf3adb211edfc36c287379dfa3f31fed9ba9f12f4' 1 32768
  $records=@{}
- foreach($pin in $Pins){$name=$pin[0];$links=1;if($name -in @('run.json','child.claim','output\result.json','cluster\nhpg-pALDNp\ownership.json')){$links=2}
+ foreach($pin in $Pins){$name=$pin[0];$links=1;if($name -in @('run.json','child.claim','output\result.json','cluster\nhpg-DV327b\ownership.json')){$links=2}
   $records[$name]=Read-Pinned (Join-Path $Run $name) $pin[1] $pin[2] $links $(if($name -eq 'reviewed-sources.json'){1048576}else{4096})
  }
- foreach($pair in @(@('run.json','run.pending'),@('child.claim','child.pending'),@('output\result.json','output\.pending-result.json'),@('cluster\nhpg-pALDNp\ownership.json','cluster\nhpg-pALDNp\ownership.pending'))){
+ foreach($pair in @(@('run.json','run.pending'),@('child.claim','child.pending'),@('output\result.json','output\.pending-result.json'),@('cluster\nhpg-DV327b\ownership.json','cluster\nhpg-DV327b\ownership.pending'))){
   $mate=File-Record (Join-Path $Run $pair[1]) 2 4096;$original=$records[$pair[0]]
   if($mate.sha256 -cne $original.sha256 -or $mate.witness.identity -cne $original.witness.identity){Refuse}
  }
  $decode=New-Object Text.UTF8Encoding($false,$true)
  $marker=$decode.GetString($records['run.json'].bytes)|ConvertFrom-Json
  $claim=$decode.GetString($records['child.claim'].bytes)|ConvertFrom-Json
- $ownership=$decode.GetString($records['cluster\nhpg-pALDNp\ownership.json'].bytes)|ConvertFrom-Json
+ $ownership=$decode.GetString($records['cluster\nhpg-DV327b\ownership.json'].bytes)|ConvertFrom-Json
  $parent=$decode.GetString($records['output\result.json'].bytes)|ConvertFrom-Json
- if($marker.schema -cne 'private-hierarchy-native-owned-run' -or $marker.runDirectory -cne $Run -or $marker.nonce -cne 'aaa554dbcf8fc863644e1aafc631b4b7446f8737e06d55a1' -or $marker.catalogSha256 -cne $Pins[2][2]){Refuse}
- if($claim.schema -cne 'private-hierarchy-native-child-claim' -or $claim.nonce -cne $marker.nonce -or $claim.catalogSha256 -cne $marker.catalogSha256 -or $claim.markerSha256 -cne $Pins[0][2] -or $claim.pid -ne 11320){Refuse}
- if($ownership.schema -cne 'private-native-hierarchy-postgres/maintained' -or $ownership.runDirectory -cne $Cluster -or $ownership.nonce -cne 'cae454a3a7e1d3f409272040fdd618fb5657c8bcc9243fab'){Refuse}
+ if($marker.schema -cne 'private-hierarchy-native-owned-run' -or $marker.runDirectory -cne $Run -or $marker.nonce -cne '446b3ab1615d45d45e522f86a2c6c90c42b78ea4c3e324ca' -or $marker.catalogSha256 -cne $Pins[2][2]){Refuse}
+ if($claim.schema -cne 'private-hierarchy-native-child-claim' -or $claim.nonce -cne $marker.nonce -or $claim.catalogSha256 -cne $marker.catalogSha256 -or $claim.markerSha256 -cne $Pins[0][2] -or $claim.pid -ne 12840){Refuse}
+ if($ownership.schema -cne 'private-native-hierarchy-postgres/maintained' -or $ownership.runDirectory -cne $Cluster -or $ownership.nonce -cne '999b6eb1a6aed90f325274963576597ffed322303703cba3'){Refuse}
  Assert-ParentProof $parent
+ $life=Read-Pinned ($Cluster+'\native-result.json') 3899 'bead7a6cb32e49cc70ebc1884c6eb51c8e6b9879aba55937355db7b26f1af531' 1 4096
+ Assert-LifecycleProof ($decode.GetString($life.bytes)|ConvertFrom-Json)
  return $true
 }
 function Inventory-Pgdata {
@@ -178,17 +186,17 @@ function Prepare-ReceiptDirectory {
 
 try {
  Assert-Ancestors;$null=Check-Controls
- $pidRecord=Read-Pinned ($Target+'\postmaster.pid') 253 '9caf83e7b60bffac3f3d965d8e78a39c9679c9228cba707eb837f237279e6b2f' 1 4096
- $pidMetadata=Parse-PidMetadata ((New-Object Text.UTF8Encoding($false,$true)).GetString($pidRecord.bytes))
+ Assert-PidFileAbsent
+ $pidMetadata=[ordered]@{pid=15412;pidStart=1793094079;port=55433;dataDirectory=$Target;proofDomain='Authenticated completed lifecycle cleanup identity; PID file absent'}
  Assert-Absence $pidMetadata.pid
  $inventory=Inventory-Pgdata
- if($AuditOnly){[ordered]@{auditPassed=$true;removed=$false;target=$Target;entries=$inventory.entries;files=$inventory.files;bytes=$inventory.bytes;inventorySha256=$inventory.sha256;pid=$pidMetadata.pid;pidStart=$pidMetadata.pidStart;scope='Read-only fixed failed PGDATA disposition check, not restore proof'}|ConvertTo-Json -Compress;exit 0}
- $receipt=[ordered]@{schema='fixed-private-pgdata-retirement/preflight';target=$Target;ownerProof='audited owned-emergency/empty-Job/closed-handles plus fresh successful absence';acceptedAsRestore=$false;pid=$pidMetadata;pidFileSha256=$pidRecord.sha256;controlPins=$Pins;entries=$inventory.entries;files=$inventory.files;bytes=$inventory.bytes;inventorySha256=$inventory.sha256;inventory=$inventory.rows;deletionCompleted=$false}
+ if($AuditOnly){[ordered]@{auditPassed=$true;removed=$false;target=$Target;entries=$inventory.entries;files=$inventory.files;bytes=$inventory.bytes;inventorySha256=$inventory.sha256;pid=$pidMetadata.pid;pidStart=$pidMetadata.pidStart;scope='Read-only fixed consumed scratch PGDATA disposition check; no new restore proof'}|ConvertTo-Json -Compress;exit 0}
+ $receipt=[ordered]@{schema='fixed-private-pgdata-retirement/preflight';target=$Target;ownerProof='audited normal smartstop/empty-Job/closed-handles plus fresh successful absence';acceptedAsRestore=$false;pid=$pidMetadata;pidFileAbsent=$true;controlPins=$Pins;entries=$inventory.entries;files=$inventory.files;bytes=$inventory.bytes;inventorySha256=$inventory.sha256;inventory=$inventory.rows;deletionCompleted=$false}
  Prepare-ReceiptDirectory;$preSha=Publish-Receipt $PreReceipt $receipt
  # Rehash EVERY entry and rejoin controls, ACLs and successful absence at the
  # last boundary. This is sampled owner-private storage, not a hostile-OS sandbox.
- Assert-Ancestors;$null=Check-Controls;Assert-Absence $pidMetadata.pid
- $last=Inventory-Pgdata;if($last.sha256 -cne $inventory.sha256 -or $last.entries -ne $inventory.entries -or $last.bytes -ne $inventory.bytes){Refuse};Check-Time;Assert-Target $Target;Assert-Absence $pidMetadata.pid
+ Assert-Ancestors;$null=Check-Controls;Assert-PidFileAbsent;Assert-Absence $pidMetadata.pid
+ $last=Inventory-Pgdata;if($last.sha256 -cne $inventory.sha256 -or $last.entries -ne $inventory.entries -or $last.bytes -ne $inventory.bytes){Refuse};Check-Time;Assert-Target $Target;Assert-PidFileAbsent;Assert-Absence $pidMetadata.pid
  Remove-Item -LiteralPath $Target -Recurse -Force -ErrorAction Stop
  if(Test-Path -LiteralPath $Target -ErrorAction Stop){Refuse};$null=Check-Controls
  $done=[ordered]@{schema='fixed-private-pgdata-retirement/complete';target=$Target;preflightSha256=$preSha;removed=$true;retiredBytes=$inventory.bytes;acceptedAsRestore=$false;liveOrBackupDeleted=$false}
