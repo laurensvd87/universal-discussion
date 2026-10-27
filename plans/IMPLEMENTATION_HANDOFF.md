@@ -1,5 +1,19 @@
 # Implementation handoff: local-service discussion MVP
 
+CURRENT27Oct startupdc891e20 and optionalreplywitness2bc40611 committed/pushed.
+TrustedhierarchyAPI/embeddedfixedruntime optin, nooldRidgeindex, robustcleanup/
+samepromise; independent29purePASS. 015 exact003four-editinverse/14signature/
+grants, strict4fieldwitness boundfullmaterial beforeexactreplay; freshnessunder
+originalRoot/Targetlocks/public/revisioncounts/historicaledge/destination.
+Parser1SQL+1PLPASS/independent23purePASS; actual015race/replayfixtureSOURCE WIP,
+10-15UNREGISTERED/liveunchanged. Separatebrowsercontroller/client targetbinding/
+guardeddispatch/uncertaintyack SOURCEaccepted Root+Trust151independentpurePASS;
+Rootjoined214purePASS920.57ms. Native0153 SOURCE alsoaccepted/16preflightPASS,
+catalogbinding andactualrace/replaystillPENDING.
+Stillmountpanel/composer/recoveryUI, SourcepolicyDTO/nonRidgeview, deliberateAI
+protocol, owneroperator/head/metadata/backfill/dashboard, actualbrowser/load/live.
+GoalACTIVE; no actualE5/SQL/UI claim from puretests. Preserveoriginalcrawler.
+
 LATEST27Oct014 scan-free semantic source containers IMPLEMENTED6bbf7376 and
 actual80408 CLOSEDexit0/25orderedPASS, run7d53990d7ccf3fc71ab387665ef19f1cc57d1f6db7f19838.
 Legacyapply causalRidge sentinelP1491; semanticapply bypasses scan, controlled

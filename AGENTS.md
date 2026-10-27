@@ -8,6 +8,22 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+CURRENT27Oct dc891e20 startup opt-incommitted/pushed: semanticAPI/nolegacyRidge
+index, fixedinstalledembeddedruntime, healthinsideTRY/allcleanupattempted with
+firstfalsyerrorpreserved/exactsameshutdownpromise. Independent29purePASS195.97ms,
+noactualstartup/E5/DB/live. 2bc40611 optional015replywitness committed/pushed:
+exact003inverse4edits/signature+grantsunchanged, exactmaterial+receipt replay,
+afteroriginalRoot/Targetlocks checkbodyrevisions/public/historicaledge/canonical
+destination; nohead/Source lockorretarget. Existingparser1SQL+1PLPASS, independent
+23purePASS93.65ms. 10-15UNREGISTERED; actual015race/replayfixtureSOURCE WIP.
+Controller/client separatePageB+semanticTarget+ambiguityack SOURCEaccepted Root+
+Trust (independent151purePASS887.56ms); Rootjoined214purePASS920.57ms. No actual
+UI/provider/load. Native015context/assertions/ledger SOURCE Root+Trustaccepted,
+16purepreflightPASS143.49ms; actualrace/replayUNEXECUTED/catalogbindingnext.
+Popup/composer/recoveryUI,
+SourcepolicyDTO/nonRidgeview, AIcrossSource, operator/head/backfill/dashboard/live
+remainOPEN. GoalACTIVE, originalservices/crawlerpreserved.
+
 CURRENT27Oct014 scan-free source-container routing IMPLEMENTED6bbf7376 and
 actualsession80408 CLOSEDexit0/25orderedPASS (3outer+8/8/6, not25qualitycases).
 Run7d53990d...d20731: legacy11apply hits installed Ridge sentinelP1491; semantic

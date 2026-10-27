@@ -1,12 +1,13 @@
 import { classifyActiveTabSnapshot, sameActiveTabObservation } from "./active-tab-policy.js";
 import { validateAndProjectActiveTabResponse } from "./indicator-contract.js";
 import { localServiceSourceId } from "../fixtures/local-service-fixture-bridge.js";
-import { readPostOrigin, isAccountActorId } from "./local-service-contract.js";
+import { readPostOrigin, isAccountActorId, readId, record, readSemanticTarget, readSemanticTargetRequest } from "./local-service-contract.js";
 import { isRidgeTopicView, requiresReferenceTopicView } from "./topic-view-mode.js";
 import { resolveDiscussionTarget } from "./discussion-target.js";
 import { projectPageResolution, isReadyPageResolution, samePageResolution } from "./page-resolution-contract.js";
 import { inspectPageNavigationUrl } from "./page-content-policy.js";
 import { canPostHumanDiscussion } from "./discussion-readiness.js";
+import { isConfirmedCommandRejection } from "./local-service-client.js";
 
 function freeze(value) {
   if (value && typeof value === "object") {
@@ -57,7 +58,8 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     sourceId: null, topicId: null, actorId: null, selection: null,
     draft: { body: "", detached: false, mode: "root", targetId: null }, busy: false, needsFreshRead: false, resolution: null,
     createdPost: null, serviceConnection: "unverified", readRetryable: false,
-    enrichmentPending: false, relatedError: null };
+    enrichmentPending: false, relatedError: null, semanticSelection: null, semanticError: null,
+    semanticWritePending: false, semanticAiAvailable: false };
   let epoch = 0;
   let abort = new AbortController();
   let stopObservation = () => {};
@@ -75,6 +77,10 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   let alternateRequest = 0;
   let activeContext = null;
   let selectionFlight = null, resolutionFlight = null, enrichmentFlight = null;
+  let semanticBinding = null, semanticAbort = null, semanticSequence = 0;
+  // A transport failure cannot prove the append did not commit. Preserve this
+  // exact packet privately and refuse automatic reconstruction or reissue.
+  let pendingSemanticCommand = null;
   let enrichmentTimer = null, enrichmentAttempts = 0;
   const optionalError = error => ["unavailable", "capacity", "conflict", "invalid-response", "not-found"].includes(error?.code)
     ? error.code : "unavailable";
@@ -122,6 +128,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   function humanReady() { return canPostHumanDiscussion(targetState()); }
   function currentState() { return freeze(structuredClone(targetState())); }
   function cancel() {
+    cancelSemanticSelection();
     verifiedSavedBinding = null;
     savedBindingFlight = null;
     epoch += 1; alternateRequest += 1; abort.abort(); abort = new AbortController();
@@ -129,6 +136,11 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     if (enrichmentTimer !== null) cancelSchedule(enrichmentTimer);
     enrichmentTimer = null; enrichmentAttempts = 0;
     state = { ...state, enrichmentPending: false, readRetryable: false };
+  }
+  function cancelSemanticSelection() {
+    semanticSequence++;semanticAbort?.abort();semanticAbort=null;semanticBinding=null;
+    state={...state,semanticSelection:null,semanticError:null,semanticWritePending:Boolean(pendingSemanticCommand)};
+    if(state.draft.semantic===true)state.draft={...state.draft,detached:true};
   }
   function detach() {
     state.draft = { ...state.draft, detached: state.draft.body.length > 0,
@@ -951,12 +963,12 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     await loadSelection(epoch, true);
   }
   function setDraft(body) {
-    if (mutationPending || !(humanReady() || canStageRootDraft(state)) || state.needsFreshRead ||
+    if (mutationPending || pendingSemanticCommand || !(humanReady() || canStageRootDraft(state)) || state.needsFreshRead ||
         typeof body !== "string" || body.length > 8000) return;
     publish({ draft: { ...state.draft, body } });
   }
   function reattachDraft() {
-    if (state.phase !== "ready" || state.needsFreshRead || mutationPending) return;
+    if (state.phase !== "ready" || state.needsFreshRead || mutationPending || pendingSemanticCommand || state.draft.semantic) return;
     publish({ draft: { ...state.draft, detached: false, mode: "root", targetId: null } });
   }
   function canReplyToAlternate(root) {
@@ -965,8 +977,134 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       root.canonicalDiscussionId === state.discussion?.discussionId &&
       state.discussion.roots.some((entry) => entry.id === root.id && entry.state === "visible");
   }
+  function semanticForegroundCurrent(binding) {
+    const f=binding.foreground;
+    return !disposed && f.epoch===epoch && binding.sequence===semanticSequence &&
+      !state.needsFreshRead && humanReady() && state.actorId===f.actorId && postingActor(state.catalog)===f.actorId &&
+      state.sourceId===f.sourceId && state.topicId===f.topicId && state.selection===f.selection &&
+      state.discussion?.discussionId===f.discussionId && state.catalog?.version.generation===f.generation &&
+      JSON.stringify(activeContext)===f.activeContext &&
+      (!f.saved || verifiedSavedBinding===f.saved && savedBindingCurrent());
+  }
+  async function attestSemanticForeground(binding, {renewSaved=false}={}) {
+    const current=()=>semanticForegroundCurrent(binding);
+    if(!current())return false;
+    try {
+      if(attestActiveContext && (!activeContext || !await attestActiveContext(activeContext)))return false;
+      if(!current())return false;
+      const f=binding.foreground;
+      if(f.saved) {
+        if(!attestSavedDocument || !await attestSavedDocument(freeze(structuredClone(f.saved.witness))) || !current())return false;
+        const resolution=await freshResolution();if(!current())return false;
+        const observed=await readActiveTab();if(!current() || !sameSavedWitness(f.saved.witness,savedWitness(resolution,observed)))return false;
+        if(isReadyPageResolution(resolution) && (resolution.sourceId!==f.sourceId || resolution.topicId!==f.topicId))return false;
+        if(renewSaved) {
+          const selected=await client.urlSelection({url:f.saved.witness.sourceUrl},{signal:semanticAbort.signal,beforeDispatch:current});
+          if(!current() || !coherentSavedSelection(selected,f.saved))return false;
+          renewSavedSnapshot(selected,f.saved);if(!current())return false;
+        }
+      } else if(f.selection==='background') {
+        const resolution=await freshResolution();if(!current() || !isReadyPageResolution(resolution) || !samePageResolution(state.resolution,resolution))return false;
+        const observed=await readActiveTab();if(!current() || observed.tabId!==resolution.tabId ||
+          inspectPageNavigationUrl(observed.url)?.documentUrl!==resolution.url || observed.windowId!==undefined && observed.windowId!==resolution.currentWindowId)return false;
+      } else {
+        if(readPageResolution) {
+          const resolution=await freshResolution();if(!current() || !sameProjectedResolution(f.resolution,resolution) ||
+            resolution?.blockedOrigins.includes(resolution.currentOrigin))return false;
+        }
+        const observed=await readActiveTab();if(!current() || observed.tabId!==activeContext?.tabId || observed.url!==activeContext?.url ||
+          activeContext?.windowId!==undefined && observed.windowId!==activeContext.windowId)return false;
+      }
+      return current();
+    } catch { return false; }
+  }
+  function sameSemanticTarget(value,binding,{bodies=false}={}) {
+    const previous=binding.dto, ids=binding.ids;
+    if(value.nodeId!==ids.nodeId || value.topic.id!==ids.topicId || value.discussionId!==ids.discussionId ||
+      value.root.id!==ids.rootId || value.targetId!==ids.targetId || value.version.generation!==binding.foreground.generation)return false;
+    if(!bodies)return true;
+    const target=v=>v.targetId===v.root.id?v.root:v.root.replies[0];
+    return value.rootRevision===previous.rootRevision && value.targetRevision===previous.targetRevision &&
+      value.root.body===previous.root.body && target(value)?.body===target(previous)?.body;
+  }
+  async function selectSemanticTarget(value) {
+    if(disposed || mutationPending || pendingSemanticCommand || state.needsFreshRead || !humanReady() || !state.actorId ||
+      state.draft.body || !activeContext || typeof client.semanticTarget!=='function')return false;
+    let ids;
+    try {
+      ids=record(value,['nodeId','rootId','targetId','topicId','discussionId']);
+      const request=readSemanticTargetRequest({nodeId:ids.nodeId,rootId:ids.rootId,targetId:ids.targetId});
+      ids={...request,topicId:readId(ids.topicId),discussionId:readId(ids.discussionId)};
+    } catch { return false; }
+    cancelSemanticSelection();const controller=new AbortController();semanticAbort=controller;
+    const binding={ids,sequence:semanticSequence,foreground:{epoch,actorId:state.actorId,sourceId:state.sourceId,topicId:state.topicId,
+      selection:state.selection,discussionId:state.discussion?.discussionId,generation:state.catalog.version.generation,
+      activeContext:JSON.stringify(activeContext),resolution:state.resolution,saved:savedBindingCurrent()?verifiedSavedBinding:null},dto:null};
+    const current=()=>semanticAbort===controller && !controller.signal.aborted && semanticForegroundCurrent(binding) && !state.draft.body && !mutationPending;
+    try {
+      if(!await attestSemanticForeground(binding) || !current())return false;
+      const request={nodeId:ids.nodeId,rootId:ids.rootId,targetId:ids.targetId};
+      const raw=await client.semanticTarget(request,{signal:controller.signal,beforeDispatch:current});if(!current())return false;
+      const dto=readSemanticTarget(raw,request);if(!sameSemanticTarget(dto,binding))throw new Error('destination-changed');
+      if(!await attestSemanticForeground(binding) || !current())return false;
+      binding.dto=dto;semanticBinding=binding;
+      publish({semanticSelection:dto,semanticError:null,semanticAiAvailable:false,
+        draft:{body:'',detached:false,mode:'reply',targetId:ids.targetId,semantic:true}});
+      return true;
+    } catch {if(current())publish({semanticSelection:null,semanticError:'unavailable'});return false;}
+  }
+  async function submitSemanticReply() {
+    const binding=semanticBinding,draft=state.draft;
+    if(!binding || !draft.semantic || draft.detached || !draft.body.trim() || mutationPending || pendingSemanticCommand ||
+      !semanticForegroundCurrent(binding))return false;
+    mutationPending=true;publish({busy:true,semanticError:null});
+    let packet=null, dispatched=false, confirmed=false;
+    const current=()=>semanticBinding===binding && semanticForegroundCurrent(binding) && !draft.detached &&
+      state.draft.semantic && state.draft.body===draft.body && state.draft.targetId===binding.ids.targetId;
+    try {
+      if(!await attestSemanticForeground(binding,{renewSaved:true}) || !current())return false;
+      const request={nodeId:binding.ids.nodeId,rootId:binding.ids.rootId,targetId:binding.ids.targetId};
+      const raw=await client.semanticTarget(request,{signal:semanticAbort.signal,beforeDispatch:current});if(!current())return false;
+      const fresh=readSemanticTarget(raw,request);if(!sameSemanticTarget(fresh,binding,{bodies:true}))throw new Error('target-changed');
+      if(!await attestSemanticForeground(binding) || !current())return false;
+      const source=selectedPostingSource(state)??(savedBindingCurrent()?savedPostingSource():null);
+      const foregroundSourceUrl=binding.foreground.saved?.witness.sourceUrl??inspectPageNavigationUrl(JSON.parse(binding.foreground.activeContext).url)?.url;
+      const command={type:'reply',discussionId:binding.ids.discussionId,rootId:binding.ids.rootId,replyToId:binding.ids.targetId,
+        body:draft.body,originSourceId:source?.topicId===binding.ids.topicId&&source.url===foregroundSourceUrl?source.id:null,
+        semanticTarget:{nodeId:binding.ids.nodeId,topicId:binding.ids.topicId,rootRevision:fresh.rootRevision,targetRevision:fresh.targetRevision}};
+      packet=freeze({expected:{...fresh.version},command,actorId:binding.foreground.actorId});
+      const result=await client.command(packet.expected,packet.command,packet.actorId,{signal:semanticAbort.signal,beforeDispatch:async()=>{
+        if(!current() || !await attestSemanticForeground(binding) || !current())return false;
+        // Latch exactly what can reach fetch, after its asynchronous credentials.
+        dispatched=true;pendingSemanticCommand=packet;return true;
+      }});
+      confirmed=true;pendingSemanticCommand=null;
+      if(!current()){if(!disposed)publish({needsFreshRead:true});return false;}
+      // Keep foreground PageB and the bounded selected thread. A new exact read
+      // is needed before another reply; the UI may refresh its thread normally.
+      cancelSemanticSelection();publish({busy:false,semanticSelection:null,semanticWritePending:false,semanticError:null,
+        draft:{body:'',detached:false,mode:'root',targetId:null},createdPost:null});
+      return Boolean(result);
+    } catch (error) {
+      if(isConfirmedCommandRejection(error)){pendingSemanticCommand=null;dispatched=false;}
+      if(current())publish({semanticError:'unavailable',...(dispatched?{needsFreshRead:true,semanticWritePending:true,
+        draft:{...state.draft,detached:true}}:{draft:{...state.draft,detached:true}})});
+      return false;
+    } finally {
+      mutationPending=false;
+      if(!confirmed && dispatched && !disposed)pendingSemanticCommand=packet;
+      if(!disposed)publish({busy:false,semanticWritePending:Boolean(pendingSemanticCommand),
+        ...(!confirmed&&dispatched?{needsFreshRead:true}:{})});
+    }
+  }
+  function acknowledgeSemanticWriteUncertainty(confirmation) {
+    if(disposed || mutationPending || !pendingSemanticCommand || confirmation!=='ACKNOWLEDGE POSSIBLE SEMANTIC REPLY')return false;
+    pendingSemanticCommand=null;cancelSemanticSelection();detach();
+    publish({semanticWritePending:false,needsFreshRead:true,semanticError:null});
+    return true;
+  }
   function begin(mode, targetId = null, destination = null) {
-    if (!(mode === "edit" ? state.phase === "ready" : humanReady()) || state.needsFreshRead || mutationPending || state.draft.body) return false;
+    if (!(mode === "edit" ? state.phase === "ready" : humanReady()) || state.needsFreshRead || mutationPending || pendingSemanticCommand || state.draft.body) return false;
     const entries = state.discussion.roots.flatMap((root) => [root, ...root.replies]);
     const target = mode === "reply" ? resolveDiscussionTarget(targetState(), targetId, destination)?.target :
       entries.find((entry) => entry.id === targetId);
@@ -975,17 +1113,17 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     const binding = mode === "reply" ? resolveDiscussionTarget(targetState(), targetId, destination) : null;
     const root = binding?.root;
     if (mode === "reply" && root?.state !== "visible") return false;
-    publish({ draft: { body: mode === "edit" ? target.body : "", detached: false, mode, targetId,
+    cancelSemanticSelection();publish({ draft: { body: mode === "edit" ? target.body : "", detached: false, mode, targetId,
       ...(mode === "edit" ? { editBinding: { targetId, targetBody: target.body, actorId: state.actorId,
         topicId: state.topicId, discussionId: state.discussion.discussionId } } : {}),
       ...(binding ? { targetBinding: { topicId: binding.topicId, discussionId: binding.discussionId,
         rootId: binding.root.id, rootBody: binding.root.body, targetBody: binding.target.body } } : {}) } });
     return true;
   }
-  function discardDraft() { if (!mutationPending) publish({ draft: { body: "", detached: false, mode: "root", targetId: null } }); }
+  function discardDraft() { if (!mutationPending) {cancelSemanticSelection();publish({ draft: { body: "", detached: false, mode: "root", targetId: null } });} }
   async function mutate(command, { reset = false, learned = false } = {}) {
     if (!state.actorId && readPostingActor() !== undefined && !disposed) { requestSignIn(); return false; }
-    if (mutationPending || state.needsFreshRead || !state.catalog || !state.actorId || disposed) return false;
+    if (mutationPending || pendingSemanticCommand || state.needsFreshRead || !state.catalog || !state.actorId || disposed) return false;
     const savedHuman = ["create-root", "reply"].includes(command.type) && savedBindingCurrent();
     const savedBinding = savedHuman ? verifiedSavedBinding : null;
     if (!["ready", "choose-topic"].includes(state.phase) && !savedHuman) return false;
@@ -1163,6 +1301,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   }
   function submitDraft() {
     const draft = state.draft;
+    if(draft.semantic)return submitSemanticReply();
     if (draft.detached || !draft.body.trim() || !humanReady() || draft.mode === "edit" && state.phase !== "ready") return Promise.resolve(false);
     let command;
     if (draft.mode === "edit") {
@@ -1189,6 +1328,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     return mutate({ type: "withdraw", contributionId });
   }
   function shareInsight(review) {
+    if(semanticBinding || state.draft.semantic)return Promise.resolve(false);
     const version = state.discussion?.version;
     if (!review || state.phase !== "ready" || state.busy || state.needsFreshRead ||
         review.topicId !== state.topicId || review.actorId !== state.actorId ||
@@ -1237,7 +1377,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     return mutate({ type: "clear-learned-data", confirmation }, { learned: true });
   }
   function dispose() {
-    disposed = true; cancel(); observationSequence += 1; stopObservation(); activeContext = null;
+    disposed = true; pendingSemanticCommand=null;cancel(); observationSequence += 1; stopObservation(); activeContext = null;
     state = { ...state, phase: "disconnected", catalog: null, discussion: null,
       related: null, relatedDiscussions: [], priorDiscussions: null, priorDiscussionsError: null,
       earlierDiscussions: [], viewingPriorDiscussion: false,
@@ -1245,10 +1385,12 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       draft: { body: "", detached: false, mode: "root", targetId: null }, serviceConnection: "disconnected" };
   }
   function accountChanged() {
-    cancel(); detach(); publish({ actorId: null, createdPost: null, busy: false });
+    const semanticDraft=state.draft.semantic===true;
+    cancel(); detach(); publish({ actorId: null, createdPost: null, busy: false,
+      ...(semanticDraft?{draft:{body:'',detached:false,mode:'root',targetId:null}}:{}) });
     void open();
   }
-  return Object.freeze({ currentState, open, pair, disconnect, selectTopic, selectActor,
+  return Object.freeze({ currentState, open, pair, disconnect, selectTopic, selectActor, selectSemanticTarget, acknowledgeSemanticWriteUncertainty,
     selectSource, setTopicViewMode, canReplyToAlternate, setDraft, reattachDraft, begin, discardDraft, submitDraft, attestPrivateStart, shareInsight, withdraw, createTopic, reset,
     updatePageResolution, invalidateContext, accountChanged, correctSource, forgetSource, deleteLearnedTopic, clearLearnedData, dispose });
 }

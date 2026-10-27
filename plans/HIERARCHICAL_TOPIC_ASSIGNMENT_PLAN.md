@@ -14,9 +14,23 @@ routes and original discussion destinations passed. The owned test server shut
 down normally; the live database was unchanged. Migrations10-14 remain unregistered.
 
 The checked shared worker/coordinator and bounded Search Topics panel are
-committed (`449d7d04`). Application startup integration and the guarded human reply
-flow are the current work. The panel still needs mounting in the real extension;
-cross-page AI replies need their own server protocol. Then come actual browser,
+committed (`449d7d04`). Trusted application startup integration is committed
+(`dc891e20`): the API enables semantic reads, and an embedded worker checks the
+installed head/role/topology before allocating its shared encoder. It suppresses
+the old optional Ridge index and drains resources on failure. This is opt-in;
+the live operator has not switched.
+
+The optional reply witness is committed (`2bc40611`): the database validates the
+displayed root/target body revisions and historical semantic membership under
+the original write locks, preserving exact receipt replay. Source review, syntax
+and adapter tests pass; its actual SQL race/replay tests are being added. The
+browser's independent semantic reply controller has passed independent source
+review and its guarded regressions, including account/document changes and lost
+confirmation handling. It preserves the foreground page independently from the
+selected thread and never automatically retries an uncertain append.
+Its popup/composer and deliberate uncertain-write recovery UI still need wiring.
+The panel still needs mounting in the real extension; cross-page AI replies need
+their own server protocol. Then come actual browser,
 simultaneous-user and crawler tests, followed by migration and live cutover. The
 remaining work is substantial integration, rather than matcher research alone.
 
