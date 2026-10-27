@@ -1,8 +1,13 @@
 import { createHash } from "node:crypto";
-import { isDeepStrictEqual } from "node:util";
+import { isDeepStrictEqual, types } from "node:util";
 import { assertValidPersistedState } from "../../../local-service/src/domain/persisted-state.js";
 import { FIXED_REFERENCE_STATE_SCHEMA } from "../../../local-service/src/domain/demo-state.js";
 import { LEARNED_SOURCE_PROVENANCE } from "../../../local-service/src/domain/learned-sources.js";
+import {readCanonicalV4MigrationManifest} from '../../../local-service/portable/canonical-v4/index.js';
+import {createCanonicalV4SemanticMetadataRepository} from '../../../local-service/portable/canonical-v4/semantic-metadata-repository.js';
+import {createCanonicalV4SemanticDiscussionRepository} from '../../../local-service/portable/canonical-v4/semantic-discussion-repository.js';
+import {projectSemanticTopicDirectory} from '../../../local-service/src/domain/semantic-topic-directory.js';
+import {compileSemanticTopicGrouping,groupSupportedSemanticPath} from '../../../local-service/src/domain/semantic-topic-grouping.js';
 
 const ERROR_MESSAGE = "PostgreSQL dashboard unavailable";
 
@@ -104,6 +109,51 @@ async function countsIn(tx, header, now) {
   if (point.learnedPages > point.totalSources || point.activeTopics > point.totalTopics ||
       point.activeTopics !== point.multiMemberTopics + point.singletonTopics) throw unavailable();
   return Object.freeze(point);
+}
+
+function metadataRecord(value,keys){
+  if(!value||typeof value!=='object'||types.isProxy(value)||![Object.prototype,null].includes(Object.getPrototypeOf(value))||Reflect.ownKeys(value).length!==keys.length)throw unavailable();
+  const out={};for(const key of keys){const d=Object.getOwnPropertyDescriptor(value,key);if(!d?.enumerable||!Object.hasOwn(d,'value'))throw unavailable();out[key]=d.value;}return out;
+}
+function metadataArray(value,max){
+  if(types.isProxy(value)||!Array.isArray(value)||Object.getPrototypeOf(value)!==Array.prototype)throw unavailable();
+  const length=Object.getOwnPropertyDescriptor(value,'length').value;if(length>max||Reflect.ownKeys(value).length!==length+1)throw unavailable();
+  return Array.from({length},(_,index)=>{const d=Object.getOwnPropertyDescriptor(value,String(index));if(!d?.enumerable||!Object.hasOwn(d,'value'))throw unavailable();return d.value;});
+}
+function counter(value){if(typeof value!=='number'||!Number.isSafeInteger(value)||value<0)throw unavailable();return value;}
+async function semanticRevisionIn(tx,header){
+  const {rows}=await tx.query('SELECT * FROM canonical_v4.semantic_read_revision()');
+  if(rows.length!==1)throw unavailable();const row=metadataRecord(rows[0],['generation','revision']);
+  if(row.generation!==header.generation||typeof row.revision!=='string'||!/^[a-f0-9]{64}$/u.test(row.revision))throw unavailable();return row.revision;
+}
+async function hierarchyIn(tx,header,point){
+  const revision=await semanticRevisionIn(tx,header);
+  const topology=await createCanonicalV4SemanticMetadataRepository({database:tx}).topics({generation:header.generation});
+  const policy=await createCanonicalV4SemanticDiscussionRepository({database:tx}).ownerPolicy();
+  const {rows}=await tx.query('SELECT canonical_v4.semantic_read_dashboard_counts($1) AS metadata',[header.generation]);
+  if(rows.length!==1)throw unavailable();const aggregate=metadataRecord(rows[0].metadata,['generation','matcherIdentityHash','counts','paths']);
+  if(aggregate.generation!==header.generation||aggregate.matcherIdentityHash!==topology.matcherIdentityHash)throw unavailable();
+  const counts=metadataRecord(aggregate.counts,['learnedSources','preparedSources','currentHeadClassifiedSources','currentHeadAbstainedSources',
+    'currentHeadExcludedSources','currentHeadPendingSources','distinctRoots']);
+  for(const key of Object.keys(counts))counter(counts[key]);
+  const observed=counts.currentHeadClassifiedSources+counts.currentHeadAbstainedSources+counts.currentHeadExcludedSources;
+  if(counts.learnedSources!==point.learnedPages||observed+counts.currentHeadPendingSources!==counts.learnedSources||
+      counts.preparedSources<observed||counts.preparedSources>counts.learnedSources)throw unavailable();
+  const nodes=new Map(topology.nodes.map(node=>[node.id,node])),paths=new Set(),occupied=new Set();let sources=0;
+  const grouping=topology.matcherIdentityHash===null?null:compileSemanticTopicGrouping({nodes:topology.nodes.map(({id,parentId})=>({id,parentId})),
+    policy:{...policy,overrides:policy.overrides.filter(rule=>nodes.has(rule.nodeId))}});
+  for(const item of metadataArray(aggregate.paths,512)){
+    const row=metadataRecord(item,['path','sources']),path=metadataArray(row.path,8);
+    if(!path.length||path.some(id=>typeof id!=='string'||!nodes.has(id))||!isDeepStrictEqual(nodes.get(path.at(-1)).path,path)||!counter(row.sources))throw unavailable();
+    const key=JSON.stringify(path);if(paths.has(key)||!grouping)throw unavailable();paths.add(key);sources+=row.sources;
+    const selected=groupSupportedSemanticPath(grouping,path).selectedPath;if(selected.length)occupied.add(selected.at(-1));
+  }
+  if(sources!==counts.currentHeadClassifiedSources)throw unavailable();
+  const {learnedSources,...semanticCounts}=counts;
+  return Object.freeze({revision,policyRevision:policy.revision,protectedMetadataOnly:true,
+    preparedScope:'alive-learned-source-retained-input-any-model-or-version',
+    counts:Object.freeze({...semanticCounts,activeNodes:topology.nodes.length,
+      configuredDisplayGroups:projectSemanticTopicDirectory(topology,policy).topics.length,occupiedDisplayGroups:occupied.size})});
 }
 
 function verifyTopic(row, reference) {
@@ -240,23 +290,45 @@ async function snapshot(database, work) {
 // snapshot and returns either a validated catalog-only state or aggregate-only
 // counters when the reviewed graph limit would be exceeded. It never selects a
 // contribution or revision payload.
-export function createPostgresDashboardSource({ database } = {}) {
+export function createPostgresDashboardSource({ database, schemaProfile='legacy9' } = {}) {
   if (!database || typeof database.query !== "function" || typeof database.transaction !== "function")
     throw new TypeError("Invalid PostgreSQL dashboard dependencies");
+  if(!['legacy9','hierarchy17'].includes(schemaProfile))throw new TypeError('Invalid dashboard schema profile');
+  let manifest=null;
+  async function health(tx){
+    manifest??=await readCanonicalV4MigrationManifest(schemaProfile);
+    const {rows}=await tx.query('SELECT version,hash FROM canonical_v4.schema_migrations ORDER BY version');
+    if(rows.length!==manifest.length||rows.some((row,index)=>Number(row.version)!==manifest[index].version||row.hash!==manifest[index].hash))throw unavailable();
+  }
+  async function summaryIn(tx,now){
+    await health(tx);const header=await headerIn(tx),point=await countsIn(tx,header,now),semantic=await hierarchyIn(tx,header,point);
+    return Object.freeze({header:Object.freeze({...header,semanticRevision:semantic.revision}),point,
+      legacyContainers:Object.freeze({active:point.activeTopics,total:point.totalTopics,multiMember:point.multiMemberTopics,singleton:point.singletonTopics}),semantic});
+  }
   return Object.freeze({
+    schemaProfile,
     async readRevision() {
       return snapshot(database, async tx => {
+        await health(tx);
         const header = await headerIn(tx);
+        if(schemaProfile==='hierarchy17')return JSON.stringify([header.generation,header.catalogVersion,header.revision,await semanticRevisionIn(tx,header)]);
         return JSON.stringify([header.generation, header.catalogVersion]);
       });
     },
 
     async readCounts({ now = () => new Date() } = {}) {
-      return snapshot(database, async tx => countsIn(tx, await headerIn(tx), now));
+      return snapshot(database, async tx => {await health(tx);return countsIn(tx, await headerIn(tx), now);});
+    },
+
+    async readHierarchySummary({now=()=>new Date()}={}){
+      if(schemaProfile!=='hierarchy17')throw new TypeError('Hierarchy dashboard profile required');
+      return snapshot(database,tx=>summaryIn(tx,now));
     },
 
     async loadState() {
+      if(schemaProfile==='hierarchy17')throw new TypeError('Hierarchy dashboard is aggregate only');
       return snapshot(database, async tx => {
+        await health(tx);
         const header = await headerIn(tx);
         return stateIn(tx, header);
       });
@@ -266,6 +338,8 @@ export function createPostgresDashboardSource({ database } = {}) {
       if (!Number.isSafeInteger(graphLimit) || graphLimit < 0 || graphLimit > 100_000)
         throw new TypeError("Invalid PostgreSQL dashboard graph limit");
       return snapshot(database, async tx => {
+        if(schemaProfile==='hierarchy17')return Object.freeze({...await summaryIn(tx,now),state:null});
+        await health(tx);
         const header = await headerIn(tx), point = await countsIn(tx, header, now);
         const state = point.learnedPages > graphLimit ? null : await stateIn(tx, header);
         return Object.freeze({ header, point, state });

@@ -11,7 +11,7 @@ import { RIDGE_PARAMETER_SHA256 } from "../../local-service/src/domain/ridge-top
 import { readCatalogGrowthHistoryV2 } from "../../local-service/src/metrics/catalog-growth.js";
 import { createNormalizedSqliteRepository } from "../../local-service/src/adapters/normalized-sqlite-repository.js";
 import { createPGliteDatabase } from "../../local-service/portable/src/database.js";
-import { importCanonicalV4, migrateCanonicalV4 } from "../../local-service/portable/canonical-v4/index.js";
+import { importCanonicalV4, migrateCanonicalV4, readCanonicalV4MigrationManifest } from "../../local-service/portable/canonical-v4/index.js";
 import { buildDashboardSnapshotV2 } from "../src/data/catalog.js";
 import { createPostgresDashboardSource } from "../src/data/postgres-catalog.js";
 import { generatePostgresDashboard, readPostgresDashboardRefreshKey,
@@ -19,6 +19,64 @@ import { generatePostgresDashboard, readPostgresDashboardRefreshKey,
 
 const START = "2026-10-13T12:00:00.000Z";
 const unit = angle => [Math.cos(angle), Math.sin(angle), ...Array(382).fill(0)];
+
+// Pure SQL-response ports. These tests do not acquire a database or execute SQL.
+async function hierarchyFixture(){
+  const manifest=await readCanonicalV4MigrationManifest('hierarchy17'),queries=[];let stamp='b'.repeat(64),policyRevision=0,depth=1;
+  const generation='hierarchy-dashboard',matcher='a'.repeat(64);
+  let aggregate={generation,matcherIdentityHash:matcher,counts:{learnedSources:8,preparedSources:6,
+    currentHeadClassifiedSources:3,currentHeadAbstainedSources:1,currentHeadExcludedSources:1,currentHeadPendingSources:3,distinctRoots:2},
+    paths:[{path:['games','detail'],sources:3}]};
+  let drift=false,version=7;
+  const tx={dialect:'pg',async query(sql,args=[]){queries.push({tx,sql,args});
+    if(sql==='SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')return {rows:[]};
+    if(sql==='SELECT version,hash FROM canonical_v4.schema_migrations ORDER BY version')return {rows:manifest.map(({version,hash})=>({version,hash}))};
+    if(sql.includes('meta.state_schema'))return {rows:[{state_schema:FIXED_REFERENCE_STATE_SCHEMA,import_generation:generation,import_revision:0,generation,
+      revision:version,catalog_version:2,matching_version:2}]};
+    if(sql.startsWith('WITH learned AS'))return {rows:[{total_sources:10,learned_pages:8,active_topics:2,total_topics:3,multi_member_topics:1,singleton_topics:1}]};
+    if(sql==='SELECT * FROM canonical_v4.semantic_read_revision()')return {rows:[{generation,revision:stamp}]};
+    if(sql==='SELECT canonical_v4.semantic_read_topic_nodes($1) AS metadata')return {rows:[{metadata:{generation,matcherIdentityHash:matcher,nodes:[
+      {id:'detail',parentId:'games',path:['games','detail']},{id:'games',parentId:null,path:['games']},{id:'nature',parentId:null,path:['nature']}]}}]};
+    if(sql==='SELECT * FROM canonical_v4.semantic_read_owner_policy()')return {rows:[{revision:String(policyRevision),default_max_depth:depth,overrides:[]}]};
+    if(sql==='SELECT canonical_v4.semantic_read_dashboard_counts($1) AS metadata')return {rows:[{metadata:drift?{...aggregate,generation:'other'}:aggregate}]};
+    assert.fail('No state, vectors or other SQL: '+sql);
+  }};
+  const database={query:()=>assert.fail('Every read belongs to the same physical RR'),transaction:work=>work(tx)};
+  return {queries,source:createPostgresDashboardSource({database,schemaProfile:'hierarchy17'}),database,
+    changePolicy(){policyRevision++;depth=2;stamp='c'.repeat(64);},changeBackground(){stamp='d'.repeat(64);},changeCanonical(){version++;},
+    mutate:fn=>fn(aggregate),drift:()=>{drift=true;}};
+}
+
+test('hierarchy17 summary partitions protected metadata separately from legacy containers in one RR without vectors',async()=>{
+  const f=await hierarchyFixture(),value=await f.source.readHierarchySummary({now:()=>new Date(START)});
+  assert.deepEqual(value.legacyContainers,{active:2,total:3,multiMember:1,singleton:1});
+  assert.deepEqual(value.semantic.counts,{preparedSources:6,currentHeadClassifiedSources:3,currentHeadAbstainedSources:1,
+    currentHeadExcludedSources:1,currentHeadPendingSources:3,distinctRoots:2,activeNodes:3,configuredDisplayGroups:2,occupiedDisplayGroups:1});
+  assert.equal(value.semantic.preparedScope,'alive-learned-source-retained-input-any-model-or-version');
+  assert.equal(new Set(f.queries.map(q=>q.tx)).size,1);assert.equal(f.queries[0].sql,'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
+  assert.equal(f.queries.some(q=>/FROM canonical_v4\.(?:embeddings|semantic_inputs|semantic_observations|semantic_root_edges)|SELECT source\.\*/u.test(q.sql)),false);
+  assert.equal(Object.hasOwn(await f.source.readCounts(),'semantic'),false,'strict legacy growth point remains unchanged');
+  assert.equal((await f.source.readSnapshot()).state,null);await assert.rejects(f.source.loadState(),TypeError);
+});
+
+test('hierarchy17 refresh covers owner cuts, background material and canonical changes without fake Source writes',async()=>{
+  const f=await hierarchyFixture(),first=await f.source.readRevision();
+  f.changePolicy();assert.notEqual(await f.source.readRevision(),first);
+  const changed=await f.source.readHierarchySummary();assert.equal(changed.header.revision,7);
+  assert.equal(changed.semantic.counts.configuredDisplayGroups,3);assert.equal(changed.semantic.counts.occupiedDisplayGroups,1);
+  assert.equal(changed.semantic.counts.distinctRoots,2);
+  const policy=await f.source.readRevision();f.changeBackground();assert.notEqual(await f.source.readRevision(),policy);
+  const background=await f.source.readRevision();f.changeCanonical();assert.notEqual(await f.source.readRevision(),background);
+});
+
+test('hierarchy17 refuses incoherent metadata, false partitions, malformed counts and duplicate/unknown paths',async()=>{
+  for(const mutate of [a=>a.counts.currentHeadPendingSources++,a=>a.counts.preparedSources=0,a=>a.counts.distinctRoots='2',
+    a=>a.paths.push(a.paths[0]),a=>a.paths[0].path=['unknown'],a=>a.paths[0].sources=2]){
+    const f=await hierarchyFixture();f.mutate(mutate);await assert.rejects(f.source.readHierarchySummary(),{code:'dashboard-unavailable'});
+  }
+  const f=await hierarchyFixture();f.drift();await assert.rejects(f.source.readHierarchySummary(),{code:'dashboard-unavailable'});
+  assert.throws(()=>createPostgresDashboardSource({database:f.database,schemaProfile:'hierarchy16'}),TypeError);
+});
 
 function canonicalState() {
   const state = createDemoState({ generation: "postgres-dashboard-fixture", createdAt: START, sources: [],

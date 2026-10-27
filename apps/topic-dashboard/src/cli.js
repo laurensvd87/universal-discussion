@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -118,6 +118,16 @@ async function readPostgresDashboardBundle(source, growthPath, now, adapter, bod
     } else growth = readCatalogGrowthHistoryV2(growthPath, { now });
   } catch { /* Derived history failure never disables the canonical dashboard. */ }
   finally { try { store?.close(); } catch {} }
+  if(source.schemaProfile==='hierarchy17'){
+    if(!current.semantic||!current.legacyContainers||current.state!==null)throw new Error('PostgreSQL dashboard unavailable');
+    // This is a present-tense metadata view. V2 history remains the legacy
+    // container series; no semantic values are written into that strict format.
+    const base=buildStatsOnlyDashboardSnapshotV2(current.point);
+    return {snapshot:{...base,graphLimited:false,graphMode:'semantic-aggregates',schemaProfile:'hierarchy17',
+      catalogRevision:createHash('sha256').update(JSON.stringify([current.point.seriesId,current.header.catalogVersion,
+        current.header.revision,current.semantic.revision])).digest('hex'),semantic:current.semantic,
+      counts:{...base.counts,legacyContainers:current.legacyContainers,semantic:current.semantic.counts}},preview:null,growth};
+  }
   if (current.state === null) {
     return { snapshot: buildStatsOnlyDashboardSnapshotV2(current.point), preview: null, growth };
   }
@@ -159,6 +169,7 @@ export async function readPostgresDashboardRefreshKey(source, {
   bodyPath = LOCAL_BODY_METRIC_PATH,
   growthPath = path.join(path.dirname(APP_DATABASE_PATH), CATALOG_GROWTH_V2_FILENAME) } = {}) {
   if (!source || typeof source.readRevision !== "function") throw new TypeError("Invalid PostgreSQL dashboard source");
+  if(source.schemaProfile==='hierarchy17')return JSON.stringify([await source.readRevision(),...dashboardArtifactKeys([growthPath])]);
   return JSON.stringify([await source.readRevision(), ...dashboardArtifactKeys([ridgePath, adapterPath, bodyPath, growthPath])]);
 }
 
@@ -229,10 +240,11 @@ export function generateDashboardSnapshot({ databasePath = APP_DATABASE_PATH, ou
 export async function generatePostgresDashboard({ source, outputPath = DEFAULT_REPORT_PATH,
   growthPath = path.join(path.dirname(APP_DATABASE_PATH), CATALOG_GROWTH_V2_FILENAME),
   now = () => new Date(), adapter, bodyMetric, ridgeAdapter } = {}) {
-  const installed = adapter === undefined && bodyMetric === undefined && ridgeAdapter === undefined ? readInstalledOwnerTopicConfiguration() : {};
+  const hierarchy=source?.schemaProfile==='hierarchy17';
+  const installed = !hierarchy && adapter === undefined && bodyMetric === undefined && ridgeAdapter === undefined ? readInstalledOwnerTopicConfiguration() : {};
   const { snapshot, preview, growth } = await readPostgresDashboardBundle(source, growthPath, now,
-    adapter ?? installed.alternateAdapter ?? null, bodyMetric ?? installed.alternateBodyMetric ?? null,
-    ridgeAdapter ?? installed.alternateRidgeAdapter ?? null, { recordInitial: true });
+    hierarchy?null:adapter ?? installed.alternateAdapter ?? null, hierarchy?null:bodyMetric ?? installed.alternateBodyMetric ?? null,
+    hierarchy?null:ridgeAdapter ?? installed.alternateRidgeAdapter ?? null, { recordInitial: true });
   const document = renderDashboardDocument({
     template: readFileSync(path.join(webPath, "index.html"), "utf8"),
     style: readFileSync(path.join(webPath, "style.css"), "utf8"),
@@ -247,10 +259,11 @@ export async function generatePostgresDashboard({ source, outputPath = DEFAULT_R
 export async function generatePostgresDashboardSnapshot({ source, outputPath = DEFAULT_REPORT_PATH,
   growthPath = path.join(path.dirname(APP_DATABASE_PATH), CATALOG_GROWTH_V2_FILENAME),
   now = () => new Date(), adapter, bodyMetric, ridgeAdapter } = {}) {
-  const installed = adapter === undefined && bodyMetric === undefined && ridgeAdapter === undefined ? readInstalledOwnerTopicConfiguration() : {};
+  const hierarchy=source?.schemaProfile==='hierarchy17';
+  const installed = !hierarchy && adapter === undefined && bodyMetric === undefined && ridgeAdapter === undefined ? readInstalledOwnerTopicConfiguration() : {};
   const { snapshot, preview, growth } = await readPostgresDashboardBundle(source, growthPath, now,
-    adapter ?? installed.alternateAdapter ?? null, bodyMetric ?? installed.alternateBodyMetric ?? null,
-    ridgeAdapter ?? installed.alternateRidgeAdapter ?? null);
+    hierarchy?null:adapter ?? installed.alternateAdapter ?? null, hierarchy?null:bodyMetric ?? installed.alternateBodyMetric ?? null,
+    hierarchy?null:ridgeAdapter ?? installed.alternateRidgeAdapter ?? null);
   writePrivateAtomic(path.join(path.dirname(outputPath), SNAPSHOT_FILE), renderSnapshotScript(snapshot, preview, growth));
   return { outputPath, counts: snapshot.counts };
 }
@@ -344,7 +357,12 @@ export async function runPostgresDashboardCli({ source, args = process.argv.slic
   const initialRevision = oneShot ? undefined : await revision();
   const result = await generatePostgresDashboard({ source, growthPath });
   if (!oneShot) await openReport(result.outputPath);
+  if(source.schemaProfile==='hierarchy17'){
+    const counts=result.counts.semantic,legacy=result.counts.legacyContainers;
+    process.stdout.write(`Semantic dashboard ready: ${counts.currentHeadClassifiedSources} classified Sources; ${counts.currentHeadPendingSources} pending; ${counts.configuredDisplayGroups} configured display groups; ${counts.distinctRoots} distinct visible semantic roots. Legacy containers: ${legacy.multiMember} multi-member, ${legacy.singleton} singleton.\n${result.outputPath}\n`);
+  }else{
   process.stdout.write(`Dashboard ready: ${result.counts.learnedSources} captured pages; ${result.counts.multiMemberTopics} canonical Topics (at least two learned pages), ${result.counts.singletonTopics} singleton Topics${result.counts.displayedPages === 0 && result.counts.learnedSources > MAX_GRAPH_PAGES ? "; graph paused, aggregate history remains available" : ""}.\n${result.outputPath}\n`);
+  }
   if (!oneShot) {
     const growthSampler = startPostgresDashboardGrowthSampler({ source, growthPath,
       onOutcome: value => {

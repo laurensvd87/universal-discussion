@@ -15,13 +15,19 @@
     </header>
 
     <p id="snapshot-health" class="snapshot-health" role="status" aria-live="polite" aria-atomic="true">Noch keine Momentaufnahme geladen.</p>
+    <section id="semantic-summary" class="semantic-summary" aria-labelledby="semantic-heading" hidden>
+      <span class="eyebrow">AKTUELLER STAND</span><h2 id="semantic-heading">Semantische Themenzuordnung</h2>
+      <div id="semantic-metrics" class="semantic-metrics"></div>
+      <p class="semantic-note">Vorbereitete Seiten können weiterhin auf eine aktuelle Zuordnung warten.</p>
+      <h3>Gespeicherte Seiten-Container</h3><div id="legacy-container-metrics" class="semantic-metrics"></div>
+    </section>
     <section class="growth-panel" aria-labelledby="growth-heading">
       <div class="growth-header"><div><span class="eyebrow">KATALOG IM ZEITVERLAUF</span><h2 id="growth-heading">Seiten und kanonische Topics (≥2 Seiten)</h2></div><div class="growth-windows" role="group" aria-label="Zeitraum"><button type="button" data-growth-window="1h" aria-pressed="false">1 h</button><button type="button" data-growth-window="24h" aria-pressed="true">24 h</button><button type="button" data-growth-window="7d" aria-pressed="false">7 Tage</button><button type="button" data-growth-window="all" aria-pressed="false">Gesamt</button></div></div>
       <div class="growth-views" role="group" aria-label="Diagrammansicht"><button type="button" data-growth-view="time" aria-pressed="true">Zeitverlauf</button><button type="button" data-growth-view="pages" aria-pressed="false">Topics über Seiten</button></div>
       <div class="growth-layout"><div><div id="growth-key" class="growth-key"><span class="growth-pages">Gelernte Seiten</span><span class="growth-topics">Topics (≥2 Seiten)</span></div><svg id="growth-chart" viewBox="0 0 840 180" role="img" aria-labelledby="growth-chart-title growth-chart-description"><title id="growth-chart-title">Verlauf der Katalogzahlen</title><desc id="growth-chart-description">Noch keine Messpunkte.</desc><g id="growth-plot"></g></svg></div><div id="growth-metrics" class="growth-metrics" aria-label="Aktuelle kanonische Katalogzahlen"></div></div>
       <p id="growth-status" class="growth-status" role="status">Verlauf derzeit nicht verfügbar.</p><p class="growth-note">Topics zählen mindestens zwei verschiedene gelernte Seiten; Singleton-Topics werden separat gezählt. Seiten werden eindeutig gezählt, nicht pro Mitgliedschaft. Die neuen Kurven zeigen die aktuelle kanonische Zuordnung, unabhängig vom Kartenmodus. Legacy-Verlauf mit mindestens einer Seite wird nicht umgedeutet. Löschungen können Zahlen senken; Lücken und Katalogwechsel unterbrechen die Linien. Ein Plateau ist keine zugesicherte Eigenschaft.</p>
     </section>
-    <main class="workspace">
+    <main id="catalog-workspace" class="workspace">
       <aside class="sidebar" aria-label="Filter und Topics">
         <div class="sidebar-intro"><span class="eyebrow">DEIN LOKALER KATALOG</span><h2>Seiten im Zusammenhang sehen.</h2><p>Eine Karte der erfassten Seiten, ihrer Topics und ihrer nächsten Nachbarn.</p></div>
         <div class="metrics" aria-label="Katalogzahlen">

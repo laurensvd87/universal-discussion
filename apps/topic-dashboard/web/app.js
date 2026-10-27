@@ -54,15 +54,26 @@
     for (const button of document.querySelectorAll('[data-growth-window]')) button.setAttribute('aria-pressed', String(button.dataset.growthWindow === growthState.window));
     for (const button of document.querySelectorAll('[data-growth-view]')) button.setAttribute('aria-pressed', String(button.dataset.growthView === growthState.view));
     const byPages = growthState.view === 'pages';
+    const semantic=Boolean(state.data?.semantic);
+    metrics.setAttribute('aria-label',semantic?'Bisherige Containerzahlen':'Aktuelle kanonische Katalogzahlen');
+    for(const button of document.querySelectorAll('[data-growth-view]'))if(button.dataset.growthView==='pages')button.textContent=semantic?'Container über Seiten':'Topics über Seiten';
+    $('growth-heading').textContent=semantic?'Seiten und bisherige Container im Verlauf':'Seiten und kanonische Topics (≥2 Seiten)';
+    const note=document.querySelector?.('.growth-note');
+    if(note){note.dataset.legacyText??=note.textContent;note.textContent=semantic?
+      'Dieser Verlauf zeigt die bisherigen Seiten-Container. Semantische Themenzuordnungen werden oben als aktueller Stand angezeigt.':note.dataset.legacyText;}
     $('growth-chart').setAttribute('viewBox', byPages ? '0 0 840 210' : '0 0 840 180');
-    $('growth-chart-title').textContent = byPages ? 'Kanonische Topics mit mindestens zwei Seiten über gelernte Seiten' : 'Verlauf der Katalogzahlen';
+    $('growth-chart-title').textContent = semantic?'Verlauf der bisherigen Seiten-Container':byPages ? 'Kanonische Topics mit mindestens zwei Seiten über gelernte Seiten' : 'Verlauf der Katalogzahlen';
     $('growth-key').replaceChildren(...(byPages ? [textElement('span', 'growth-topics', 'Topics (≥2 Seiten); Messpunkte in zeitlicher Reihenfolge')] :
       [textElement('span', 'growth-pages', 'Gelernte Seiten'), textElement('span', 'growth-topics', 'Topics (≥2 Seiten)')]));
     const all = growthState.data;
+    if(semantic)$('growth-key').replaceChildren(...(byPages?[textElement('span','growth-topics','Bisherige Container (≥2 Seiten)')]:
+      [textElement('span','growth-pages','Erfasste Seiten'),textElement('span','growth-topics','Bisherige Container (≥2 Seiten)')]));
     if (all?.legacy) {
       $('growth-chart').hidden = true;
       $('growth-status').textContent = 'Legacy-Verlauf (Topics mit mindestens einer Seite). Topics mit mindestens zwei Seiten sind daraus nicht bekannt; neuer Verlauf beginnt mit Version 2.';
       $('growth-chart-description').textContent = 'Legacy-Zahlen werden nicht als Mehrseiten-Topics umgedeutet.';
+      if(semantic){$('growth-status').textContent='Früherer Container-Verlauf (mindestens eine Seite). Mehrseiten-Container sind daraus nicht bekannt.';
+        $('growth-chart-description').textContent='Frühere Containerzahlen werden nicht als semantische Themenzuordnungen ausgegeben.';}
       return;
     }
     $('growth-chart').hidden = !all?.length;
@@ -83,9 +94,9 @@
       metrics.append(node);
     };
     metric('gelernte Seiten', format.format(latest.learnedPages), latest.learnedPages - first.learnedPages);
-    metric('kanonische Topics (≥2 Seiten)', format.format(latest.multiMemberTopics), latest.multiMemberTopics - first.multiMemberTopics);
-    metric('Singleton-Topics (eine Seite)', format.format(latest.singletonTopics), latest.singletonTopics - first.singletonTopics);
-    metric('Topics gesamt (inkl. leerer)', format.format(latest.totalTopics));
+    metric(semantic?'Bisherige Container (≥2 Seiten)':'kanonische Topics (≥2 Seiten)', format.format(latest.multiMemberTopics), latest.multiMemberTopics - first.multiMemberTopics);
+    metric(semantic?'Bisherige Container (eine Seite)':'Singleton-Topics (eine Seite)', format.format(latest.singletonTopics), latest.singletonTopics - first.singletonTopics);
+    metric(semantic?'Bisherige Container gesamt':'Topics gesamt (inkl. leerer)', format.format(latest.totalTopics));
     const minimum = points[0].time, span = Math.max(60000, latest.time - minimum);
     const maximum = Math.max(1, ...points.map(point => byPages ? point.multiMemberTopics : Math.max(point.learnedPages, point.multiMemberTopics)));
     const maximumPages = Math.max(1, ...points.map(point => point.learnedPages));
@@ -104,7 +115,7 @@
       const horizontal = svg('text', { x: 436, y: 199, 'text-anchor': 'middle', class: 'growth-axis', 'data-growth-axis': 'x' });
       horizontal.textContent = 'Gelernte Seiten (x)';
       const vertical = svg('text', { x: 58, y: 15, class: 'growth-axis', 'data-growth-axis': 'y' });
-      vertical.textContent = 'Topics mit ≥2 Seiten (y)';
+      vertical.textContent = semantic?'Bisherige Container mit ≥2 Seiten (y)':'Topics mit ≥2 Seiten (y)';
       plot.append(horizontal, vertical);
     }
     const segments = [];
@@ -120,11 +131,12 @@
         plot.append(line);
         const last = segment.at(-1);
         const dot = svg('circle', { cx: x(last), cy: y(last[key]), r: 3, class: `growth-dot-${suffix}` });
-        appendTitle(dot, `${growthTime.format(new Date(last.time))}: ${byPages ? `${format.format(last.learnedPages)} gelernte Seiten, ` : ''}${format.format(last[key])} ${key === 'learnedPages' ? 'gelernte Seiten' : 'Topics mit mindestens zwei Seiten'}`);
+        appendTitle(dot, `${growthTime.format(new Date(last.time))}: ${byPages ? `${format.format(last.learnedPages)} gelernte Seiten, ` : ''}${format.format(last[key])} ${key === 'learnedPages' ? 'gelernte Seiten' : semantic?'bisherige Container mit mindestens zwei Seiten':'Topics mit mindestens zwei Seiten'}`);
         plot.append(dot);
       }
     }
     $('growth-chart-description').textContent = `${points.length} Messpunkte. ${byPages ? 'X-Achse: eindeutige gelernte Seiten. Y-Achse: kanonische Topics mit mindestens zwei Seiten. Verbindung in zeitlicher Reihenfolge; Löschungen können nach links und unten führen. ' : ''}Gelernte Seiten aktuell ${latest.learnedPages}, Topics mit mindestens zwei Seiten ${latest.multiMemberTopics}, Singleton-Topics ${latest.singletonTopics}. Änderungen seit ${growthTime.format(new Date(first.time))}: Seiten ${latest.learnedPages - first.learnedPages}, Topics ${latest.multiMemberTopics - first.multiMemberTopics}.`;
+    if(semantic)$('growth-chart-description').textContent=`${points.length} Messpunkte des bisherigen Container-Verlaufs. Erfasste Seiten ${latest.learnedPages}, Container mit mindestens zwei Seiten ${latest.multiMemberTopics}, Container mit einer Seite ${latest.singletonTopics}.`;
     $('growth-status').textContent = points.length === 1 ? `Erster Messpunkt: ${growthTime.format(new Date(latest.time))}. Verlauf wird ab jetzt aufgezeichnet.` :
       `${format.format(points.length)} Messpunkte · Stand ${growthTime.format(new Date(latest.time))} · Δ seit ${growthTime.format(new Date(first.time))}, nur im aktuellen Katalog. Aufzeichnung: 24 h minutengenau, danach stündlich, bis zu 90 Tage.`;
   }
@@ -178,6 +190,7 @@
   function normalize(input) {
     if (!input || ![1, 2].includes(input.schemaVersion) || !Array.isArray(input.topics) || !Array.isArray(input.pages) || !Array.isArray(input.edges) || !input.counts) throw new Error('Unbekanntes Dashboard-Format.');
     if (input.pages.length > 10000 || input.topics.length > 10000 || input.edges.length > 30000) throw new Error('Dashboard-Datei ist zu groß.');
+    const hierarchy=input.schemaProfile==='hierarchy17',semantic=hierarchy?normalizeSemantic(input):null;
     const topics = [], topicIds = new Set();
     for (const row of input.topics) {
       if (!row || typeof row.id !== 'string' || !row.id || topicIds.has(row.id) || !coordinate(row.x) || !coordinate(row.y)) continue;
@@ -210,7 +223,7 @@
     for (const topic of topics) topic.pageCount = membership.get(topic.id)?.size ?? 0;
     let multiMemberTopics = [...membership.values()].filter(ids => ids.size >= 2).length;
     let singletonTopics = [...membership.values()].filter(ids => ids.size === 1).length;
-    if (input.graphLimited === true) {
+    if (input.graphLimited === true || hierarchy) {
       if (input.schemaVersion === 2) {
         if (!Number.isSafeInteger(counts.multiMemberTopics) || counts.multiMemberTopics < 0 ||
             !Number.isSafeInteger(counts.singletonTopics) || counts.singletonTopics < 0 ||
@@ -223,11 +236,43 @@
       catalogRevision: typeof input.catalogRevision === 'string' && /^[a-f0-9]{64}$/u.test(input.catalogRevision) ? input.catalogRevision : null,
       growthSeriesId: typeof input.growthSeriesId === 'string' && /^[a-f0-9]{64}$/u.test(input.growthSeriesId) ? input.growthSeriesId : null,
       graphLimited: input.graphLimited === true,
+      semantic,
       topics, pages, edges,
-      counts: { totalSources: number(counts.totalSources, pages.length), learnedSources: input.graphLimited === true ? number(counts.learnedSources, 0) : pages.length, displayedPages: pages.length, topics: number(counts.topics, topics.length), totalTopics: number(counts.totalTopics, topics.length), multiMemberTopics, singletonTopics },
+      counts: { totalSources: number(counts.totalSources, pages.length), learnedSources: input.graphLimited === true || hierarchy ? number(counts.learnedSources, 0) : pages.length, displayedPages: pages.length, topics: number(counts.topics, topics.length), totalTopics: number(counts.totalTopics, topics.length), multiMemberTopics, singletonTopics },
       byTopic: new Map(topics.map((topic) => [topic.id, topic])),
       byPage: new Map(pages.map((page) => [page.id, page])),
     };
+  }
+
+  function normalizeSemantic(input){
+    const semantic=input.semantic,counts=semantic?.counts,legacy=input.counts.legacyContainers;
+    const keys=['preparedSources','currentHeadClassifiedSources','currentHeadAbstainedSources','currentHeadExcludedSources','currentHeadPendingSources',
+      'distinctRoots','activeNodes','configuredDisplayGroups','occupiedDisplayGroups'];
+    const integer=value=>Number.isSafeInteger(value)&&value>=0;
+    if(input.schemaVersion!==2||input.graphMode!=='semantic-aggregates'||input.pages.length||input.topics.length||input.edges.length||
+        !semantic||semantic.protectedMetadataOnly!==true||typeof semantic.revision!=='string'||!/^[a-f0-9]{64}$/u.test(semantic.revision)||
+        !integer(semantic.policyRevision)||!counts||Object.keys(counts).sort().join()!==[...keys].sort().join()||!keys.every(key=>integer(counts[key]))||
+        !legacy||!['active','total','multiMember','singleton'].every(key=>integer(legacy[key]))||
+        legacy.active!==legacy.multiMember+legacy.singleton||legacy.active>legacy.total||legacy.active!==input.counts.topics||legacy.total!==input.counts.totalTopics||
+        legacy.multiMember!==input.counts.multiMemberTopics||legacy.singleton!==input.counts.singletonTopics||
+        !keys.every(key=>input.counts.semantic?.[key]===counts[key])||
+        !integer(input.counts.learnedSources)||!integer(input.counts.totalSources)||input.counts.learnedSources>input.counts.totalSources||
+        counts.currentHeadClassifiedSources+counts.currentHeadAbstainedSources+counts.currentHeadExcludedSources+counts.currentHeadPendingSources!==input.counts.learnedSources||
+        counts.preparedSources>input.counts.learnedSources||counts.preparedSources<counts.currentHeadClassifiedSources+counts.currentHeadAbstainedSources+counts.currentHeadExcludedSources||
+        counts.occupiedDisplayGroups>counts.configuredDisplayGroups||counts.configuredDisplayGroups>counts.activeNodes||counts.occupiedDisplayGroups>counts.currentHeadClassifiedSources)
+      throw new Error('Ungültige semantische Katalogzahlen.');
+    return {counts:{...counts},legacy:{...legacy}};
+  }
+  function renderSemantic(){
+    const semantic=state.data.semantic;$('semantic-summary').hidden=!semantic;$('catalog-workspace').hidden=Boolean(semantic);
+    if(!semantic)return;
+    const metrics=$('semantic-metrics'),legacy=$('legacy-container-metrics');metrics.replaceChildren();legacy.replaceChildren();
+    const card=(root,label,value)=>{const item=textElement('div','semantic-metric','');item.append(textElement('strong','',format.format(value)),textElement('span','',label));root.append(item);};
+    for(const [key,label] of [['currentHeadClassifiedSources','Zugeordnet'],['currentHeadPendingSources','Ausstehend'],
+      ['currentHeadAbstainedSources','Ohne Zuordnung'],['currentHeadExcludedSources','Ausgeschlossen'],['preparedSources','Bereits vorbereitet'],
+      ['activeNodes','Semantische Themen'],['configuredDisplayGroups','Anzeigegruppen eingerichtet'],['occupiedDisplayGroups','Anzeigegruppen mit Seiten'],
+      ['distinctRoots','Sichtbare Themendiskussionen']])card(metrics,label,semantic.counts[key]);
+    for(const [key,label] of [['total','Container gesamt'],['multiMember','Container mit mehreren Seiten'],['singleton','Container mit einer Seite']])card(legacy,label,semantic.legacy[key]);
   }
 
   // This file is an untrusted, content-free partition of the exact displayed Source IDs.
@@ -276,6 +321,8 @@
 
   function updateGrouping() {
     state.data = state.grouping === 'experimental' && state.preview ? previewData(state.currentData, state.preview) : state.currentData;
+    renderSemantic();
+    if(state.data.semantic){$('grouping-preview').hidden=true;$('preview-note').hidden=true;return;}
     $('grouping-preview').hidden = false;
     $('grouping-current').setAttribute('aria-pressed', String(state.grouping === 'current'));
     $('grouping-experimental').setAttribute('aria-pressed', String(state.grouping === 'experimental'));
@@ -458,6 +505,7 @@
 
   function render() {
     if (!state.data) return;
+    if(state.data.semantic){renderSemantic();return;}
     const pages = visiblePages(); renderTopics(); renderMap(pages); renderSelection(); renderPageList(pages);
   }
   function selectTopic(id) { state.topicId = state.topicId === id ? null : id; state.pageId = null; render(); }
@@ -465,7 +513,7 @@
   function load(raw, { preserve = false, announce = true, preview = null, growth = null } = {}) {
     const next = normalize(raw);
     let nextPreview = null;
-    if (preview !== null) {
+    if (!next.semantic && preview !== null) {
       try { nextPreview = normalizePreview(preview, next); }
       catch { /* A stale or malformed preview never affects the current view. */ }
     }
@@ -484,10 +532,10 @@
     const date = new Date(state.data.generatedAt);
     $('data-age').textContent = Number.isNaN(date.getTime()) ? 'Lokale Momentaufnahme' : `Stand ${new Intl.DateTimeFormat('de-DE', { dateStyle: 'short', timeStyle: 'short' }).format(date)}`;
     if (!preserve) state.view = { x: 0, y: 0, w: 1000, h: 700 };
-    updateView(); updateGrouping();
+    if(!next.semantic)updateView(); updateGrouping();
     loadGrowth(growth, next);
     renderSnapshotHealth();
-    if (announce) showStatus(`${format.format(state.data.pages.length)} erfasste Seiten geladen.`);
+    if (announce) showStatus(`${format.format(state.data.semantic?state.data.counts.learnedSources:state.data.pages.length)} erfasste Seiten geladen.`);
   }
 
   function updateView() { const v = state.view; $('map').setAttribute('viewBox', `${v.x} ${v.y} ${v.w} ${v.h}`); }

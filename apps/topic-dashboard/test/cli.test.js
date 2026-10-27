@@ -7,11 +7,35 @@ import { DatabaseSync } from "node:sqlite";
 import { createDemoState } from "../../local-service/src/domain/demo-state.js";
 import { createNormalizedSqliteRepository, NORMALIZED_STORAGE_FORMAT } from "../../local-service/src/adapters/normalized-sqlite-repository.js";
 import { generateDashboard, readDashboardRefreshKey, readDashboardRevision, renderDashboardDocument, renderSnapshotScript,
-  watchDashboard } from "../src/cli.js";
+  watchDashboard,generatePostgresDashboardSnapshot,readPostgresDashboardRefreshKey } from "../src/cli.js";
 
 const template = '<html><head><link rel="stylesheet" href="./style.css" data-dashboard-style></head><body>' +
   '<script id="dashboard-data" type="application/json"></script>' +
   '<script src="./app.js" defer data-dashboard-script></script></body></html>';
+
+test('hierarchy17 report publishes separate semantic and legacy counters without Ridge or a growth database',async()=>{
+  const directory=mkdtempSync(join(tmpdir(),'semantic-dashboard-cli-'));
+  try{
+    const point={at:'2026-10-27T12:00:00.000Z',seriesId:'a'.repeat(64),revision:7,totalSources:10,learnedPages:8,
+      activeTopics:2,totalTopics:3,multiMemberTopics:1,singletonTopics:1};
+    const current={header:{catalogVersion:2,revision:7},point,state:null,legacyContainers:{active:2,total:3,multiMember:1,singleton:1},
+      semantic:{revision:'b'.repeat(64),policyRevision:0,protectedMetadataOnly:true,counts:{preparedSources:6,currentHeadClassifiedSources:3,
+        currentHeadAbstainedSources:1,currentHeadExcludedSources:1,currentHeadPendingSources:3,distinctRoots:2,activeNodes:3,
+        configuredDisplayGroups:2,occupiedDisplayGroups:1}}};
+    const source={schemaProfile:'hierarchy17',async readSnapshot(){return current;},async readRevision(){return JSON.stringify(['generation',2,7,current.semantic.revision]);}};
+    const forbidden=new Proxy({},{get(){assert.fail('No legacy Ridge/body/adapter access');}}),outputPath=join(directory,'dashboard.html'),growthPath=join(directory,'absent-growth.sqlite');
+    const options={source,outputPath,growthPath,adapter:forbidden,bodyMetric:forbidden,ridgeAdapter:forbidden};
+    const first=await generatePostgresDashboardSnapshot(options),read=()=>JSON.parse(readFileSync(join(directory,'snapshot.js'),'utf8').match(/globalThis\.__topicAtlasSnapshot = (.+);/u)[1]);
+    assert.deepEqual(first.counts.semantic,current.semantic.counts);assert.deepEqual(first.counts.legacyContainers,current.legacyContainers);
+    assert.equal(first.counts.multiMemberTopics,1);assert.equal(existsSync(growthPath),false);
+    const old=read();assert.equal(old.graphMode,'semantic-aggregates');assert.equal(old.graphLimited,false);assert.deepEqual(old.pages,[]);
+    const key=await readPostgresDashboardRefreshKey(source,{growthPath,ridgePath:forbidden,adapterPath:forbidden,bodyPath:forbidden});
+    current.semantic={...current.semantic,revision:'c'.repeat(64),policyRevision:1,counts:{...current.semantic.counts,configuredDisplayGroups:3}};
+    await generatePostgresDashboardSnapshot(options);assert.notEqual(read().catalogRevision,old.catalogRevision);
+    assert.equal(read().counts.semantic.configuredDisplayGroups,3);assert.equal(read().catalogRevision.length,64);
+    assert.notEqual(await readPostgresDashboardRefreshKey(source,{growthPath}),key);
+  }finally{rmSync(directory,{recursive:true,force:true});}
+});
 
 test("standalone report inlines local assets and escapes untrusted page titles", () => {
   const snapshot = { pages: [{ title: '</script><script>alert("x")</script>&' }] };
