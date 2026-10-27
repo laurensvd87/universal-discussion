@@ -94,6 +94,7 @@ const REQUIRED_SNAPSHOT_FILES = Object.freeze([
   "apps/local-service/src/application/hierarchy-worker-resources.js",
   "apps/local-service/src/application/stored-hierarchy-coordinator.js",
   "apps/local-service/portable/canonical-v4/hierarchy-installation.js",
+  "apps/local-service/portable/canonical-v4/semantic-owner-maintenance.js",
   ...[
     "010-semantic-hierarchy.sql", "011-semantic-discussion-feeds.sql", "012-semantic-stored-source-preparation.sql",
     "013-semantic-public-topic-metadata.sql", "014-semantic-source-containers.sql", "015-semantic-reply-witness.sql",
@@ -475,6 +476,7 @@ const ASSET_FILES = Object.freeze(REQUIRED_SNAPSHOT_FILES.filter(name => name.in
 export const POSTGRES_RUNTIME_POOL_BUDGET = Object.freeze({ api: 32, exactUrl: 4, worker: 2, crawler: 2, dashboard: 2,
   permanentMaximum: 42, statusOwner: 1, installationOwner: 1 });
 const OPERATIONS = Object.freeze(["prepare-runtime", "seal-runtime", "preflight", "install-hierarchy",
+  "inspect-legacy-roots", "adopt-legacy-roots", "set-hierarchy-policy",
   "status", "service", "worker", "dashboard", "crawler"]);
 export function describePostgresRuntimePackaging() {
   return Object.freeze({ sourcePrefixes: SOURCE_PREFIXES, sourceFiles: SOURCE_FILES,
@@ -558,14 +560,14 @@ export function parseHierarchyInstallInput(text) {
         rule.nodeId.length > 160 || !Number.isInteger(rule.maxDepth) || rule.maxDepth < 1 || rule.maxDepth > 8)) throw operatorFailure();
   return value;
 }
-function readInstallInput() {
+function readBoundedInput(parse) {
   return new Promise((resolve, reject) => {
     const chunks = []; let size = 0, complete = false;
     const finish = error => {
       if (complete) return; complete = true; clearTimeout(timer);
       process.stdin.removeListener("data", data); process.stdin.removeListener("end", end); process.stdin.removeListener("error", failure);
       process.stdin.pause();
-      try { if (error) throw error; resolve(parseHierarchyInstallInput(Buffer.concat(chunks, size).toString("utf8"))); }
+      try { if (error) throw error; resolve(parse(Buffer.concat(chunks, size).toString("utf8"))); }
       catch { reject(operatorFailure()); }
       finally { for (const chunk of chunks) chunk.fill(0); }
     };
@@ -579,6 +581,8 @@ function readInstallInput() {
     process.stdin.resume();
   });
 }
+function readInstallInput() { return readBoundedInput(parseHierarchyInstallInput); }
+function readOwnerInput() { return readBoundedInput(text => JSON.parse(text)); }
 async function closeAll(resources) {
   let failed = false, primary;
   for (const resource of resources) try { await resource?.close(); }
@@ -718,6 +722,19 @@ async function runInstallation(p) {
   const database = await p.openRoleDatabase(ROLES.status, 1, "murmingle-hierarchy-installation");
   return usingDatabase(database, async () => { p.writeStdout(`${JSON.stringify(await installInstalledHierarchy({ ...request, database }))}\n`); });
 }
+async function runOwnerMaintenance(p, operation) {
+  const request = await p.readOwnerInput();
+  const { createSemanticOwnerMaintenance, readSemanticOwnerMaintenanceInput } = await p.loadSnapshot(
+    "apps/local-service/portable/canonical-v4/semantic-owner-maintenance.js");
+  const input = readSemanticOwnerMaintenanceInput(operation, request);
+  const database = await p.openRoleDatabase(ROLES.status, 1, "murmingle-semantic-owner");
+  return usingDatabase(database, async () => {
+    const owner = createSemanticOwnerMaintenance({ database });
+    const method = operation === "inspect-legacy-roots" ? "inspectLegacyRoots" :
+      operation === "adopt-legacy-roots" ? "adoptLegacyRoots" : "setHierarchyPolicy";
+    p.writeStdout(`${JSON.stringify(await owner[method](input))}\n`);
+  });
+}
 function operations(p) {
   return Object.freeze({ async run(args) {
     const operation = Array.isArray(args) && args.length === 1 ? args[0] : null;
@@ -729,6 +746,7 @@ function operations(p) {
         const verified = p.verifyRuntimeSnapshot();
         if (operation === "preflight") p.writeStdout(`${JSON.stringify({ ...verified, verified: true, poolBudget: POSTGRES_RUNTIME_POOL_BUDGET })}\n`);
         else if (operation === "install-hierarchy") await runInstallation(p);
+        else if (["inspect-legacy-roots", "adopt-legacy-roots", "set-hierarchy-policy"].includes(operation)) await runOwnerMaintenance(p, operation);
         else if (operation === "service") await runService(p);
         else if (operation === "worker") await runWorker(p);
         else if (operation === "dashboard") await runDashboard(p);
@@ -741,14 +759,14 @@ function operations(p) {
 }
 const production = operations(Object.freeze({
   openRoleDatabase, prepareRuntimeSnapshot, sealRuntimeSnapshot, verifyRuntimeSnapshot, readTopicConfiguration,
-  readPairingOrigin, readCrawlerToken, readInstallInput, waitForShutdown, startDashboardWatcher,
+  readPairingOrigin, readCrawlerToken, readInstallInput, readOwnerInput, waitForShutdown, startDashboardWatcher,
   loadSnapshot: name => import(snapshotUrl(name)),
   loadBackup: () => import(pathToFileURL(path.join(localServiceRoot, "src", "ops", "postgres-backup-operator.js")).href),
   writeStdout: text => process.stdout.write(text), writeStderr: text => process.stderr.write(text), setInterval, clearInterval,
 }));
 export function createPostgresRuntimeOperatorForTest(ports = {}) {
   const names = ["openRoleDatabase", "prepareRuntimeSnapshot", "sealRuntimeSnapshot", "verifyRuntimeSnapshot", "readTopicConfiguration",
-    "readPairingOrigin", "readCrawlerToken", "readInstallInput", "waitForShutdown", "startDashboardWatcher", "loadSnapshot", "loadBackup",
+    "readPairingOrigin", "readCrawlerToken", "readInstallInput", "readOwnerInput", "waitForShutdown", "startDashboardWatcher", "loadSnapshot", "loadBackup",
     "writeStdout", "writeStderr", "setInterval", "clearInterval"];
   if (!ports || typeof ports !== "object" || Object.keys(ports).some(key => !names.includes(key) || typeof ports[key] !== "function")) throw operatorFailure();
   return operations(Object.freeze(Object.fromEntries(names.map(name => [name, ports[name] ?? (() => { throw operatorFailure(); })]))));

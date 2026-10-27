@@ -4,6 +4,7 @@ import {readFileSync,existsSync} from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createPostgresRuntimeOperatorForTest,parseHierarchyInstallInput,POSTGRES_RUNTIME_POOL_BUDGET,describePostgresRuntimePackaging} from '../src/ops/postgres-runtime-operator.js';
+import {readSemanticOwnerMaintenanceInput} from '../portable/canonical-v4/semantic-owner-maintenance.js';
 
 function fixture(extra={}){
  const calls=[],out=[],errors=[],modules=new Map(),databases=[];
@@ -30,6 +31,18 @@ function serviceModules(f,start){
  f.modules.set(prefix+'src/ai/existing-protected-refresh-store.js',{createExistingProtectedRefreshStore:()=>assert.fail('No refresh store during composition test')});
  f.modules.set(prefix+'src/ai/voice-request-trace-log.js',{createVoiceRequestTraceLog:()=>null});
 }
+
+test('owner maintenance commands validate closed input before one fixed owner pool and drain it without retries',async()=>{
+ const input={expectedGeneration:'owner-generation',expectedMatcherIdentityHash:'a'.repeat(64),expectedHeadRevision:1,expectedPolicyRevision:1,cursor:null,initialHighWatermark:null,limit:10};
+ for(const [operation,method]of [['inspect-legacy-roots','inspectLegacyRoots'],['adopt-legacy-roots','adoptLegacyRoots'],['set-hierarchy-policy','setHierarchyPolicy']]){
+  const value=structuredClone(input);if(operation==='set-hierarchy-policy'){delete value.cursor;delete value.initialHighWatermark;delete value.limit;value.policy={defaultMaxDepth:1,overrides:[{nodeId:'games',maxDepth:3}]};}
+  const f=fixture({readOwnerInput:async()=>value});let calls=0;
+  f.modules.set(prefix+'portable/canonical-v4/semantic-owner-maintenance.js',{readSemanticOwnerMaintenanceInput,createSemanticOwnerMaintenance:({database})=>{assert.equal(database,f.databases[0]);return {[method]:async checked=>{calls++;assert.deepEqual(checked,value);return {status:'invented-owner-port-result'};}};}});
+  assert.equal(await f.operator.run([operation]),0);assert.equal(calls,1);const opened=f.calls.find(c=>c[0]==='open');assert.deepEqual(opened,['open','murmingle_owner',1,'murmingle-semantic-owner']);assert.equal(f.calls.filter(c=>c[0]==='close').length,1);assert.ok(f.calls.findIndex(c=>c[0]==='verify')<f.calls.findIndex(c=>c[0]==='open'));
+ }
+ const invalid=fixture({readOwnerInput:async()=>({...input,freePath:'foreign'})});invalid.modules.set(prefix+'portable/canonical-v4/semantic-owner-maintenance.js',{readSemanticOwnerMaintenanceInput});assert.equal(await invalid.operator.run(['adopt-legacy-roots']),1);assert.equal(invalid.databases.length,0);
+ const failed=fixture({readOwnerInput:async()=>input});let calls=0;failed.modules.set(prefix+'portable/canonical-v4/semantic-owner-maintenance.js',{readSemanticOwnerMaintenanceInput,createSemanticOwnerMaintenance:()=>({adoptLegacyRoots:async()=>{calls++;throw false;}})});assert.equal(await failed.operator.run(['adopt-legacy-roots']),1);assert.equal(calls,1);assert.equal(failed.calls.filter(c=>c[0]==='close').length,1);
+});
 
 test('import is inert; invalid operations and missing test ports cannot open production resources',async()=>{
  const f=fixture();
