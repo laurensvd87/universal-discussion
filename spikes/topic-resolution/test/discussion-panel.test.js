@@ -9,7 +9,7 @@ import { lookupIndicatorFixtureByNormalizedUrl } from "../browser/fixtures/indic
 import { RIDGE_POLICY, RIDGE_REPRESENTATION } from "../browser/core/topic-view-mode.js";
 import { createInsightController } from "../browser/core/insight-controller.js";
 
-function harness(messages, workspace, insightsTab, settingsButton, accountDetails, controllerOverrides = {}) {
+function harness(messages, workspace, insightsTab, settingsButton, accountDetails, controllerOverrides = {}, panelOptions = {}) {
   const created = [];
   const contains = (parent, target) => parent === target || parent.children?.some((child) => contains(child, target));
   const detach = (item) => {
@@ -53,7 +53,7 @@ function harness(messages, workspace, insightsTab, settingsButton, accountDetail
     created.push(item); return item;
   }, body: {} };
   const root = document.createElement("section");
-  const panel = mountDiscussionPanel(document, root, { messages });
+  const panel = mountDiscussionPanel(document, root, { messages, ...panelOptions });
   const calls = [];
   const controller = new Proxy({ currentState: () => state(), begin: (...args) => { calls.push(["begin", ...args]); return true; },
     ...controllerOverrides }, {
@@ -420,9 +420,9 @@ test('semantic composer shows canonical Topic A quote and page actors without al
   assert.equal(ui.byId('discussion-composer').attributes['data-semantic-reply'],'false');ui.panel.dispose();
 });
 
-test('semantic human composer uses submitDraft and treats @AI as text without invoking the foreground provider',async()=>{
+test('explicitly disabled semantic AI keeps human submission available without invoking the foreground provider',async()=>{
   for(const loading of [false,true]){let current=semanticComposerState({phase:loading?'loading':'ready',humanPostingReady:loading});current.draft.body='@AI is literal human text here';
-    const calls=[];const ui=harness(undefined,null,null,null,null,{currentState:()=>current,async submitDraft(){calls.push('submit');return true;}});
+    const calls=[];const ui=harness(undefined,null,null,null,null,{currentState:()=>current,async submitDraft(){calls.push('submit');return true;}},{semanticAiEnabled:false});
     ui.panel.bindInsight({currentState:()=>({context:{topic:{id:current.topicId},currentSource:{id:current.sourceId}},ai:{planEnabled:true,model:'chosen',status:'idle'}}),
       async createFollowup(){calls.push('followup');},async createInsights(){calls.push('insights');}});ui.panel.render(current);
     assert.equal(ui.byId('discussion-submit').disabled,false);assert.equal(ui.byId('discussion-ai-insights').disabled,true);
@@ -2715,4 +2715,103 @@ test("User view hides plain disconnected status but keeps error and fresh-read g
   ui.panel.setMode("developer");
   ui.panel.render(disconnected);
   assert.equal(status.hidden, false);
+});
+function releasedSemanticPanel({generate=async()=>true,aiPatch={},settingsButton,readTarget,submit}={}) {
+ let current=semanticComposerState({selection:'automatic'}),insight={context:{topic:{id:current.topicId},currentSource:{id:current.sourceId}},
+  ai:{planEnabled:true,model:'chosen',status:'idle',...aiPatch}};
+ const calls=[];
+ const ui=harness(undefined,null,null,settingsButton,null,{currentState:()=>current,
+  async submitDraft(){calls.push(['submit']);if(submit)return submit(current,value=>{current=value;});return false;},
+  async readSemanticFollowupTarget(tuple){calls.push(['read',tuple]);return readTarget?.(tuple,current,value=>{current=value;});}},
+  {});
+ ui.panel.bindInsight({currentState:()=>insight,async createFollowup(...args){calls.push(['followup',...args]);return generate(...args);},
+  async createInsights(...args){calls.push(['insights',...args]);}});ui.panel.render(current);
+ return {...ui,calls,current:()=>current,setCurrent(value){current=value;ui.panel.render(current);},
+  setInsight(patch){insight={...insight,...patch,ai:{...insight.ai,...patch.ai}};ui.panel.renderInsightState(insight);}};
+}
+
+test('released semantic composer AI button sends exact displayed IDs and preserves an unsent human draft',async t=>{
+ const ui=releasedSemanticPanel();t.after(()=>ui.panel.dispose());const before=structuredClone(ui.current());
+ const button=ui.byId('discussion-ai-insights');assert.equal(button.hidden,false);assert.equal(button.disabled,false);
+ assert.equal(button.textContent,EN.uiCreateInsights);assert.equal(button.attributes['data-followup'],'true');
+ await button.listeners.get('click')();
+ assert.deepEqual(ui.calls,[['followup','semantic-target',{nodeId:'semantic-node',topicId:'canonical-a',discussionId:'discussion-a',rootId:'semantic-root',targetId:'semantic-target'}]]);
+ assert.equal(JSON.stringify(ui.calls).includes('Human reply'),false);assert.deepEqual(ui.current(),before);
+ assert.equal(ui.byId('discussion-body').value,'Human reply');assert.equal(ui.byId('discussion-mention-status').textContent===EN.uiSemanticAiUnavailable,false);
+});
+
+test('released semantic AI click offers setup without submitting or discarding a draft',async t=>{
+ for(const aiPatch of [{model:''},{planEnabled:false}]){
+  let opened=0;const ui=releasedSemanticPanel({aiPatch,settingsButton:{click(){opened++;}}});t.after(()=>ui.panel.dispose());
+  const before=structuredClone(ui.current());assert.equal(ui.byId('discussion-ai-insights').disabled,false);
+  await ui.byId('discussion-ai-insights').listeners.get('click')();assert.equal(opened,1);assert.deepEqual(ui.calls,[]);assert.deepEqual(ui.current(),before);
+ }
+});
+
+test('released semantic AI requires current readable target, Ready Page B Source and no pending result or write',async t=>{
+ const ui=releasedSemanticPanel();t.after(()=>ui.panel.dispose());const original=structuredClone(ui.current());
+ for(const alter of [s=>{s.phase='loading';s.humanPostingReady=true;},s=>{s.sourceId=null;},s=>{s.draft.detached=true;},
+  s=>{s.semanticSelection.root.replies[0]={id:'semantic-target',rootId:'semantic-root',state:'deleted'};},s=>{s.needsFreshRead=true;},
+  s=>{s.busy=true;},s=>{s.semanticWritePending=true;},s=>{s.semanticSelection=null;}]){
+  const value=structuredClone(original);alter(value);ui.setCurrent(value);const button=ui.byId('discussion-ai-insights');
+  assert.ok(button.hidden||button.disabled);await button.listeners.get('click')();
+ }
+ ui.setCurrent(original);
+ for(const patch of [{ai:{status:'preparingArticle'}},{ai:{status:'generating'}},{ai:{status:'resuming'}},{busy:true},{ai:{result:{body:'Private answer'}}}]){
+  ui.setInsight(patch);const button=ui.byId('discussion-ai-insights');assert.ok(button.hidden||button.disabled);await button.listeners.get('click')();
+  ui.setInsight({busy:false,ai:{status:'idle',result:null}});
+ }
+ assert.deepEqual(ui.calls,[]);
+});
+
+test('released semantic AI click latches one async job and gives finite failure without changing the human draft',async t=>{
+ let settle;const ui=releasedSemanticPanel({generate:()=>new Promise(resolve=>{settle=resolve;})});t.after(()=>ui.panel.dispose());
+ const button=ui.byId('discussion-ai-insights'),first=button.listeners.get('click')();
+ assert.equal(button.disabled,true);await button.listeners.get('click')();assert.equal(ui.calls.length,1);
+ settle(false);await first;assert.equal(button.disabled,false);assert.equal(ui.byId('discussion-body').value,'Human reply');
+ assert.equal(ui.byId('discussion-mention-status').hidden,false);assert.equal(ui.byId('discussion-mention-status').textContent,EN.uiAiMentionUnavailable);
+ const thrown=releasedSemanticPanel({generate:async()=>{throw new Error('private detail');}});t.after(()=>thrown.panel.dispose());
+ await thrown.byId('discussion-ai-insights').listeners.get('click')();assert.equal(thrown.byId('discussion-mention-status').textContent,EN.uiAiMentionUnavailable);
+ assert.equal(thrown.byId('discussion-ai-insights').disabled,false);
+});
+
+function acceptedSemanticFixture({afterRead,changeAccepted,aiPatch}={}){
+ let originalBody;const ui=releasedSemanticPanel({aiPatch,
+  submit:async(current,set)=>{originalBody=current.draft.body;const selected=current.semanticSelection;
+   const tuple={nodeId:selected.nodeId,topicId:selected.topic.id,discussionId:selected.discussionId,rootId:selected.root.id,targetId:'accepted-semantic-question'};
+   let next={...current,draft:{body:'',mode:'root',detached:false,targetId:null},semanticSelection:null,
+    createdPost:{id:tuple.targetId,actorId:current.actorId,sourceId:current.sourceId,topicId:tuple.topicId,discussionId:tuple.discussionId,rootId:tuple.rootId,semantic:tuple}};
+   if(changeAccepted)next=changeAccepted(next);set(next);return true;},
+  readTarget:(tuple,current,set)=>{const question={id:tuple.targetId,rootId:tuple.rootId,actorType:'human',authorId:current.actorId,body:originalBody};
+   const dto={targetId:tuple.targetId,root:{id:tuple.rootId,replies:[question]},topic:{id:tuple.topicId},discussionId:tuple.discussionId};
+   if(afterRead)return afterRead(dto,current,set);return dto;}});
+ const value=structuredClone(ui.current());value.draft.body='Accepted question @AI';ui.setCurrent(value);return ui;
+}
+
+test('released semantic @AI publishes human first then freshly resolves only its returned accepted question',async t=>{
+ const ui=acceptedSemanticFixture();t.after(()=>ui.panel.dispose());
+ await ui.byId('discussion-composer').listeners.get('submit')({preventDefault(){}});
+ assert.deepEqual(ui.calls.map(call=>call[0]),['submit','read','followup']);
+ assert.equal(ui.calls[1][1].targetId,'accepted-semantic-question');assert.equal(ui.calls[2][1],'accepted-semantic-question');
+ assert.deepEqual(ui.calls[2][2],ui.calls[1][1]);assert.equal(JSON.stringify(ui.calls[2]).includes('Accepted question @AI'),false);
+ assert.equal(ui.current().topicId,'topic-demo');assert.equal(ui.current().discussion.roots.length,0);
+});
+
+test('released semantic @AI drops stale navigation, account, changed question and foreign accepted destination',async t=>{
+ const cases=[{afterRead:(dto,current,set)=>{set({...current,sourceId:'new-page'});return dto;}},
+  {afterRead:(dto,current,set)=>{set({...current,actorId:'demo-other'});return dto;}},
+  {afterRead:dto=>({...dto,root:{...dto.root,replies:[{...dto.root.replies[0],body:'Edited question'}]}})},
+  {changeAccepted:current=>({...current,createdPost:{...current.createdPost,semantic:{...current.createdPost.semantic,rootId:'foreign-root'}}})},
+  {aiPatch:{status:'generating'}}];
+ for(const options of cases){const ui=acceptedSemanticFixture(options);t.after(()=>ui.panel.dispose());
+  await ui.byId('discussion-composer').listeners.get('submit')({preventDefault(){}});
+  assert.equal(ui.calls.filter(call=>call[0]==='submit').length,1);assert.equal(ui.calls.some(call=>call[0]==='followup'),false);
+ }
+});
+test('released semantic accepted-human handoff preserves a newer unsent draft while fresh target is read',async t=>{
+ const ui=acceptedSemanticFixture({afterRead:(dto,current,set)=>{
+  set({...current,draft:{body:'A new private human draft',mode:'root',targetId:null,detached:false}});return dto;}});
+ t.after(()=>ui.panel.dispose());await ui.byId('discussion-composer').listeners.get('submit')({preventDefault(){}});
+ assert.equal(ui.calls.filter(call=>call[0]==='followup').length,1);
+ assert.equal(ui.current().draft.body,'A new private human draft');assert.equal(JSON.stringify(ui.calls).includes('A new private human draft'),false);
 });

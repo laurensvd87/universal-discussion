@@ -1,5 +1,5 @@
-// Release only after ADR-223 backend and actual SQL acceptance.
-export const SEMANTIC_AI_UI_RELEASED = false;
+// This UI build requires the SQL016 semantic follow-up backend.
+export const SEMANTIC_AI_UI_RELEASED = true;
 import { EN } from "../locales/en.js";
 import { projectDiscussionShell } from "./popup-shell.js";
 import { readPostOrigin } from "../core/local-service-contract.js";
@@ -12,7 +12,8 @@ import { mountAssistantVoicePicker } from "./assistant-voice-picker.js";
 import { isReferenceTopicView, requiresReferenceTopicView } from "../core/topic-view-mode.js";
 import { hasAiMention } from "../core/discussion-mentions.js";
 
-export function mountDiscussionPanel(document, root, { messages = EN, onPrivateSend = null, onPrivateInsight = null } = {}) {
+export function mountDiscussionPanel(document, root, { messages = EN, onPrivateSend = null, onPrivateInsight = null,
+  semanticAiEnabled = SEMANTIC_AI_UI_RELEASED } = {}) {
   const text = (key) => messages?.[key] ?? EN[key];
   const handlers = [];
   let controller;
@@ -62,9 +63,20 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     if (accountDetails) accountDetails.open = true;
     document.querySelector?.("#insight-account-details > summary")?.focus?.({ preventScroll: true });
   }
-  listen(insightShortcut, "click", () => {
-    if(lastState?.draft?.semantic){mentionStatus.textContent=text('uiSemanticAiUnavailable');mentionStatus.hidden=false;return;}
+  listen(insightShortcut, "click", async () => {
+    if(lastState?.draft?.semantic && semanticAiEnabled!==true){mentionStatus.textContent=text('uiSemanticAiUnavailable');mentionStatus.hidden=false;return;}
     if (posting || insightShortcut.hidden || insightShortcut.disabled || !insightController) return;
+    if(lastState?.draft?.semantic) {
+      const tuple=selectedSemanticFollowup();if(!tuple)return;
+      const ai=lastInsightState?.ai??insightController.currentState?.()?.ai;
+      if(!ai?.planEnabled||!ai?.model){openInsightSetup();return;}
+      posting=true;mentionStatus.hidden=true;render(lastState);
+      try {if(!await insightController.createFollowup(tuple.targetId,tuple)&&!disposed){
+        mentionStatus.textContent=text('uiAiMentionUnavailable');mentionStatus.hidden=false;}}
+      catch {if(!disposed){mentionStatus.textContent=text('uiAiMentionUnavailable');mentionStatus.hidden=false;}}
+      finally {posting=false;if(lastState&&!disposed)render(lastState);}
+      return;
+    }
     if (uiMode === "user") {
       const replyMode = lastState?.draft?.mode === "reply";
       const questionId = replyMode ? composerFollowupTarget() : null;
@@ -267,7 +279,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     if (submit.disabled || posting || !controller) return;
     posting = true;
     const submitted = lastState;
-    const invokeAi = (!submitted?.draft.semantic || SEMANTIC_AI_UI_RELEASED) && submitted?.phase === "ready" && !privateRoot && submitted?.draft.mode !== "edit" && hasAiMention(submitted?.draft.body);
+    const invokeAi = (!submitted?.draft.semantic || semanticAiEnabled===true) && submitted?.phase === "ready" && !privateRoot && submitted?.draft.mode !== "edit" && hasAiMention(submitted?.draft.body);
     mentionStatus.hidden = true;
     if (lastState) render(lastState);
     try {
@@ -289,12 +301,26 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
             current.topicId === submitted.topicId &&
             current.catalog?.version?.generation === submitted.catalog?.version?.generation &&
             JSON.stringify(current.resolution ?? null) === JSON.stringify(submitted.resolution ?? null);
-          if(SEMANTIC_AI_UI_RELEASED&&submitted.draft.semantic&&samePage&&created?.semantic&&
-            created.actorId===submitted.actorId&&created.sourceId===submitted.sourceId&&created.id!==submitted.createdPost?.id) {
-            const exact=await controller.readSemanticFollowupTarget(created.semantic);
+          if(semanticAiEnabled===true&&submitted.draft.semantic&&samePage&&created?.semantic&&
+            created.actorId===submitted.actorId&&created.sourceId===submitted.sourceId&&created.id!==submitted.createdPost?.id&&
+            created.semantic.nodeId===submitted.semanticSelection?.nodeId&&created.semantic.topicId===submitted.semanticSelection?.topic.id&&
+            created.semantic.discussionId===submitted.semanticSelection?.discussionId&&created.semantic.rootId===submitted.semanticSelection?.root.id) {
+            let exact=null;
+            try {exact=await controller.readSemanticFollowupTarget(created.semantic);}catch { /* Keep the accepted human message and finite guidance. */ }
             const question=exact&&(exact.targetId===exact.root.id?exact.root:exact.root.replies[0]);
-            if(!disposed&&question?.actorType==='human'&&question.authorId===submitted.actorId&&question.body===submitted.draft.body) {
-              await insightController?.createFollowup(created.id,created.semantic);
+            const fresh=controller.currentState();
+            const stillPage=fresh.phase==='ready'&&!fresh.needsFreshRead&&fresh.actorId===submitted.actorId&&
+              fresh.sourceId===submitted.sourceId&&fresh.topicId===submitted.topicId&&fresh.createdPost?.id===created.id&&
+              fresh.catalog?.version?.generation===submitted.catalog?.version?.generation&&
+              JSON.stringify(fresh.resolution??null)===JSON.stringify(submitted.resolution??null);
+            if(!disposed&&stillPage&&created.semantic.targetId===created.id&&exact?.targetId===created.id&&
+              exact.root.id===created.semantic.rootId&&exact.discussionId===created.semantic.discussionId&&
+              exact.topic.id===created.semantic.topicId&&question?.actorType==='human'&&
+              question.authorId===submitted.actorId&&question.body===submitted.draft.body&&!semanticAiBusy()) {
+              const ai=lastInsightState?.ai??insightController?.currentState?.()?.ai;
+              if(!insightController||!ai?.planEnabled||!ai?.model){mentionStatus.textContent=text('uiAiMentionSetup');openInsightSetup();}
+              else {let generated=false;try{generated=await insightController.createFollowup(created.id,created.semantic);}catch{}
+                if(generated)mentionStatus.hidden=true;}
             }
           }
           const target = !submitted.draft.semantic && samePage && created && created.actorId === submitted.actorId &&
@@ -803,6 +829,17 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
       typeof resolved.root.body === "string" && typeof resolved.target.body === "string"
       ? resolved.target : null;
   }
+  function semanticAiBusy() {
+    const ai=lastInsightState?.ai??insightController?.currentState?.()?.ai;
+    return Boolean(lastInsightState?.busy||ai?.result||['preparingArticle','fetchingRelated','generating','resuming'].includes(ai?.status));
+  }
+  function selectedSemanticFollowup(discussionState=lastState) {
+    if(semanticAiEnabled!==true||discussionState?.phase!=='ready'||discussionState.busy||discussionState.needsFreshRead||
+      discussionState.error||discussionState.semanticWritePending||!selectedPostingSource(discussionState))return null;
+    const selected=resolveSemanticTarget(discussionState);
+    return selected?{nodeId:selected.nodeId,topicId:selected.topicId,discussionId:selected.discussionId,
+      rootId:selected.root.id,targetId:selected.target.id}:null;
+  }
   function followupTarget(insightState = lastInsightState, discussionState = lastState) {
     const binding = insightState?.followup;
     if (discussionState?.draft?.semantic || uiMode !== "user" || !binding || !discussionState?.discussion ||
@@ -814,6 +851,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     return resolved.target.id;
   }
   function composerFollowupTarget(insightState = lastInsightState, discussionState = lastState) {
+    if(discussionState?.draft?.semantic)return selectedSemanticFollowup(discussionState)?.targetId??null;
     if (discussionState?.draft?.semantic || uiMode !== "user" || discussionState?.draft?.mode !== "reply" || discussionState.draft.detached ||
         insightState?.context?.topic?.id !== discussionState.topicId ||
         insightState.context?.currentSource?.id !== discussionState.sourceId) return null;
@@ -1140,8 +1178,8 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
       : text(uiMode === "user" ? "uiOriginNone" : "discussionOriginNone");
     if(semanticDraft)originDisclosure.textContent=text('uiSemanticOriginDisclosure').replace('{title}',replyDestination?.topic.title??text('uiSemanticSelectedThread'));
     originDisclosure.hidden = uiMode === "user"&&!semanticDraft;
-    if(semanticDraft){mentionStatus.textContent=text('uiSemanticAiUnavailable');mentionStatus.hidden=!hasAiMention(state.draft.body);}
-    else if(previousState?.draft?.semantic&&!posting)mentionStatus.hidden=true;
+    if(semanticDraft&&semanticAiEnabled!==true){mentionStatus.textContent=text('uiSemanticAiUnavailable');mentionStatus.hidden=!hasAiMention(state.draft.body);}
+    else if(!semanticDraft&&previousState?.draft?.semantic&&!posting)mentionStatus.hidden=true;
     const alternateView = (state.topicViewMode === "experimental" || isReferenceTopicView(state.alternateDiscussion)) && state.phase === "ready" &&
       !state.needsFreshRead && state.alternateDiscussion?.sourceId === state.sourceId
       ? state.alternateDiscussion : null;
@@ -1611,9 +1649,10 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     const followupQuestionId = composerFollowupTarget(state);
     const replyMode = lastState?.draft?.mode === "reply";
     const semanticDraft=lastState?.draft?.semantic===true;
-    insightShortcut.hidden = uiMode === "user" && (hasResult || replyMode ||
-      ((!selectedTopicReady && !loadingSelected) || lastState?.draft?.mode !== "root"));
-    insightShortcut.disabled = semanticDraft || posting || !selectedTopicReady || uiMode === "user" && noCurrentSource || active || Boolean(state?.busy) || hasResult;
+    const semanticReply=semanticDraft&&Boolean(selectedSemanticFollowup());
+    insightShortcut.hidden = uiMode === "user" && (hasResult || replyMode&&!semanticReply ||
+      ((!selectedTopicReady && !loadingSelected) || lastState?.draft?.mode !== "root"&&!semanticReply));
+    insightShortcut.disabled = semanticDraft&&!semanticReply || posting || !selectedTopicReady || uiMode === "user" && noCurrentSource || active || Boolean(state?.busy) || hasResult;
     insightShortcut.setAttribute("aria-busy", String(active));
     insightShortcut.setAttribute("data-phase", active ? "working" : "idle");
     insightShortcut.setAttribute("data-followup", String(Boolean(replyMode && followupQuestionId)));
@@ -1621,7 +1660,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
       : replyMode ? "uiGenerateInsightReplyLabel" : "uiGenerateInsightLabel");
     insightShortcut.setAttribute("aria-label", shortcutLabel);
     insightShortcut.title = shortcutLabel;
-    insightShortcut.textContent = uiMode === "user" && replyMode ? ""
+    insightShortcut.textContent = semanticReply ? text(setupNeeded?'uiInsightSetupButton':'uiCreateInsights') : uiMode === "user" && replyMode ? ""
       : text(setupNeeded ? "uiInsightSetupButton" : "uiCreateInsights");
     rootVoicePicker.update({ voice: state?.preferences?.voice ?? "standard", disabled: insightShortcut.disabled, hidden: insightShortcut.hidden });
     for (const picker of threadVoicePickers) picker.update({ voice: state?.preferences?.voice ?? "standard",
@@ -1630,7 +1669,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     insightActivity.hidden = inlineFollowup;
     insightActivity.textContent = inlineFollowup ? "" : active ? text(stageKey) : hasResult ? text("uiInsightReady")
       : setupNeeded ? text(state.ai.connected && !state.ai.planEnabled ? "uiInsightPlanUnavailableHint" : "uiInsightSetupHint") : "";
-    if(semanticDraft){insightActivity.hidden=false;insightActivity.textContent=text('uiSemanticAiUnavailable');}
+    if(semanticDraft&&semanticAiEnabled!==true){insightActivity.hidden=false;insightActivity.textContent=text('uiSemanticAiUnavailable');}
     if (!rendering && lastState && previousTarget !== followupTarget()) {
       renderedDiscussion = undefined;
       render(lastState);

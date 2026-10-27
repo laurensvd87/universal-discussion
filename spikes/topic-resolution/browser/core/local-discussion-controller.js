@@ -1185,7 +1185,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       const dto=readSemanticTarget(raw,request);if(!sameSemanticTarget(dto,binding))throw new Error('destination-changed');
       if(!await attestSemanticForeground(binding) || !current())return false;
       binding.dto=dto;semanticBinding=binding;
-      publish({semanticSelection:dto,semanticError:null,semanticAiAvailable:false,
+      publish({semanticSelection:dto,semanticError:null,
         draft:{body:'',detached:false,mode:'reply',targetId:ids.targetId,semantic:true}});
       return true;
     } catch {if(current())publish({semanticSelection:null,semanticError:'unavailable'});return false;}
