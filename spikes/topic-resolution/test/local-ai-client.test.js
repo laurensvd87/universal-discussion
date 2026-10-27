@@ -11,6 +11,24 @@ const semanticPublication=()=>({semanticTarget:{nodeId:'games',topicId:'topic-a'
  evidence:{sourceId:'source-b',sourceVersion:'9007199254740993',operationId:'embed-b',operationDigest:'a'.repeat(64),sourceStamp:'b'.repeat(64)},
  articleDigest:'c'.repeat(64),rootDigest:'d'.repeat(64),targetDigest:'e'.repeat(64),expiresAt:1793073000000});
 
+test('AI dispatch revalidates context after delayed account credentials and never fetches on refusal',async()=>{
+ let release;const credentials=new Promise(resolve=>{release=resolve;}),events=[];
+ const value=createLocalAiClient({getToken:async()=>{events.push('pairing');return 'a'.repeat(64);},
+  getAccountToken:async()=>{events.push('account');return credentials;},fetchImpl:async()=>{assert.fail('stale request fetched');}});
+ const request={operationId:'op-a',model:'model-a',articleText:'Foreground public text',allowWebResearch:false};
+ const pending=value.start(request,'account-12345678-1234-4234-8234-123456789abc',{beforeDispatch:async()=>{events.push('guard');return false;}});
+ await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(events,['pairing','account']);release('s'.repeat(43));
+ await assert.rejects(pending,e=>e.code==='conflict');assert.deepEqual(events,['pairing','account','guard']);
+});
+
+test('a pending asynchronous AI dispatch guard remains abortable and cannot fetch after late acceptance',async()=>{
+ let release,entered;const guard=new Promise(resolve=>{release=resolve;}),ready=new Promise(resolve=>{entered=resolve;}),abort=new AbortController();
+ const value=client(async()=>assert.fail('aborted request fetched'));
+ const pending=value.start({operationId:'op-a',model:'model-a',articleText:'Public text',allowWebResearch:false},'demo-alex',
+  {signal:abort.signal,beforeDispatch:()=>{entered();return guard;}});
+ await ready;abort.abort();await assert.rejects(pending,TypeError);release(true);await new Promise(resolve=>setImmediate(resolve));
+});
+
 test('semantic AI follow-up start validates destination witness before transport',async()=>{
  const calls=[],value=client(async(url,options)=>{calls.push(JSON.parse(options.body));return response(url,{operationId:'op-a',state:'running'});});
  const base={operationId:'op-a',model:'model-a',context:{topic:{id:'topic-b'}},articleText:'Foreground Page B',allowWebResearch:false,
@@ -30,6 +48,8 @@ test('semantic result and resumable packet retain the original job witness witho
  const job={operationId:'op-a',state:'completed',expected:{generation:'generation-a',revision:7},topicId:'topic-b',originSourceId:'source-b',
   rootId:'root-a',replyToId:'question-a',discussionId:'discussion-a',followupTopicId:'topic-a',semanticPublication:publication};
  assert.deepEqual(await client(async(url)=>response(url,{job})).resumable('demo-alex'),job);
+ const noOrigin={...job,originSourceId:null};
+ assert.deepEqual(await client(async(url)=>response(url,{job:noOrigin})).resumable('demo-alex'),noOrigin);
  for(const change of [v=>{v.originSourceId='source-a';},v=>{v.replyToId=null;},v=>{v.semanticPublication.semanticTarget.topicId='other-topic';}]){
   const bad=structuredClone(job);change(bad);await assert.rejects(client(async(url)=>response(url,{job:bad})).resumable('demo-alex'),TypeError);
  }

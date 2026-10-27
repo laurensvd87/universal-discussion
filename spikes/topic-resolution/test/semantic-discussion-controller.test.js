@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createLocalDiscussionController} from '../browser/core/local-discussion-controller.js';
@@ -188,4 +189,60 @@ test('exact account authentication rejection releases ambiguity evidence without
     fetchImpl:async()=>new Response('{"error":"authentication-required"}',{status:401,headers:{'content-type':'application/json'}})});
   const error=await client.command({generation:'generation',revision:1},{type:'reply',discussionId:'discussion-a',rootId:'root-a',replyToId:'reply-a',body:'Reply'},account).catch(error=>error);
   assert.equal(error.code,'authentication-required');assert.equal(isConfirmedCommandRejection(error),true);assert.equal(accounts,1);assert.equal(pairings,0);
+});
+
+const sha=text=>createHash('sha256').update(text).digest('hex');
+function semanticReview(ui){const state=ui.controller.currentState(),dto=ui.dto();return {
+ body:'Generated exact answer',operationId:'semantic-generated-op',actorId:state.actorId,topicId:state.topicId,sourceId:state.sourceId,
+ discussionId:ui.ids.discussionId,rootId:ui.ids.rootId,replyToId:ui.ids.targetId,followupTopicId:ui.ids.topicId,
+ targetBinding:{rootBody:dto.root.body,targetBody:dto.root.replies[0].body},
+ semanticPublication:{semanticTarget:{nodeId:ui.ids.nodeId,topicId:ui.ids.topicId,rootRevision:dto.rootRevision,targetRevision:dto.targetRevision},
+ evidence:{sourceId:state.sourceId,sourceVersion:'1',operationId:'evidence-op',operationDigest:sha('operation'),sourceStamp:sha('stamp')},
+ articleDigest:sha('Page B'),rootDigest:sha(dto.root.body),targetDigest:sha(dto.root.replies[0].body),expiresAt:Date.now()+60000}};}
+
+test('semantic followup reader is ephemeral, native-bound and preserves a new unsent human draft',async t=>{
+ const ui=await harness();t.after(()=>ui.controller.dispose());ui.controller.setDraft('Unsent private human draft');
+ const before=ui.controller.currentState();const dto=await ui.controller.readSemanticFollowupTarget(ui.ids);
+ assert.equal(dto.targetId,ui.ids.targetId);assert.deepEqual(ui.controller.currentState(),before);
+ assert.equal(await ui.controller.readSemanticFollowupTarget(ui.ids,{expected:{rootRevision:99,targetRevision:2,rootBody:'Canonical root A',targetBody:'Canonical target A'}}),null);
+ ui.setTab({url:'https://example.org/'});assert.equal(await ui.controller.readSemanticFollowupTarget(ui.ids),null);
+ const saved=await harness({saved:true});t.after(()=>saved.controller.dispose());assert.equal(await saved.controller.readSemanticFollowupTarget(saved.ids),null);
+});
+
+test('confirmed semantic human handoff names only the returned accepted question ID',async t=>{
+ const ui=await harness();t.after(()=>ui.controller.dispose());await ui.controller.selectSemanticTarget(ui.ids);ui.controller.setDraft('Question @AI');
+ assert.equal(await ui.controller.submitDraft(),true);const accepted=ui.controller.currentState().createdPost;
+ assert.deepEqual(accepted.semantic,{...ui.ids,targetId:'accepted-semantic-reply'});assert.equal(accepted.id,'accepted-semantic-reply');
+ assert.equal(ui.controller.currentState().discussion.roots.some(root=>root.id===ui.ids.rootId),false);
+});
+
+test('semantic generated reply preserves Page B graph and unsent draft and sends the unchanged exact proof',async t=>{
+ const ui=await harness();t.after(()=>ui.controller.dispose());ui.controller.setDraft('New unsent draft must stay private');
+ const before=ui.controller.currentState(),review=semanticReview(ui);
+ assert.equal(await ui.controller.shareInsight(review),true);assert.equal(ui.writes.length,1);
+ const command=ui.writes[0].value;assert.equal(command.type,'share-insight-reply');assert.equal(command.topicId,ui.ids.topicId);
+ assert.equal(command.originSourceId,null);assert.deepEqual(command.semanticPublication,review.semanticPublication);
+ assert.equal(JSON.stringify(command).includes('New unsent draft'),false);
+ const after=ui.controller.currentState();for(const key of ['sourceId','topicId','discussion','draft','resolution'])assert.deepEqual(after[key],before[key]);
+});
+
+test('semantic generated publication cannot rebase edited bodies, expired proof, other evidence Source or actor',async t=>{
+ for(const change of [r=>{r.semanticPublication.rootDigest=sha('changed');},r=>{r.semanticPublication.semanticTarget.targetRevision++;},
+   r=>{r.semanticPublication.expiresAt=1;},r=>{r.semanticPublication.evidence.sourceId='reserved-example-org';},r=>{r.actorId='demo-sam';}]){
+  const ui=await harness();t.after(()=>ui.controller.dispose());const review=semanticReview(ui);change(review);
+  assert.equal(await ui.controller.shareInsight(review),false);assert.equal(ui.writes.length,0);
+ }
+});
+test('semantic exact reader drops a delayed response after actor revocation without exposing target bodies',async t=>{
+ let release;const ui=await harness({semanticTarget:async(_request,_options,dto)=>{await new Promise(resolve=>{release=resolve;});return dto();}});
+ t.after(()=>ui.controller.dispose());const pending=ui.controller.readSemanticFollowupTarget(ui.ids);await turn();
+ ui.setActor('demo-sam');release();assert.equal(await pending,null);assert.equal(ui.controller.currentState().semanticSelection,null);
+});
+
+test('semantic generated ambiguous append retains one packet and requires explicit acknowledgement without automatic reissue',async t=>{
+ const ui=await harness({command:async()=>{throw new Error('network');}});t.after(()=>ui.controller.dispose());
+ const review=semanticReview(ui);assert.equal(await ui.controller.shareInsight(review),false);
+ assert.equal(ui.controller.currentState().semanticWritePending,true);assert.equal(await ui.controller.shareInsight(review),false);
+ assert.equal(ui.writes.length,1);assert.equal(ui.controller.acknowledgeSemanticWriteUncertainty('ACKNOWLEDGE POSSIBLE SEMANTIC REPLY'),true);
+ assert.equal(ui.writes.length,1);assert.equal(ui.controller.currentState().needsFreshRead,true);
 });

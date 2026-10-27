@@ -1,3 +1,5 @@
+// Release only after ADR-223 backend and actual SQL acceptance.
+export const SEMANTIC_AI_UI_RELEASED = false;
 import { EN } from "../locales/en.js";
 import { projectDiscussionShell } from "./popup-shell.js";
 import { readPostOrigin } from "../core/local-service-contract.js";
@@ -265,7 +267,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     if (submit.disabled || posting || !controller) return;
     posting = true;
     const submitted = lastState;
-    const invokeAi = !submitted?.draft.semantic && submitted?.phase === "ready" && !privateRoot && submitted?.draft.mode !== "edit" && hasAiMention(submitted?.draft.body);
+    const invokeAi = (!submitted?.draft.semantic || SEMANTIC_AI_UI_RELEASED) && submitted?.phase === "ready" && !privateRoot && submitted?.draft.mode !== "edit" && hasAiMention(submitted?.draft.body);
     mentionStatus.hidden = true;
     if (lastState) render(lastState);
     try {
@@ -287,7 +289,15 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
             current.topicId === submitted.topicId &&
             current.catalog?.version?.generation === submitted.catalog?.version?.generation &&
             JSON.stringify(current.resolution ?? null) === JSON.stringify(submitted.resolution ?? null);
-          const target = samePage && created && created.actorId === submitted.actorId &&
+          if(SEMANTIC_AI_UI_RELEASED&&submitted.draft.semantic&&samePage&&created?.semantic&&
+            created.actorId===submitted.actorId&&created.sourceId===submitted.sourceId&&created.id!==submitted.createdPost?.id) {
+            const exact=await controller.readSemanticFollowupTarget(created.semantic);
+            const question=exact&&(exact.targetId===exact.root.id?exact.root:exact.root.replies[0]);
+            if(!disposed&&question?.actorType==='human'&&question.authorId===submitted.actorId&&question.body===submitted.draft.body) {
+              await insightController?.createFollowup(created.id,created.semantic);
+            }
+          }
+          const target = !submitted.draft.semantic && samePage && created && created.actorId === submitted.actorId &&
             created.sourceId === submitted.sourceId && created.id !== submitted.createdPost?.id
             ? resolveDiscussionTarget(current, created.id, {
               topicId: created.topicId, discussionId: created.discussionId,

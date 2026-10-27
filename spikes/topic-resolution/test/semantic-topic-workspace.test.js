@@ -129,6 +129,20 @@ test('ordinary revision changes never retarget an explicit thread and post compl
   await ui.answer('semanticThread',thread('music'));ui.workspace.dispose();
 });
 
+test('accepted semantic AI reply refreshes its thread after busy settles without changing an unsent draft',async()=>{
+  const ui=harness();await ui.ready();await ui.selectGlobal();await ui.answer('semanticThread',thread('music'));
+  const draft={mode:'root',body:'Still typing a different human message'},accepted={id:'generated-accepted',actorId:'demo-alex',sourceId:'source-b',
+    semantic:{nodeId:'music',rootId:'root-a',targetId:'generated-accepted'}};
+  const during={...ui.current(),draft,busy:true,createdPost:accepted};ui.observe(during);
+  assert.equal(ui.pending('semanticThread'),undefined);
+  const settled={...during,busy:false},before=structuredClone(settled);ui.observe(settled);
+  assert.deepEqual(ui.pending('semanticThread').args,{nodeId:'music',rootId:'root-a',limit:20,cursor:null});
+  assert.deepEqual(ui.current(),before);await ui.answer('semanticThread',thread('music'));ui.observe(settled);
+  assert.equal(ui.pending('semanticThread'),undefined,'the same accepted cue cannot repeatedly refresh');
+  ui.observe({...settled,createdPost:{...accepted,id:'other-root',semantic:{...accepted.semantic,rootId:'another-root'}}});
+  assert.equal(ui.pending('semanticThread'),undefined);assert.equal(ui.current().draft.body,draft.body);ui.workspace.dispose();
+});
+
 test('Source navigation aborts stale main context but leaves global directory requests and cache independent',async()=>{
   const ui=harness();ui.start();await ui.answer('semanticCapabilities',{protocol:'semantic-topics/v1'});const directoryRead=ui.pending('semanticTopics'),old=ui.pending('semanticContext');
   const next={...ui.current(),sourceId:'source-c',resolution:{...ui.current().resolution,documentId:'doc-c',currentUrl:'https://example.com/c'}};ui.observe(next);

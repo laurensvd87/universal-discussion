@@ -10,7 +10,7 @@ import { createActiveTabController } from "../core/active-tab-controller.js";
 import { createIndicatorController } from "../core/indicator-controller.js";
 import { createPageMetadataController } from "../core/page-metadata-controller.js";
 import { mountRelatedPagesDemo } from "./related-pages-panel.js";
-import { mountDiscussionPanel } from "./discussion-panel.js";
+import { mountDiscussionPanel, SEMANTIC_AI_UI_RELEASED } from "./discussion-panel.js";
 import { mountAccountPanel } from "./account-panel.js";
 import { createAccountClient } from "../core/account-client.js";
 import { createAccountSessionStorage, ACCOUNT_SESSION_KEY, ACCOUNT_SESSION_FENCE_KEY } from "../core/account-session-storage.js";
@@ -348,6 +348,7 @@ insightController = createInsightController({
     }
   },
   aiClient,
+  readSemanticFollowupTarget: SEMANTIC_AI_UI_RELEASED ? localDiscussion.readSemanticFollowupTarget : null,
   readArticle: insightPageReader.read,
   attestArticle: insightPageReader.attest,
   loadInsightPreferences: insightPreferenceStorage.load,

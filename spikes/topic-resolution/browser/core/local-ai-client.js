@@ -143,7 +143,7 @@ function projectResumable(value) {
       (id(job.followupTopicId) === job.topicId || job.replyToId === null)) invalid();
   const publication=Object.hasOwn(job,'semanticPublication')?readSemanticPublication(job.semanticPublication):null;
   if(publication&&(job.replyToId===null||publication.semanticTarget.topicId!==(job.followupTopicId??job.topicId)||
-      publication.evidence.sourceId!==job.originSourceId))invalid();
+      job.originSourceId!==null&&publication.evidence.sourceId!==job.originSourceId))invalid();
   return { operationId: job.operationId, state: job.state, expected: { ...job.expected },
     topicId: job.topicId, originSourceId: job.originSourceId,
     rootId: job.rootId, replyToId: job.replyToId, discussionId: job.discussionId,
@@ -154,7 +154,8 @@ function projectResumable(value) {
 export function createLocalAiClient({ fetchImpl, getToken, getAccountToken = () => null,
   onAccountUnauthorized = async () => {}, onUnauthorized = async () => {}, timeoutMs = 10000 }) {
   if (typeof fetchImpl !== "function" || typeof getToken !== "function" || !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 30000) throw new TypeError("Invalid local AI client");
-  async function request(path, body, actorId, signal, requestTimeoutMs = timeoutMs) {
+  async function request(path, body, actorId, signal, requestTimeoutMs = timeoutMs, beforeDispatch) {
+    if(beforeDispatch!==undefined&&typeof beforeDispatch!=='function')invalid();
     const url = BASE + path;
     const payload = body === undefined ? undefined : JSON.stringify(body);
     if (payload !== undefined && encoder.encode(payload).length > 32768) throw new TypeError("Invalid local AI request");
@@ -184,6 +185,9 @@ export function createLocalAiClient({ fetchImpl, getToken, getAccountToken = () 
           headers["X-Account-Session"] = accountToken;
         } else headers["X-Demo-Actor"] = actorId;
       }
+      if(beforeDispatch&&!await Promise.race([Promise.resolve().then(()=>beforeDispatch()),interrupted]))
+        throw Object.assign(new TypeError('AI request context changed'),{code:'conflict'});
+      if(controller.signal.aborted)throw new TypeError('Local AI request unavailable');
       const response = await Promise.race([fetchImpl(url, { method: payload === undefined ? "GET" : "POST", headers,
         ...(payload === undefined ? {} : { body: payload }), credentials: "omit", redirect: "error", cache: "no-store",
         referrerPolicy: "no-referrer", signal: controller.signal }), interrupted]);
@@ -264,7 +268,7 @@ export function createLocalAiClient({ fetchImpl, getToken, getAccountToken = () 
           seen.add(excerpt.sourceId);
         }
       }
-      const started = await request("/insights", value, actorId, options.signal, PROVIDER_START_TIMEOUT_MS);
+      const started = await request("/insights", value, actorId, options.signal, PROVIDER_START_TIMEOUT_MS, options.beforeDispatch);
       keys(started, ["operationId", "state"]);
       if (started.operationId !== value.operationId || started.state !== "running") invalid();
       return { operationId: started.operationId, state: started.state };

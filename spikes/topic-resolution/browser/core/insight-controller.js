@@ -1,4 +1,5 @@
 import { buildInsightContext } from "./insight-context.js";
+import { readSemanticPublication } from "./local-service-contract.js";
 import { ModelListFailure } from "./local-ai-client.js";
 import { formatInsightCitations } from "./insight-citations.js";
 import { inspectPageUrl } from "./page-content-policy.js";
@@ -93,7 +94,7 @@ export function createInsightResumeGate(resume) {
 // Explicit actions invoke injected page/provider adapters; only the guarded
 // discussion share persists the exact generated text.
 export function createInsightController({ shareInsight, onStateChange = () => {}, aiClient = null,
-  readArticle = null, attestArticle = null, readRelatedExcerpts = null,
+  readArticle = null, attestArticle = null, readRelatedExcerpts = null, readSemanticFollowupTarget = null,
   loadRelatedTextPreference = async () => null, saveRelatedTextPreference = () => {}, openAuthorization = null,
   loadInsightPreferences = async () => null, saveInsightPreferences = async () => {}, readBrowserLanguage = () => null,
   randomId = () => globalThis.crypto.randomUUID(), shareOnCompletion = false, requestSignIn = () => {} }) {
@@ -289,15 +290,44 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     }
     return { body: state.draft, operationId: completedJob.id, expected: { ...observed.discussion.version },
       topicId: observed.topicId, sourceId: observed.sourceId ?? null, actorId: observed.actorId,
+      ...(completedJob.semanticPublication ? { semanticPublication: completedJob.semanticPublication,
+        targetBinding: { rootBody: completedJob.followup.rootBody, targetBody: completedJob.followup.targetBody } } : {}),
       ...(completedJob.followup ? { discussionId: completedJob.followup.discussionId,
         rootId: completedJob.followup.rootId, replyToId: completedJob.followup.replyToId,
         ...(completedJob.followup.topicId !== observed.topicId ?
           { followupTopicId: completedJob.followup.topicId } : {}) } : {}) };
   }
   function sameFollowupTarget(followup) {
+    if(followup.semanticTarget)return eligible() && followup.foregroundKey===key();
     const binding = resolveDiscussionTarget(observed, followup.replyToId, followup);
     return Boolean(binding && binding.root.body === followup.rootBody &&
       binding.target.body === followup.targetBody);
+  }
+  async function freshSemanticFollowup(followup) {
+    if(!followup?.semanticTarget)return true;
+    if(!readSemanticFollowupTarget||!sameFollowupTarget(followup))return false;
+    const dto=await readSemanticFollowupTarget({nodeId:followup.semanticTarget.nodeId,topicId:followup.topicId,
+      discussionId:followup.discussionId,rootId:followup.rootId,targetId:followup.replyToId},{expected:followup});
+    return Boolean(dto&&sameFollowupTarget(followup));
+  }
+  function publicationFor(value,followup) {
+    if(!followup?.semanticTarget){if(value)throw new Error('unexpected semantic publication');return null;}
+    const publication=readSemanticPublication(value);
+    if(JSON.stringify(publication.semanticTarget)!==JSON.stringify(followup.semanticTarget)||
+      publication.evidence.sourceId!==observed.sourceId||publication.expiresAt<=Date.now())throw new Error('changed semantic publication');
+    return publication;
+  }
+  async function attestSemanticEvidence(publication) {
+    if(!readArticle||!attestArticle||!eligible())return false;
+    const snapshot=observed,expectedKey=key(),current=epoch;
+    const article=await readArticle(snapshot);
+    if(disposed||epoch!==current||key()!==expectedKey||!article||article.url!==state.context?.currentSource?.url||
+      typeof article.text!=='string'||article.text.length>4096||UNSAFE.test(article.text))return false;
+    if(await attestArticle(snapshot,article)===false)return false;
+    if(disposed||epoch!==current||key()!==expectedKey)return false;
+    const digest=Array.from(new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256',new TextEncoder().encode(article.text))),
+      b=>b.toString(16).padStart(2,'0')).join('');
+    return !disposed&&epoch===current&&key()===expectedKey&&digest===publication.articleDigest&&publication.expiresAt>Date.now();
   }
   function preview() {
     const candidate = preparedReview();
@@ -315,10 +345,15 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     const exactReview = preparedReview();
     if (!exactReview) return false;
     const sharedKey = boundKey;
+    const selectedJob=completedJob;
     pending = true; publish({ status: "sharing" });
     let success = false;
     let uncertain = false;
-    try { success = await shareInsight(exactReview) === true; }
+    try {
+      if(selectedJob.semanticPublication&&(!await freshSemanticFollowup(selectedJob.followup)||
+        !await attestSemanticEvidence(selectedJob.semanticPublication)||disposed||key()!==sharedKey||completedJob!==selectedJob))return false;
+      success = await shareInsight(exactReview) === true;
+    }
     catch { uncertain = true; /* An uncertain write is never retried automatically. */ }
     finally {
       pending = false;
@@ -536,7 +571,13 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     deliberateRequests += 1;
     try {
     const clickedEpoch = epoch, clickedKey = key(), clickedAccount = accountKey();
-    const targetAtClick = resolveDiscussionTarget(observed, questionId, destination);
+    const semantic=Boolean(destination?.nodeId);
+    const semanticIds=semantic?{nodeId:destination.nodeId,topicId:destination.topicId,discussionId:destination.discussionId,rootId:destination.rootId,targetId:questionId}:null;
+    const semanticDto=semantic&&readSemanticFollowupTarget?await readSemanticFollowupTarget(semanticIds):null;
+    if(disposed||epoch!==clickedEpoch||key()!==clickedKey)return false;
+    const semanticBinding=dto=>dto&&({topicId:dto.topic.id,discussionId:dto.discussionId,root:dto.root,
+      target:dto.targetId===dto.root.id?dto.root:dto.root.replies[0]});
+    const targetAtClick = semantic?semanticBinding(semanticDto):resolveDiscussionTarget(observed, questionId, destination);
     const clickedTarget = targetAtClick && { topicId: targetAtClick.topicId, discussionId: targetAtClick.discussionId,
       rootId: targetAtClick.root.id, rootBody: targetAtClick.root.body, targetBody: targetAtClick.target.body };
     const clickedRevision = preferenceRevision;
@@ -547,7 +588,10 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     if (disposed || pending || job || automaticStartBusy || resumeBusy || !eligible() ||
         state.ai.result || state.draft ||
         !state.ai.planEnabled || !state.ai.models.some((item) => item.slug === state.ai.model)) return false;
-    const binding = resolveDiscussionTarget(observed, questionId, destination);
+    const binding = semantic?semanticBinding(await readSemanticFollowupTarget(semanticIds,{expected:{
+      rootRevision:semanticDto?.rootRevision,targetRevision:semanticDto?.targetRevision,rootBody:clickedTarget?.rootBody,targetBody:clickedTarget?.targetBody}})):
+      resolveDiscussionTarget(observed, questionId, destination);
+    if(disposed||epoch!==clickedEpoch||key()!==clickedKey)return false;
     if (!binding || !clickedTarget || binding.topicId !== clickedTarget.topicId ||
         binding.discussionId !== clickedTarget.discussionId || binding.root.id !== clickedTarget.rootId ||
         binding.root.body !== clickedTarget.rootBody || binding.target.body !== clickedTarget.targetBody) return false;
@@ -558,7 +602,9 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     try {
       const followup = { questionId, topicId: binding.topicId, discussionId: binding.discussionId,
         rootId: binding.root.id, replyToId: binding.target.id,
-        rootBody: binding.root.body, targetBody: binding.target.body };
+        rootBody: binding.root.body, targetBody: binding.target.body,
+        ...(semantic?{foregroundKey:key(),rootRevision:semanticDto.rootRevision,targetRevision:semanticDto.targetRevision,
+          semanticTarget:{nodeId:semanticIds.nodeId,topicId:semanticIds.topicId,rootRevision:semanticDto.rootRevision,targetRevision:semanticDto.targetRevision}}:{}) };
       publish({ followup: { discussionId: followup.discussionId,
         rootId: followup.rootId, replyToId: followup.replyToId,
         ...(followup.topicId !== observed.topicId ? { topicId: followup.topicId } : {}) } });
@@ -607,6 +653,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         excludedRelatedSourceIds: [...state.excludedRelatedSourceIds], articleText: state.ai.articleText,
         allowWebResearch: false, expected: { ...observed.catalog.version },
         includeRelatedSources: preparedRelated !== null,
+        ...(followup?.semanticTarget ? {semanticTarget:followup.semanticTarget}:{}),
         ...(followup ? { followupQuestionId: followup.questionId,
           ...(followup.topicId !== observed.topicId ? { followupTopicId: followup.topicId } : {}) } : {}) };
       if (state.relatedPageTextEnabled && readRelatedExcerpts) {
@@ -660,7 +707,13 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       // this request flag; no client-supplied research mode is authoritative.
       if (state.relatedPageTextEnabled && followup) request.allowWebResearch = true;
       if (!eligible() || key() !== expectedKey || followup && !sameFollowupTarget(followup)) return false;
-      await aiClient.start(request, actorId, { signal: abort.signal });
+      if(!await freshSemanticFollowup(followup)||!active())return false;
+      await aiClient.start(request, actorId, { signal: abort.signal,
+        ...(followup?.semanticTarget ? {beforeDispatch:async()=>{
+          if(!active()||!eligible()||!await freshSemanticFollowup(followup)||!active())return false;
+          if(await attestArticle(observed,state.ai.article)===false)return false;
+          return active()&&eligible()&&key()===expectedKey;
+        }}:{}) });
       const end = Date.now() + 95000;
       while (active() && Date.now() < end) {
         const outcome = await aiClient.result(operationId, actorId, { signal: abort.signal });
@@ -670,11 +723,13 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
           throw new Error(outcome.error ?? "provider-unavailable");
         }
         if (outcome.state === "completed") {
+          const semanticPublication=publicationFor(outcome.semanticPublication,followup);
+          if(!await freshSemanticFollowup(followup)||!active())return false;
           const draft = formatInsightCitations(outcome.result.body, outcome.result.citations);
           review = null; job = null;
           // Keep the short-lived service result until Share or Discard so the
           // service can attest the exact generated body before publication.
-          completedJob = { id: operationId, actorId, account: accountKey(), followup };
+          completedJob = { id: operationId, actorId, account: accountKey(), followup, semanticPublication };
           publish({ draft, preview: null, status: "prepared", ai: { ...state.ai, result: outcome.result,
             status: "generated", costConsent: false } });
           // The opt-in belongs only to this live, explicit generation. A
@@ -727,14 +782,25 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       if (!stillHere() || !resumable ||
           resumable.expected?.generation !== snapshot.catalog.version.generation ||
           resumable.topicId !== snapshot.topicId ||
-          resumable.originSourceId !== (snapshot.sourceId ?? null)) return false;
-      const binding = resumable.replyToId === null ? null : resolveDiscussionTarget(snapshot,
+          (resumable.semanticPublication ? resumable.semanticPublication.evidence.sourceId !== snapshot.sourceId :
+            resumable.originSourceId !== (snapshot.sourceId ?? null))) return false;
+      const resumedPublication=resumable.semanticPublication?readSemanticPublication(resumable.semanticPublication):null;
+      const resumedDto=resumedPublication&&readSemanticFollowupTarget?await readSemanticFollowupTarget({
+        nodeId:resumedPublication.semanticTarget.nodeId,topicId:resumedPublication.semanticTarget.topicId,
+        discussionId:resumable.discussionId,rootId:resumable.rootId,targetId:resumable.replyToId}):null;
+      if(!stillHere())return false;
+      const binding = resumedPublication ? resumedDto&&({topicId:resumedDto.topic.id,root:resumedDto.root,
+        target:resumedDto.targetId===resumedDto.root.id?resumedDto.root:resumedDto.root.replies[0]}) : resumable.replyToId === null ? null : resolveDiscussionTarget(snapshot,
         resumable.replyToId, { topicId: resumable.followupTopicId ?? snapshot.topicId,
           rootId: resumable.rootId, discussionId: resumable.discussionId });
       if (resumable.replyToId !== null && !binding) return false;
       const followup = binding ? { topicId: binding.topicId, discussionId: resumable.discussionId,
         rootId: binding.root.id, replyToId: binding.target.id,
-        rootBody: binding.root.body, targetBody: binding.target.body } : null;
+        rootBody: binding.root.body, targetBody: binding.target.body,
+        ...(resumedPublication?{foregroundKey:key(),rootRevision:resumedDto.rootRevision,targetRevision:resumedDto.targetRevision,
+          semanticTarget:resumedPublication.semanticTarget}:{}) } : null;
+      if(resumedPublication&&(resumedDto.rootRevision!==resumedPublication.semanticTarget.rootRevision||
+        resumedDto.targetRevision!==resumedPublication.semanticTarget.targetRevision||resumedPublication.expiresAt<=Date.now()))return false;
       const abort = new AbortController();
       job = { id: resumable.operationId, actorId: snapshot.actorId, abort };
       const presentationFollowup = followup ? { discussionId: followup.discussionId,
@@ -756,9 +822,12 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
           return false;
         }
         if (outcome.state === "completed") {
+          const semanticPublication=publicationFor(outcome.semanticPublication,followup);
+          if(resumedPublication&&JSON.stringify(semanticPublication)!==JSON.stringify(resumedPublication))return false;
+          if(!await freshSemanticFollowup(followup)||!active())return false;
           const draft = formatInsightCitations(outcome.result.body, outcome.result.citations);
           job = null; review = null;
-          completedJob = { id: resumable.operationId, actorId: snapshot.actorId, account: accountKey(), followup };
+          completedJob = { id: resumable.operationId, actorId: snapshot.actorId, account: accountKey(), followup, semanticPublication };
           publish({ draft, preview: null, followup: presentationFollowup, status: "prepared", ai: { ...state.ai, result: outcome.result,
             status: "generated", costConsent: false } });
           return true;

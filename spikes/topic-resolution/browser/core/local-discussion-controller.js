@@ -1,7 +1,7 @@
 import { classifyActiveTabSnapshot, sameActiveTabObservation } from "./active-tab-policy.js";
 import { validateAndProjectActiveTabResponse } from "./indicator-contract.js";
 import { localServiceSourceId } from "../fixtures/local-service-fixture-bridge.js";
-import { readPostOrigin, isAccountActorId, readId, record, readSemanticTarget, readSemanticTargetRequest, HIERARCHY_SOURCE_POLICY, MAX_CATALOG_ENTRIES } from "./local-service-contract.js";
+import { readPostOrigin, isAccountActorId, readId, record, readSemanticTarget, readSemanticTargetRequest, readSemanticPublication, HIERARCHY_SOURCE_POLICY, MAX_CATALOG_ENTRIES } from "./local-service-contract.js";
 import { isRidgeTopicView, requiresReferenceTopicView } from "./topic-view-mode.js";
 import { resolveDiscussionTarget } from "./discussion-target.js";
 import { projectPageResolution, isReadyPageResolution, samePageResolution } from "./page-resolution-contract.js";
@@ -1190,6 +1190,33 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       return true;
     } catch {if(current())publish({semanticSelection:null,semanticError:'unavailable'});return false;}
   }
+  // A short-lived reader, never a selection or a copy into PageB's graph.
+  async function readSemanticFollowupTarget(value,{signal,expected=null}={}) {
+    if(disposed || state.phase!=='ready' || state.needsFreshRead || !activeContext || !selectedPostingSource(state) ||
+      !state.actorId || typeof client.semanticTarget!=='function')return null;
+    if(selectedPostingSource(state).url!==inspectPageNavigationUrl(activeContext.url)?.url)return null;
+    let ids;
+    try {const raw=record(value,['nodeId','rootId','targetId','topicId','discussionId']);
+      ids={...readSemanticTargetRequest({nodeId:raw.nodeId,rootId:raw.rootId,targetId:raw.targetId}),
+        topicId:readId(raw.topicId),discussionId:readId(raw.discussionId)};}catch{return null;}
+    const binding={ids,sequence:semanticSequence,foreground:{epoch,actorId:state.actorId,sourceId:state.sourceId,topicId:state.topicId,
+      selection:state.selection,discussionId:state.discussion?.discussionId,generation:state.catalog.version.generation,
+      activeContext:JSON.stringify(activeContext),resolution:state.resolution,saved:savedBindingCurrent()?verifiedSavedBinding:null}};
+    const ownSignal=abort.signal;
+    const readSignal=signal?AbortSignal.any([signal,ownSignal]):ownSignal;
+    const current=()=>!signal?.aborted&&!ownSignal.aborted&&state.phase==='ready'&&semanticForegroundCurrent(binding);
+    try {
+      if(!current()||!await attestSemanticForeground(binding)||!current())return null;
+      const request={nodeId:ids.nodeId,rootId:ids.rootId,targetId:ids.targetId};
+      const dto=readSemanticTarget(await client.semanticTarget(request,{signal:readSignal,beforeDispatch:current}),request);
+      if(!current()||!sameSemanticTarget(dto,binding))return null;
+      const target=dto.targetId===dto.root.id?dto.root:dto.root.replies[0];
+      if(expected&&(dto.rootRevision!==expected.rootRevision||dto.targetRevision!==expected.targetRevision||
+        dto.root.body!==expected.rootBody||target?.body!==expected.targetBody))return null;
+      if(!await attestSemanticForeground(binding)||!current())return null;
+      return freeze(dto);
+    }catch{return null;}
+  }
   async function submitSemanticReply() {
     const binding=semanticBinding,draft=state.draft;
     if(!binding || !draft.semantic || draft.detached || !draft.body.trim() || mutationPending || pendingSemanticCommand ||
@@ -1219,8 +1246,11 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       if(!current()){if(!disposed)publish({needsFreshRead:true});return false;}
       // Keep foreground PageB and the bounded selected thread. A new exact read
       // is needed before another reply; the UI may refresh its thread normally.
+      const acceptedId=readId(result.result.contributionId);
       cancelSemanticSelection();publish({busy:false,semanticSelection:null,semanticWritePending:false,semanticError:null,
-        draft:{body:'',detached:false,mode:'root',targetId:null},createdPost:null});
+        draft:{body:'',detached:false,mode:'root',targetId:null},createdPost:{id:acceptedId,actorId:binding.foreground.actorId,
+          sourceId:binding.foreground.sourceId,topicId:binding.ids.topicId,discussionId:binding.ids.discussionId,rootId:binding.ids.rootId,
+          semantic:{...binding.ids,targetId:acceptedId}}});
       return Boolean(result);
     } catch (error) {
       if(isConfirmedCommandRejection(error)){pendingSemanticCommand=null;dispatched=false;}
@@ -1465,6 +1495,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     return mutate({ type: "withdraw", contributionId });
   }
   function shareInsight(review) {
+    if(review?.semanticPublication)return shareSemanticInsight(review);
     if(semanticBinding || state.draft.semantic)return Promise.resolve(false);
     const version = state.discussion?.version;
     if (!review || state.phase !== "ready" || state.busy || state.needsFreshRead ||
@@ -1486,6 +1517,47 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     }
     return mutate({ type: "share-insight", topicId: state.topicId, body: review.body,
       originSourceId: review.sourceId, operationId: review.operationId });
+  }
+  async function shareSemanticInsight(review) {
+    if(disposed||mutationPending||pendingSemanticCommand||state.busy||state.phase!=='ready'||state.needsFreshRead||
+      review.actorId!==state.actorId||review.topicId!==state.topicId||review.sourceId!==selectedPostingSource(state)?.id||
+      typeof review.body!=='string'||!review.body.trim()||review.body.length>8000)return false;
+    let publication,ids,operationId;
+    try {publication=readSemanticPublication(review.semanticPublication);operationId=readId(review.operationId);
+      ids={nodeId:publication.semanticTarget.nodeId,topicId:publication.semanticTarget.topicId,
+        rootId:readId(review.rootId),targetId:readId(review.replyToId),discussionId:readId(review.discussionId)};
+      if(ids.topicId!==(review.followupTopicId??review.topicId)||publication.evidence.sourceId!==review.sourceId||publication.expiresAt<=Date.now())return false;
+    }catch{return false;}
+    const foregroundEpoch=epoch,sequence=semanticSequence,actorId=state.actorId,signal=abort.signal;
+    const current=()=>!disposed&&!signal.aborted&&epoch===foregroundEpoch&&semanticSequence===sequence&&state.phase==='ready'&&
+      !state.needsFreshRead&&state.actorId===actorId&&postingActor(state.catalog)===actorId&&
+      state.topicId===review.topicId&&selectedPostingSource(state)?.id===review.sourceId;
+    mutationPending=true;publish({busy:true});let packet=null,dispatched=false,confirmed=false;
+    try {
+      const fresh=await readSemanticFollowupTarget(ids,{signal,expected:{...review.targetBinding,
+        rootRevision:publication.semanticTarget.rootRevision,targetRevision:publication.semanticTarget.targetRevision}});
+      if(!fresh||!current())return false;
+      const target=fresh.targetId===fresh.root.id?fresh.root:fresh.root.replies[0];
+      const digest=async text=>Array.from(new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256',new TextEncoder().encode(text))),b=>b.toString(16).padStart(2,'0')).join('');
+      const rootDigest=await digest(fresh.root.body);if(!current())return false;
+      const targetDigest=await digest(target.body);if(!current()||rootDigest!==publication.rootDigest||targetDigest!==publication.targetDigest)return false;
+      const command={type:'share-insight-reply',topicId:ids.topicId,discussionId:ids.discussionId,rootId:ids.rootId,replyToId:ids.targetId,
+        body:review.body,operationId,originSourceId:ids.topicId===review.topicId?review.sourceId:null,semanticPublication:publication};
+      packet=freeze({expected:{...fresh.version},command,actorId});
+      const result=await client.command(packet.expected,packet.command,actorId,{signal,beforeDispatch:async()=>{
+        if(!current()||publication.expiresAt<=Date.now()||!await readSemanticFollowupTarget(ids,{signal,expected:{...review.targetBinding,
+          rootRevision:publication.semanticTarget.rootRevision,targetRevision:publication.semanticTarget.targetRevision}})||!current())return false;
+        dispatched=true;pendingSemanticCommand=packet;return true;
+      }});
+      confirmed=true;pendingSemanticCommand=null;
+      if(!current()){if(!disposed)publish({needsFreshRead:true});return false;}
+      const acceptedId=readId(result.result.contributionId);
+      publish({createdPost:{id:acceptedId,actorId,sourceId:review.sourceId,topicId:ids.topicId,
+        discussionId:ids.discussionId,rootId:ids.rootId,semantic:{...ids,targetId:acceptedId}}});
+      return true;
+    }catch(error){if(isConfirmedCommandRejection(error)){pendingSemanticCommand=null;dispatched=false;}return false;}
+    finally{mutationPending=false;if(!confirmed&&dispatched&&!disposed)pendingSemanticCommand=packet;
+      if(!disposed)publish({busy:false,semanticWritePending:Boolean(pendingSemanticCommand),...(!confirmed&&dispatched?{needsFreshRead:true}:{})});}
   }
   function createTopic(title, kind) { return mutate({ type: "create-topic", title, kind }); }
   function reset(confirmation) {
@@ -1527,7 +1599,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       ...(semanticDraft?{draft:{body:'',detached:false,mode:'root',targetId:null}}:{}) });
     void open();
   }
-  return Object.freeze({ currentState, open, pair, disconnect, selectTopic, selectActor, selectSemanticTarget, acknowledgeSemanticWriteUncertainty, setSemanticTopicsAvailable, refreshSavedThreads,
+  return Object.freeze({ currentState, open, pair, disconnect, selectTopic, selectActor, selectSemanticTarget, readSemanticFollowupTarget, acknowledgeSemanticWriteUncertainty, setSemanticTopicsAvailable, refreshSavedThreads,
     selectSource, setTopicViewMode, canReplyToAlternate, setDraft, reattachDraft, begin, discardDraft, submitDraft, attestPrivateStart, shareInsight, withdraw, createTopic, reset,
     updatePageResolution, invalidateContext, accountChanged, correctSource, forgetSource, deleteLearnedTopic, clearLearnedData, dispose });
 }

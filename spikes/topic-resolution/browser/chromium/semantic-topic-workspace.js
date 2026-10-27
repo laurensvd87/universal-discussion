@@ -12,6 +12,7 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
   let capabilityAbort=null,contextAbort=null,intentAbort=new AbortController();
   let contextCard=null,contextLoading=false,contextError=false,contextRequestKey=null,override=null,suppressSelection=false;
   let savedView=false,historyPending=false,historyError=false,historyFlight=null;
+  let refreshedPostId=null;
   const status=document.createElement('p');status.id='semantic-workspace-status';status.setAttribute('role','status');
   const retry=document.createElement('button');retry.id='semantic-workspace-retry';retry.type='button';retry.textContent='Try again';retry.hidden=true;
   const toggle=document.createElement('button');toggle.id='semantic-workspace-saved-toggle';toggle.type='button';toggle.hidden=true;
@@ -43,6 +44,7 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
   function revoke(){epoch++;intentAbort.abort();intentAbort=new AbortController();contextEpoch++;contextAbort?.abort();contextAbort=null;
     contextRequestKey=null;contextCard=null;contextLoading=false;contextError=false;override=null;
     savedView=false;historyPending=false;historyError=false;historyFlight=null;
+    refreshedPostId=null;
     suppressSelection=true;main.setTopicContext(null,{force:true});suppressSelection=false;updateMain();}
   const panelClient={};
   for(const method of ['semanticTopics','semanticFeed','semanticThread'])panelClient[method]=(...args)=>client[method](...args);
@@ -119,7 +121,15 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
       if(changedAccount){serviceEpoch++;capabilityAbort?.abort();capabilityAbort=null;capability='unknown';if(connected)void probe();return;}
       if(usable()){
         void loadContext();
-        if(override&&previous?.draft?.semantic&&!state?.draft?.semantic&&!state?.busy&&!state?.semanticWritePending)main.refreshPage();
+        const accepted=state?.createdPost;
+        const newPost=override&&accepted?.semantic&&typeof accepted.id==='string'&&accepted.id!==refreshedPostId&&
+          accepted.actorId===state.actorId&&accepted.sourceId===state.sourceId&&
+          accepted.semantic.nodeId===override.nodeId&&accepted.semantic.rootId===override.rootId;
+        if(override&&!state?.busy&&!state?.semanticWritePending&&
+            (newPost||previous?.draft?.semantic&&!state?.draft?.semantic)){
+          if(newPost)refreshedPostId=accepted.id;
+          main.refreshPage();
+        }
       }
     },
     refresh(){if(disposed||!connected)return;const ownEpoch=epoch;if(capability==='available')return loadContext(true).then(()=>{if(usable()&&ownEpoch===epoch)main.refreshPage();});return probe();},

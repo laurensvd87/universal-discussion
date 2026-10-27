@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test from "node:test";
 import { ModelListFailure } from "../browser/core/local-ai-client.js";
 import { createInsightController, createInsightResumeGate } from "../browser/core/insight-controller.js";
@@ -10,7 +11,7 @@ import { lookupIndicatorFixtureByNormalizedUrl } from "../browser/fixtures/indic
 async function harness({ command, aiClient, readArticle, attestArticle, readRelatedExcerpts,
   loadRelatedTextPreference, saveRelatedTextPreference, openAuthorization, randomId,
   loadInsightPreferences, saveInsightPreferences, readBrowserLanguage,
-  catalogTransform, shareOnCompletion = false } = {}) {
+  catalogTransform, shareOnCompletion = false, readSemanticFollowupTarget, semanticShare } = {}) {
   let sequence = 0;
   const service = createMemoryDemoService({ nextId: (kind) => `${kind}-${++sequence}`, now: () => "2026-09-29T12:00:00.000Z" });
   const commands = [], reviews = []; let changed;
@@ -38,9 +39,9 @@ async function harness({ command, aiClient, readArticle, attestArticle, readRela
     onStateChange: (state) => insight?.observe(state),
   });
   const newInsight = () => createInsightController({ shareInsight: (review) => {
-    reviews.push(review); return discussion.shareInsight(review);
+    reviews.push(review); return semanticShare ? semanticShare(review) : discussion.shareInsight(review);
   }, aiClient, readArticle,
-    attestArticle, readRelatedExcerpts, loadRelatedTextPreference, saveRelatedTextPreference,
+    attestArticle, readRelatedExcerpts, readSemanticFollowupTarget, loadRelatedTextPreference, saveRelatedTextPreference,
     loadInsightPreferences, saveInsightPreferences, readBrowserLanguage,
     openAuthorization, randomId, shareOnCompletion });
   insight = newInsight();
@@ -1994,4 +1995,79 @@ test("service failure requires a fresh read; dispose erases unshared memory and 
   await app.discussion.open(); app.insight.prepare(); app.insight.setDraft("Private memory");
   app.insight.dispose(); assert.equal(app.insight.currentState().draft, "");
   assert.equal(app.insight.prepare(), false); assert.equal(await app.insight.share(), false);
+});
+const semanticSha=text=>createHash('sha256').update(text).digest('hex');
+async function semanticInsightHarness({shareOnCompletion=false,resume=false,changePublication,revokeAtDispatch=false}={}) {
+ const requests=[],shares=[];let targetBody='Accepted human question @AI',article='Public article';
+ const ids={nodeId:'harbor',topicId:'harbor-s2',discussionId:'discussion-a',rootId:'root-a',targetId:'accepted-question'};
+ const witness={nodeId:ids.nodeId,topicId:ids.topicId,rootRevision:3,targetRevision:2};
+ const publication={semanticTarget:witness,evidence:{sourceId:'reserved-example-com',sourceVersion:'1',operationId:'page-b-op',
+  operationDigest:semanticSha('operation'),sourceStamp:semanticSha('stamp')},articleDigest:semanticSha(article),
+  rootDigest:semanticSha('Original opener'),targetDigest:semanticSha(targetBody),expiresAt:Date.now()+60000};
+ const app=await harness({shareOnCompletion,randomId:()=> 'semantic-op',
+  semanticShare:async review=>{shares.push(review);return true;},
+  readSemanticFollowupTarget:async(value,{expected}={})=>{
+   if(Object.keys(ids).some(key=>value[key]!==ids[key]))return null;
+   if(expected&&(expected.rootRevision!==3||expected.targetRevision!==2||expected.rootBody!=='Original opener'||expected.targetBody!==targetBody))return null;
+   return {topic:{id:ids.topicId},discussionId:ids.discussionId,rootRevision:3,targetRevision:2,targetId:ids.targetId,
+    root:{id:ids.rootId,body:'Original opener',replies:[{id:ids.targetId,body:targetBody}]}};
+  },
+  readArticle:async()=>({url:'https://example.com/',documentId:'doc-b',text:article}),attestArticle:async()=>true,
+  aiClient:{status:async()=>({connected:true,planEnabled:true,pending:false,account:{clientId:'owner',label:'Owner'}}),
+   models:async()=>[{slug:'model-a'}],start:async(request,_actor,options)=>{
+    if(revokeAtDispatch)targetBody='Changed during credentials';
+    if(options?.beforeDispatch&&!await options.beforeDispatch())throw new Error('guard refused');
+    requests.push(request);return {state:'running'};},cancel:async()=>true,
+   resumable:async()=>resume?{operationId:'semantic-op',expected:app.discussion.currentState().catalog.version,
+    topicId:app.discussion.currentState().topicId,originSourceId:null,followupTopicId:ids.topicId,discussionId:ids.discussionId,
+    rootId:ids.rootId,replyToId:ids.targetId,semanticPublication:publication}:null,
+   result:async()=>({state:'completed',result:{body:'Semantic generated answer',model:'model-a',citations:[]},
+    semanticPublication:changePublication?changePublication(structuredClone(publication)):publication})}});
+ await app.insight.checkConnection();await app.insight.loadModels();
+ return {...app,ids,publication,requests,shares,setTarget:text=>{targetBody=text;},setArticle:text=>{article=text;}};
+}
+
+test('semantic followup starts with Page B evidence and exact witness without an unsent human draft',async t=>{
+ const app=await semanticInsightHarness({shareOnCompletion:true});t.after(()=>{app.insight.dispose();app.discussion.dispose();});
+ app.discussion.setDraft('New private unsent draft');
+ assert.equal(await app.insight.createFollowup(app.ids.targetId,app.ids),true);
+ assert.equal(app.requests.length,1);assert.equal(app.shares.length,1);
+ const request=app.requests[0];assert.deepEqual(request.semanticTarget,app.publication.semanticTarget);
+ assert.equal(request.context.currentSource.id,'reserved-example-com');assert.equal(request.context.topic.id,'reserved-domain-demo');
+ assert.deepEqual(request.context.discussion,[]);assert.equal(request.followupQuestionId,app.ids.targetId);assert.equal(request.followupTopicId,app.ids.topicId);
+ assert.equal(JSON.stringify(request).includes('New private unsent draft'),false);
+ assert.equal(app.shares[0].sourceId,'reserved-example-com');assert.deepEqual(app.shares[0].semanticPublication,app.publication);
+ assert.equal(app.discussion.currentState().draft.body,'New private unsent draft');assert.equal(await app.insight.share(),false);
+});
+
+test('semantic private resume uses evidence Page B with null origin and never inherits share intent',async t=>{
+ const app=await semanticInsightHarness({resume:true,shareOnCompletion:true});t.after(()=>{app.insight.dispose();app.discussion.dispose();});
+ assert.equal(await app.insight.resumeInsights(),true);assert.equal(app.requests.length,0);assert.equal(app.shares.length,0);
+ app.discussion.setDraft('Draft written after recovered answer');assert.equal(await app.insight.share(),true);
+ assert.equal(app.shares.length,1);assert.deepEqual(app.shares[0].semanticPublication,app.publication);
+ assert.equal(app.discussion.currentState().draft.body,'Draft written after recovered answer');
+});
+
+test('semantic answer refuses stale question, changed Page B bytes and mismatched proof without retry',async t=>{
+ for(const mode of ['question','article','proof']){
+  const app=await semanticInsightHarness({changePublication:mode==='proof'?p=>({...p,semanticTarget:{...p.semanticTarget,targetRevision:99}}):undefined});
+  t.after(()=>{app.insight.dispose();app.discussion.dispose();});
+  const generated=await app.insight.createFollowup(app.ids.targetId,app.ids);
+  if(mode==='proof'){assert.equal(generated,false);}else{
+   assert.equal(generated,true);if(mode==='question')app.setTarget('Edited question');if(mode==='article')app.setArticle('Changed Page B');
+   assert.equal(await app.insight.share(),false);
+  }
+  assert.equal(app.shares.length,0);assert.equal(app.requests.length,1);
+ }
+});
+
+test('semantic provider dispatch fences a question changed while credentials resolve',async t=>{
+ const app=await semanticInsightHarness({revokeAtDispatch:true});t.after(()=>{app.insight.dispose();app.discussion.dispose();});
+ assert.equal(await app.insight.createFollowup(app.ids.targetId,app.ids),false);assert.equal(app.requests.length,0);assert.equal(app.shares.length,0);
+});
+
+test('expired semantic result never becomes a shareable recovered or live answer',async t=>{
+ const app=await semanticInsightHarness({changePublication:p=>({...p,expiresAt:1})});t.after(()=>{app.insight.dispose();app.discussion.dispose();});
+ assert.equal(await app.insight.createFollowup(app.ids.targetId,app.ids),false);assert.equal(await app.insight.share(),false);
+ assert.equal(app.requests.length,1);assert.equal(app.shares.length,0);
 });
