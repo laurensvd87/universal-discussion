@@ -1,5 +1,49 @@
 # Project status
 
+## Current: runtime package, dashboard SQL and live-data backup verified
+
+Production source is pushed: tracked runtime operator `bf7bdefe`, protected
+dashboard aggregate/exact hierarchy17 profile `15cc009f`, visible semantic
+dashboard and semantic refreshes `bd322cfa`, streaming encrypted backup
+`6c652709`, and native verification `3aeae3ca`. Legacy9/hierarchy16 remain exact;
+no historical migrations were rewritten. The dashboard avoids full vector/state
+and Ridge preview loading in hierarchy mode and labels legacy history separately.
+
+The actual isolated schema17 run passed all25 ordered aggregate ledger points,
+including app-only classified/excluded/pending counters, distinct historical
+roots, rollback/install17 and actual dashboard refresh after owner cuts without
+canonical writes. Normal shutdown and both scratch database drops passed.
+Independent audit: `hierarchy-dashboard-native-actual-audit-20261027.json`,
+SHA256 `409688fc59404db2e21464ea2612c77d6ed79d758d89077bcd46869ee23a038d`.
+These are synthetic SQL fixtures, not many-user, E5, provider or browser evidence.
+The nonzero SQL abstention counter branch remains unexecuted.
+
+The separate runtime snapshot is prepared/sealed and passes actual preflight:
+1194 files,163076084 bytes, including all nine fixed encoder assets at the
+required relative paths. Its root is `516e20910dd2a276a248e638dc21de3cd9f4adf1245bc7a01e2ab2f497ffcc3a`.
+Independent package audit `4662234653f1854b66509c24f2f087de56a1f2facc8518413f788f60080fbba6`
+also verifies the old runtime unchanged and the sealed numeric loader's fixed
+matcher. This did not open an encoder or start a new service.
+
+A real encrypted backup completed while the original crawler/services stayed
+running. The consistent snapshot contains55954 Sources and97 contributions;
+its dump is779151859 bytes. Current-user DPAPI/GCM/header/dump digest verification
+passed independently (`hierarchy-production-backup-actual-audit-20261027.json`,
+SHA256 `5d1c0d02209bf2eb394f2ff7fea42421889c498bebe7c7f201487d18a1ad6307`).
+The protected owner receipt retains19 table fingerprints from that same snapshot.
+This is archive authentication, not a restored-data or complete recovery proof.
+
+Next is a private full-data restore rehearsal. The observed live database is
+about1.84GB, so it must not be forced into the synthetic fixture's512MiB disk
+bound or mislabeled synthetic. Reuse the maintained lifecycle (already SCRAM,
+not trust), private ACLs and explicit owner-data scope; review the proposed
+disk admission and restore checks before implementation/execution. No live HBA
+or host settings change is needed. Combined UI/database/provider and user/crawler
+load checks, existing-page preparation/adoption, live cutover and the one approved
+crawler restart remain open. The live database remains9; original services run.
+
+Earlier entries below are historical checkpoints.
+
 ## Current: schema upgrade rehearsal passes; live integration remains open
 
 The isolated PostgreSQL run at `c89ca1a2` passes all25 ordered aggregate checks,

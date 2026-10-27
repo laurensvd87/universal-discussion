@@ -8,6 +8,28 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST27Oct productionoperatorbf7bdefe/schema17+counts15cc009f/dashboardbd322cfa/
+streamingbackup6c652709/native3aeae3ca allPUSHED. Actual01778979 CLOSEDexit0/
+25orderedPASS runc0983e17...33f17/catalog72a05a...f69c2424/274804547B/92Git;
+PG33872smartstop/2DBdrop/parentnormal/noemergency/endpins/handles/2EOF. Appcounts/
+grants/historyroots/B17rollback+dashboardpolicyrefresh(no canonicalwrites) PASS.
+Independent409688fc...a038d FULLread/auth; not25newcases/nonzeroabstain/E5/UI/load.
+Actualruntimeprepared/sealed/preflight1194files163076084B/root516e2091...fcc3a,
+manifest399659Be1d9...db5a5/ext70331.6MB, fixedassets+sealednumericloaderPASS;
+independent46622346...fbba6 FULLread/auth+oldsealunchanged. No newservice/encoder.
+Actual encryptedbackup67933 CLOSEDexit0/currentUserDPAPI+GCMverifyPASS;
+dump779151859B/55954Sources/97contributions/rev56880/19SAMEsnapshotfingerprints.
+Ownerreceipt7783f573...933e; actualverifyaudit5d1c0d02...6307 FULLread/auth.
+NOrestoredSQLproof. LiveDBreadonlysize1837659827B (~1.84GB), originalservices+
+crawler4060 advancing5329/stderr0/live9 unchanged. Next PRIVATEfullrestore
+SOURCEdesign review/grant: existingmaintainedcluster ALREADYSCRAM (nottrust),
+privateACL/newownerdataresultscope, fullarchiveownership/ACLs, explicitnewledger,
+adequatediskbudgetmeasuredfromactualDB (proposed6GiBtree/11GiB D admission +
+unchanged4GiBfloor; notold512MiBsynthetic fixture). KeepJob1GiB/Node64/process32/
+CPU60/deadlines/noautoretry/no copycontrollers. Trust proposedexactfiles inagent
+final; NOprivate-restore implementation/actualgrant yet. Source currenttreeclean
+beforedocs. GoalACTIVE; combinedUI/provider/load/backfill/adoption/cutoverOPEN.
+
 LATEST27Oct ADR224 actual53917 CLOSEDexit0/25orderedPASS c415664e, run10a7429c...
 54676/catalog2eeec6a5...559d. ScratchB9->stale-policyrollback9->validowneroneRCtx
 registered16/fixedeead...ed21c/head1/policy1; originalempty-before-register,

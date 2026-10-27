@@ -1,5 +1,40 @@
 # Implementation handoff: local-service discussion MVP
 
+LATEST27Oct sourcebf7bdefe operator/15cc009f schema17+protectedcounts/bd322cfa
+dashboardcards+refresh/6c652709 streamingbackup/3aeae3ca native017 allPUSHED.
+Actual78979 CLOSEDexit0/25orderedPASS, runc0983e17c19084d749b7200aa878d4d0b6dcb5082a233f17,
+catalog72a05a...f69c2424files274804547B/86NORMAL/92Git. Parent862ebc96abe...b6ea,
+stdout4767894f0eef...0560/child538357bd9d9c...11e9/stderr0. PG33872 ownnormalstop/
+2DBdrop16384+17424/noemergency/endpins/handles/2EOF. Real app017counters+grants,
+historicalrootcounts and ownerB17installer/dashboardpolicyrefresh/no canonicalwrite.
+Independent409688fc...a038d authenticated/FULLread; not25new017cases/nonzero
+abstainedSQLbranch/E5/UI/provider/load/liveproof. PureRootprofile+01737PASS392ms,
+ops10PASS83ms/backup16PASS319ms/dashboard31PASS9.165s (includes legacyembeddedDB,
+new17fakeports+VM only); independentVM14PASS76ms.
+Runtime actualprepare/seal/preflight: data/hierarchy-runtime1194/163076084B,
+manifest399659Be1d9f5c0...db5a5/root516e2091...fcc3a/external703/31606878B.
+Independent46622346...fbba6 FULLread/authenticated, nineassets+sixSPECpins/oldseal
+unchanged, sealednumericloader fixedeead...ed21c/18nodes16roots/noencoder.
+Backup actual67933 CLOSEDexit0: protected data/postgres-hierarchy-backup-receipt-
+20261027.json6249B7783f573...933e; dump779151859B e8fce396...8ae9e, Source55954/
+topics27674/contributions97/canonicalrev56880; SAMEexportedRR19tablefingerprints.
+Archive .murmingle-pgbackup filename62729438-e09b-428d-b39e-9bdbe7f40677 suffix;
+ONE independent actualDPAPI/GCM verifyPASS5d1c0d02...6307 authenticated/FULLread.
+NoSQLrestore yet. LiveDB observed1837659827B/~55971Sources (concurrent growth).
+Next privatefullrealdata restore design: reuse maintainedJob/lifecycle, NOcopies/
+budgetladder. Currentcluster ALREADYSCRAM/rejectlocal, NOTtrust; ownerrole absent
+fromconnector roster needsreview. ProtectprivateRununderbackupACL; honestownerdata
+scope (not syntheticOnly:true); preserveownership/ACLs (customarchive ignored
+pg_dump --no-owner). Proposed6GiBtree/11GiB D admission frommeasuredDBsize+WAL+
+margin, unchanged4GiBfloor/Job1GiB/Node64/process32/CPU60/deadlines; SOURCEdesign
+only, NOimplementation/actualgrant yet. FullArestoreonly, explicitnew25/3ledger
+19tablefprs+schema/grants/sequences, allfingerprints comparedUTC/ISO/float3;
+sequences not exactMVCCbackup-time proof. Trust design in agent final; Rootreview
+and concretefilegrant required next. Existingrestoreport remainsuninstalled.
+Live9/originalAPI19868/worker36616/dashboard6644/crawler4060 preserved; crawler
+advancing5329/stderr0. CombinedUI+SQL/provider/load/backfill/adoption/livecutover
+OPEN. GoalACTIVE; no userpermissionpending.
+
 LATEST27Oct ADR224 actualsession53917 CLOSEDexit0/25orderedPASS atc415664e.
 Run10a7429c812c6340238891d97bea7795866b0ecc96d54676/catalog2eeec6a5...559d.
 ScratchB registered9->latepolicyconflict->fullyrolledback9->validoneRCtx installs

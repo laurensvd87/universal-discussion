@@ -2,8 +2,9 @@
 
 Date: 2026-10-27
 
-Status: Source implementation in progress. The operator source is reviewed;
-database/dashboard and backup integration are being verified. No live cutover.
+Status: Source implemented and independently reviewed. Actual isolated017 SQL,
+runtime package/preflight and production encrypted backup authentication pass.
+Real-data restore, combined application/load checks and live cutover remain open.
 
 The live runtime uses registered schema9, an older sealed source tree, a
 standalone ingestion worker and a crawler with saved progress. The tested

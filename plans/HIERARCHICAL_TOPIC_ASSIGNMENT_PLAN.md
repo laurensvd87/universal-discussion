@@ -1,5 +1,13 @@
 # Hierarchical topic assignment and discussion plan
 
+Current integration checkpoint (27 October): schema17's protected dashboard
+aggregates and owner-cut refreshes pass real isolated PostgreSQL tests. The
+runtime package, including fixed encoder assets, is prepared and verified.
+An encrypted backup of the live55,954-Source snapshot is authenticated; full
+restored-data verification is next, before application/load checks and cutover.
+The live services remain on9. This does not extend the model's fine-topic
+coverage or establish full-app latency. See `STATUS.md` for current evidence.
+
 Latest verification (27 October): real PostgreSQL now passes the cross-page AI
 publication protocol, including exact replay, stale evidence and expiry races
 (`c89ca1a2`,25 aggregate ledger points). Chrome passes13 cases with simulated AI
