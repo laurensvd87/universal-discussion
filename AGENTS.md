@@ -8,6 +8,26 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+CURRENT27Oct native015 ONEactual160da940/session9319 CLOSEDexit0/25orderedPASS.
+Run38cb27a37c0d4226eeda019a08e1f8f5729fbb202a2ecb1f; parent862B67dd9c2a...fbc1/
+stdout4767Beaabd949...9af1/stderr0/child5383B24f5d917...bc4c. Actualclient->handler
+->appSQL root/offpage witnessedreply; staleRoot/Target/wrongnode/topic/withdraw/
+erase rejection, exactreplay/changedwitnessconflict andactor-separatedheldedit
+Lockwait/MVCC/countersPASS. Same3outer8/8/6, NOT25qualityorloadcases. PG15432 own
+smartstop/OIDs16384+17416dropped/pending0; parentnormal/noemergency/emptyJob/EOF/
+handles/endpins. Independent13172Bauditdbd234890f16295017e32af848e780b7c911d95e8e722a39d43f13542b6a955a
+authenticated+FULLread. Catalog2397/274213028B366486Bd48ab3f5...701c/Git63exact;
+87JS/271literalrefs/no gaps. Historicalbase2335same+3ordinaryshared evolutions
+(readFacade/persistedState/runtimeRepo); oldruns/frozencontrollerunchanged.
+43d2e19a composer/uncertaintyUI, f9e41a15 capability+Sourcepolicy+noOldScan routing,
+51dec3db nativeSOURCE and52e0cccc actualpopupworkspace integration allpushed.
+Root328purePASS1477ms plus2legacyretryregressions125PASS655ms; UIindependent254
+PASS1566ms/Rootpackage+panel+workspace31PASS132ms. ActualChromeQA runnerSOURCE WIP,
+NOChrome/provider/manyuser/live claim. 10-15UNREGISTERED/live9/originalcrawler4060
+advances4329/stderr0/servicespreserved. NEXT actualChromeQA, crossSourceAI protocol,
+productionmigration/healthprofile/operatorseal/head/backfill/adoption/dashboard,
+manyuser+crawlerlatency/livecutover. GoalACTIVE; no newpermissionquestion/blocker.
+
 CURRENT27Oct dc891e20 startup opt-incommitted/pushed: semanticAPI/nolegacyRidge
 index, fixedinstalledembeddedruntime, healthinsideTRY/allcleanupattempted with
 firstfalsyerrorpreserved/exactsameshutdownpromise. Independent29purePASS195.97ms,

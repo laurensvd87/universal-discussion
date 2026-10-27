@@ -20,17 +20,24 @@ installed head/role/topology before allocating its shared encoder. It suppresses
 the old optional Ridge index and drains resources on failure. This is opt-in;
 the live operator has not switched.
 
-The optional reply witness is committed (`2bc40611`): the database validates the
-displayed root/target body revisions and historical semantic membership under
-the original write locks, preserving exact receipt replay. Source review, syntax
-and adapter tests pass; its actual SQL race/replay tests are being added. The
-browser's independent semantic reply controller has passed independent source
-review and its guarded regressions, including account/document changes and lost
-confirmation handling. It preserves the foreground page independently from the
-selected thread and never automatically retries an uncertain append.
-Its popup/composer and deliberate uncertain-write recovery UI still need wiring.
-The panel still needs mounting in the real extension; cross-page AI replies need
-their own server protocol. Then come actual browser,
+The optional reply witness (`2bc40611`) has now passed an actual isolated
+PostgreSQL run (`160da940`, session9319). Root/target edits, a held edit racing a
+reply, withdrawn targets, erased semantic memberships, exact receipt replay and
+changed-witness replay refusal all passed. The run retained the original25 ordered
+aggregate points and used two fresh owned databases. Its independently checked
+saved evidence is in `data/semantic-reply-native-actual-audit-20261027.json`
+(SHA256 `dbd234890f16295017e32af848e780b7c911d95e8e722a39d43f13542b6a955a`).
+It proves these SQL contracts, not many-user load or browser latency.
+
+The semantic reply controller, composer and explicit uncertain-write recovery are
+committed (`9b883e5d`, `43d2e19a`). Popup integration (`52e0cccc`) now mounts global
+Search Topics independently of the page and a separate page-topic feed. It keeps
+the foreground page independent from selected threads. Optional metadata failures
+retain saved canonical discussions, and genuine old-backend absence selects the
+legacy interface. New routing (`f9e41a15`) also suppresses old global Ridge/related
+work, including late responses and retry paths. Pure tests and source reviews pass;
+actual Chrome validation is next. Cross-page AI replies still need their own
+server protocol. Then come actual browser,
 simultaneous-user and crawler tests, followed by migration and live cutover. The
 remaining work is substantial integration, rather than matcher research alone.
 
