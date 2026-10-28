@@ -412,7 +412,13 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
     }
     const flights = method === "urlSelection" ? urlFlights :
       ["enrichment", "related"].includes(method) ? optionalFlights : publicFlights;
-    return flights(method, { input, expected }, admitted => performPublicRead(method, admitted.input), guards);
+    const value=await flights(method, { input, expected }, admitted => performPublicRead(method, admitted.input), guards);
+    if(semanticDiscussions&&method==='semanticContext'&&value?.status==='pending'&&requestSemanticPreparation)try{
+      // Both the HTTP coherent-read route and direct callers pass here. The
+      // original RR read is complete; urgency never delays the response.
+      Promise.resolve(requestSemanticPreparation({generation:value.version.generation,sourceId:input.sourceId})).catch(()=>{});
+    }catch{/* Optional urgency cannot make a saved discussion unavailable. */}
+    return value;
   }
 
   async function performPublicRead(method, input) {
@@ -527,15 +533,7 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
       semanticThread: input => readPublic("semanticThread", input),
       semanticTarget: input => readPublic("semanticTarget", input),
       semanticTopics: input => readPublic("semanticTopics", input),
-      async semanticContext(input) {
-        const value=await readPublic("semanticContext", input);
-        if(value?.status==='pending'&&requestSemanticPreparation)try{
-          // The original RR read is complete. Optional bounded SQL neither
-          // changes its snapshot nor delays returning saved discussions.
-          Promise.resolve(requestSemanticPreparation({generation:value.version.generation,sourceId:input.sourceId})).catch(()=>{});
-        }catch{/* An urgency hint cannot make a saved discussion unavailable. */}
-        return value;
-      },
+      semanticContext: input => readPublic("semanticContext", input),
     } : {}),
     ...(typeof reads.discover === "function" ? {
       discover: Object.freeze({ search: (input) => reads.discover(input) }),

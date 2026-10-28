@@ -262,6 +262,7 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/src/application/stored-hierarchy-coordinator.js',
     'apps/local-service/src/application/stored-source-preparation-requests.js',
     'apps/local-service/test/stored-source-preparation-requests.test.js',
+    'apps/local-service/test/semantic-preparation-http.test.js',
     'apps/local-service/test/stored-hierarchy-coordinator.test.js',
     'spikes/topic-resolution/test/semantic-topic-workspace.test.js',
     'apps/local-service/src/application/topic-space-discovery.js',

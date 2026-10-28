@@ -1,5 +1,37 @@
 # Implementation handoff: local-service discussion MVP
 
+Current29Oct LIVE schema17 at release7ea0ce5b9815d222973f2edd1fed7773f7cc051b2970338134b825f613a84ab9.
+Original crawler4060/worker36616/API19868/dashboard6644 each exact-handle graceful
+exit130; no force kill. Exact25 staged reconciliation:24 absent/1complete/live0,
+no discard/reset. Fresh encrypted PostgreSQL plus local39-slot pair VERIFIED;
+19 present files/1141009125B, actual Windows holder acquire/verify/retire passed.
+First backup refused trailing DATA separator; causal test failed then passed
+after path.resolve fix (9cf6d763). All failed artifacts and seals retained.
+In-place owner install defaultDepth1/GamesDepth3 passed. Before/after exact18
+canonical table counts, runtime/server identity and7 original sequence values
+unchanged:58971 Sources/99 contributions before writers restarted. This live
+check is counts/sequence equality, not per-row fingerprints; earlier private
+upgrade supplied full original18-table fingerprints. No archive restore claim.
+New API20540/worker34788/dashboard33592/crawler6384 started from that release;
+crawler advanced24 retained stages and new ingestions, worker timings~70ms.
+Real normal-provider AI reply PASS under crawling:1start/1stored reply/German
+markers/short answer/own-root withdrawal/own-session logout; proof hierarchy-
+live-ai-reply-20261029.json. Held cross-restart identity probe FAILED before
+readiness verification; no successful old-session continuity claim.
+Actual32 paired reads/concurrency8 passed (P50~15ms/P95~220ms), but all3 example
+Sources stayed pending. Read-only diagnosis: material valid, background4940
+observations, hints0. Causal real-handler test proves HTTP uses service.readPublic
+and bypassed exported semanticContext urgency hook. Fix now moves the hook AFTER
+readPublic flights, preserving nonblocking behavior and direct single issuance;
+62 guarded tests passed incl3 new HTTP tests. API-only hotfix release target
+hierarchy-release-20261029-http-priority; NOT deployed yet. Keep crawler/worker/
+dashboard running; next prepare/seal, orderly exact API restart only, then repeat
+actual priority/page latency and session continuity checks. SQL unchanged.
+Goal ACTIVE: validate hotfix, real UI/load/adoption as applicable, broader fine
+head quality and remaining product gaps; no population-quality/capacity claim.
+
+Earlier28Oct pre-cutover checkpoint (historical):
+
 Current28Oct: full private product run437269... accepted at42a0186b, including
 all25 upgrade assertions,18 preserved canonical tables,7 sequences,35 phases,
 actual Chrome4/history320px,HTTP16 and real E5 queue2. Original legacy Source
