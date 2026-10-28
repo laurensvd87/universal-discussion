@@ -53,6 +53,17 @@ test('otherwise prepared source-anchored manual routes and manual topics never i
  const one=row(1),two=row(2);one.source_link_method='manual-confirmed';two.topic_kind='manual';
  const f=fixture({rows:[one,two]}),result=await f.owner.adoptLegacyRoots(request());assert.equal(result.counts.manual,2);assert.equal(result.adopted,0);assert.equal(f.calls.some(c=>c.sql.includes('semantic_adopt_legacy_roots')),false);assert.deepEqual(f.canonical,f.original);assert.ok(f.rows.every(r=>r.existing_snapshot===false));
 });
+
+test('unprepared roots with inconsistent Source mirrors are invalid material before pending selection',async()=>{
+ const bad=row(1),good=row(2);bad.observed_source=null;good.observed_source=null;
+ const payload=JSON.parse(bad.candidate.sourcePayload);payload.embedding.values[1]=1e-10;
+ bad.candidate.sourcePayload=JSON.stringify(payload);
+ const f=fixture({rows:[bad,good]}),result=await f.owner.inspectLegacyRoots(request());
+ assert.deepEqual(result.rows.map(r=>r.status),['invalid-material','pending']);
+ assert.equal(result.counts['invalid-material'],1);assert.equal(result.counts.pending,1);
+ assert.equal(result.adopted,0);assert.equal(f.calls.some(c=>c.sql.includes('semantic_adopt_legacy_roots')),false);
+ assert.deepEqual(f.canonical,f.original);assert.equal(f.rows[0].candidate.sourcePayload,bad.candidate.sourcePayload);
+});
 test('partial keyset pages carry fixed high watermark and never advance past unscanned roots',async()=>{
  const f=fixture({rows:[row(1),row(2),row(3)]}),a={...request(),limit:2};const first=await f.owner.inspectLegacyRoots(a);assert.equal(first.nextCursor,'2');assert.equal(first.scope.initialHighWatermark,'3');assert.equal(first.complete,false);
  f.rows.push(row(4));const second=await f.owner.inspectLegacyRoots({...a,cursor:first.nextCursor,initialHighWatermark:first.scope.initialHighWatermark});assert.deepEqual(second.rows.map(r=>r.rootId),['root-3']);assert.equal(second.complete,true);assert.equal(second.nextCursor,null);

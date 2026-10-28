@@ -72,10 +72,13 @@ function inspectRow(row){
  if(row.learned_origin!==true||!row.origin_source_id||row.topic_kind==='manual'||row.source_link_method==='manual-confirmed')return {status:'manual'};
  if(row.anchor_kind!=='source'||row.anchor_source_id!==row.origin_source_id||!row.anchor_stamp)return {status:'unpinned'};
  if(row.original_topic!==row.topic_id||row.anchor_stamp!==row.current_stamp)return {status:'stale-anchor'};
- if(row.observed_source===null)return {status:'pending'};
- if(row.semantic_eligible!==true||row.postable!==true)return {status:'excluded'};
- if(!Array.isArray(row.supported_path)||!row.supported_path.length)return {status:'abstained'};
- try{const candidate=row.candidate;if(!candidate)invalid();const checked=verifyStoredSourceCandidate({...candidate,embedding:{...candidate.embedding,values:decodeEmbeddingBase64Array(candidate.embedding.valuesBase64)}});if(!checked.semanticEligible)invalid();
+ if(row.postable!==true)return {status:'excluded'};
+ try{const candidate=row.candidate;if(!candidate)invalid();const checked=verifyStoredSourceCandidate({...candidate,embedding:{...candidate.embedding,values:decodeEmbeddingBase64Array(candidate.embedding.valuesBase64)}});if(!checked.semanticEligible)return {status:'excluded'};
+  // Pending means preparation can consume this exact material. A missing
+  // observation must not bypass the same mirror checks used for adoption.
+  if(row.observed_source===null)return {status:'pending'};
+  if(row.semantic_eligible!==true||row.postable!==true)return {status:'excluded'};
+  if(!Array.isArray(row.supported_path)||!row.supported_path.length)return {status:'abstained'};
   return {status:'eligible',item:{generation:checked.generation,matcherIdentityHash:checked.matcherIdentityHash,sourceId:checked.sourceId,sourceVersion:checked.sourceVersion,operationId:checked.operationId,operationDigest:checked.operationDigest,requestMaterial:checked.requestMaterial,sourceStamp:checked.sourceStamp,bodyWireHash:checked.bodyWireHash,rootId:row.id,rootVersion:row.root_version,topicId:row.topic_id,discussionId:row.discussion_id}};
  }catch{return {status:'invalid-material'};}
 }
