@@ -45,8 +45,13 @@ export function verifyStoredSourceCandidate(value){
   const ep=json(e.payload),sp=json(a.sourcePayload);
   if(ep.modelId!==e.modelId)invalid();equalVector(body,vector(ep.values));
   if(sp.id!==a.sourceId||sp.url!==a.url||sp.title!==a.title||sp.provenance!==a.provenance||sp.extractorVersion!==a.extractorVersion||
-   sp.policyVersion!==a.policyVersion||sp.operationId!==a.operationId||!sp.embedding||sp.embedding.modelId!==e.modelId)invalid();
-  equalVector(body,vector(sp.embedding.values));
+   sp.policyVersion!==a.policyVersion||sp.operationId!==a.operationId)invalid();
+  // Normalized imports deliberately store embeddings in their own table.
+  // If a later writer includes a duplicate, it must match the verified wire.
+  if(Object.hasOwn(sp,'embedding')){
+   const duplicate=record(sp.embedding,['modelId','values']);if(duplicate.modelId!==e.modelId)invalid();
+   equalVector(body,vector(duplicate.values));
+  }
   const receipt=record(a.receipt,['sourceId','operationId','operationDigest']),stamp=record(a.stamp,['sourceId','stamp','postable']);
   if(receipt.sourceId!==a.sourceId||receipt.operationId!==a.operationId||stamp.sourceId!==a.sourceId||typeof stamp.postable!=='boolean')invalid();
   const input={url:a.url,title:a.title,embedding:{modelId:e.modelId,values:body},extractorVersion:a.extractorVersion};

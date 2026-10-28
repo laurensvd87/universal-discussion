@@ -40,6 +40,25 @@ test('verified imported version zero reconstructs exact title-inclusive material
  value.embedding.values[0]=0;assert.equal(verified.bodyValues[0],1);
 });
 
+test('normalized imported Source payloads use the separate verified embedding without adding a duplicate',async()=>{
+ const full=candidate(),value=candidate(),payload=JSON.parse(value.sourcePayload);delete payload.embedding;
+ value.sourcePayload=JSON.stringify(payload);const original=value.sourcePayload;
+ assert.deepEqual(verifyStoredSourceCandidate(value),verifyStoredSourceCandidate(full));
+ const prep=createStoredSourceHierarchyPreparation({matcher,embedTitle:async()=>({modelId,values:axis(0)})});
+ assert.deepEqual((await prep.prepare(value)).supportedPath,['games']);assert.equal(value.sourcePayload,original);await prep.close();
+ for(const change of [v=>{v.embedding.payload=JSON.stringify({modelId,values:axis(1)});},
+  v=>{v.receipt.operationDigest='e'.repeat(64);},v=>{v.stamp.stamp='e'.repeat(64);},v=>{v.embedding.valuesBase64=wire(axis(1));}]){
+  const bad=structuredClone(value);change(bad);assert.throws(()=>verifyStoredSourceCandidate(bad),TypeError);
+ }
+});
+
+test('present duplicate Source embeddings must remain complete and match exact canonical values',()=>{
+ for(const embedding of [null,{}, {modelId}, {modelId,values:axis(1)}]){
+  const value=candidate(),payload=JSON.parse(value.sourcePayload);payload.embedding=embedding;
+  value.sourcePayload=JSON.stringify(payload);assert.throws(()=>verifyStoredSourceCandidate(value),TypeError);
+ }
+});
+
 test('typed/payload/vector/receipt/stamp disagreement fails before any title encoder call',async()=>{
  let calls=0;const prep=createStoredSourceHierarchyPreparation({matcher,embedTitle:async()=>{calls++;return {modelId,values:axis(0)};}});
  for(const change of [v=>{v.title='Another title';},v=>{v.receipt.operationDigest='d'.repeat(64);},v=>{v.stamp.stamp='d'.repeat(64);},

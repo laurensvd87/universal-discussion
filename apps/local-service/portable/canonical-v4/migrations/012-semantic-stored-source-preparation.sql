@@ -117,7 +117,10 @@ BEGIN
       sp->>'id' IS DISTINCT FROM s.id OR sp->>'url' IS DISTINCT FROM s.url OR sp->>'title' IS DISTINCT FROM s.title OR
       sp->>'provenance' IS DISTINCT FROM s.provenance OR sp->>'extractorVersion' IS DISTINCT FROM s.extractor_version OR
       sp->>'policyVersion' IS DISTINCT FROM s.policy_version OR sp->>'operationId' IS DISTINCT FROM s.operation_id OR
-      sp->>'operationDigest' IS DISTINCT FROM r.operation_digest OR sp->'embedding' IS DISTINCT FROM ep OR
+      sp->>'operationDigest' IS DISTINCT FROM r.operation_digest OR
+      -- Normalized imports omit the duplicate; the separate typed embedding,
+      -- payload, binary wire, receipt and stamp are still checked below.
+      (sp ? 'embedding' AND sp->'embedding' IS DISTINCT FROM ep) OR
       ep->>'modelId' IS DISTINCT FROM e.model_id OR jsonb_typeof(ep->'values') IS DISTINCT FROM 'array' THEN
     RAISE EXCEPTION 'Stored Source mirrors disagree' USING ERRCODE='P1234';END IF;
   IF (SELECT count(*) FROM jsonb_object_keys(ep))<>2 OR jsonb_array_length(ep->'values')<>384 OR

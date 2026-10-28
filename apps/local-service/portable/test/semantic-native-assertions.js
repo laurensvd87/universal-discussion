@@ -150,6 +150,8 @@ export async function runSemanticAssertions(test,{acquireFixture}){
   const operationDigest=digest(input),stamp=sourceStamp(input),policyVersion='ridge1-fixed-reference-radius/v1';
   const topicIds=legacyMulti?[MANUAL_TOPIC,originalDestination.topicId].sort():[MANUAL_TOPIC],method=legacyMulti?'learned-provisional':'manual-confirmed';
   const payload={id:sourceId,...input,provenance:'owner-local-page-embedding/v1',operationId,operationDigest,policyVersion,topicIds};
+  // The normalized importer deliberately separates the embedding payload.
+  if(!legacyMulti)delete payload.embedding;
   await owner.transaction(async tx=>{
    await tx.query("INSERT INTO canonical_v4.id_registry(id,kind) VALUES($1,'sources')",[sourceId]);
    // Deliberately OMIT write_version: this exercises canonical import DEFAULT0,
@@ -674,6 +676,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     const imported=await importVersionZero(),zeroBefore=await canonicalState();
     const zeroCandidate=(await workerSources.candidates({...scope,afterOrdinal:null,limit:50})).candidates.find(c=>c.sourceId===imported.sourceId);
     assert.ok(zeroCandidate);assert.equal(zeroCandidate.sourceVersion,'0');assert.equal(zeroCandidate.reuse,null);assert.deepEqual(zeroCandidate.embedding.values,imported.values);
+    assert.equal(Object.hasOwn(JSON.parse(zeroCandidate.sourcePayload),'embedding'),false);
     const zero=await storedPreparation.prepare(zeroCandidate);assert.ok(zero);assert.equal(zero.sourceVersion,'0');assert.equal(storedEncoderCalls,1);
     assert.deepEqual(await workerSources.reclassify({...scope,items:[zero]}),[{sourceId:imported.sourceId,sourceVersion:'0',status:'recorded'}]);
     assert.deepEqual(await canonicalState(),zeroBefore);assert.equal((await sourceState(owner,imported.sourceId)).write_version,'0');
