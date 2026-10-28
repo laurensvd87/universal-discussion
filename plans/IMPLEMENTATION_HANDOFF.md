@@ -1,5 +1,45 @@
 # Implementation handoff: local-service discussion MVP
 
+Current28Oct: full private product run437269... accepted at42a0186b, including
+all25 upgrade assertions,18 preserved canonical tables,7 sequences,35 phases,
+actual Chrome4/history320px,HTTP16 and real E5 queue2. Original legacy Source
+preparation/reclassification passed but abstained: no adoption/readback claimed.
+Root audit data/hierarchy-private-product-completed-root-audit-20261028.json
+SHA0fd6af95a656885e5052a8d02184eb1790e1c2643c18811f682987d93160df68.
+Normalized imports deliberately omit duplicate embeddings from Source payloads.
+JS and SQL012/013 now support that format while preserving typed embedding,
+binary wire, receipt, stamp and present-duplicate checks. Actual native25 passed
+run518588... atfc8bb18b; audit data/hierarchy-normalized-context-native-completed-
+audit-20261028.json SHA0ce3b300b34acfd5c3fcd54113034188516e6217f816a67a8d2a65d1f4b525e1.
+Live recipe AI reply passed using normal local auth/provider/publication and
+own-thread/session cleanup; evidence paired-recipe-parser-fix-live-ai-actual-
+20261027.json. Parser unused-attribute and confirmed403/404 client bugs fixed.
+
+Cutover NOT performed. Original API19868/worker36616/dashboard6644/crawler4060
+remain running; no signal sent. Identity-fenced Ctrl+C helper probes passed;
+expected130 drain, original-process absence and fake retirement tests implemented.
+Sourceaab1e6f2 pushed. Candidate hierarchy-release-20261027 sealed1201files/
+163155568B/rootcce16c9f09d24dc8afb4faac00adb760a15df81775e7ce4339b3b17092204eba;
+preflight passed. Quiesced PG/local37-slot backup producer implemented/pure-tested,
+and actual production guard refused while services run. No fresh backup pair yet.
+Temporary account continuity session was verified and logged out on OLD API only;
+no cross-restart continuity claim. All prior run outputs/seals remain immutable.
+
+Next critical work before live cutover: foreground stored-Source priority and
+automatic pending-context retry. Current worker only scans ordinal background
+batches; workspace only retries on catalog changes/manual refresh, so a saved
+page can wait behind the scan. Implement bounded shared Source hints, worker
+priority without moving the background cursor, and revocable bounded UI polling.
+Then validate actual SQL/browser behavior and prepare a NEW release namespace;
+do not edit sealed20261027 in place. Only afterwards orderly drain, fresh paired
+backup, in-place installation, startup and actual UI/AI/crawler/load validation.
+Broad16 roots/GTA detail are installed-source candidates; Koalas/Recipes fine
+heads remain unsupported. Owner depth1 with per-Games depth3 remains planned.
+Independent agents hit usage limits; latest reviews/tests/audits are Root-only,
+explicitly not independent or population-quality/production-capacity evidence.
+
+Earlier27Oct checkpoint (historical):
+
 Current27Oct real-model composition accepted (70183, cf4b6a82 pushed). The actual
 schema9→17 restore preserved all18 legacy table fingerprints and seven ordinal
 sequences before fixture writes; all25 upgrade assertions,35 lifecycle phases,
