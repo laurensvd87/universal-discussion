@@ -51,6 +51,15 @@ class WindowsConsole:
         require(handle)
         return handle
 
+    def absent(self, pid):
+        ctypes.set_last_error(0)
+        handle = self.k.OpenProcess(0x100000 | 0x1000, False, pid)
+        if handle:
+            self.close(handle)
+            return False
+        require(ctypes.get_last_error() == 87)  # Access denied is not absence.
+        return True
+
     def identity(self, handle):
         times = [wintypes.FILETIME() for _ in range(4)]
         require(self.k.GetProcessTimes(handle, *[ctypes.byref(value) for value in times]))
@@ -107,7 +116,9 @@ def inspect_or_drain(role, mode, native, own_pid):
             native.interrupt()
             result['signalSent'] = True
             result['exitCode'] = native.wait(handle)
-            require(result['exitCode'] != 259)
+            # Both original entrypoints explicitly return130 after draining.
+            # Windows' default Ctrl+C termination code is not a graceful stop.
+            require(result['exitCode'] == 130)
             result['exited'] = True
         return result
     finally:
@@ -118,6 +129,15 @@ def inspect_or_drain(role, mode, native, own_pid):
 
 
 def main(args):
+    if args == ['absence', 'all']:
+        try:
+            native = WindowsConsole()
+            require(all(native.absent(pid) for pid, _created in ORIGINALS.values()))
+            print('{"originalProcessesAbsent":true,"signalSent":false}')
+            return 0
+        except Exception:
+            print('{"originalProcessesAbsent":false,"signalSent":false}')
+            return 1
     if len(args) != 2 or args[0] not in ('probe', 'drain') or args[1] not in ORIGINALS:
         return 2
     marker = None

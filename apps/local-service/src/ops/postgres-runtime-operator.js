@@ -51,6 +51,8 @@ const EXTERNAL_FILES = Object.freeze([
   // locations, never via loadSnapshot. Authentication does not start a backup.
   "apps/local-service/src/ops/local-state-backup-operator.js",
   "apps/local-service/src/ops/windows-local-state-read-lease.js",
+  "apps/local-service/src/ops/quiesced-state-backup.js",
+  "apps/local-service/src/ops/windows-console-drain.py",
   "apps/local-service/data/ridge1-topic-adapter-v1.json",
   "apps/local-service/data/diagonal-adapter-v1.json",
   "apps/local-service/data/body-topic-metric-v1.json",

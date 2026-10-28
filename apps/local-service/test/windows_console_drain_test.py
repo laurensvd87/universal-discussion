@@ -2,6 +2,9 @@
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest.mock import patch
+from contextlib import redirect_stdout
+from io import StringIO
 
 p = Path(__file__).resolve().parents[1] / 'src/ops/windows-console-drain.py'
 spec = importlib.util.spec_from_file_location('drain', p)
@@ -38,6 +41,18 @@ class Fake:
 
 
 class Tests(unittest.TestCase):
+    def test_absence_mode_never_attaches_or_signals_and_fails_closed(self):
+        for present in (None, 19868):
+            calls = []
+            class AbsenceOnly:
+                def absent(self, pid):
+                    calls.append(pid)
+                    return pid != present
+            with patch.object(d, 'WindowsConsole', return_value=AbsenceOnly()), redirect_stdout(StringIO()):
+                self.assertEqual(d.main(['absence', 'all']), 0 if present is None else 1)
+            self.assertIn(4060, calls)
+            self.assertLessEqual(len(calls), 4)
+
     def test_probe_sends_nothing_and_closes_original_handle(self):
         f = Fake()
         r = d.inspect_or_drain('crawler', 'probe', f, 100)
@@ -79,6 +94,12 @@ class Tests(unittest.TestCase):
         f.identity = lambda _handle: next(identities)
         with self.assertRaises(RuntimeError): d.inspect_or_drain('crawler', 'drain', f, 100)
         self.assertNotIn('interrupt', f.events)
+
+    def test_default_windows_control_termination_is_not_a_graceful_exit(self):
+        f = Fake()
+        f.wait = lambda _handle: 0xC000013A
+        with self.assertRaises(RuntimeError): d.inspect_or_drain('crawler', 'drain', f, 100)
+        self.assertEqual(f.events.count('interrupt'), 1)
 
 
 if __name__ == '__main__': unittest.main()
