@@ -616,7 +616,7 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     assert.deepEqual(await evaluate(`(()=>{const s=semanticQA.current.controller.currentState();return {text:s.draft.body,detached:s.draft.detached,staging:s.localRootDraftReady,
       submit:document.querySelector('#discussion-submit').disabled};})()`),{text:'Keep the original document draft',detached:true,staging:false,submit:true});
     await evaluate(`document.querySelector('#discussion-composer').requestSubmit()`);assert.equal(commands.length,5);cases.push('first-seen-replacement-document-detaches');
-    uiStep='final-guards';assert.equal(cases.length,17);assert.equal(await evaluate(`semanticQA.providerCalls`),2);assert.equal(exceptions.length,0);assert.deepEqual(failures,[]);assert.equal(protocolFailure,false);assert.deepEqual(pins(),startPins);
+    uiStep='final-guards';assert.equal(cases.length,18);assert.equal(await evaluate(`semanticQA.providerCalls`),2);assert.equal(exceptions.length,0);assert.deepEqual(failures,[]);assert.equal(protocolFailure,false);assert.deepEqual(pins(),startPins);
     outcome='passed';
   }catch(error){firstUiFailure={step:uiStep,...describeSemanticUiFailure(error)};fail('browser-smoke-incomplete');}
   finally{
