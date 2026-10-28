@@ -193,7 +193,7 @@ async function run(value,ports,testComposition,withModel=false,withBrowser=false
   try{const result=await original;a.checkDeadline();return result;}finally{pendingHttp.delete(original);}
  }
  async function closeBrowser(){if(!browserHandle)return;const ui=await browserHandle.close();browser={ui,ownerVerification:browser?.ownerVerification??null,
-  runtime:{chromeExecutableSha256:'480f275b63d1ea39113cbc8344ac395578acc25b432bd39af5fbc77005179aca',installedDllsPinned:false}};cleanup.browserClosed=true;}
+  runtime:{chromeExecutableSha256:'177e4939361ccac7b37bb68b0642dff418856d7792c89ccde70d9aabeb14b159',installedDllsPinned:false}};cleanup.browserClosed=true;}
  try{
   stage='setup-storage';const storage=await ports.prepareStorage(a);a.checkDeadline();
   if(withBrowser){stage='original-root-high-watermark';const result=await a.ownerDatabase.query('SELECT max(ordinal)::text AS original_root_high_watermark FROM canonical_v4.contributions WHERE root_id IS NULL');a.checkDeadline();

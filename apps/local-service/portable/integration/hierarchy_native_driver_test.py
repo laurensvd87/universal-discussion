@@ -1083,7 +1083,7 @@ class MaintainedDriverTest(unittest.TestCase):
             'failure':None,'elapsedMs':100,'transportFailure':None,
             'history':{**dict.fromkeys(('verified','anonymous','originalIdsRead','readOnly','noSourceLinks','flatReplies','layoutWithinBounds'),True),
                 'viewportWidth':320,'directoryPages':1,'messagePages':1,'directoryPaginationObserved':False,'messagePaginationObserved':False}},'ownerVerification':{'roots':1,'replies':1,'manualSnapshots':0},
-            'runtime':{'chromeExecutableSha256':'480f275b63d1ea39113cbc8344ac395578acc25b432bd39af5fbc77005179aca','installedDllsPinned':False}}
+            'runtime':{'chromeExecutableSha256':'177e4939361ccac7b37bb68b0642dff418856d7792c89ccde70d9aabeb14b159','installedDllsPinned':False}}
 
     def legacy_proof(self):
         return {'schema':'private-original-legacy-adoption-proof/v1','status':'passed','reason':None,'failure':None,
@@ -1130,8 +1130,8 @@ class MaintainedDriverTest(unittest.TestCase):
         self.assertEqual(seen,['"'+D.NODE+'" --max-old-space-size=512 "'+str(D.REPO/D.HTTP_ENTRY)+'" --with-product'])
 
     def test_product_input_seventeen_holds_fixed_chrome_executable_without_claiming_its_dll_tree(self):
-        self.assertEqual(D.BROWSER_INPUTS,((Path('C:/Program Files/Google/Chrome/Application/chrome.exe'),4522648,
-            '480f275b63d1ea39113cbc8344ac395578acc25b432bd39af5fbc77005179aca'),))
+        self.assertEqual(D.BROWSER_INPUTS,((Path('C:/Program Files/Google/Chrome/Application/chrome.exe'),4525720,
+            '177e4939361ccac7b37bb68b0642dff418856d7792c89ccde70d9aabeb14b159'),))
         with self.assertRaises(self.I.Refusal):D.PrivateInputs(self.I,model=False,product=True)
         with self.assertRaises(self.I.Refusal):D.PrivateInputs(self.I,model=True,product=1)
         def check(run):

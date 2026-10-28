@@ -54,8 +54,8 @@ MODEL_INPUTS = (
 # The fixed executable is held through parent end-pins. Its installed DLL and
 # resource tree remains the trusted local Chrome installation, not a cataloged
 # or fully pinned runtime. No claim of complete Chrome binary closure follows.
-BROWSER_INPUTS = ((Path('C:/Program Files/Google/Chrome/Application/chrome.exe'),4522648,
-    '480f275b63d1ea39113cbc8344ac395578acc25b432bd39af5fbc77005179aca'),)
+BROWSER_INPUTS = ((Path('C:/Program Files/Google/Chrome/Application/chrome.exe'),4525720,
+    '177e4939361ccac7b37bb68b0642dff418856d7792c89ccde70d9aabeb14b159'),)
 RESTORED_TABLES = ('schema_migrations','meta','id_registry','topics','discussions','sources',
     'embeddings','source_links','topic_memberships','fixed_references','contributions',
     'revisions','operation_receipts','import_ledger','runtime_state','command_receipts',
@@ -844,7 +844,7 @@ def checked_browser_proof(I,value):
     I.require(shape(value,'ui ownerVerification runtime'),'browser-proof-owner')
     runtime=value['runtime']
     I.require(shape(runtime,'chromeExecutableSha256 installedDllsPinned')
-        and runtime['chromeExecutableSha256']=='480f275b63d1ea39113cbc8344ac395578acc25b432bd39af5fbc77005179aca'
+        and runtime['chromeExecutableSha256']=='177e4939361ccac7b37bb68b0642dff418856d7792c89ccde70d9aabeb14b159'
         and runtime['installedDllsPinned'] is False,'browser-proof-runtime')
     owner=value['ownerVerification']
     I.require(shape(owner,'roots replies manualSnapshots') and type(owner['roots']) is int and owner['roots']==1
