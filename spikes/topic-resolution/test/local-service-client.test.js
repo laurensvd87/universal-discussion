@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createLocalServiceClient, LocalServiceClientError } from "../browser/core/local-service-client.js";
+import { createLocalServiceClient, LocalServiceClientError, isConfirmedCommandRejection } from "../browser/core/local-service-client.js";
 import { LocalServiceSessionProxyError } from "../browser/core/local-service-session.js";
 import { createRequestHandler } from "../../../apps/local-service/src/http/request-handler.js";
 import { demoService } from "../../../apps/local-service/test/helpers.js";
@@ -497,6 +497,27 @@ test("service errors are mapped once without retry or sensitive response echoes"
   let called = false;
   await assert.rejects(client(async () => { called = true; }, { getToken: async () => "invalid\r\nheader" }).health(), code("unauthorized"));
   assert.equal(called, false);
+});
+
+test("canonical command permission and missing-target rejections retain their confirmed codes", async () => {
+  for (const [status, expected] of [[403, "forbidden"], [404, "not-found"]]) {
+    let calls = 0;
+    const api = client(async () => { calls++; return json({ error: expected }, status); });
+    await assert.rejects(api.command(VERSION, { type: "withdraw", contributionId: "root" }, "demo-alex"), error => {
+      assert.equal(error.code, expected);
+      assert.equal(isConfirmedCommandRejection(error), true);
+      return true;
+    });
+    assert.equal(calls, 1);
+    for (const body of [JSON.stringify({ error: expected, private: TOKEN }), `{"error":"${expected}","error":"${expected}"}`, '{"error":"other"}', '{']) {
+      const opaque = client(async () => new Response(body, { status, headers: { "content-type": "application/json" } }));
+      await assert.rejects(opaque.command(VERSION, { type: "withdraw", contributionId: "root" }, "demo-alex"), error => {
+        assert.equal(error.code, "unavailable");
+        assert.equal(isConfirmedCommandRejection(error), false);
+        return true;
+      });
+    }
+  }
 });
 
 test("redirects, mismatched endpoints, content types, encodings and oversized bodies fail closed", async () => {

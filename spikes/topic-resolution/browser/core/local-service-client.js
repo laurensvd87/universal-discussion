@@ -135,7 +135,7 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
         }
         const code = { 400: "invalid-request", 401: "unauthorized", 409: "conflict", 413: "capacity" }[response.status] ?? "unavailable";
         if (confirmedRejection && !controller.signal.aborted) {
-          const error = new LocalServiceClientError(code);
+          const error = new LocalServiceClientError(commandRejection ?? code);
           if(missingCapabilities)missingSemanticCapabilities.add(error);
           else if(commandRejection)confirmedCommandRejections.add(error);
           else {confirmedIngestionRejections.add(error);
