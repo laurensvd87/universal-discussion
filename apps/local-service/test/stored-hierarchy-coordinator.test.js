@@ -11,15 +11,36 @@ function clock(){
   signal.addEventListener('abort',stop,{once:true});if(signal.aborted)stop();pending.push({ms,release:stop});event.resolve();
  }),async next(){while(!pending.length){await event.promise;event=defer();}return pending.shift();}};
 }
-function fixture({rows=[],prepare=async value=>({sourceId:value.sourceId}),reclassify=async()=>[{status:'recorded'}],readGeneration=async()=>GEN,candidates=null}={}){
+function fixture({rows=[],prepare=async value=>({sourceId:value.sourceId}),reclassify=async()=>[{status:'recorded'}],readGeneration=async()=>GEN,candidates=null,requested=null}={}){
  const calls=[],timing=clock();
  const resources={descriptor:{installed:{matcherIdentityHash:HASH}},prepareStoredSource:async value=>{calls.push(['prepare',value.ordinal]);return prepare(value);},
   storedSources:{candidates:async input=>{calls.push(['candidates',input]);return candidates?candidates(input):{generation:input.generation,matcherIdentityHash:HASH,candidates:rows};},
    reclassify:async input=>{calls.push(['reclassify',input]);return reclassify(input);}}};
+ if(requested)resources.storedSources.requested=async input=>{calls.push(['requested',input]);return requested(input);};
  const options={resources,readGeneration:async()=>{calls.push(['generation']);return readGeneration();}};
  return {calls,timing,resources,options,create:()=>createStoredHierarchyCoordinatorForTest(options,{wait:timing.wait})};
 }
 async function release(clock,ms){const value=await clock.next();assert.equal(value.ms,ms);value.release();}
+
+test('opened pages jump the scan without moving its keyset; eight urgent turns still permit background progress',async()=>{
+ let urgent=0,ordinary=0;
+ const f=fixture({requested:async input=>({ ...input,candidates:urgent++===0?[]:[row(9000+urgent)] }),
+  candidates:async input=>({...input,candidates:ordinary++===0?Array.from({length:10},(_,i)=>row(i)):[]})});
+ // Repository responses contain only the scope and candidates, not read args.
+ const read=f.resources.storedSources.candidates;f.resources.storedSources.candidates=async input=>{const p=await read(input);return {generation:p.generation,matcherIdentityHash:p.matcherIdentityHash,candidates:p.candidates};};
+ const c=f.create();c.start();for(let i=0;i<10;i++)await release(f.timing,5);await release(f.timing,250);
+ for(let i=0;i<8;i++)await release(f.timing,5);
+ const idle=await f.timing.next();assert.equal(idle.ms,2000);
+ assert.deepEqual(f.calls.filter(call=>call[0]==='candidates').map(call=>call[1].afterOrdinal),[null,'9']);
+ assert.equal(f.calls.filter(call=>call[0]==='requested').length,9);
+ assert.equal(c.describe().counters.recorded,18);assert.equal(c.describe().counters.batches,2);await c.close();
+});
+
+test('close drains an original priority read and fences its late preparation',async()=>{
+ const gate=defer(),entered=defer(),f=fixture({requested:async input=>{entered.resolve();await gate.promise;return {...input,candidates:[row(999)]};}}),c=f.create();
+ c.start();await entered.promise;let done=false;const closing=c.close().then(()=>{done=true;});await Promise.resolve();assert.equal(done,false);
+ gate.resolve();await closing;assert.equal(f.calls.some(call=>call[0]==='prepare'||call[0]==='candidates'),false);
+});
 
 test('construction is inert and a short sequential batch skips ineligible/invalid rows, then rewinds without exposing material',async()=>{
  const f=fixture({rows:[row(0),row(1),row(2)],prepare:async value=>{if(value.ordinal==='1')return null;if(value.ordinal==='2')throw new TypeError('Private validation failure');return {sourceId:value.sourceId};}});

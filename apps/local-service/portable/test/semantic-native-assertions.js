@@ -97,6 +97,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
  let ownerSemantic,workerSemantic,ownerFeeds,appFeeds,appRuntime,appLifecycle,appIngest,workerIngest,A,initial,excluded,serial=0,encoderCalls=0;
  let humanRoot,aiRoot,manualRoot,legacyRoot,originalSnapshots,originalDestination,defaultOwnerPolicy,reads,service,workerSources,ownerSources;
  let storedEncoderCalls=0;
+ let preparationHint=null;
  let ridgeDefinition=null;
  let erasedWitnessRequest=null;
  let semanticAiEvidence=null;
@@ -200,7 +201,8 @@ export async function runSemanticAssertions(test,{acquireFixture}){
    ownerSemantic=semantic(owner);workerSemantic=semantic(worker);appIngest=repo(app);workerIngest=repo(worker);
    ownerFeeds=createCanonicalV4SemanticDiscussionRepository({database:owner});appFeeds=createCanonicalV4SemanticDiscussionRepository({database:app});
    appRuntime=createCanonicalV4RuntimeRepository({database:app,nextId,now});appLifecycle=createCanonicalV4LifecycleRepository({database:app,nextId,now});
-   reads=createCanonicalV4ReadFacade({database:app});service=createPostgresCanonicalService({reads,runtime:appRuntime,lifecycle:appLifecycle,semanticDiscussions:true});
+   reads=createCanonicalV4ReadFacade({database:app});service=createPostgresCanonicalService({reads,runtime:appRuntime,lifecycle:appLifecycle,semanticDiscussions:true,
+    requestSemanticPreparation:value=>preparationHint?.(value)});
    workerSources=createCanonicalV4SemanticSourceRepository({database:worker});ownerSources=createCanonicalV4SemanticSourceRepository({database:owner});
    await t.test(GROUPS[0].children[0],async()=>{
     const c=await counts(owner);assert.equal(c.sources,0);assert.equal(c.inputs,0);assert.equal(c.observations,0);
@@ -641,7 +643,39 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     assert.equal(Number((await scalar(owner,'SELECT count(*) n FROM canonical_v4.semantic_root_snapshots WHERE root_id=$1',[legacyRoot])).n),0);
     const absent=await service.semanticFeed({nodeId:'invented-game-branch',limit:50,cursor:null});assert.equal(absent.roots.some(c=>c.root.id===legacyRoot),false);
     const scope={generation:fixture.generation,matcherIdentityHash:hash2};
+    const beforeHints=await canonicalState(),beforeHintStamp=await reads.semanticStamp();
+    const gate=deferred(),hintCalls=[];preparationHint=value=>{hintCalls.push(value);return gate.promise;};
+    try{assert.equal((await context(A.sourceId)).status,'pending');assert.deepEqual(hintCalls,[{generation:scope.generation,sourceId:A.sourceId}]);}
+    finally{preparationHint=null;gate.resolve();}
+    for(const database of [worker,submitter])await denied(database,'SELECT canonical_v4.semantic_request_source_preparation($1,$2)',[scope.generation,A.sourceId]);
+    for(const database of [app,submitter])await denied(database,'SELECT * FROM canonical_v4.semantic_take_source_preparation_request($1,$2)',[scope.generation,hash2]);
+    for(const database of [app,worker,submitter])await denied(database,'SELECT * FROM canonical_v4.semantic_preparation_requests');
+    const hint=async sourceId=>(await scalar(app,'SELECT canonical_v4.semantic_request_source_preparation($1,$2) requested',[scope.generation,sourceId])).requested;
+    assert.equal(await hint('unknown-semantic-source'),false);assert.equal(await hint(A.sourceId),true);assert.equal(await hint(A.sourceId),true);
+    assert.equal(Number((await scalar(owner,'SELECT count(*) n FROM canonical_v4.semantic_preparation_requests')).n),1);
+    const prioritized=await workerSources.requested(scope);assert.equal(prioritized.candidates.length,1);assert.equal(prioritized.candidates[0].sourceId,A.sourceId);
+    assert.deepEqual((await workerSources.requested(scope)).candidates,[]);
+    assert.deepEqual(await canonicalState(),beforeHints);assert.deepEqual(await reads.semanticStamp(),beforeHintStamp,'urgency cannot publish material or advance a watermark');
+    const boundsRollback=new Error('controlled urgency bounds rollback');
+    await assert.rejects(owner.transaction(async tx=>{
+     // Deliberately inconsistent payload copies cannot establish publication
+     // authority. They exercise only the finite urgency queue, then roll back.
+     await tx.query("INSERT INTO canonical_v4.id_registry SELECT 'invented-hint-cap-'||n,'sources' FROM generate_series(1,65) n");
+     await tx.query(`INSERT INTO canonical_v4.sources SELECT clone.* FROM canonical_v4.sources s CROSS JOIN generate_series(1,65) n
+      CROSS JOIN LATERAL jsonb_populate_record(NULL::canonical_v4.sources,to_jsonb(s)||jsonb_build_object('id','invented-hint-cap-'||n,'ordinal',8796093022208+n,'url','https://semantic.example.org/invented-hint-cap-'||n)) clone WHERE s.id=$1`,[A.sourceId]);
+     await tx.query(`INSERT INTO canonical_v4.embeddings SELECT clone.* FROM canonical_v4.embeddings e CROSS JOIN generate_series(1,65) n
+      CROSS JOIN LATERAL jsonb_populate_record(NULL::canonical_v4.embeddings,to_jsonb(e)||jsonb_build_object('source_id','invented-hint-cap-'||n)) clone WHERE e.source_id=$1`,[A.sourceId]);
+     await tx.query(`INSERT INTO canonical_v4.runtime_source_stamps SELECT clone.* FROM canonical_v4.runtime_source_stamps s CROSS JOIN generate_series(1,65) n
+      CROSS JOIN LATERAL jsonb_populate_record(NULL::canonical_v4.runtime_source_stamps,to_jsonb(s)||jsonb_build_object('source_id','invented-hint-cap-'||n)) clone WHERE s.source_id=$1`,[A.sourceId]);
+     for(let i=1;i<=65;i++)assert.equal((await scalar(tx,'SELECT canonical_v4.semantic_request_source_preparation($1,$2) requested',[scope.generation,'invented-hint-cap-'+i])).requested,i<=64);
+     assert.equal(Number((await scalar(tx,'SELECT count(*) n FROM canonical_v4.semantic_preparation_requests')).n),64);
+     await tx.query("UPDATE canonical_v4.semantic_preparation_requests SET requested_at=clock_timestamp()-interval '16 seconds'");
+     assert.equal((await scalar(tx,'SELECT canonical_v4.semantic_request_source_preparation($1,$2) requested',[scope.generation,'invented-hint-cap-65'])).requested,true);
+     assert.equal(Number((await scalar(tx,'SELECT count(*) n FROM canonical_v4.semantic_preparation_requests')).n),1);throw boundsRollback;
+    }),error=>error===boundsRollback);
+    assert.deepEqual(await canonicalState(),beforeHints);assert.deepEqual(await reads.semanticStamp(),beforeHintStamp);
     const candidates=await workerSources.candidates({...scope,afterOrdinal:null,limit:50}),candidate=candidates.candidates.find(c=>c.sourceId===A.sourceId);
+    assert.deepEqual(prioritized.candidates[0],candidate);
     assert.ok(candidate);assert.equal(candidate.reuse.matcherIdentityHash,hash1);assert.deepEqual(candidate.reuse.titleValues,axis(0));
     const prepared=await storedPreparation.prepare(candidate);assert.ok(prepared);assert.equal(storedEncoderCalls,0);assert.deepEqual(prepared.supportedPath,SUPPORTED_PATH);
     const unchanged=await canonicalState(),beforeStamp=await reads.semanticStamp();
@@ -653,6 +687,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     await assert.rejects(workerSources.reclassify({...scope,items:[{...prepared,sourceVersion:String(BigInt(prepared.sourceVersion)+1n)}]}),e=>e.code==='conflict');
     assert.deepEqual(await canonicalState(),unchanged);assert.deepEqual(await reads.semanticStamp(),beforeStamp);
     assert.deepEqual(await workerSources.reclassify({...scope,items:[prepared]}),[{sourceId:A.sourceId,sourceVersion:prepared.sourceVersion,status:'recorded'}]);
+    assert.equal(await hint(A.sourceId),false,'already classified material cannot accumulate new hints');
     assert.deepEqual(await canonicalState(),unchanged,'background reclassification changes no Source, receipt, queue, lane or canonical revision');
     const recordedStamp=await reads.semanticStamp();assert.notEqual(recordedStamp.revision,beforeStamp.revision);
     const reclassifiedContext=await context(A.sourceId);assert.equal(reclassifiedContext.status,'classified');assert.equal(reclassifiedContext.sourceVersion,prepared.sourceVersion);

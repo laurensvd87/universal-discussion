@@ -28,6 +28,18 @@ function candidate(sourceId='source-a',ordinal='0'){
 const request=items=>({generation:GEN,matcherIdentityHash:H,items});
 function port(respond){const calls=[];return {calls,repo:createCanonicalV4SemanticSourceRepository({database:{async query(sql,args){calls.push({sql,args});return respond(sql,args);}}})};}
 
+test('priority claims decode at most one current candidate through the same strict mirror boundary',async()=>{
+ const {repo,calls}=port(()=>({rows:[{candidate:candidate('opened-page','9000')}]}));
+ const out=await repo.requested({generation:GEN,matcherIdentityHash:H});
+ assert.equal(out.candidates[0].sourceId,'opened-page');assert.equal(out.candidates[0].ordinal,'9000');assert.ok(Object.isFrozen(out.candidates[0].embedding.values));
+ assert.deepEqual(calls[0].args,[GEN,H]);assert.match(calls[0].sql,/semantic_take_source_preparation_request/);
+ for(const rows of [[{candidate:candidate()},{candidate:candidate('other','1')}],[{candidate:{...candidate(),generation:'stale'}}],
+  [{candidate:{...candidate(),embedding:{...candidate().embedding,valuesBase64:'corrupt'}}}]]){
+  await assert.rejects(port(()=>({rows})).repo.requested({generation:GEN,matcherIdentityHash:H}),e=>e.code==='storage-corrupt');
+ }
+ assert.deepEqual((await port(()=>({rows:[]})).repo.requested({generation:GEN,matcherIdentityHash:H})).candidates,[]);
+});
+
 test('binary candidate/reuse mirrors preserve exact doubles, decimal counters and detached frozen outputs',async()=>{
  const row=candidate();const precise=axis(0);precise[1]=Number.MIN_VALUE;precise[2]=-0;row.embedding.valuesBase64=binary(precise).toString('base64');
  row.reuse={matcherIdentityHash:'b'.repeat(64),encoderHash:'c'.repeat(64),representationHash:'d'.repeat(64),operationDigest:row.receipt.operationDigest,

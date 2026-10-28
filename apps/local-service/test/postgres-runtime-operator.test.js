@@ -100,7 +100,7 @@ test('crawler keeps its existing state and token flow and selects17 before crawl
  f.modules.set(prefix+'src/crawler/packaged-e5.js',{createPackagedCrawlerEmbedder:value=>{embedRoot=value.assetRoot;return {};}});
  assert.equal(await f.operator.run(['crawler']),0);assert.deepEqual(options.args,['--apply','--token-stdin']);
  assert.match(stateFile.replaceAll('\\','/'),/\/apps\/local-service\/data\/topic-crawler\.sqlite$/u);
- assert.match(embedRoot.replaceAll('\\','/'),/\/data\/hierarchy-release-20261027\/spikes\/topic-resolution\/browser\/embedding\/\.assets$/u);
+ assert.match(embedRoot.replaceAll('\\','/'),/\/data\/hierarchy-release-20261028\/spikes\/topic-resolution\/browser\/embedding\/\.assets$/u);
  assert.deepEqual(f.calls.filter(c=>c[0]==='open').map(c=>c.slice(1)),[['murmingle_crawler_submitter',2,'murmingle-crawler']]);
  assert.equal(f.calls.filter(c=>c[0]==='close').length,1);
 });
@@ -171,7 +171,7 @@ test('sealed source layout covers actual startup imports, package scopes and fix
 });
 
 test('release namespace is new and both local-state backup data-root helpers are required external hashes only',async()=>{
- const layout=describePostgresRuntimePackaging();assert.equal(layout.snapshotLeaf,'hierarchy-release-20261027');assert.equal(layout.manifestFilename,'postgres-hierarchy-release-20261027-manifest.json');assert.ok(Object.isFrozen(layout.externalFiles));
+ const layout=describePostgresRuntimePackaging();assert.equal(layout.snapshotLeaf,'hierarchy-release-20261028');assert.equal(layout.manifestFilename,'postgres-hierarchy-release-20261028-manifest.json');assert.ok(Object.isFrozen(layout.externalFiles));
  const source=readFileSync(new URL('../src/ops/postgres-runtime-operator.js',import.meta.url),'utf8');
  for(const relative of ['apps/local-service/src/ops/local-state-backup-operator.js','apps/local-service/src/ops/windows-local-state-read-lease.js']){
   assert.equal(layout.externalFiles.filter(name=>name===relative).length,1);assert.equal(layout.requiredFiles.includes(relative),false);assert.equal(source.includes(`loadSnapshot("${relative}")`),false);

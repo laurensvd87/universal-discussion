@@ -83,6 +83,15 @@ function storage(error){if(error instanceof ServiceError)return error;
 export function createCanonicalV4SemanticSourceRepository({database}={}){
  if(!database||typeof database.query!=='function')invalid();
  return Object.freeze({
+  async requested(value){
+   const a=scope(value,[]);
+   try{const result=await database.query('SELECT * FROM canonical_v4.semantic_take_source_preparation_request($1,$2)',[a.generation,a.matcherIdentityHash]);
+    let rows;try{rows=list(result.rows,1);}catch{corrupt();}
+    const out=rows.map(raw=>{try{return candidate(record(raw,['candidate']).candidate,a);}catch{corrupt();}});
+    if(out.some(row=>row.bytes>L.bytes))corrupt();
+    return freeze({generation:a.generation,matcherIdentityHash:a.matcherIdentityHash,candidates:out.map(row=>row.value)});
+   }catch(error){throw storage(error);}
+  },
   async candidates(value){
    const a=scope(value,['afterOrdinal','limit']);if(a.afterOrdinal!==null)counter(a.afterOrdinal);
    if(!Number.isInteger(a.limit)||a.limit<1||a.limit>L.batch)invalid();

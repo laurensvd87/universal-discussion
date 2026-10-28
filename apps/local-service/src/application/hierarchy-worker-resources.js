@@ -134,7 +134,7 @@ async function openResources(options,dependencies,productionBinding){
    },
    health:()=>sqlCall(()=>ingest.health()),
    prepareStoredSource:value=>prepare(storedPrep,value),
-   storedSources:Object.freeze({candidates:value=>sqlCall(()=>stored.candidates(value)),reclassify:value=>sqlCall(()=>stored.reclassify(value))}),
+   storedSources:Object.freeze({requested:value=>sqlCall(()=>stored.requested(value)),candidates:value=>sqlCall(()=>stored.candidates(value)),reclassify:value=>sqlCall(()=>stored.reclassify(value))}),
    startWorker(options={}){
     const selected=workerOptions(options);if(closed||started)throw unavailable();started=true;
     worker=startPostgresIngestionWorkerLoop({...selected,repository,referenceMatcher:Object.freeze({represent}),prepareClaim});

@@ -24,14 +24,40 @@ function create(options,pause,testComposition){
  if(typeof matcherIdentityHash!=='string'||!/^[a-f0-9]{64}$/u.test(matcherIdentityHash))invalid();
  const controller=new AbortController(),counters={batches:0,candidates:0,prepared:0,recorded:0,reused:0,skipped:0,invalid:0,failures:0,generationChanges:0};
  let currentGeneration=null,cursor=null,started=false,closed=false,running=null,closing=null,phase='idle',lastOutcome='not-started';
+ let priorityBurst=0;
  const bump=key=>{counters[key]=Math.min(MAX,counters[key]+1);};
  const active=()=>!closed;
  async function batch(){
   let next;
   try{phase='generation';next=generation(await readGeneration());}catch{if(active()){bump('failures');lastOutcome='generation-unavailable';}return IDLE_MS;}
   if(!active())return IDLE_MS;
-  if(next!==currentGeneration){if(currentGeneration!==null)bump('generationChanges');currentGeneration=next;cursor=null;}
+  if(next!==currentGeneration){if(currentGeneration!==null)bump('generationChanges');currentGeneration=next;cursor=null;priorityBurst=0;}
   const scope={generation:currentGeneration,matcherIdentityHash};let packet;
+  // One foreground page per turn; never move the background keyset for it.
+  // After eight such turns, allow an ordinary batch to make progress as well.
+  if(typeof resources.storedSources.requested==='function'&&priorityBurst<8){
+   try{
+    phase='priority';const requested=fields(await resources.storedSources.requested(scope),['generation','matcherIdentityHash','candidates']);
+    if(!active())return IDLE_MS;
+    if(requested.generation!==scope.generation||requested.matcherIdentityHash!==matcherIdentityHash||types.isProxy(requested.candidates)||
+       !Array.isArray(requested.candidates)||Object.getPrototypeOf(requested.candidates)!==Array.prototype||requested.candidates.length>1||
+       Reflect.ownKeys(requested.candidates).length!==requested.candidates.length+1)invalid();
+    if(requested.candidates.length){
+     const d=Object.getOwnPropertyDescriptor(requested.candidates,'0');if(!d?.enumerable||!Object.hasOwn(d,'value'))invalid();
+     const row=d.value;if(!row||types.isProxy(row))invalid();const n=Object.getOwnPropertyDescriptor(row,'ordinal');if(!n||!Object.hasOwn(n,'value'))invalid();ordinal(n.value);
+     priorityBurst++;bump('candidates');phase='preparing';const prepared=await resources.prepareStoredSource(row);if(!active())return IDLE_MS;
+     if(prepared===null){bump('skipped');lastOutcome='candidate-ineligible';}
+     else{
+      bump('prepared');phase='reclassifying';const result=await resources.storedSources.reclassify({...scope,items:[prepared]});if(!active())return IDLE_MS;
+      if(!Array.isArray(result)||result.length!==1||!['recorded','reused'].includes(result[0]?.status))throw unavailable();
+      bump(result[0].status);lastOutcome=result[0].status;
+     }
+     return YIELD_MS;
+    }
+   }catch(error){if(!active())return IDLE_MS;if(error instanceof TypeError){bump('invalid');lastOutcome='candidate-invalid';return YIELD_MS;}
+    bump('failures');lastOutcome='priority-unavailable';return IDLE_MS;}
+  }
+  priorityBurst=0;
   try{
    phase='candidates';bump('batches');packet=fields(await resources.storedSources.candidates({...scope,afterOrdinal:cursor,limit:BATCH}),['generation','matcherIdentityHash','candidates']);
    if(!active())return IDLE_MS;

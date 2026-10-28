@@ -45,6 +45,38 @@ function harness({selectSemanticTarget,refreshSavedThreads}={}){
   };
 }
 
+test('pending classification retries automatically at the same canonical revision without changing the draft',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});const ui=harness();ui.start();
+ await ui.answer('semanticCapabilities',{protocol:'semantic-topics/v1'});await ui.answer('semanticTopics',directory());
+ const before=structuredClone(ui.current());await ui.answer('semanticContext',context({status:'pending',supportedPath:[],selectedPath:[],topic:null}));
+ assert.equal(ui.modes.at(-1),false);assert.match(ui.byId('semantic-workspace-status').textContent,/Preparing topics/);
+ t.mock.timers.tick(499);assert.equal(ui.pending('semanticContext'),undefined);
+ t.mock.timers.tick(1);assert.deepEqual(ui.pending('semanticContext').args,{sourceId:'source-b'});
+ await ui.answer('semanticContext',context());await ui.answer('semanticFeed',feed('games'));
+ assert.deepEqual(ui.current(),before);assert.equal(ui.modes.at(-1),true);assert.equal(ui.byId('semantic-context-heading').textContent,'Games');
+ const reads=ui.calls.length;t.mock.timers.tick(10000);assert.equal(ui.calls.length,reads);ui.workspace.dispose();
+});
+
+test('pending retries stop after twenty reads and resume only on explicit retry',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});const ui=harness();ui.start();
+ await ui.answer('semanticCapabilities',{protocol:'semantic-topics/v1'});await ui.answer('semanticTopics',directory());
+ const pending=context({status:'pending',supportedPath:[],selectedPath:[],topic:null});await ui.answer('semanticContext',pending);
+ for(let i=0;i<20;i++){t.mock.timers.tick(500);await ui.answer('semanticContext',pending);}
+ assert.equal(ui.calls.filter(c=>c.method==='semanticContext').length,21);assert.equal(ui.byId('semantic-workspace-retry').hidden,false);
+ t.mock.timers.tick(60000);assert.equal(ui.pending('semanticContext'),undefined);assert.equal(ui.modes.at(-1),false);
+ ui.click('semantic-workspace-retry');await ui.answer('semanticContext',context());ui.workspace.dispose();
+});
+
+test('navigation, account revocation, disconnect and disposal cancel pending retries and fence late results',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ for(const change of [ui=>ui.observe({...ui.current(),sourceId:'source-c'}),ui=>ui.observe({...ui.current(),actorId:'demo-blair'}),
+  ui=>ui.workspace.setConnection(false),ui=>ui.workspace.dispose()]){
+  const ui=harness();ui.start();await ui.answer('semanticCapabilities',{protocol:'semantic-topics/v1'});await ui.answer('semanticTopics',directory());
+  await ui.answer('semanticContext',context({status:'pending',supportedPath:[],selectedPath:[],topic:null}));
+  change(ui);const count=ui.calls.length;t.mock.timers.tick(10000);assert.equal(ui.calls.length,count);ui.workspace.dispose();
+ }
+});
+
 test('saved-thread toggle immediately restores canonical view without changing Page B or its draft',async()=>{
   const gate=deferred(),ui=harness({refreshSavedThreads:()=>gate.promise});await ui.ready();
   ui.observe({...ui.current(),draft:{mode:'root',body:'Unsent Page B draft',semantic:false}});const before=structuredClone(ui.current());
@@ -177,7 +209,7 @@ test('classification pending, excluded, abstention and optional metadata failure
     context({selectedPath:[],topic:null}),Error('private metadata detail')]){
     const ui=harness();ui.start();await ui.answer('semanticCapabilities',{protocol:'semantic-topics/v1'});await ui.answer('semanticTopics',directory());
     if(value instanceof Error){ui.pending('semanticContext').reject(value);await turn();}else await ui.answer('semanticContext',value);
-    assert.equal(ui.discussionRoot.hidden,!(value instanceof Error));assert.equal(ui.modes.at(-1),false);assert.equal(ui.availability.at(-1),'available');assert.equal(ui.discoverRoot.hidden,false);
+    assert.equal(ui.discussionRoot.hidden,!(value instanceof Error)&&value.status!=='pending');assert.equal(ui.modes.at(-1),false);assert.equal(ui.availability.at(-1),'available');assert.equal(ui.discoverRoot.hidden,false);
     assert.equal(ui.byId('semantic-workspace-saved-toggle').hidden,true); // Already canonical; no duplicate view switch.
     if(value instanceof Error){assert.equal(ui.discussionRoot.children.at(-1).hidden,true);assert.match(ui.byId('semantic-workspace-status').textContent,/unavailable/);
       assert.equal(ui.byId('semantic-workspace-retry').hidden,false);ui.click('semantic-workspace-retry');await ui.answer('semanticContext',context());

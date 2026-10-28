@@ -11,6 +11,7 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
   let capability='unknown',availability='disconnected',serviceEpoch=0,epoch=0,contextEpoch=0;
   let capabilityAbort=null,contextAbort=null,intentAbort=new AbortController();
   let contextCard=null,contextLoading=false,contextError=false,contextRequestKey=null,override=null,suppressSelection=false;
+  let contextPending=false,contextRetry=null,retriesLeft=20;
   let savedView=false,historyPending=false,historyError=false,historyFlight=null;
   let refreshedPostId=null;
   const status=document.createElement('p');status.id='semantic-workspace-status';status.setAttribute('role','status');
@@ -32,17 +33,19 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
   function usable(){return connected&&!disposed&&capability==='available';}
   function updateMain(){const canToggle=usable()&&Boolean(pageState?.sourceId)&&Boolean(savedView||override||contextCard);
     const show=usable()&&!savedView&&Boolean(override||(!contextError&&contextCard));
-    discussionRoot.hidden=!show&&!contextError&&!canToggle;mainRoot.hidden=!show;discussionPanel.setSemanticFeedMode(show);
+    discussionRoot.hidden=!show&&!contextError&&!contextPending&&!canToggle;mainRoot.hidden=!show;discussionPanel.setSemanticFeedMode(show);
     toggle.hidden=!canToggle;toggle.textContent=savedView?'Topic discussions':'This page\u2019s saved threads';toggle.setAttribute('aria-pressed',String(savedView));
     historyStatus.hidden=!savedView;historyStatus.textContent=savedView?(historyPending?'Loading saved threads\u2026':historyError?'Saved threads are unavailable. Try again.':''):'';
     historyRetry.hidden=!savedView||!historyError;historyRetry.disabled=historyPending;
-    status.textContent=contextError?'Topics are unavailable. Try refreshing.':contextLoading?'Loading topics…':'';
-    retry.hidden=!contextError||!usable();retry.disabled=contextLoading;
+    status.textContent=contextError?'Topics are unavailable. Try refreshing.':contextPending?
+      (retriesLeft>0?'Preparing topics\u2026':'Topics are still being prepared. Try again.'):contextLoading?'Loading topics\u2026':'';
+    retry.hidden=(!contextError&&!(contextPending&&retriesLeft===0))||!usable();retry.disabled=contextLoading;
   }
   function activatePanels(){const enabled=usable();discover.setConnection(enabled);discover.setActive(enabled&&discoverActive);
     main.setConnection(enabled);main.setActive(enabled);discoverRoot.hidden=!enabled||!discoverActive;updateMain();}
-  function revoke(){epoch++;intentAbort.abort();intentAbort=new AbortController();contextEpoch++;contextAbort?.abort();contextAbort=null;
-    contextRequestKey=null;contextCard=null;contextLoading=false;contextError=false;override=null;
+  function clearContextRetry(){if(contextRetry!==null)clearTimeout(contextRetry);contextRetry=null;}
+  function revoke(){epoch++;intentAbort.abort();intentAbort=new AbortController();contextEpoch++;contextAbort?.abort();contextAbort=null;clearContextRetry();
+    contextRequestKey=null;contextCard=null;contextLoading=false;contextError=false;contextPending=false;retriesLeft=20;override=null;
     savedView=false;historyPending=false;historyError=false;historyFlight=null;
     refreshedPostId=null;
     suppressSelection=true;main.setTopicContext(null,{force:true});suppressSelection=false;updateMain();}
@@ -67,19 +70,28 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
   const main=mountSemanticTopicPanel(document,mainRoot,{client:panelClient,idPrefix:'semantic-context-',contextMode:true,onReply:reply,
     onSelectionChange(selection){if(suppressSelection)return;override=selection?.rootId?{nodeId:selection.nodeId,rootId:selection.rootId}:null;updateMain();},
     async onRefresh(){const ownEpoch=epoch;await loadContext(true);if(usable()&&ownEpoch===epoch)main.refreshPage();}});
-  async function loadContext(force=false){if(!usable())return;
+  async function loadContext(force=false,poll=false){if(!usable())return;
     const sourceId=pageState?.sourceId,version=pageState?.catalog?.version;
-    if(!sourceId||!version){contextCard=null;contextLoading=false;contextError=false;main.setTopicContext(null,{preserveThread:true});updateMain();return;}
+    if(!sourceId||!version){clearContextRetry();contextCard=null;contextLoading=false;contextError=false;contextPending=false;main.setTopicContext(null,{preserveThread:true});updateMain();return;}
     const requestKey=JSON.stringify([sourceId,version.generation,version.revision]);if(!force&&requestKey===contextRequestKey)return;
+    clearContextRetry();if(!poll){retriesLeft=20;contextPending=false;}
     contextRequestKey=requestKey;contextAbort?.abort();const abort=new AbortController();contextAbort=abort;
     const ownContext=++contextEpoch,ownEpoch=epoch,generation=version.generation,floor=version.revision;
     const current=()=>usable()&&epoch===ownEpoch&&contextEpoch===ownContext&&contextAbort===abort&&!abort.signal.aborted;
     contextLoading=true;contextError=false;updateMain();
     try{const raw=await client.semanticContext({sourceId},{signal:abort.signal,beforeDispatch:current});if(!current())return;
       const value=readSemanticContext(raw,{sourceId});if(value.version.generation!==generation||value.version.revision<floor)throw new Error('stale-context');
-      contextCard=value.status==='classified'&&value.selectedPath.length?value.topic:null;contextLoading=false;contextError=false;
+      contextCard=value.status==='classified'&&value.selectedPath.length?value.topic:null;contextLoading=false;contextError=false;contextPending=value.status==='pending';
       main.setTopicContext(contextCard,{preserveThread:true});updateMain();
-    }catch{if(current()){contextCard=null;contextLoading=false;contextError=true;main.setTopicContext(null,{preserveThread:true});updateMain();}}
+      if(contextPending&&retriesLeft>0){
+        // Derived classification can change without a canonical revision. Retry
+        // only this public read; keep the draft and selected discussion intact.
+        contextRetry=setTimeout(()=>{contextRetry=null;
+          if(!usable()||epoch!==ownEpoch||contextEpoch!==ownContext||pageState?.sourceId!==sourceId)return;
+          retriesLeft--;void loadContext(true,true);
+        },500);
+      }
+    }catch{if(current()){contextCard=null;contextLoading=false;contextError=true;contextPending=false;main.setTopicContext(null,{preserveThread:true});updateMain();}}
     finally{if(contextAbort===abort)contextAbort=null;}
   }
   async function probe(){if(!connected||disposed)return;capabilityAbort?.abort();const abort=new AbortController();capabilityAbort=abort;
@@ -133,7 +145,7 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
       }
     },
     refresh(){if(disposed||!connected)return;const ownEpoch=epoch;if(capability==='available')return loadContext(true).then(()=>{if(usable()&&ownEpoch===epoch)main.refreshPage();});return probe();},
-    dispose(){if(disposed)return;disposed=true;connected=false;serviceEpoch++;capabilityAbort?.abort();contextAbort?.abort();intentAbort.abort();
+    dispose(){if(disposed)return;disposed=true;connected=false;serviceEpoch++;capabilityAbort?.abort();contextAbort?.abort();intentAbort.abort();clearContextRetry();
       capabilityAbort=contextAbort=null;override=contextCard=null;discover.dispose();main.dispose();routing(false);discussionPanel.setSemanticFeedMode(false);
       retry.removeEventListener('click',retryContext);toggle.removeEventListener('click',toggleSaved);historyRetry.removeEventListener('click',retrySaved);
       historyFlight=null;discoverRoot.hidden=discussionRoot.hidden=true;discussionRoot.replaceChildren();emit('disconnected');},

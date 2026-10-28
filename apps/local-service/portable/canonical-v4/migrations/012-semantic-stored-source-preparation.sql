@@ -1,5 +1,6 @@
--- Unregistered ordinary stored-material preparation. No queue/Source/watermark
--- writes, page fetching, original-capture assertions or automatic root adoption.
+-- Unregistered ordinary stored-material preparation. No ingestion-queue/Source/
+-- watermark writes, page fetching, original-capture assertions or automatic root
+-- adoption. Public reads can suggest urgency in a bounded derived-only queue.
 ALTER TABLE canonical_v4.semantic_observations
   DROP CONSTRAINT semantic_observations_generation_operation_id_matcher_hash_key,
   ADD UNIQUE(generation,operation_id,source_version,matcher_hash),
@@ -20,6 +21,17 @@ CREATE TABLE canonical_v4.semantic_material_state (
 );
 INSERT INTO canonical_v4.semantic_material_state VALUES(true,0);
 REVOKE ALL ON canonical_v4.semantic_material_state FROM PUBLIC;
+
+-- Urgency only, never publication authority. Many readers of the same saved
+-- page share one hint; the worker still verifies and recomputes current material.
+CREATE TABLE canonical_v4.semantic_preparation_requests (
+  source_id text PRIMARY KEY REFERENCES canonical_v4.sources(id) ON DELETE CASCADE,
+  generation text NOT NULL,
+  matcher_hash text NOT NULL REFERENCES canonical_v4.semantic_matchers(matcher_hash) ON DELETE CASCADE,
+  source_version bigint NOT NULL CHECK(source_version>=0),
+  requested_at timestamptz NOT NULL DEFAULT statement_timestamp()
+);
+REVOKE ALL ON canonical_v4.semantic_preparation_requests FROM PUBLIC;
 
 -- One MVCC statement snapshot, metadata only. Background material publication,
 -- model activation and owner cuts all participate without a canonical write.
@@ -83,6 +95,53 @@ BEGIN
   ), bounded AS (
     SELECT ordinal,value_,sum(octet_length(value_::text)) OVER(ORDER BY ordinal) bytes_ FROM rows_
   ) SELECT value_ FROM bounded WHERE bytes_<=4194304 ORDER BY ordinal;
+END $$;
+
+CREATE FUNCTION canonical_v4.semantic_request_source_preparation(p_generation text,p_source text)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE head_ text;version_ bigint;
+BEGIN
+  IF NOT canonical_v4.runtime_safe_text(p_generation,128,false) OR NOT canonical_v4.runtime_safe_text(p_source,128,false) THEN
+    RAISE EXCEPTION 'Invalid preparation hint' USING ERRCODE='P1233';END IF;
+  IF NOT EXISTS(SELECT 1 FROM canonical_v4.runtime_state WHERE singleton AND generation=p_generation) THEN RETURN false;END IF;
+  SELECT matcher_hash INTO head_ FROM canonical_v4.semantic_installation WHERE singleton FOR SHARE;
+  IF head_ IS NULL THEN RETURN false;END IF;
+  SELECT s.write_version INTO version_ FROM canonical_v4.sources s
+    JOIN canonical_v4.embeddings e ON e.source_id=s.id JOIN canonical_v4.runtime_source_stamps st ON st.source_id=s.id
+    WHERE s.id=p_source AND s.provenance='owner-local-page-embedding/v1' AND s.has_embedding AND st.postable
+      AND e.model_id='e5-small-q8-browser-main-prefix-v1' AND e.dimensions=384;
+  IF NOT FOUND OR EXISTS(SELECT 1 FROM canonical_v4.semantic_observations
+      WHERE source_id=p_source AND source_version=version_ AND matcher_hash=head_ AND generation=p_generation) THEN RETURN false;END IF;
+  IF NOT pg_try_advisory_xact_lock(914092017) THEN RETURN false;END IF;
+  DELETE FROM canonical_v4.semantic_preparation_requests WHERE requested_at<clock_timestamp()-interval '15 seconds';
+  IF EXISTS(SELECT 1 FROM canonical_v4.semantic_preparation_requests
+      WHERE source_id=p_source AND source_version=version_ AND matcher_hash=head_ AND generation=p_generation) THEN RETURN true;END IF;
+  DELETE FROM canonical_v4.semantic_preparation_requests WHERE source_id=p_source;
+  IF (SELECT count(*) FROM canonical_v4.semantic_preparation_requests)>=64 THEN RETURN false;END IF;
+  INSERT INTO canonical_v4.semantic_preparation_requests(source_id,generation,matcher_hash,source_version)
+    VALUES(p_source,p_generation,head_,version_);
+  RETURN true;
+END $$;
+
+CREATE FUNCTION canonical_v4.semantic_take_source_preparation_request(p_generation text,p_matcher_hash text)
+RETURNS TABLE(candidate jsonb) LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE request_ canonical_v4.semantic_preparation_requests%ROWTYPE;ordinal_ bigint;head_ text;
+BEGIN
+  IF NOT canonical_v4.runtime_safe_text(p_generation,128,false) OR (p_matcher_hash ~ '^[a-f0-9]{64}$') IS DISTINCT FROM true THEN
+    RAISE EXCEPTION 'Invalid preparation request scope' USING ERRCODE='P1233';END IF;
+  SELECT matcher_hash INTO head_ FROM canonical_v4.semantic_installation WHERE singleton FOR SHARE;
+  IF head_ IS DISTINCT FROM p_matcher_hash OR NOT EXISTS(SELECT 1 FROM canonical_v4.runtime_state WHERE singleton AND generation=p_generation) THEN
+    RAISE EXCEPTION 'Preparation head changed' USING ERRCODE='P1231';END IF;
+  SELECT * INTO request_ FROM canonical_v4.semantic_preparation_requests
+    WHERE generation=p_generation AND matcher_hash=p_matcher_hash
+    ORDER BY requested_at,source_id LIMIT 1 FOR UPDATE SKIP LOCKED;
+  IF NOT FOUND THEN RETURN;END IF;
+  DELETE FROM canonical_v4.semantic_preparation_requests WHERE source_id=request_.source_id;
+  IF request_.requested_at<clock_timestamp()-interval '15 seconds' THEN RETURN;END IF;
+  SELECT s.ordinal INTO ordinal_ FROM canonical_v4.sources s WHERE s.id=request_.source_id AND s.write_version=request_.source_version;
+  IF NOT FOUND THEN RETURN;END IF;
+  RETURN QUERY SELECT c.candidate FROM canonical_v4.semantic_read_source_candidates(p_generation,p_matcher_hash,
+    CASE WHEN ordinal_=0 THEN NULL ELSE ordinal_-1 END,1) c WHERE c.candidate->>'sourceId'=request_.source_id;
 END $$;
 
 -- Private verifier. Callers first lock receipt -> Source in sorted order. The
@@ -305,20 +364,25 @@ EXCEPTION WHEN invalid_text_representation OR numeric_value_out_of_range THEN
 END $$;
 
 REVOKE ALL ON FUNCTION canonical_v4.semantic_read_revision(),canonical_v4.semantic_read_source_candidates(text,text,bigint,integer),
+  canonical_v4.semantic_request_source_preparation(text,text),canonical_v4.semantic_take_source_preparation_request(text,text),
   canonical_v4.semantic_verify_current_source(text,text,bigint,text,text,text,text,text),canonical_v4.semantic_validate_stored_items(text,text,jsonb,boolean),
   canonical_v4.semantic_reclassify_stored_sources(text,text,jsonb),canonical_v4.semantic_adopt_legacy_roots(text,text,jsonb) FROM PUBLIC;
 DO $$ DECLARE role_ text;BEGIN
   FOREACH role_ IN ARRAY ARRAY['murmingle_app','murmingle_crawler_submitter','murmingle_ingest_worker'] LOOP
     IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname=role_) THEN
       EXECUTE format('REVOKE ALL ON canonical_v4.semantic_material_state FROM %I',role_);
+      EXECUTE format('REVOKE ALL ON canonical_v4.semantic_preparation_requests FROM %I',role_);
+      EXECUTE format('REVOKE ALL ON FUNCTION canonical_v4.semantic_request_source_preparation(text,text),canonical_v4.semantic_take_source_preparation_request(text,text) FROM %I',role_);
       EXECUTE format('REVOKE ALL ON FUNCTION canonical_v4.semantic_read_revision() FROM %I',role_);
       EXECUTE format('REVOKE ALL ON FUNCTION canonical_v4.semantic_read_source_candidates(text,text,bigint,integer),canonical_v4.semantic_verify_current_source(text,text,bigint,text,text,text,text,text),canonical_v4.semantic_validate_stored_items(text,text,jsonb,boolean),canonical_v4.semantic_reclassify_stored_sources(text,text,jsonb),canonical_v4.semantic_adopt_legacy_roots(text,text,jsonb) FROM %I',role_);
     END IF;
   END LOOP;
   IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='murmingle_ingest_worker') THEN
     GRANT EXECUTE ON FUNCTION canonical_v4.semantic_read_revision(),canonical_v4.semantic_read_source_candidates(text,text,bigint,integer),canonical_v4.semantic_reclassify_stored_sources(text,text,jsonb) TO murmingle_ingest_worker;
+    GRANT EXECUTE ON FUNCTION canonical_v4.semantic_take_source_preparation_request(text,text) TO murmingle_ingest_worker;
   END IF;
   IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='murmingle_app') THEN
     GRANT EXECUTE ON FUNCTION canonical_v4.semantic_read_revision() TO murmingle_app;
+    GRANT EXECUTE ON FUNCTION canonical_v4.semantic_request_source_preparation(text,text) TO murmingle_app;
   END IF;
 END $$;

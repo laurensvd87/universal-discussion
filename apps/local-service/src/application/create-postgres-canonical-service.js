@@ -114,7 +114,8 @@ function chatTitle(root, topic) {
  */
 export function createPostgresCanonicalService({ reads, urlSelectionReads = reads, runtime, ingestion = null, lifecycle = null,
   model = Object.freeze({ id: "hand-authored-demo-vectors/1", status: "fixture-only" }),
-  resolveAccountActor = null, readAccountActors = () => [], accountCursorSecret, semanticDiscussions = false } = {}) {
+  resolveAccountActor = null, readAccountActors = () => [], accountCursorSecret, semanticDiscussions = false,
+  requestSemanticPreparation = null } = {}) {
   if (!reads || typeof reads.version !== "function" || typeof reads.catalogContext !== "function" ||
       typeof reads.catalogPage !== "function" || typeof reads.discussionPage !== "function" ||
       typeof reads.exactSource !== "function" || !runtime || typeof runtime.command !== "function" ||
@@ -124,6 +125,7 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
   if (typeof semanticDiscussions !== "boolean" || semanticDiscussions &&
       (["semanticFeed", "semanticThread", "semanticTarget", "semanticTopics", "semanticContext", "semanticStamp"].some(name => typeof reads[name] !== "function")))
     throw new TypeError("Invalid PostgreSQL semantic discussion dependencies");
+  if(requestSemanticPreparation!==null&&typeof requestSemanticPreparation!=='function')throw new TypeError('Invalid preparation request dependency');
   const cursorKey = accountCursorKey(accountCursorSecret);
   const publicFlights = createPostgresPublicReadFlights();
   const urlFlights = createPostgresPublicReadFlights({ maxTasks: 8 });
@@ -525,7 +527,15 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
       semanticThread: input => readPublic("semanticThread", input),
       semanticTarget: input => readPublic("semanticTarget", input),
       semanticTopics: input => readPublic("semanticTopics", input),
-      semanticContext: input => readPublic("semanticContext", input),
+      async semanticContext(input) {
+        const value=await readPublic("semanticContext", input);
+        if(value?.status==='pending'&&requestSemanticPreparation)try{
+          // The original RR read is complete. Optional bounded SQL neither
+          // changes its snapshot nor delays returning saved discussions.
+          Promise.resolve(requestSemanticPreparation({generation:value.version.generation,sourceId:input.sourceId})).catch(()=>{});
+        }catch{/* An urgency hint cannot make a saved discussion unavailable. */}
+        return value;
+      },
     } : {}),
     ...(typeof reads.discover === "function" ? {
       discover: Object.freeze({ search: (input) => reads.discover(input) }),

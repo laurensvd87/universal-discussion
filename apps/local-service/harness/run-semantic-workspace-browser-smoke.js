@@ -561,7 +561,15 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     for(const value of ['legacy','unauthorized']){uiStep='capability-'+value;mode.capability=value;await evaluate(`semanticQA.mount()`);await waitFor(`semanticQA.current.availability===${JSON.stringify(value==='legacy'?'legacy':'error')}`);cases.push('capability-'+value);}
     mode.capability='available';
     for(const value of ['pending','error']){uiStep='context-'+value;mode.context=value;await evaluate(`semanticQA.mount()`);await waitFor(`semanticQA.current.availability==='available'&&Boolean(document.querySelector('#semantic-discover-open-music'))`);await evaluate('semanticQA.current.showDiscussion()');await pause(120);
-      assert.equal(await evaluate(`semanticQA.current.semantic.hidden`),value!=='error');assert.equal(await evaluate(`document.querySelector('#discussion-feed .discussion-thread').hidden`),false);cases.push('context-'+value+'-canonical-fallback');}
+      assert.equal(await evaluate(`semanticQA.current.semantic.hidden`),false);assert.equal(await evaluate(`document.querySelector('#discussion-feed .discussion-thread').hidden`),false);cases.push('context-'+value+'-canonical-fallback');}
+    uiStep='pending-context-automatic-retry';mode.context='pending';await evaluate(`semanticQA.mount()`);
+    await waitFor(`document.querySelector('#semantic-workspace-status')?.textContent.includes('Preparing topics')`);
+    const pendingBinding=await evaluate(`(()=>{const s=semanticQA.current.controller.currentState();return {sourceId:s.sourceId,topicId:s.topicId,version:s.catalog.version,draft:s.draft};})()`);
+    const contextReads=interceptions.filter(item=>item.path==='/v1/semantic/context').length;
+    mode.context='classified';await waitFor(`Boolean(document.querySelector('#semantic-context-thread-root-a'))`);
+    assert.ok(interceptions.filter(item=>item.path==='/v1/semantic/context').length>contextReads);
+    assert.deepEqual(await evaluate(`(()=>{const s=semanticQA.current.controller.currentState();return {sourceId:s.sourceId,topicId:s.topicId,version:s.catalog.version,draft:s.draft};})()`),pendingBinding);
+    cases.push('pending-context-automatic-retry-same-canonical-revision-and-draft');
     mode.context='classified';
     for(const value of ['navigation','account']){uiStep='stale-'+value;await evaluate(`semanticQA.mount()`);await waitFor(`Boolean(document.querySelector('#semantic-discover-open-music'))`);
       await evaluate(`document.querySelector('#semantic-discover-open-music').click()`);await waitFor(`Boolean(document.querySelector('#semantic-discover-reply-root-a'))`);mode.holdTarget=true;

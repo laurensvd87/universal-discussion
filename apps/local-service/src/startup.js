@@ -22,6 +22,7 @@ import { createCanonicalV4RuntimeRepository } from "../portable/canonical-v4/run
 import { createCanonicalV4IngestionRepository } from "../portable/canonical-v4/ingestion-repository.js";
 import { createCanonicalV4LifecycleRepository } from "../portable/canonical-v4/lifecycle-repository.js";
 import { createPostgresCanonicalService } from "./application/create-postgres-canonical-service.js";
+import { createStoredSourcePreparationRequests } from "./application/stored-source-preparation-requests.js";
 import { createPostgresInteractiveIngestion } from "./application/postgres-interactive-ingestion.js";
 import { startPostgresIngestionWorkerLoop } from "./application/postgres-ingestion-worker-loop.js";
 import { openInstalledHierarchyRuntime } from "./application/installed-hierarchy-runtime.js";
@@ -138,6 +139,7 @@ export async function openDormantPostgresApplication({ config: input, databasePa
     ingestionWorkerRepository = createCanonicalV4IngestionRepository({ database: ingestionWorkerDatabase, nextId, now, schemaProfile });
   let accounts = null, accountRepository = null, privateDiscussions = null, accountLifecycle = null, runtime = null, worker = null,
     topicSpaces = null;
+  const preparationRequests = hierarchicalTopics ? createStoredSourcePreparationRequests({database:canonicalDatabase}) : null;
   async function cleanup() {
     let failed = false, primary;
     const settle = async work => {
@@ -147,6 +149,7 @@ export async function openDormantPostgresApplication({ config: input, databasePa
     // A worker owns encoder and original SQL drains, so close it before its
     // database. One failing release must not skip independent local resources.
     await settle(() => topicSpaces?.close());
+    await settle(() => preparationRequests?.close());
     await settle(() => worker?.close());
     await settle(() => privateDiscussions?.close());
     await settle(() => runtime?.dispose?.());
@@ -159,6 +162,7 @@ export async function openDormantPostgresApplication({ config: input, databasePa
   const service = createPostgresCanonicalService({ reads, urlSelectionReads, runtime: commands,
     ingestion: interactiveIngestion, lifecycle: lifecycleBoundary,
     semanticDiscussions: hierarchicalTopics,
+    requestSemanticPreparation: preparationRequests?.request ?? null,
     resolveAccountActor: id => accounts?.principalForAccountId(id) ?? null,
     readAccountActors: () => accounts?.publicActors() ?? [] });
   try {
