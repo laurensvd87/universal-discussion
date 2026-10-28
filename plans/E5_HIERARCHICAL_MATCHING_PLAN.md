@@ -1,5 +1,21 @@
 # E5 matching across broad and specific topics
 
+29 October: paired E5 rooted matching, stored-source priority and owner cuts are
+LIVE on PostgreSQL17. Rooted model remains16 broad roots plus one GTA detail;
+default depth1/Games depth3, current owner policy revision3. Cold saved recipe
+assignment~554ms and shared Cooking discussion across recipe/video verified with
+the crawler running;32 reads/concurrency8 and8 parallel witnessed replies pass.
+The numerical matcher is not the dominant foreground cost; SQL routing, snapshot
+reads, background priority and UI retry are now validated separately.
+Next work is labelled child coverage. Original fixed child TRAIN/CAL capture
+produced no usable TRAIN rows; do not fit from CAL or silently replace unavailable
+rows. Declare new TRAIN evidence, preserve the original failures and TEST boundary,
+then compare child confidence, outside false refinements and parent fallback.
+Frozen nonvisual UMAP/HDBSCAN did not improve the earlier84-text grouping study;
+it is not in the online path. See the handoff for exact live evidence/limitations.
+
+Earlier checkpoints (historical):
+
 27 October performance rehearsal source is ready: real fixed E5 body/title
 encoding, durable queue worker and foreground HTTP reads in one private restored
 application. It uses retained TRAIN Tetris/Octopoda material and records all

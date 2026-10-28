@@ -1,5 +1,51 @@
 # Implementation handoff: local-service discussion MVP
 
+Current29Oct local (28Oct23:45UTC): core hierarchy is LIVE on PostgreSQL17.
+API33748 uses sealed HTTP-priority release158cd63f6d3275d4ab21981fe81b659a5d9e51e9c91cbd5f40511bce7bf1b556;
+worker34788/dashboard33592/crawler6384 continue on earlier17 release7ea0ce...
+without restart at the HTTP-only hotfix. API20540 exact graceful exit130 proved.
+Current source+catalog13b039ea PUSHED/clean before this documentation update;
+catalog2530 files/c60c5fb09e3f118fc79127210663e9911cfe12e9da8d01e8b9dc46c3048bafff.
+Actual HTTP hook gap fixed: real-handler causal tests failed before/passed after.
+Cold recipe context pending->Cooking553.54ms; Kapsalon video Cooking10.11ms;
+A0f video pending->honest abstention525.11ms. Lookup22-149ms.32 reads at concurrency8
+all passed/P50 13.4ms/P95 300.82ms/max327.68ms under crawling. Not capacity proof.
+Normal session survives API restart: hierarchy-api-http-priority-session-result-
+20261029.json PASS (old pre-readiness failed probe preserved, not adopted).
+Actual normal AI provider/publication PASS under crawling, generation~4.1s;
+fresh public evidence spacing accounts for10s of16.4s whole QA, not UI model wait.
+One own QA root+8 simultaneous witnessed replies+4 reads PASS; write P50~350ms/
+max440ms; shared Cooking feed accessible from recipe and video. Own root withdrawn,
+own session logged out. Receipt hierarchy-live-concurrent-own-thread-proof-20261029.json.
+Legacy owner integration:56 roots inspected,7 eligible adopted through existing
+strict anchor/material/version guards. All110 contribution row hashes unchanged;
+normal paired public readback7/7 preserves original root/topic/discussion IDs.
+Other roots:15 withdrawn/4 manual/18 unpinned/4 excluded/8 abstained; no forced
+assignment. Receipts hierarchy-live-legacy-owner-adoption-proof-20261029.json and
+hierarchy-live-adopted-public-readback-20261029.json. No bodies logged.
+Owner policy actual roundtrip18->16->18 directory groups PASS/17ms; config restored
+default1/Games3, policy revision now3. Head remains1/modeleead1b2d...ed21c.
+Dashboard snapshot autochanges/semantic aggregates verified. Live status available;
+35493 prepared/16410 classified/19083 abstained/23994 pending,7 roots. These are
+unlabelled corpus dispositions, NOT accuracy. Crawler advances524 new ingestions/
+stderr0; API/worker/dashboard stderr0. 23:45 resources physical14.69GB/commit11.25GB/
+C8.18GB/D8.43GB. Fresh checks before further actual phases; private restore/model
+11GiB D startup floor is NOT met and must not be waived.
+Use tracked entry src/ops/postgres-runtime-operator.js for current17 status/start.
+The old data/postgres-runtime-operator.mjs remains historical schema9 code.
+Crawler already runs; view its terminal progress with Get-Content on data/
+postgres-hierarchy-live-20261029-crawler.stdout.log -Tail 20 -Wait.
+Goal ACTIVE for finer coverage: installed16 roots plus one GTA head; no Animals/
+Koalas or independent Video-games head. Original child TRAIN/CAL capture had2/11
+usable (both CAL), no fit. Fixed unused-attribute parser may repair QLD CAL, while
+AKF TRAIN originally produced only58chars. Keep original inputs/output and split
+roles immutable; new labelled TRAIN evidence is needed, no CAL-to-TRAIN reuse or
+automatic TEST capture. Frozen84-text nonvisual UMAP/HDBSCAN was rejected for more
+irrelevant merges. Continue existing generic child matcher with measured gates.
+All latest review/audits Root-only: child agents hit quota untilNov2; no retries.
+
+Earlier29Oct before API-only priority activation (historical):
+
 Current29Oct LIVE schema17 at release7ea0ce5b9815d222973f2edd1fed7773f7cc051b2970338134b825f613a84ab9.
 Original crawler4060/worker36616/API19868/dashboard6644 each exact-handle graceful
 exit130; no force kill. Exact25 staged reconciliation:24 absent/1complete/live0,

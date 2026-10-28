@@ -1,5 +1,19 @@
 # Hierarchical topic assignment and discussion plan
 
+29 October delivery: PostgreSQL17 hierarchy is live; API, separate worker,
+dashboard and crawler use it. Fresh encrypted PG/local-state pair authenticated,
+original18 canonical counts/seven sequences preserved at cutover. Real SQL25,
+private browser/backend4, offline Chrome18, real provider AI, session restart,
+eight parallel replies, owner depth control and seven legacy-root adoptions pass.
+Opened-page priority and automatic pending retry are active. Actual cold recipe
+assignment~554ms, warm paired reads P50~13ms; these are selected local examples,
+not population accuracy or production capacity. See IMPLEMENTATION_HANDOFF.md.
+The remaining delivery obligation is finer coverage and its independent gold
+evaluation:16 broad roots and one GTA head are available; Animals/Koalas and an
+independent Video-games head remain untrained. Preserve calibrated parent fallback.
+
+Earlier checkpoints (historical):
+
 Delivery obligations still open (27 October): authenticate and compare the full
 restored snapshot, then test migration and the combined browser/human/AI paths
 before live cutover. Measure actual foreground p50/p95 while background work and
