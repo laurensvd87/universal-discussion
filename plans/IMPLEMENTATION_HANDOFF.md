@@ -18,20 +18,32 @@ own-thread/session cleanup; evidence paired-recipe-parser-fix-live-ai-actual-
 Cutover NOT performed. Original API19868/worker36616/dashboard6644/crawler4060
 remain running; no signal sent. Identity-fenced Ctrl+C helper probes passed;
 expected130 drain, original-process absence and fake retirement tests implemented.
-Sourceaab1e6f2 pushed. Candidate hierarchy-release-20261027 sealed1201files/
+Sourceb6017987/e32ec229 pushed; browser count correction9797431e committed.
+Old unused candidate hierarchy-release-20261027 remains sealed1201files/
 163155568B/rootcce16c9f09d24dc8afb4faac00adb760a15df81775e7ce4339b3b17092204eba;
-preflight passed. Quiesced PG/local37-slot backup producer implemented/pure-tested,
+preflight passed. Quiesced PG/local38-slot backup producer implemented/pure-tested,
 and actual production guard refused while services run. No fresh backup pair yet.
 Temporary account continuity session was verified and logged out on OLD API only;
 no cross-restart continuity claim. All prior run outputs/seals remain immutable.
 
-Next critical work before live cutover: foreground stored-Source priority and
-automatic pending-context retry. Current worker only scans ordinal background
-batches; workspace only retries on catalog changes/manual refresh, so a saved
-page can wait behind the scan. Implement bounded shared Source hints, worker
-priority without moving the background cursor, and revocable bounded UI polling.
-Then validate actual SQL/browser behavior and prepare a NEW release namespace;
-do not edit sealed20261027 in place. Only afterwards orderly drain, fresh paired
+Foreground stored-Source priority and automatic pending-context retry are now
+implemented. Shared urgency hints cap64/expire15s; app SQL concurrency caps8 with
+25ms lock/100ms statement timeouts and one-second dedupe; reads never await hints.
+Worker claims one urgent page without moving its background cursor; after eight
+urgent turns it permits a normal batch. The panel retries pending context every
+500ms, at most20 additional reads, fenced by Source/account/document/disconnect.
+Root42 targeted guarded tests,45 startup/resources/material tests,31 release/
+backup tests,38 browser-boundary tests and60 isolated Python tests passed.
+Actual SQL original25 passed run472cf9... (e32ec229), with dedupe, cap64/expiry,
+role denial and canonical/material watermark preservation. Root audit
+hierarchy-priority-native-completed-audit-20261028.json SHA8e22009575f0f69a2477596c85ed0d7463706f8ebd10a8c28d71c921abd90b85.
+Actual offline Chrome18 cases/3 screenshots passed attempt-mVCln5; pending becomes
+classified at the same canonical revision without changing the draft. Root audit
+hierarchy-priority-browser-completed-audit-20261028.json SHA3f843e6ca385f1a419127eaa30dd4d7001934bfaf395e8b4cc43ece4822c7157.
+Prior Chrome attempt-GTQxIn remains FAILED: added18th case but runner still
+expected17. Only expected total fixed; no assertion removed or adopted failure.
+Next: prepare NEW hierarchy-release-20261028; do not edit sealed20261027 in place.
+Only afterwards orderly drain, fresh paired
 backup, in-place installation, startup and actual UI/AI/crawler/load validation.
 Broad16 roots/GTA detail are installed-source candidates; Koalas/Recipes fine
 heads remain unsupported. Owner depth1 with per-Games depth3 remains planned.
