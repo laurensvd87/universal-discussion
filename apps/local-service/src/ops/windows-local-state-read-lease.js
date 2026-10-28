@@ -7,10 +7,10 @@ export const LOCAL_STATE_SLOTS=Object.freeze([
  ...['demo.sqlite','accounts.sqlite','private-conversations.sqlite','topic-crawler.sqlite','topic-growth.sqlite','topic-growth-v2.sqlite'].flatMap(name=>[name,name+'-wal',name+'-shm',name+'-journal']),
  'account-key.protected','pairing.json','pairing-recovery/pairing-token.txt','chatgpt-registration.json','topic-space-policy.json',
  'ridge1-topic-adapter-v1.json','diagonal-adapter-v1.json','body-topic-metric-v1.json','postgres-hierarchy-runtime-manifest.json',
- 'postgres-runtime-manifest.json','postgres-hierarchy-release-20261027-manifest.json','postgres-hierarchy-release-20261028-manifest.json',
+ 'postgres-runtime-manifest.json','postgres-hierarchy-release-20261027-manifest.json','postgres-hierarchy-release-20261028-manifest.json','postgres-hierarchy-release-20261028-final-manifest.json',
  'provider-current','provider-legacy',
 ]);
-const DATA=fileURLToPath(new URL('../../data/',import.meta.url));
+const DATA=path.resolve(fileURLToPath(new URL('../../data/',import.meta.url)));
 const failure=()=>Object.assign(new Error('Local state read lease unavailable'),{code:'local-state-lease'});
 function slotsFrom(value){if(!Array.isArray(value)||value.length!==LOCAL_STATE_SLOTS.length)throw failure();return Object.freeze(value.map((s,i)=>{
  if(!s||typeof s!=='object'||Object.keys(s).sort().join()!=='bytes,id,leaf,modified,path,present'||s.id!==LOCAL_STATE_SLOTS[i]||typeof s.present!=='boolean'||!Number.isSafeInteger(s.bytes)||s.bytes<0||s.bytes>2147483648||!s.present&&s.bytes!==0)throw failure();
@@ -41,7 +41,7 @@ try {
  Ordinary $data $true
  $names=@('demo.sqlite','accounts.sqlite','private-conversations.sqlite','topic-crawler.sqlite','topic-growth.sqlite','topic-growth-v2.sqlite')
  $ids=@();foreach($n in $names){$ids+=$n;$ids+=($n+'-wal');$ids+=($n+'-shm');$ids+=($n+'-journal')}
- $ids+=@('account-key.protected','pairing.json','pairing-recovery/pairing-token.txt','chatgpt-registration.json','topic-space-policy.json','ridge1-topic-adapter-v1.json','diagonal-adapter-v1.json','body-topic-metric-v1.json','postgres-hierarchy-runtime-manifest.json','postgres-runtime-manifest.json','postgres-hierarchy-release-20261027-manifest.json','postgres-hierarchy-release-20261028-manifest.json')
+ $ids+=@('account-key.protected','pairing.json','pairing-recovery/pairing-token.txt','chatgpt-registration.json','topic-space-policy.json','ridge1-topic-adapter-v1.json','diagonal-adapter-v1.json','body-topic-metric-v1.json','postgres-hierarchy-runtime-manifest.json','postgres-runtime-manifest.json','postgres-hierarchy-release-20261027-manifest.json','postgres-hierarchy-release-20261028-manifest.json','postgres-hierarchy-release-20261028-final-manifest.json')
  foreach($id in $ids) {
   $p=[IO.Path]::Combine($data,$id.Replace('/','\'));$present=Test-Path -LiteralPath $p
   if($present){Ordinary $p $false;$f=New-Object IO.FileStream($p,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$handles[$id]=$f;$bytes=$f.Length;$modified=(Get-Item -LiteralPath $p).LastWriteTimeUtc.Ticks.ToString()}

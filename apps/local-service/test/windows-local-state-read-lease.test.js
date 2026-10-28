@@ -17,8 +17,10 @@ function fixture({invalidReady=false,denyVerify=false,delayedClose=false}={}){
  };
  return {lease:createWindowsLocalStateReadLeaseForTest({spawn,executable:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'}),calls,release:()=>retire(),get child(){return child;}};
 }
-test('fixed holder source uses read-only deny-write/delete handles and bounded metadata protocol',async()=>{
+test('fixed holder source uses read-only deny-write/delete handles and bounded metadata protocol',async t=>{
  const f=fixture(),held=await f.lease.acquire();assert.equal(held.slots.length,LOCAL_STATE_SLOTS.length);assert.ok(LOCAL_STATE_SLOTS.length<=64);const command=f.calls[0];assert.equal(command.options.shell,false);assert.equal(command.options.windowsHide,true);assert.deepEqual(command.options.stdio,['pipe','pipe','pipe']);
+ t.after(()=>held.close());
+ const config=JSON.parse(f.calls.find(value=>typeof value==='string'&&value.startsWith('{')));assert.equal(config.data,path.resolve(config.data),'PowerShell receives an ordinary data leaf, never a trailing separator');
  const source=command.args.at(-1);for(const text of ['[IO.FileShare]::Read','ReparsePoint','CreationTimeUtc','LastWriteTimeUtc','account-key.protected','accounts.sqlite','chatgpt-registration/v1','chatgpt-refresh-','provider-current','provider-legacy'])assert.ok(source.includes(text));assert.equal(source.includes('Unprotect('),false);assert.equal(source.includes('ReadAllBytes('),false);assert.equal(source.includes('Remove-Item'),false);
  await held.verify();await held.close();assert.ok(f.calls.includes('verify\n'));assert.ok(f.calls.includes('close\n'));assert.equal(f.calls.filter(v=>v==='kill').length,0);
 });
