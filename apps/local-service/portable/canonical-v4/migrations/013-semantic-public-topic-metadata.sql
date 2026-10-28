@@ -66,8 +66,10 @@ BEGIN
         input_.source_id IS DISTINCT FROM source_.id OR input_.matcher_hash IS DISTINCT FROM head_ OR
         embedding_.source_id IS DISTINCT FROM source_.id OR embedding_.model_id IS DISTINCT FROM 'e5-small-q8-browser-main-prefix-v1' OR
         embedding_.dimensions IS DISTINCT FROM 384 OR
-        payload_->'embedding'->>'modelId' IS DISTINCT FROM embedding_.model_id OR
-        payload_->'embedding'->'values' IS DISTINCT FROM to_jsonb(embedding_.values_double) OR
+        -- Normalized imports keep this data solely in the embedding table.
+        (payload_ ? 'embedding' AND (
+          payload_->'embedding'->>'modelId' IS DISTINCT FROM embedding_.model_id OR
+          payload_->'embedding'->'values' IS DISTINCT FROM to_jsonb(embedding_.values_double))) OR
         embedding_.payload::jsonb->>'modelId' IS DISTINCT FROM embedding_.model_id OR
         embedding_.payload::jsonb->'values' IS DISTINCT FROM to_jsonb(embedding_.values_double) OR
         input_.body_wire_hash IS DISTINCT FROM encode(sha256(array_send(embedding_.values_double)),'hex') OR

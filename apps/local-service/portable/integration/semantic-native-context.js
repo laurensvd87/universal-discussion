@@ -13,7 +13,7 @@ const sha=x=>createHash('sha256').update(x).digest('hex');
 const SQL_SHA='2a647b0a83bb4e9c09bbd703dc4343788a4dd57dd7f52289f5b842afaeba8355';
 const FEED_SQL_SHA='a2ccf69eb5c17bc4f64a950c053bae49dd82f9f13c913cf7fb5615602f945202';
 const STORED_SQL_SHA='27ad3f6f0987c3c46cb84f799a63ef8b92e23ee74b4bfed3541f820189ec4712';
-const METADATA_SQL_SHA='cd89f6da5c3813991b627f29c03ac9cb28688cef942812e6af518649f3ae2855';
+const METADATA_SQL_SHA='49e4b4a8cf3d974eaeb6d42df173d8a35a1f1577e62a3f208e634c72dffff2ff';
 const CONTAINER_SQL_SHA='af0d480792ed2e55dfc2961356b6e1400e4bb9abbdd90d478492f7b222c06cd7';
 const REPLY_SQL_SHA='d47f34778d0034c7353019665f5ede63b0a3cb2ee45d3bf92b961754404b324a';
 const INSIGHT_REPLY_SQL_SHA='bd872eb65efb8f3012f7c3b45ed69da0d3ef6568a88c58273f5b7402c266fd4f';
@@ -83,7 +83,7 @@ export async function runSemanticNativeProof(){
  const storedRaw=await readFile(new URL('../canonical-v4/migrations/012-semantic-stored-source-preparation.sql',import.meta.url));
  if(storedRaw.length!==29273||sha(storedRaw)!==STORED_SQL_SHA)throw fail('SEMANTIC_STORED_SCHEMA_PIN');
  const metadataRaw=await readFile(new URL('../canonical-v4/migrations/013-semantic-public-topic-metadata.sql',import.meta.url));
- if(metadataRaw.length!==7445||sha(metadataRaw)!==METADATA_SQL_SHA)throw fail('SEMANTIC_METADATA_SCHEMA_PIN');
+ if(metadataRaw.length!==7565||sha(metadataRaw)!==METADATA_SQL_SHA)throw fail('SEMANTIC_METADATA_SCHEMA_PIN');
  const containerRaw=await readFile(new URL('../canonical-v4/migrations/014-semantic-source-containers.sql',import.meta.url));
  if(containerRaw.length!==22853||sha(containerRaw)!==CONTAINER_SQL_SHA)throw fail('SEMANTIC_CONTAINER_SCHEMA_PIN');
  const replyRaw=await readFile(new URL('../canonical-v4/migrations/015-semantic-reply-witness.sql',import.meta.url));
