@@ -39,7 +39,7 @@ test('closed manifests preserve exact legacy9 and hierarchy16 prefixes under hie
  const legacy=await readCanonicalV4MigrationManifest(),hierarchy=await readCanonicalV4MigrationManifest('hierarchy16'),latest=await readCanonicalV4MigrationManifest('hierarchy17');
  assert.equal(legacy.length,9);assert.equal(hierarchy.length,16);assert.equal(latest.length,17);
  assert.deepEqual(hierarchy.slice(0,9),legacy);assert.deepEqual(latest.slice(0,16),hierarchy);assert.equal(latest[16].version,17);assert.equal(latest[16].hash,sha(latest[16].sql));
- for(const profile of ['hierarchy15','hierarchy18','16','17',16,17,null,{},['hierarchy16'],['hierarchy17']])await assert.rejects(readCanonicalV4MigrationManifest(profile),TypeError);
+ for(const profile of ['hierarchy15','hierarchy19','16','17',16,17,null,{},['hierarchy16'],['hierarchy17']])await assert.rejects(readCanonicalV4MigrationManifest(profile),TypeError);
 });
 
 test('all repository health gates require exact selected hashes/counts and default to9',async()=>{

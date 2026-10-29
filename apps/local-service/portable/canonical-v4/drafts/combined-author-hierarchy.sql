@@ -95,13 +95,27 @@ RETURNS boolean LANGUAGE sql IMMUTABLE SET search_path=pg_catalog AS $valid$
  END
 $valid$;
 
--- Exact old check is retained for page/named; only the semantic branch joins
--- the protected current material and bounded combined public ancestry.
+-- Retain the exact original page/direct-named checks. A current confident leaf
+-- also supports its active ancestors; semantic scopes use protected material.
+CREATE FUNCTION canonical_v4.combined_inherited_named_scope(p_generation text,p_source text,p_subject uuid) RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $inherit$
+ SELECT coalesce((SELECT CASE WHEN e->'scope'->>'kind'='named' THEN
+  p_subject=ANY(canonical_v4.named_current_subject_path(p_generation,(e->'scope'->>'id')::uuid)) ELSE false END
+  FROM (SELECT canonical_v4.named_read_editor(p_generation,p_source)e) current_),false);
+$inherit$;
 ALTER FUNCTION canonical_v4.named_check_editor_scope(text,text,jsonb) RENAME TO combined_original_check_scope;
 CREATE FUNCTION canonical_v4.named_check_editor_scope(p_generation text,p_topic text,p_scope jsonb) RETURNS boolean
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $check$
+DECLARE editor_ jsonb;
 BEGIN
- IF p_scope->>'kind' IS DISTINCT FROM 'semantic' THEN RETURN canonical_v4.combined_original_check_scope(p_generation,p_topic,p_scope);END IF;
+ IF p_scope->>'kind' IS DISTINCT FROM 'semantic' THEN
+  IF canonical_v4.combined_original_check_scope(p_generation,p_topic,p_scope) THEN RETURN true;END IF;
+  IF p_scope->>'kind'<>'named' THEN RETURN false;END IF;
+  editor_:=canonical_v4.named_read_editor(p_generation,p_scope->>'sourceId');
+  RETURN editor_->>'topicId'=p_topic AND editor_->'pageScope'->>'materialDigest'=p_scope->>'materialDigest' AND
+   canonical_v4.combined_inherited_named_scope(p_generation,p_scope->>'sourceId',(p_scope->>'id')::uuid) AND
+   EXISTS(SELECT 1 FROM canonical_v4.named_subject_heads h WHERE h.subject_id=(p_scope->>'id')::uuid AND h.label=p_scope->>'caption');
+ END IF;
  IF canonical_v4.named_valid_editor_scope(p_scope) IS DISTINCT FROM true THEN RAISE EXCEPTION 'Invalid combined scope' USING ERRCODE='P1293';END IF;
  RETURN EXISTS(SELECT 1 FROM canonical_v4.source_links l JOIN canonical_v4.operation_receipts r ON r.source_id=l.source_id
   WHERE l.source_id=p_scope->>'sourceId' AND l.topic_id=p_topic AND r.operation_digest=p_scope->>'materialDigest') AND
@@ -236,7 +250,9 @@ BEGIN
   IF p_scope->>'id' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' THEN
    RAISE EXCEPTION 'Invalid named scope' USING ERRCODE='P1293';END IF;
   SELECT matcher_hash INTO matcher_ FROM canonical_v4.semantic_installation WHERE singleton FOR SHARE;
-  IF canonical_v4.named_locked_feed_path(p_generation,(p_scope->>'id')::uuid) IS NULL THEN
+  editor_:=canonical_v4.named_read_editor(p_generation,p_source_id);
+  IF canonical_v4.named_locked_feed_path(p_generation,CASE WHEN canonical_v4.combined_inherited_named_scope(p_generation,p_source_id,(p_scope->>'id')::uuid)
+    THEN (editor_->'scope'->>'id')::uuid ELSE (p_scope->>'id')::uuid END) IS NULL THEN
    RAISE EXCEPTION 'Combined ancestry busy' USING ERRCODE='P1291';END IF;
   SELECT * INTO head_ FROM canonical_v4.named_subject_heads WHERE subject_id=(p_scope->>'id')::uuid FOR SHARE;
   -- Membership suffices: a previously chosen broad subject need not remain the
@@ -245,9 +261,10 @@ BEGIN
   IF head_.subject_id IS NULL OR head_.generation<>p_generation OR head_.matcher_hash IS DISTINCT FROM matcher_ OR
     head_.label IS DISTINCT FROM p_scope->>'caption' OR
     NOT EXISTS(SELECT 1 FROM canonical_v4.named_subject_ids id_ WHERE id_.id=head_.subject_id AND id_.revision=head_.revision) OR
-    NOT EXISTS(SELECT 1 FROM canonical_v4.named_subject_members m WHERE m.subject_id=head_.subject_id AND m.source_id=p_source_id
+    (NOT EXISTS(SELECT 1 FROM canonical_v4.named_subject_members m WHERE m.subject_id=head_.subject_id AND m.source_id=p_source_id
       AND m.source_version=source_.write_version AND m.operation_id=source_.operation_id
-      AND m.operation_digest=receipt_.operation_digest AND m.source_stamp=stamp_.stamp) THEN
+      AND m.operation_digest=receipt_.operation_digest AND m.source_stamp=stamp_.stamp) AND
+     NOT canonical_v4.combined_inherited_named_scope(p_generation,p_source_id,head_.subject_id)) THEN
    RAISE EXCEPTION 'Named scope changed' USING ERRCODE='P1291';END IF;
  END IF;
  INSERT INTO canonical_v4.named_root_contexts VALUES(p_root,p_generation,p_scope->>'kind',p_scope->>'id',p_scope->>'caption');
@@ -354,12 +371,12 @@ BEGIN
 END $search$;
 
 REVOKE ALL ON TABLE canonical_v4.combined_fixed_edges FROM PUBLIC;
-REVOKE ALL ON FUNCTION canonical_v4.combined_named_prefix(text,uuid),canonical_v4.combined_source_fixed_path(text,text),canonical_v4.combined_supported_scopes(text,text),canonical_v4.combined_read_editor(text,text),canonical_v4.named_valid_editor_scope(jsonb),canonical_v4.named_check_editor_scope(text,text,jsonb),canonical_v4.combined_index_fixed_root(text),canonical_v4.named_schedule_root_feed(),canonical_v4.named_index_root_feed(text),canonical_v4.combined_read_fixed_feed(text,text,bigint,integer),canonical_v4.combined_fixed_activity(text,text),canonical_v4.named_reply_member(text,text,text,bigint,text,text),canonical_v4.named_attach_root_context(text,text,text,text,text,jsonb),canonical_v4.semantic_set_owner_policy(bigint,integer,jsonb),canonical_v4.unified_search_topics(text,text[],jsonb,integer),canonical_v4.combined_original_check_scope(text,text,jsonb),canonical_v4.combined_original_index_root(text),canonical_v4.combined_original_reply_member(text,text,text,bigint,text,text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION canonical_v4.combined_named_prefix(text,uuid),canonical_v4.combined_source_fixed_path(text,text),canonical_v4.combined_supported_scopes(text,text),canonical_v4.combined_read_editor(text,text),canonical_v4.named_valid_editor_scope(jsonb),canonical_v4.named_check_editor_scope(text,text,jsonb),canonical_v4.combined_index_fixed_root(text),canonical_v4.named_schedule_root_feed(),canonical_v4.named_index_root_feed(text),canonical_v4.combined_read_fixed_feed(text,text,bigint,integer),canonical_v4.combined_fixed_activity(text,text),canonical_v4.named_reply_member(text,text,text,bigint,text,text),canonical_v4.named_attach_root_context(text,text,text,text,text,jsonb),canonical_v4.semantic_set_owner_policy(bigint,integer,jsonb),canonical_v4.unified_search_topics(text,text[],jsonb,integer),canonical_v4.combined_inherited_named_scope(text,text,uuid),canonical_v4.combined_original_check_scope(text,text,jsonb),canonical_v4.combined_original_index_root(text),canonical_v4.combined_original_reply_member(text,text,text,bigint,text,text) FROM PUBLIC;
 DO $permissions$ DECLARE role_ text;BEGIN
  FOREACH role_ IN ARRAY ARRAY['murmingle_app','murmingle_ingest_worker','murmingle_crawler_submitter','murmingle_adapter'] LOOP
   IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname=role_) THEN
    EXECUTE format('REVOKE ALL ON TABLE canonical_v4.combined_fixed_edges FROM %I',role_);
-   EXECUTE format('REVOKE ALL ON FUNCTION canonical_v4.combined_named_prefix(text,uuid),canonical_v4.combined_source_fixed_path(text,text),canonical_v4.combined_supported_scopes(text,text),canonical_v4.combined_read_editor(text,text),canonical_v4.named_valid_editor_scope(jsonb),canonical_v4.named_check_editor_scope(text,text,jsonb),canonical_v4.combined_index_fixed_root(text),canonical_v4.named_schedule_root_feed(),canonical_v4.named_index_root_feed(text),canonical_v4.combined_read_fixed_feed(text,text,bigint,integer),canonical_v4.combined_fixed_activity(text,text),canonical_v4.named_reply_member(text,text,text,bigint,text,text),canonical_v4.named_attach_root_context(text,text,text,text,text,jsonb),canonical_v4.semantic_set_owner_policy(bigint,integer,jsonb),canonical_v4.unified_search_topics(text,text[],jsonb,integer),canonical_v4.combined_original_check_scope(text,text,jsonb),canonical_v4.combined_original_index_root(text),canonical_v4.combined_original_reply_member(text,text,text,bigint,text,text) FROM %I',role_);
+   EXECUTE format('REVOKE ALL ON FUNCTION canonical_v4.combined_named_prefix(text,uuid),canonical_v4.combined_source_fixed_path(text,text),canonical_v4.combined_supported_scopes(text,text),canonical_v4.combined_read_editor(text,text),canonical_v4.named_valid_editor_scope(jsonb),canonical_v4.named_check_editor_scope(text,text,jsonb),canonical_v4.combined_index_fixed_root(text),canonical_v4.named_schedule_root_feed(),canonical_v4.named_index_root_feed(text),canonical_v4.combined_read_fixed_feed(text,text,bigint,integer),canonical_v4.combined_fixed_activity(text,text),canonical_v4.named_reply_member(text,text,text,bigint,text,text),canonical_v4.named_attach_root_context(text,text,text,text,text,jsonb),canonical_v4.semantic_set_owner_policy(bigint,integer,jsonb),canonical_v4.unified_search_topics(text,text[],jsonb,integer),canonical_v4.combined_inherited_named_scope(text,text,uuid),canonical_v4.combined_original_check_scope(text,text,jsonb),canonical_v4.combined_original_index_root(text),canonical_v4.combined_original_reply_member(text,text,text,bigint,text,text) FROM %I',role_);
   END IF;
  END LOOP;
  IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='murmingle_app') THEN GRANT EXECUTE ON FUNCTION canonical_v4.combined_read_editor(text,text),canonical_v4.named_check_editor_scope(text,text,jsonb),canonical_v4.combined_read_fixed_feed(text,text,bigint,integer),canonical_v4.unified_search_topics(text,text[],jsonb,integer) TO murmingle_app;END IF;

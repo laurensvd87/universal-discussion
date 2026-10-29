@@ -15,6 +15,8 @@ import {AUTOMATIC_AUTHOR_CONTEXT_NATIVE_CASES,runAutomaticAuthorContextNativeAss
 import {AUTOMATIC_AUTHOR_INSIGHT_NATIVE_CASES} from '../test/automatic-author-insight-native-assertions.js';
 import {AUTOMATIC_TOPIC_FEED_NATIVE_CASES} from '../test/automatic-topic-feed-native-assertions.js';
 import {AUTOMATIC_TOPIC_PUBLIC_NATIVE_CASES} from '../test/automatic-topic-public-native-assertions.js';
+import {checkAutomaticTopicPublicNativeCase} from '../test/automatic-topic-public-native-assertions.js';
+import {createAutomaticTopicsMigrationNativeAssertions} from '../test/automatic-topics-migration-native-assertions.js';
 import {AUTOMATIC_PAGE_TOPIC_NATIVE_CASES} from '../test/automatic-page-topic-native-assertions.js';
 import {PUBLISHED_TOPIC_EVIDENCE_NATIVE_CASES} from '../test/published-topic-evidence-native-assertions.js';
 
@@ -146,7 +148,9 @@ export async function runSemanticNativeProof(){
    if(index===0)await runPublicSubjectNativeAssertions({database,cases:publicSubjectCases});return fixture;
   }
   let rows=null,cleanup;
+  const migration=createAutomaticTopicsMigrationNativeAssertions({check:(index,work)=>checkAutomaticTopicPublicNativeCase(automaticTopicPublicCases,index,work)});
   try{await runSemanticAssertions(checks.test,{acquireFixture,beforeSemanticCases:scope=>runPublicSourceNativeAssertions({...scope,cases:publicSourceBindingCases}),
+   beforeInstalledHierarchy:migration.before,afterInstalledHierarchy:migration.after,
    afterSemanticSetup:async scope=>{
     let finishAuthoredContext=null;
     await runAutomaticSubjectNativeAssertions({...scope,cases:automaticSubjectCases,beforeRetirement:async inner=>{

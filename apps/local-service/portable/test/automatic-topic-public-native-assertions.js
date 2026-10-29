@@ -27,6 +27,7 @@ async function test(cases,index,work){let stage='CALL';const at=value=>{if(!['BU
  const d=error&&!types.isProxy(error)&&Object.getOwnPropertyDescriptor(error,'code'),raw=d&&Object.hasOwn(d,'value')?d.value:null;
  const safe=['ERR_ASSERTION','UNIFIED_SEARCH_INDEX','UNIFIED_FEED_INDEX','UNIFIED_FEED_PROBE','UNIFIED_GIN_INDEX','42601','42702','42703','42P01','42804','42830','42883','23503','23505','23514','42501','2BP01','0A000','P1301','P1303','P1304','P1001','P1221','P1223','P1291','P1293','invalid-response','invalid-request','invalid','conflict','forbidden','unauthorized','storage-failure','storage-corrupt','unavailable'].includes(raw)?raw.toUpperCase().replaceAll('-','_'):'UNKNOWN';
  throw Object.assign(Error('Owned public topic check did not complete'),{code:`PUBLIC_${index}_${stage}_${safe}`});}}
+export {test as checkAutomaticTopicPublicNativeCase};
 
 export async function runAutomaticTopicPublicNativeAssertions(scope){
  const {owner,worker,app,observer,generation,sourceIds,publicationInput,cases}=scope;let serial=0,selected=null,root=null,parent=null,reply=null,packet=null,posted=null,ai=null;

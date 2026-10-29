@@ -31,10 +31,12 @@ const HIERARCHY_MIGRATION_FILES = Object.freeze([...MIGRATION_FILES,
 const HIERARCHY17_MIGRATION_FILES = Object.freeze([...HIERARCHY_MIGRATION_FILES,
   '017-semantic-dashboard-counts.sql',
 ]);
+const HIERARCHY18_MIGRATION_FILES = Object.freeze([...HIERARCHY17_MIGRATION_FILES,'018-automatic-topics.sql']);
 export function canonicalV4SchemaVersion(profile = 'legacy9') {
   if (profile === 'legacy9') return 9;
   if (profile === 'hierarchy16') return 16;
   if (profile === 'hierarchy17') return 17;
+  if (profile === 'hierarchy18') return 18;
   throw new TypeError('Invalid canonical schema profile');
 }
 const ACTIVE_KINDS = Object.freeze([
@@ -287,7 +289,7 @@ export async function extractCanonicalV4Snapshot(sqlitePath) {
 
 export async function readCanonicalV4MigrationManifest(profile = 'legacy9') {
   const version = canonicalV4SchemaVersion(profile);
-  const files = version === 9 ? MIGRATION_FILES : version === 16 ? HIERARCHY_MIGRATION_FILES : HIERARCHY17_MIGRATION_FILES;
+  const files = version === 9 ? MIGRATION_FILES : version === 16 ? HIERARCHY_MIGRATION_FILES : version===17?HIERARCHY17_MIGRATION_FILES:HIERARCHY18_MIGRATION_FILES;
   const migrations = await Promise.all(files.map(async (filename, index) => {
     const sql = await readFile(new URL(`./migrations/${filename}`, import.meta.url), 'utf8');
     return Object.freeze({ version: index + 1, sql, hash: digestText(sql) });

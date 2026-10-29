@@ -35,7 +35,8 @@ export async function runCombinedAuthorHierarchyNativeAssertions(scope){
  const identity=describeRootedHierarchyMatcher(matcher),matcherHash=createHash('sha256').update(JSON.stringify(identity)).digest('hex');
  const policy=policies({database:owner}),prior=await policy.ownerPolicy();let serial=0,broad,leaf,parent,semanticRoot,namedRoot,client,handler,service,config;
  const editor=authors({database:app,ownerGrouping:true,combinedHierarchy:true,nextId:()=> 'combined-native-root-'+(++serial)});
- const reads=createCanonicalV4ReadFacade({database:app,automaticTopics:true,unifiedTopicSearch:true,combinedHierarchy:true}),runtime=createCanonicalV4RuntimeRepository({database:app}),life=createCanonicalV4LifecycleRepository({database:app});
+ const schemaProfile=scope.schemaProfile??'legacy9';
+ const reads=createCanonicalV4ReadFacade({database:app,automaticTopics:true,unifiedTopicSearch:true,combinedHierarchy:true}),runtime=createCanonicalV4RuntimeRepository({database:app,schemaProfile}),life=createCanonicalV4LifecycleRepository({database:app,schemaProfile});
  const expected=()=>one(app,'SELECT generation,revision::integer revision FROM canonical_v4.runtime_state WHERE singleton');
  const context=()=>editor.editor(JSON.stringify({generation,sourceId:source}));
  async function set(defaultMaxDepth,overrides=[]){const p=await policy.ownerPolicy();return policy.setOwnerPolicy({expectedRevision:p.revision,defaultMaxDepth,overrides});}
@@ -45,7 +46,8 @@ export async function runCombinedAuthorHierarchyNativeAssertions(scope){
  const has=async(nodeId,id)=>(await reads.semanticFeed({nodeId,limit:50,cursor:null})).roots.some(v=>v.root.id===id);
  await check(0,async()=>{
   const before=await expected(),manifest=(await owner.query('SELECT * FROM canonical_v4.schema_migrations ORDER BY version')).rows;
-  const sql=await readFile(new URL('../canonical-v4/drafts/combined-author-hierarchy.sql',import.meta.url),'utf8');await owner.exec(sql);
+  const sql=await readFile(new URL('../canonical-v4/drafts/combined-author-hierarchy.sql',import.meta.url),'utf8');
+  if(scope.alreadyInstalled!==true)await owner.exec(sql);else assert.equal((await one(owner,'SELECT max(version)::integer n FROM canonical_v4.schema_migrations')).n,18);
   await assert.rejects(owner.query(combinedGenerationCollisionProbe(sql,true)),code('42702'));await owner.exec(combinedGenerationCollisionProbe(sql));
   assert.deepEqual(await expected(),before);assert.deepEqual((await owner.query('SELECT * FROM canonical_v4.schema_migrations ORDER BY version')).rows,manifest);
  });
@@ -79,11 +81,21 @@ export async function runCombinedAuthorHierarchyNativeAssertions(scope){
   await set(8);assert.equal((await context()).scope.id,leaf);assert.equal((await one(owner,'SELECT subject_id::text id FROM canonical_v4.named_subject_selections WHERE source_id=$1',[source])).id,leaf);
   await owner.query('DELETE FROM canonical_v4.named_subject_selections WHERE source_id=$1',[source]);await set(2);assert.equal((await context()).scope.id,'invented-game-branch','prepared fixed hierarchy works without a learned selection');
   await owner.query('INSERT INTO canonical_v4.named_subject_selections VALUES($1,$2)',[source,leaf]);
-  assert.equal((await editor.editor(JSON.stringify({generation,sourceId:scope.sourceIds.at(-1)}))).scope.kind,'page','unresolved page remains immediately writable');
+  if(scope.sourceIds?.length)assert.equal((await editor.editor(JSON.stringify({generation,sourceId:scope.sourceIds.at(-1)}))).scope.kind,'page','unresolved page remains immediately writable');
+  else{
+   const rollback=Error('Rollback unprepared metadata control');let restored=false;
+   try{await owner.transaction(async tx=>{await tx.query('DELETE FROM canonical_v4.named_subject_selections WHERE source_id=$1',[source]);
+    await tx.query('DELETE FROM canonical_v4.semantic_observations WHERE source_id=$1',[source]);
+    const page=await authors({database:tx,ownerGrouping:true,combinedHierarchy:true}).editor(JSON.stringify({generation,sourceId:source}));assert.equal(page.scope.kind,'page');throw rollback;
+   });}catch(e){if(e!==rollback)throw e;restored=true;}assert(restored);
+  }
  });
  await check(3,async()=>{
   await set(1,[{nodeId:'games',maxDepth:3}]);assert.equal((await context()).scope.id,leaf);
   await set(1,[{nodeId:'games',maxDepth:3},{nodeId:'subject-'+parent,maxDepth:2}]);assert.equal((await context()).scope.id,parent);
+  const member=await one(owner,'DELETE FROM canonical_v4.named_subject_members WHERE subject_id=$1 AND source_id=$2 RETURNING *',[parent,source]);
+  assert.equal((await context()).scope.id,parent,'a confident current child supports its current parent without copying all historical Sources into a new cohort');await post(await context());
+  await owner.query('INSERT INTO canonical_v4.named_subject_members VALUES($1,$2,$3,$4,$5,$6)',[member.subject_id,member.source_id,member.source_version,member.operation_id,member.operation_digest,member.source_stamp]);
   const p=await policy.ownerPolicy();await assert.rejects(policy.setOwnerPolicy({expectedRevision:p.revision,defaultMaxDepth:1,overrides:[{nodeId:'subject-'+leaf,maxDepth:2}]}),code('invalid'));assert.deepEqual(await policy.ownerPolicy(),p);
   await set(3);assert.equal(await editor.scopeCurrent(JSON.stringify({generation,topicId:broad.topicId,scope:broad.scope})),true,'captured broad draft remains valid');
  });
@@ -134,6 +146,8 @@ export async function runCombinedAuthorHierarchyNativeAssertions(scope){
   for(const root of roots)await life.command(await expected(),{type:'withdraw',contributionId:root},actor);
   const all=[...roots,...replies];await owner.transaction(async tx=>{for(const table of ['command_receipts','revisions'])await tx.query('DELETE FROM canonical_v4.'+table+' WHERE contribution_id=ANY($1::text[])',[all]);
    await tx.query('DELETE FROM canonical_v4.contributions WHERE id=ANY($1::text[])',[all]);await tx.query('DELETE FROM canonical_v4.id_registry WHERE id=ANY($1::text[])',[[...all,...ids]]);});
+  if(scope.afterRetirement)await scope.afterRetirement();
+  if(scope.retireSchema===false)return;
   for(const [file,names]of [['automatic-author-context.sql',['named_valid_editor_scope','named_attach_root_context']],['automatic-topic-feeds.sql',['named_schedule_root_feed']],['named-owner-grouping.sql',['semantic_set_owner_policy']],['unified-topic-search.sql',['unified_search_topics']]]){
    const raw=await readFile(new URL('../canonical-v4/drafts/'+file,import.meta.url),'utf8');for(const name of names)await owner.exec(sourceFunction(raw,name));
   }
@@ -143,7 +157,7 @@ export async function runCombinedAuthorHierarchyNativeAssertions(scope){
    ALTER FUNCTION canonical_v4.combined_original_reply_member(text,text,text,bigint,text,text) RENAME TO named_reply_member;
    GRANT EXECUTE ON FUNCTION canonical_v4.named_check_editor_scope(text,text,jsonb) TO murmingle_app;
    DROP TABLE canonical_v4.combined_fixed_edges;
-   DROP FUNCTION canonical_v4.combined_named_prefix(text,uuid),canonical_v4.combined_source_fixed_path(text,text),canonical_v4.combined_supported_scopes(text,text),canonical_v4.combined_read_editor(text,text),canonical_v4.combined_index_fixed_root(text),canonical_v4.combined_read_fixed_feed(text,text,bigint,integer),canonical_v4.combined_fixed_activity(text,text);
+   DROP FUNCTION canonical_v4.combined_named_prefix(text,uuid),canonical_v4.combined_source_fixed_path(text,text),canonical_v4.combined_supported_scopes(text,text),canonical_v4.combined_read_editor(text,text),canonical_v4.combined_index_fixed_root(text),canonical_v4.combined_read_fixed_feed(text,text,bigint,integer),canonical_v4.combined_fixed_activity(text,text),canonical_v4.combined_inherited_named_scope(text,text,uuid);
    ALTER TABLE canonical_v4.named_root_contexts DROP CONSTRAINT named_root_contexts_scope_kind_check;
    ALTER TABLE canonical_v4.named_root_contexts ADD CONSTRAINT named_root_contexts_scope_kind_check CHECK(scope_kind IN ('page','named'));
    ALTER TABLE canonical_v4.named_root_contexts DROP CONSTRAINT named_root_contexts_scope_id_check;

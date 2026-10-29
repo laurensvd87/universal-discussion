@@ -194,6 +194,13 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/portable/canonical-v4/drafts/named-owner-grouping.sql',
     'apps/local-service/portable/canonical-v4/drafts/unified-topic-search.sql',
     'apps/local-service/portable/canonical-v4/drafts/combined-author-hierarchy.sql',
+    'apps/local-service/portable/canonical-v4/automatic-topics-installation.js',
+    'apps/local-service/portable/canonical-v4/automatic-topics-migration-source.js',
+    'apps/local-service/portable/canonical-v4/migrations/018-automatic-topics.sql',
+    'apps/local-service/portable/canonical-v4/AUTOMATIC-TOPICS-INSTALLATION.md',
+    'apps/local-service/portable/test/automatic-topics-fixture-input.js',
+    'apps/local-service/portable/test/automatic-topics-migration-native-assertions.js',
+    'apps/local-service/portable/test/automatic-topics-installation.test.js',
     'apps/local-service/portable/canonical-v4/drafts/COMBINED-AUTHOR-HIERARCHY.md',
     'apps/local-service/portable/test/combined-author-hierarchy-fixture.js',
     'apps/local-service/portable/test/combined-author-hierarchy-native-assertions.js',
@@ -674,9 +681,9 @@ def semantic_completion(stdout, stderr, exit_code):
             return refused('json-automatic-topic-public-cases')
         names = parse(raw)
         observed = proof['automaticTopicPublicCases']
-        if (type(names) is not list or len(names) != 39 or len(set(names)) != 39
+        if (type(names) is not list or len(names) != 59 or len(set(names)) != 59
                 or any(type(name) is not str for name in names)
-                or type(observed) is not list or len(observed) != 39
+                or type(observed) is not list or len(observed) != 59
                 or observed != [{'name':name,'status':'passed'} for name in names]
                 or any(not shape(row,'name status') for row in observed)):
             return refused('json-automatic-topic-public-cases')
