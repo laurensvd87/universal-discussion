@@ -5,14 +5,14 @@ import {createHash} from 'node:crypto';import {fileURLToPath} from 'node:url';
 import {createPackagedCrawlerEmbedder} from '../../src/crawler/packaged-e5.js';
 import {compilePairedE5Input,describePairedE5Input,applyPairedE5Input} from '../../src/domain/hierarchical-e5-paired-input.js';
 import {publicTopicEncoderInput,comparePublishedTopicRecovery,PUBLIC_RECOVERY_POLICY_HASH} from './recovery.js';
-const root=new URL('../../../../',import.meta.url),data=new URL('apps/local-service/data/',root),out=new URL('public-topic-recovery-dev-20261029/',data);
+const root=new URL('../../../../',import.meta.url),data=new URL('apps/local-service/data/',root),out=new URL('public-topic-recovery-packaged-runtime-20261029/',data);
 const hash=b=>createHash('sha256').update(b).digest('hex'),pins=[];
 async function file(url,max=2097152,expected=null){const before=await lstat(url);if(!before.isFile()||before.isSymbolicLink()||before.size<1||before.size>max)throw Error('Input bounds');
  const bytes=await readFile(url);const h=hash(bytes);if(bytes.length!==before.size||expected!==null&&h!==expected)throw Error('Input integrity');
  pins.push({file:fileURLToPath(url).slice(fileURLToPath(root).length).replaceAll('\\','/'),bytes:bytes.length,sha256:h});return bytes;}
 const json=async(url,max,expected)=>JSON.parse(new TextDecoder('utf8',{fatal:true}).decode(await file(url,max,expected)));
 const save=async(name,value)=>writeFile(new URL(name,out),JSON.stringify(value)+'\n',{flag:'wx'});
-if(process.argv.length!==2)throw Error('No arguments accepted');
+if(process.argv.length!==2||JSON.stringify(process.execArgv)!==JSON.stringify(['--max-old-space-size=512']))throw Error('Existing packaged-model runtime required');
 for(const name of ['recovery.js','public-examples.json','run-dev-comparison.mjs'])await file(new URL(name,import.meta.url));
 for(const name of ['apps/local-service/src/crawler/packaged-e5.js','apps/local-service/src/domain/hierarchical-e5-paired-input.js','spikes/topic-resolution/browser/embedding/embedding-contract.js'])await file(new URL(name,root));
 const manifest=await file(new URL('spikes/topic-resolution/browser/embedding/.assets/manifest.json',root),16384);
@@ -40,13 +40,16 @@ const queries=[{label:'Kapsalon',members:owner.rows.map(r=>r.id),expected:'kapsa
  {label:'Roter Panda',members:['general-red-panda-03','general-red-panda-01'],expected:'red-panda'}];
 if(queries.length!==6||queries.some(q=>!q.expected||q.members.some(id=>!features.has(id))))throw Error('Query ledger');
 await mkdir(out);const start=performance.now();let encoder=null,closed=false,error=null;const evidence=[];let comparisons=[];
+console.log(JSON.stringify({phase:'fixed-inputs-verified',publicExamples:13,queries:6,existingModelHeapMiB:512}));
 try{
  encoder=await createPackagedCrawlerEmbedder({expectedManifestSha256:hash(manifest)});
+ console.log(JSON.stringify({phase:'existing-packaged-encoder-open'}));
  for(const example of examples.examples){const input=publicTopicEncoderInput(JSON.stringify(example));
   const body=await encoder.embed(input.bodyInput),title=await encoder.embed(input.titleInput);
   const fused=applyPairedE5Input(paired,{sourceId:example.rootId,sourceVersion:input.publicDigest,bodyVector:body.values,titleVector:title.values});
   if(fused.status!=='available')throw Error('Public vector unavailable');
   const candidate={...example,publicDigest:input.publicDigest,representationHash,vector:fused.vector};evidence.push(candidate);await save(example.rootId+'.json',candidate);
+  console.log(JSON.stringify({phase:'public-evidence-encoded',rootId:example.rootId}));
  }
  comparisons=queries.map(q=>{
   const vectors=q.members.map(id=>features.get(id)),result=comparePublishedTopicRecovery(JSON.stringify({representationHash,label:q.label,memberVectors:vectors,candidates:evidence}));

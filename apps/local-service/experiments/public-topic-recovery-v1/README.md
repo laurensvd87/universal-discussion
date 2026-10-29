@@ -42,6 +42,19 @@ be retained. Only the existing packaged local encoder is allowed; no network,
 LLM, database, crawler interruption or download is required. Earlier captures,
 vectors and outcomes are immutable. A new output directory is exclusive.
 
+The first attempted comparison (`ad829974`, output
+`public-topic-recovery-dev-20261029`) failed at a mistakenly selected128MiB V8
+heap limit after creating its empty output directory. No semantic comparisons
+or public vectors were saved; the precise allocation site was not retained.
+That source commit and empty output remain preserved. This is not evidence of
+host memory exhaustion or semantic accuracy. Before correcting admission, Root
+read the actual existing crawler6384 and worker11880 model command options: both
+already use512MiB. The maintained runner now requires that exact established
+packaged-model runtime, uses a distinct output namespace and emits phase
+progress. This is a single separately decided comparison, not an automatic
+budget ladder. The model/encoder code, all three strategies, constants, input
+cohort, original native-SQL fixture limits and live settings remain unchanged.
+
 If a strategy is promising, subsequent integration must capture public evidence
 at its real SQL revision, invalidate it on body edit/root withdrawal, recheck
 the public root and current Source fences in one canonical publication
