@@ -16,3 +16,12 @@ export const AUTOMATIC_TOPIC_DEVELOPMENT_PROTOCOL=Object.freeze({
  validation:'This is DEV, not final validation. Freeze a selected policy before declaring and capturing prospective unseen events/sites. Old hierarchy TEST is not tuning data.',
  maximumRequests:16,maximumCaptureMs:240000,minimumRequestSpacingMs:5000,
 });
+// Separate additional DEV documents after only1/6 originals was usable. The
+// first six outcomes remain counted, including access/policy refusals. No
+// alternate URL on a denied publisher, replacement or TEST access is admitted.
+export const AUTOMATIC_TOPIC_ADDITIONAL_DEVELOPMENT=Object.freeze([
+ {id:'automatic-extra-physics-01',eventId:'nobel-physics-2024-announcement',eventDate:'2024-10-08',publisherKey:'cam.ac.uk',url:'https://www.cam.ac.uk/research/news/university-of-cambridge-alumnus-awarded-2024-nobel-prize-in-physics'},
+ {id:'automatic-extra-physics-02',eventId:'nobel-physics-2024-announcement',eventDate:'2024-10-08',publisherKey:'caltech.edu',url:'https://www.caltech.edu/about/news/caltech-professor-emeritus-john-hopfield-wins-nobel-prize-in-physics'},
+ {id:'automatic-extra-chemistry-01',eventId:'nobel-chemistry-2024-announcement',eventDate:'2024-10-09',publisherKey:'ucl.ac.uk',url:'https://www.ucl.ac.uk/news/2024/oct/ucl-alumnus-and-ai-innovator-awarded-nobel-prize-chemistry'},
+ {id:'automatic-extra-chemistry-02',eventId:'nobel-chemistry-2024-announcement',eventDate:'2024-10-09',publisherKey:'berkeley.edu',url:'https://news.berkeley.edu/2024/10/09/david-baker-a-uc-berkeley-ph-d-awarded-2024-nobel-prize-in-chemistry/'},
+].map(p=>Object.freeze({...p,split:'development'})));

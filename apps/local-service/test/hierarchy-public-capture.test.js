@@ -8,8 +8,8 @@ import {PUBLIC_HIERARCHY_PROBES as probes} from '../harness/hierarchy-public-pro
 import {RECIPE_CAL_PROBES,RECIPE_TEST_PROBES} from '../harness/hierarchy-recipe-corpus.js';
 import {GTA_TRAIN_PROBES,GTA_CAL_PROBES,GTA_TEST_PROBES} from '../harness/hierarchy-gta-corpus.js';
 import {PublicFetchError} from '../src/crawler/public-fetch.js';
-import {createAutomaticTopicDevelopmentCapture} from '../harness/hierarchy-public-capture.js';
-import {AUTOMATIC_TOPIC_DEVELOPMENT} from '../harness/automatic-topic-development-corpus.js';
+import {createAutomaticTopicDevelopmentCapture,createAutomaticTopicAdditionalDevelopmentCapture} from '../harness/hierarchy-public-capture.js';
+import {AUTOMATIC_TOPIC_DEVELOPMENT,AUTOMATIC_TOPIC_ADDITIONAL_DEVELOPMENT} from '../harness/automatic-topic-development-corpus.js';
 
 const sha=s=>createHash('sha256').update(s).digest('hex');
 const body='A public article about this independently selected subject has enough actual prose to pass the existing minimum text policy. '.repeat(4);
@@ -31,6 +31,15 @@ function fixture({robots='',tdm=null,page=()=>html(),onRequest}={}){
 const childPlan=JSON.parse(readFileSync(new URL('../harness/hierarchy-child-corpus.json',import.meta.url),'utf8'));
 const childRows=childPlan.freshCandidates.filter(r=>r.split!=='test');
 const diversityPlan=JSON.parse(readFileSync(new URL('../harness/hierarchy-child-diversity-corpus.json',import.meta.url),'utf8'));
+
+test('additional automatic DEV preserves original six failures and uses only four new primary publishers',async()=>{
+ const f=fixture(),capture=createAutomaticTopicAdditionalDevelopmentCapture(f.options);
+ for(const p of [...AUTOMATIC_TOPIC_DEVELOPMENT,...childPlan.freshCandidates,...diversityPlan.test])await assert.rejects(capture.capture(p.id));
+ assert.equal(f.calls.length,0);
+ for(const p of AUTOMATIC_TOPIC_ADDITIONAL_DEVELOPMENT){const r=await capture.capture(p.id);assert.equal(r.status,'available');assert.equal(r.url,p.url);}
+ assert.equal(f.calls.length,12);assert.equal(capture.snapshot().maxRequests,12);
+ assert.deepEqual(f.calls.filter(c=>c.resourceKind==='page').map(c=>c.url),AUTOMATIC_TOPIC_ADDITIONAL_DEVELOPMENT.map(p=>p.url));
+});
 
 test('automatic event DEV collector has six fixed primary pages and cannot consume old hierarchy TRAIN/CAL/TEST',async()=>{
  const f=fixture(),capture=createAutomaticTopicDevelopmentCapture(f.options);
