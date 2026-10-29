@@ -10,7 +10,11 @@ import {createRequire} from 'node:module';
 
 const DATA=fileURLToPath(new URL('../../data/',import.meta.url));
 const BIN='D:\\PostgreSQL\\17\\bin';
-const MAGIC=Buffer.from('MURPG001'),CHUNK=65536,HEADER_LIMIT=16384,MAX_DUMP=1073741824;
+const GIB=1073741824,MAGIC=Buffer.from('MURPG001'),CHUNK=65536,HEADER_LIMIT=16384,MAX_DUMP=16*GIB;
+// Constant memory, bounded total archive, and the original four-GiB disk floor.
+// Actual admission is smaller when only enough room for two encrypted copies
+// remains. This is a sampled budget, not a filesystem reservation.
+const DEFAULT_LIMITS=Object.freeze({maximumDumpBytes:MAX_DUMP,minimumDumpBytes:GIB,diskFloorBytes:4*GIB,spaceCheckBytes:16*1024*1024});
 const WEEK=604800000,ACTIVE_MS=330000,TOTAL_MS=360000;
 const NAME=/^postgres-canonical-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z-[0-9a-f-]{36}\.murmingle-pgbackup$/u;
 const SHA=/^[a-f0-9]{64}$/u;
@@ -21,7 +25,9 @@ const BASE_TABLES={schema_migrations:'version',meta:'singleton',id_registry:'id'
 const SEMANTIC_TABLES={semantic_matchers:'matcher_hash',semantic_nodes:'matcher_hash,node_id',semantic_installation:'singleton',
  semantic_inputs:'source_id,operation_digest,matcher_hash',semantic_observations:'source_id,source_version,matcher_hash',
  semantic_root_snapshots:'root_id',semantic_root_edges:'root_id,node_id',semantic_owner_policy:'singleton',semantic_material_state:'singleton'};
-const fail=code=>Object.assign(new Error('Encrypted PostgreSQL backup unavailable'),{code});
+const ownedFailures=new WeakMap();
+const fail=code=>{const error=Object.assign(new Error('Encrypted PostgreSQL backup unavailable'),{code});ownedFailures.set(error,{code});return error;};
+export function describePostgresBackupFailure(error){return Object.freeze({...ownedFailures.get(error)??{code:'unavailable'}});}
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const exact=(value,keys)=>{if(!value||typeof value!=='object'||types.isProxy(value)||![Object.prototype,null].includes(Object.getPrototypeOf(value))||Reflect.ownKeys(value).length!==keys.length)throw fail('invalid');
  const out={};for(const key of keys){const d=Object.getOwnPropertyDescriptor(value,key);if(!d?.enumerable||!Object.hasOwn(d,'value'))throw fail('invalid');out[key]=d.value;}return out;};
@@ -62,7 +68,10 @@ async function dumpRun(deps,args,{password,onChunk,onRetirementUnknown,life}){
  const activeTimer=deps.setTimer(()=>stop(fail('child-deadline')),Math.max(0,life.active-deps.monotonic()));
  const finalTimer=deps.setTimer(()=>{stop(fail('child-unsettled'));child.stdout.destroy();child.stderr.destroy();child.stdin.destroy();settleClose();},Math.max(0,life.absolute-deps.monotonic()));
  const read=async(stream,isError)=>{try{for await(const b of stream){if(!Buffer.isBuffer(b)||b.length>2*CHUNK)throw fail('child-chunk');
-   try{if(isError){stderrBytes+=b.length;if(stderrBytes>8192)stop(fail('stderr-bound'));}else for(let p=0;p<b.length&&!first;p+=CHUNK)await onChunk(b.subarray(p,p+CHUNK));}finally{b.fill(0);}
+   // A failed archive write/budget must still drain the original child streams.
+   // Leaving the async iterator here destroys stdout before its EOF witness.
+   try{if(isError){stderrBytes+=b.length;if(stderrBytes>8192)stop(fail('stderr-bound'));}else for(let p=0;p<b.length&&!first;p+=CHUNK)await onChunk(b.subarray(p,p+CHUNK));}
+   catch(e){stop(e);}finally{b.fill(0);}
   }if(isError)stderrEnded=true;else stdoutEnded=true;
  }catch(e){stop(e);}};
  // pg_dump consumes no stdin; no restore/write-buffer lifetime branch exists.
@@ -111,7 +120,10 @@ function header(value,now,{allowExpired=false}={}){
  const made=Date.parse(h.createdAt),expires=Date.parse(h.expiresAt);if(!Number.isFinite(made)||!Number.isFinite(expires)||new Date(made).toISOString()!==h.createdAt||new Date(expires).toISOString()!==h.expiresAt||expires-made!==WEEK||made>now||!allowExpired&&now>=expires)throw fail('expired');return h;
 }
 
-function operator(deps){
+function operator(deps,limits=DEFAULT_LIMITS){
+ limits=exact(limits,['maximumDumpBytes','minimumDumpBytes','diskFloorBytes','spaceCheckBytes']);
+ for(const n of Object.values(limits))if(!Number.isSafeInteger(n)||n<0)throw fail('invalid');
+ if(limits.maximumDumpBytes<1||limits.maximumDumpBytes>MAX_DUMP||limits.minimumDumpBytes<1||limits.minimumDumpBytes>limits.maximumDumpBytes||limits.spaceCheckBytes<1||limits.spaceCheckBytes>64*1024*1024)throw fail('invalid');
  const directory=path.join(deps.dataDir,'canonical-migration-backups');let busy=false,poisoned=false;
  const leaf=name=>{if(typeof name!=='string'||!NAME.test(name)||path.basename(name)!==name)throw fail('filename');return path.join(directory,name);};
  async function prepare(){await deps.protection.prepareDirectory(directory);await checkedDirectory(directory);}
@@ -138,10 +150,19 @@ function operator(deps){
  function publicResult(h){return {createdAt:h.createdAt,expiresAt:h.expiresAt,version:h.version,counts:h.counts,baselineLogicalDigest:h.baselineLogicalDigest,migrations:h.migrations,dumpBytes:h.dumpBytes,dumpSha256:h.dumpSha256,verified:true};}
  return Object.freeze({
   create:()=>exclusive(async()=>{
-   const life=lifetime(deps);await prepare();const space=await deps.freeBytes(directory);if(space<4*MAX_DUMP+2*(MAX_DUMP+HEADER_LIMIT+28))throw fail('disk-reserve');
+   const life=lifetime(deps);await prepare();const space=await deps.freeBytes(directory);
+   const dumpLimit=Math.min(limits.maximumDumpBytes,Math.floor((space-limits.diskFloorBytes-limits.spaceCheckBytes-2*(HEADER_LIMIT+28))/2));
+   if(!Number.isSafeInteger(space)||dumpLimit<limits.minimumDumpBytes)throw fail('disk-reserve');
    const nonce=randomUUID(),spool=path.join(directory,'.'+nonce+'.encrypted-spool'),partial=path.join(directory,'.'+nonce+'.encrypted-final');
    let spoolFd,finalFd,db,spoolKey=randomBytes(32),spoolIv=randomBytes(12),finalKey=randomBytes(32),published=null,retirementUnconfirmed=false,details,dumpSha256,dumpBytes=0;
    let hadPrimary=false,primary;const cleanupFailures=[];
+   let writtenSinceCheck=limits.spaceCheckBytes;
+   const guardedWrite=async(fd,bytes)=>{
+    if(writtenSinceCheck+bytes.length>=limits.spaceCheckBytes){
+     const available=await deps.freeBytes(directory);if(!Number.isSafeInteger(available)||available<limits.diskFloorBytes+limits.spaceCheckBytes+bytes.length)throw fail('disk-reserve');writtenSinceCheck=0;
+    }
+    await write(fd,bytes);writtenSinceCheck+=bytes.length;
+   };
    try{
     spoolFd=await open(spool,'wx',0o600);const cipher=createCipheriv('aes-256-gcm',spoolKey,spoolIv),digest=createHash('sha256');let magic=Buffer.alloc(0);
     db=await deps.openOwner();let callbackFailed=false,callbackError;
@@ -154,27 +175,27 @@ function operator(deps){
      if(server.length!==1||server[0].database!=='murmingle_canonical'||server[0].role!=='murmingle_owner'||server[0].address!=='127.0.0.1'||server[0].port!==55432)throw fail('server');
      await tx.query('SELECT pg_advisory_xact_lock_shared(914092004)');details=await currentMetadata(tx,deps,life);
      const {rows}=await tx.query('SELECT pg_export_snapshot() AS snapshot');if(rows.length!==1||typeof rows[0].snapshot!=='string'||!/^[A-Fa-f0-9]+-[A-Fa-f0-9]+-[0-9]+$/u.test(rows[0].snapshot))throw fail('snapshot');
-     const password=await deps.password();await dumpRun(deps,['--host=127.0.0.1','--port=55432','--username=murmingle_owner','--dbname=murmingle_canonical','--format=custom','--no-owner','--no-comments','--no-password','--lock-wait-timeout=5000','--snapshot='+rows[0].snapshot],{password,life,onRetirementUnknown:()=>{retirementUnconfirmed=true;poisoned=true;},onChunk:async b=>{
-      dumpBytes+=b.length;if(dumpBytes>MAX_DUMP)throw fail('dump-bound');digest.update(b);if(magic.length<5)magic=Buffer.concat([magic,b.subarray(0,5-magic.length)]);const encrypted=cipher.update(b);try{await write(spoolFd,encrypted);}finally{encrypted.fill(0);}}});
+     const password=await deps.password();await dumpRun(deps,['--host=127.0.0.1','--port=55432','--username=murmingle_owner','--dbname=murmingle_canonical','--format=custom','--compress=zstd:3','--no-owner','--no-comments','--no-password','--lock-wait-timeout=5000','--snapshot='+rows[0].snapshot],{password,life,onRetirementUnknown:()=>{retirementUnconfirmed=true;poisoned=true;},onChunk:async b=>{
+      dumpBytes+=b.length;if(dumpBytes>dumpLimit)throw fail('dump-bound');digest.update(b);if(magic.length<5)magic=Buffer.concat([magic,b.subarray(0,5-magic.length)]);const encrypted=cipher.update(b);try{await guardedWrite(spoolFd,encrypted);}finally{encrypted.fill(0);}}});
     }catch(e){callbackFailed=true;callbackError=e;throw e;}});}catch(e){throw callbackFailed?callbackError:e;}
-    if(dumpBytes<5||!magic.equals(Buffer.from('PGDMP')))throw fail('dump');magic.fill(0);dumpSha256=digest.digest('hex');const tail=cipher.final();await write(spoolFd,tail);tail.fill(0);await write(spoolFd,cipher.getAuthTag());await spoolFd.sync();await spoolFd.close();spoolFd=null;
+    if(dumpBytes<5||!magic.equals(Buffer.from('PGDMP')))throw fail('dump');magic.fill(0);dumpSha256=digest.digest('hex');const tail=cipher.final();await guardedWrite(spoolFd,tail);tail.fill(0);await guardedWrite(spoolFd,cipher.getAuthTag());await spoolFd.sync();await spoolFd.close();spoolFd=null;
     life.check();const createdAt=new Date(deps.now()).toISOString(),iv=randomBytes(12),wrapped=await deps.protection.wrapKey(finalKey);
     const h=header({schema:'murmingle-postgresql-encrypted-backup/v1',algorithm:'AES-256-GCM',keyWrap:{provider:'dpapi-current-user',data:wrapped.toString('base64')},iv:iv.toString('base64'),createdAt,expiresAt:new Date(Date.parse(createdAt)+WEEK).toISOString(),database:'murmingle_canonical',version:details.version,baselineLogicalDigest:details.baselineLogicalDigest,counts:details.counts,migrations:details.migrations,dumpSha256,dumpBytes},deps.now());wrapped.fill(0);
     const raw=Buffer.from(JSON.stringify(h));if(raw.length>HEADER_LIMIT)throw fail('header');const prefix=Buffer.alloc(12);MAGIC.copy(prefix);prefix.writeUInt32BE(raw.length,8);
-    finalFd=await open(partial,'wx',0o600);await write(finalFd,prefix);await write(finalFd,raw);
+    finalFd=await open(partial,'wx',0o600);await guardedWrite(finalFd,prefix);await guardedWrite(finalFd,raw);
     const source=await checkedOpen(spool),decipher=createDecipheriv('aes-256-gcm',spoolKey,spoolIv),tag=Buffer.alloc(16);try{
      if(source.initial[2]!==dumpBytes+16)throw fail('spool');await source.fd.read(tag,0,16,dumpBytes);decipher.setAuthTag(tag);
      const finalCipher=createCipheriv('aes-256-gcm',finalKey,iv);finalCipher.setAAD(raw);const again=createHash('sha256');let total=0;
-     for await(const encrypted of chunks(source.fd,0,dumpBytes)){life.check();const clear=decipher.update(encrypted);encrypted.fill(0);try{total+=clear.length;again.update(clear);const sealed=finalCipher.update(clear);try{await write(finalFd,sealed);}finally{sealed.fill(0);}}finally{clear.fill(0);}}
-     const end=decipher.final();if(end.length)throw fail('spool');end.fill(0);await unchanged(source);if(total!==dumpBytes||again.digest('hex')!==dumpSha256)throw fail('spool');const endCipher=finalCipher.final();await write(finalFd,endCipher);endCipher.fill(0);await write(finalFd,finalCipher.getAuthTag());
+     for await(const encrypted of chunks(source.fd,0,dumpBytes)){life.check();const clear=decipher.update(encrypted);encrypted.fill(0);try{total+=clear.length;again.update(clear);const sealed=finalCipher.update(clear);try{await guardedWrite(finalFd,sealed);}finally{sealed.fill(0);}}finally{clear.fill(0);}}
+     const end=decipher.final();if(end.length)throw fail('spool');end.fill(0);await unchanged(source);if(total!==dumpBytes||again.digest('hex')!==dumpSha256)throw fail('spool');const endCipher=finalCipher.final();await guardedWrite(finalFd,endCipher);endCipher.fill(0);await guardedWrite(finalFd,finalCipher.getAuthTag());
     }finally{tag.fill(0);await source.fd.close();}
     await finalFd.sync();await finalFd.close();finalFd=null;
     const filename=`postgres-canonical-${createdAt.replaceAll(':','-').replace('.','-')}-${nonce}.murmingle-pgbackup`;
     // Validate our encrypted final before exclusively publishing its fixed leaf.
     const verified=await inspectPath(partial,life);await verified.close();life.check();
     const target=leaf(filename);await link(partial,target);published=target;
-    return {...publicResult(h),filename,headerSha256:hash(raw),currentRowsFingerprint:details.currentRowsFingerprint,fingerprintBinding:{dumpSha256,headerSha256:hash(raw),currentRowsFingerprintSha256:details.currentRowsFingerprint.sha256,version:details.version,migrations:details.migrations},fingerprintScope:'Same exported snapshot current rows, IDs, revisions, receipts and binary64 wires with LOCAL TimeZone UTC, DateStyle ISO,YMD and extra_float_digits 3; restored comparison must use identical settings/algorithm. Retain this owner receipt: fingerprints are not embedded in V1 or an independent persistent image proof after restart; exclude sequences/function definitions. Filesystem protection is sampled, not an atomic hostile-writer sandbox.',cleanupVerified:true};
-   }catch(e){hadPrimary=true;primary=e;throw e;}
+    return {...publicResult(h),filename,headerSha256:hash(raw),archiveBudgetBytes:dumpLimit,compression:'zstd:3',currentRowsFingerprint:details.currentRowsFingerprint,fingerprintBinding:{dumpSha256,headerSha256:hash(raw),currentRowsFingerprintSha256:details.currentRowsFingerprint.sha256,version:details.version,migrations:details.migrations},fingerprintScope:'Same exported snapshot current rows, IDs, revisions, receipts and binary64 wires with LOCAL TimeZone UTC, DateStyle ISO,YMD and extra_float_digits 3; restored comparison must use identical settings/algorithm. Retain this owner receipt: fingerprints are not embedded in V1 or an independent persistent image proof after restart; exclude sequences/function definitions. Filesystem protection is sampled, not an atomic hostile-writer sandbox.',cleanupVerified:true};
+   }catch(e){hadPrimary=true;primary=e;if(ownedFailures.has(e))ownedFailures.set(e,{...ownedFailures.get(e),dumpBytes,dumpLimitBytes:dumpLimit});throw e;}
    finally{
     const settle=async work=>{try{await cleanupWithin(deps,life,work,()=>{poisoned=true;retirementUnconfirmed=true;});}catch(e){cleanupFailures.push(e);}};
     await settle(async()=>{await spoolFd?.close();});await settle(async()=>{await finalFd?.close();});await settle(async()=>{await db?.close();});
@@ -232,10 +253,10 @@ export async function createPostgresBackup(){if(arguments.length)throw fail('arg
 export async function verifyPostgresBackup(filename){if(arguments.length!==1)throw fail('arguments');return (await fixedOperator()).verify(filename);}
 export async function cleanupExpiredPostgresBackups(){if(arguments.length)throw fail('arguments');return (await fixedOperator()).cleanup();}
 export async function restorePostgresBackupToOwnedFixture(filename,trustedPort){if(arguments.length!==2)throw fail('arguments');return (await fixedOperator()).restoreToOwnedFixture(filename,trustedPort);}
-export function createPostgresBackupOperatorForTest(dependencies){return operator(dependencies);}
+export function createPostgresBackupOperatorForTest(dependencies,limits=DEFAULT_LIMITS){return operator(dependencies,limits);}
 export async function main(args=process.argv.slice(2)){
  if(!Array.isArray(args)||!['create','verify','cleanup-expired'].includes(args[0])||args.length!==(args[0]==='verify'?2:1))return 2;
  try{const result=args[0]==='create'?await createPostgresBackup():args[0]==='verify'?await verifyPostgresBackup(args[1]):await cleanupExpiredPostgresBackups();process.stdout.write(JSON.stringify(result)+'\n');return 0;}
- catch{process.stderr.write('Encrypted PostgreSQL backup operation failed.\n');return 1;}
+ catch(error){process.stderr.write(JSON.stringify({error:'encrypted-postgresql-backup-failed',...describePostgresBackupFailure(error)})+'\n');return 1;}
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))void main().then(code=>{process.exitCode=code;});

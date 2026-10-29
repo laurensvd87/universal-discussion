@@ -1,5 +1,36 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct release preparation: selected Nature model SOURCE installed20nodes/3heads
+(Animals/GTA/Koalas), identity4e9b3d3d2053327707d6ff395a8373e6e5ac3195333183ac8516f84195c45524.
+Real held-out13declared/12scored/1Dixit unavailable: root11correct/1abstain,
+Animals4/4 positives/0of8negatives incl2plants; Koalas2/2 positives/0of10negatives
+incl2otheranimals. GeneralVideoGames1/3positives belowminimum2, REJECTED, not
+installed; its structural node remains for unchanged GTA. Result24451B SHA
+f43cf38027cccc0048f596ab23f000593c9c5abecb54f76d969a71019403e200.
+Matching baseline+candidate median1.37ms/max2.45ms; whole E5evaluation10.19s.
+Ten public numeric held-out fixtures copied byte-exact as regressions, never
+TRAIN/CAL/fresh evidence.57guarded startup/owner/loader tests+95public/helper
+tests+60purePython driver tests pass. No new native SQL/restore run claimed.
+New assets rawAnimals18079B08feec...9999/Koalas15292B980c54...8e44; roots/GTA
+unchanged. Maintained current-model checks retargeted to4e9, oldcatalogs/outputs
+immutable. Live still18nodes/head1/policy3; crawler6384 original/advancing1974.
+
+Fresh online backup attempt66993 CLOSEDexit1/generic error; originalexceptioncode
+unretained. Later originalNode12792/pg_dump42444 absent; retained encrypted spool
+.ea467f30-e689-4fb4-beac-02c8912091f0.encrypted-spool1073725440B (1GiBminus16KiB),
+no published archive. Original normal EOF/cleanup not proved. Database2.614GB;
+semantic_inputs545MB newly populated; previous verified archive818MB. Fixed1GiB
+archive cap strongly implicated, not proven from a retained exception. Source fix
+now derives stream budget from free disk/two encrypted copies, keeps4GiB floor,
+samples disk each16MiB and uses bounded16GiB verifier ceiling/64KiB buffers.
+Original330/360s epochs unchanged; no RAM/ML/native floor/cap change. Child write/
+budget errors now drain original streams to EOF before cleanup; finite privately
+owned diagnostics omit raw SQL/stderr/credentials.19small fixture tests pass.
+Installed PG17 zstd3 schema-only smoke PASS/2EOF/exit0/366556B/1.476s/no SQL writes,
+no plaintext file. Official https://www.postgresql.org/docs/17/app-pgdump.html
+documents custom zstd compression. Next separately decided full encrypted backup;
+do not reuse first partial or claim a restore. All services/crawler remain active.
+
 29Oct current TEST capture completed/terminalexit0:11declared/10available/1Dixit
 redirect-refused,62392B SHA a85804ae9546e28a65828b32f177b810904040fd725255a67438ff61f6f3ce20.
 No candidate TEST encoder/vector/prediction yet. Only1insideGames physical negative

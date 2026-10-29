@@ -6,12 +6,12 @@ import {mkdtemp,mkdir,readFile,writeFile,readdir,rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {createPostgresBackupOperatorForTest,main} from '../src/ops/postgres-backup-operator.js';
+import {createPostgresBackupOperatorForTest,describePostgresBackupFailure,main} from '../src/ops/postgres-backup-operator.js';
 
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const turn=()=>new Promise(resolve=>setImmediate(resolve));
 const dump=Buffer.concat([Buffer.from('PGDMP'),Buffer.alloc(190000,73)]);
-async function fixture(t,{version=17,queryFailure=null,closeFailure=false,childMode='ok'}={}){
+async function fixture(t,{version=17,queryFailure=null,closeFailure=false,childMode='ok',limits}={}){
  const dataDir=await mkdtemp(path.join(os.tmpdir(),'murmingle-backup-test-'));t.after(async()=>{
   const target=path.resolve(dataDir);assert.equal(path.dirname(target),path.resolve(os.tmpdir()));
   assert.ok(path.basename(target).startsWith('murmingle-backup-test-'));await rm(target,{recursive:true,force:true});
@@ -32,18 +32,19 @@ async function fixture(t,{version=17,queryFailure=null,closeFailure=false,childM
    if(sql.startsWith('SELECT pg_export_snapshot'))return {rows:[{snapshot:'00000003-0000001B-1'}]};
    return {rows:[]};}});events.push('commit');return value;}catch(e){events.push('rollback');throw e;}}}),
   spawn(exe,args,options){spawnCount++;events.push('spawn');assert.equal(options.shell,false);assert.equal(options.windowsHide,true);assert.deepEqual(options.stdio,['pipe','pipe','pipe']);
-   assert.ok(exe.endsWith('pg_dump.exe'));assert.ok(args.includes('--snapshot=00000003-0000001B-1'));assert.equal(options.env.PGCONNECT_TIMEOUT,'5');
+   assert.ok(exe.endsWith('pg_dump.exe'));assert.ok(args.includes('--snapshot=00000003-0000001B-1'));assert.ok(args.includes('--compress=zstd:3'));assert.equal(options.env.PGCONNECT_TIMEOUT,'5');
    child=new EventEmitter();child.stdout=new PassThrough({highWaterMark:65536});child.stderr=new PassThrough();child.stdin=new PassThrough();child.stdin.resume();
    child.kill=()=>{events.push('kill');if(childMode!=='unsettled'){child.stdout.end();child.stderr.end();setImmediate(()=>child.emit('close',7));}};
-   if(childMode==='ok')setImmediate(async()=>{for(let p=0;p<dump.length;p+=32000){if(!child.stdout.write(Buffer.from(dump.subarray(p,p+32000))))await new Promise(r=>child.stdout.once('drain',r));}child.stdout.end();child.stderr.end();events.push('physical-close');child.emit('close',0);});
+   if(childMode==='ok')setImmediate(async()=>{for(let p=0;p<dump.length;p+=32000){if(child.stdout.writableEnded)return;if(!child.stdout.write(Buffer.from(dump.subarray(p,p+32000))))await new Promise(r=>child.stdout.once('drain',r));}child.stdout.end();child.stderr.end();events.push('physical-close');child.emit('close',0);});
    return child;
   }};
- return {operator:createPostgresBackupOperatorForTest(deps),deps,queries,events,timers,directory:path.join(dataDir,'canonical-migration-backups'),get spawnCount(){return spawnCount;},get unwrapCount(){return unwrapCount;},advance(ms){clock+=ms;},expire(){time+=604800001;},async fire(delay){await turn();const timer=[...timers.values()].find(x=>x.delay===delay);assert.ok(timer);timer.fn();await turn();}};
+ return {operator:createPostgresBackupOperatorForTest(deps,limits),deps,queries,events,timers,directory:path.join(dataDir,'canonical-migration-backups'),get spawnCount(){return spawnCount;},get unwrapCount(){return unwrapCount;},advance(ms){clock+=ms;},expire(){time+=604800001;},async fire(delay){await turn();const timer=[...timers.values()].find(x=>x.delay===delay);assert.ok(timer);timer.fn();await turn();}};
 }
 const target=()=>({host:'127.0.0.1',port:55433,database:'murmingle_hierarchy_fixture_20261026_a',oid:'16384',serverStarted:1793018803.125,owned:true,fresh:true,empty:true});
 
 for(const version of [9,16,17])test(`streamed V1 roundtrip and same-snapshot current fingerprint, schema${version}`,async t=>{
  const f=await fixture(t,{version});const result=await f.operator.create();assert.equal(result.dumpSha256,sha(dump));assert.equal(result.dumpBytes,dump.length);assert.equal(result.cleanupVerified,true);
+ assert.ok(result.archiveBudgetBytes>1073741824&&result.archiveBudgetBytes<4*1073741824,'total archive admission scales with available disk, not a one-GiB ceiling');
  assert.equal(result.currentRowsFingerprint.tables.length,version===9?19:28);assert.equal(result.baselineLogicalDigest,'a'.repeat(64));assert.equal(result.fingerprintBinding.dumpSha256,result.dumpSha256);
  assert.equal(result.fingerprintBinding.headerSha256,result.headerSha256);assert.equal(result.fingerprintBinding.currentRowsFingerprintSha256,result.currentRowsFingerprint.sha256);
  assert.equal(f.events.indexOf('commit')>f.events.indexOf('physical-close'),true);assert.equal(f.queries[0],'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
@@ -85,6 +86,27 @@ test('cleanup authenticates expiration and retains corrupt or unknown partials',
 });
 test('strict CLI has no restore or path selector and invalid invocations are inert',async()=>{
  assert.equal(await main(['restore','anything']),2);assert.equal(await main(['create','anything']),2);assert.equal(await main([]),2);
+});
+
+test('disk-derived archive budget refuses a large stream, drains both original EOFs and permits later work',async t=>{
+ const f=await fixture(t,{limits:{maximumDumpBytes:100000,minimumDumpBytes:1,diskFloorBytes:0,spaceCheckBytes:65536}});
+ const error=await f.operator.create().catch(e=>e);assert.equal(error.code,'dump-bound');
+ const diagnostic=describePostgresBackupFailure(error);assert.equal(diagnostic.code,'dump-bound');assert.equal(diagnostic.dumpLimitBytes,100000);assert.ok(diagnostic.dumpBytes>100000);
+ assert.ok(f.events.includes('kill'));assert.ok(f.events.includes('rollback'));assert.equal(f.timers.size,0);assert.deepEqual(await readdir(f.directory),[]);
+ assert.deepEqual(await f.operator.cleanup(),{removed:0},'confirmed retirement must not poison the next operation');
+});
+
+test('falling disk reserve stops the original stream and retires partials without reducing the floor or retrying',async t=>{
+ const f=await fixture(t,{limits:{maximumDumpBytes:1000000,minimumDumpBytes:1,diskFloorBytes:1000000,spaceCheckBytes:32000}});let reads=0;
+ f.deps.freeBytes=async()=>++reads<=2?8000000:0;
+ await assert.rejects(f.operator.create(),{code:'disk-reserve'});assert.equal(f.spawnCount,1);assert.equal(f.timers.size,0);assert.deepEqual(await readdir(f.directory),[]);
+});
+
+test('failure diagnostics expose only privately issued finite data and never inspect forged errors or getters',async t=>{
+ let hooks=0;
+ for(const value of [null,false,{code:'dump-bound',message:'private'},{get code(){hooks++;return 'private';}},new Proxy({},{get(){hooks++;throw Error('private');}})])assert.deepEqual(describePostgresBackupFailure(value),{code:'unavailable'});
+ assert.equal(hooks,0);const f=await fixture(t);f.deps.freeBytes=async()=>0;const error=await f.operator.create().catch(e=>e);assert.deepEqual(describePostgresBackupFailure(error),{code:'disk-reserve'});
+ assert.throws(()=>{describePostgresBackupFailure(error).code='private';},TypeError);
 });
 test('one active operation cannot overlap another dump and capacity retires after physical settlement',async t=>{
  const f=await fixture(t,{childMode:'held'}),first=f.operator.create(),observed=first.catch(e=>e);while(!f.timers.size)await turn();await assert.rejects(f.operator.create(),{code:'busy'});assert.equal(f.spawnCount,1);await f.fire(330000);assert.equal((await observed).code,'child-deadline');assert.deepEqual(await f.operator.cleanup(),{removed:0});
