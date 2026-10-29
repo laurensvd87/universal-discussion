@@ -171,7 +171,7 @@ retains all190 required reports and negotiates v2 for its modern clients, while
 its ordinary-startup case also checks old capabilities/fixed reads, an unscoped
 human root/reply and original canonical thread reads. The joined18 AI case adds
 a real issuer/provider-stub legacy root and requires no named context to be
-claimed. This compatibility-native proof is pending. Live runtime and installed
+claimed. The corrected compatibility-native proof passed all190 reports. Live runtime and installed
 browser have not been switched or reloaded. Mixed fixed/named breadcrumbs and
 the remaining full-data, quality, genuine browser/provider/load and cutover
 requirements remain open.
@@ -187,7 +187,20 @@ real listener normalizes empty bodies to null. A paired real-client/handler test
 proves the old bridge receives400 before service dispatch and the normalized bridge
 returns the original discussion. Only the fixture transport, a regression test and
 bounded existing stage labels are corrected; production behavior is unchanged.
-The new stage-tagged native invocation is pending. Failed run
+The separately reviewed stage-tagged native invocation passed. Failed run
 `run-36e472042a1d79297d97205733c4144d3ab18f20d51474dc` remains unadopted;
 root failure audit SHA256
 `b29eee9754f9f4a5e521a8e0e7fd52b29149f324e7923ac936e3ef115090d832`.
+
+Corrected source `74e6e4fc`, catalog commit `a4cb9c5d` and execution catalog
+`f8d88244620c3e30c4d743a131be4b1958a69ba4b764c4585405867bcbef9cb6`
+produced run `run-69d766881445c7e8312fa254783f4a782014b404de21d754`.
+All190 reports, both database drops, normal owned-server smart stop, empty Job,
+closed handles and all2650 consumed end pins passed; stderr was empty and no
+emergency cleanup was used. Root audit
+`data/automatic18-compatibility-corrected-native-root-audit-20261030.json` has
+SHA256 `ebb5960989a27892b9145931aab2848aadb8a26a99aecae87bbed3559aece933`.
+The closed report wire has the same hashes as earlier190 successes; this separate
+source/catalog/invocation audit establishes execution of the compatibility checks.
+This proves the isolated SQL/client/handler/provider-stub composition, not real E5,
+external-provider behavior, application-browser load, full-data recovery or cutover.
