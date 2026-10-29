@@ -1,5 +1,10 @@
 # Hierarchical topic assignment and discussion plan
 
+29Oct held-out check REJECTS the two new CAL candidates: Animals has one plant
+false refinement; Video-games misses both available new games. They remain
+inactive. Live fast root/GTA hierarchy is preserved. Next investigate conditional
+child learning within each parent branch; no threshold retuning on consumed TEST.
+
 29Oct child candidate: independent Video-games head now fits retained labelled
 TRAIN/CAL features offline, adding5 correct CAL refinements while preserving the
 root/GTA paths. It remains undeployed pending stronger insideGames negatives and

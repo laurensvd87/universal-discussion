@@ -1,5 +1,35 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct next method SOURCE ready: run-hierarchy-child-parent-conditioning.js compares
+exactly2 declared modes on the existing44 TRAIN/CAL rows: parent-only training,
+then parent-only training AND calibration. Pure64MiB/no encoder/network/TEST/SQL;
+23 guarded tests pass incl split/unknown/branch filtering. Original global fit
+default remains unchanged; minimums/lambda unchanged. Full parent-CAL Animals
+will remain disabled if its2 insideNature negatives cannot meet3. Source-check
+reads pinned original feature manifests without output/fitting. Actual decision
+still next; fresh quality acceptance not inferred from a development comparison.
+
+29Oct fresh held-out result: REJECT both new candidates for live activation.
+14 declared/12 available/2 policy-unavailable. Frozen root11correct/1abstention;
+Video-games0/2 positive refinements (Factorio root abstains; Hades staysGames),
+0 false refinements. Animals6/7 positive refinements but wrongly refines Wollemi
+pine, failing zero-negative acceptance. Koalas disabled,0TRAIN support. Model
+encoding/evaluation9.395s; encoderclosed/endpins true. Result12667B SHA
+0a18729110cb3beb1e61a126470a4e7d4d1fe23940af486f997a5d615fd013b4;
+Root audit hierarchy-child-heldout-root-audit-20261029.json. Tool completion JSON
+retained; later session lookup unknown and process absent, exitcode not retained
+(do not invent exit0). All14 TEST now consumed; no retuning or acceptance rerun.
+No production changes. Next promising SOURCE hypothesis: train children within
+their known parent branch, avoiding global negatives making an Animals head
+relearn Nature or a Video-games head overfit the GTA-heavy positive cohort.
+Compare fixed parent-training/all-CAL and parent-training/parent-CAL on existing
+development data; consumed TEST only an explicitly exploratory diagnostic, never
+fresh acceptance. Keep original minimums; branch-CAL support2 leaves Animals
+disabled. New candidate needs separately declared fresh acceptance observations.
+Live status during collection: available/schema17,59941prepared/27536classified/
+32405abstained/171pending (unlabelled, not accuracy); crawler6384 advancing1149,
+all4stderr0/original current starts. Source through26abcebd PUSHED/clean.
+
 29Oct extended CAL actual PASSED:8 retained CAL observations encoded with pinned
 packaged E5 in6.391s, encoderclosed/endpins/terminalexit0. Pure fixed-lambda fit
 then passed: Video-games9/9 CAL positives accepted,0/13 negatives (3 insideGames);

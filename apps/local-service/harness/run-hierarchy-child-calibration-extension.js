@@ -69,13 +69,17 @@ export async function encodeChildCalibrationExtension(){
  const result={schema:'child-calibration-features/v1',status:failure?'failed':'completed',failure,cases,inputPins:data.ledger,sourcePins:sources,encoderClosed:closed,endPinsChecked,elapsedMs:performance.now()-started,...flags};
  return {status:result.status,result:await save(ENCODE,'result.json',result)};
 }
-export async function fitChildCalibrationExtension(expectedFeatureSha){
- need(!used&&/^[a-f0-9]{64}$/u.test(expectedFeatureSha));used=true;const sources=await pins(),ledger=[],encoded=await json(ENCODE+'/result.json',{sha256:expectedFeatureSha},ledger);
+export async function readExtendedChildInputs(expectedFeatureSha){
+ need(/^[a-f0-9]{64}$/u.test(expectedFeatureSha));const ledger=[],encoded=await json(ENCODE+'/result.json',{sha256:expectedFeatureSha},ledger);
  need(encoded.status==='completed'&&encoded.encoderClosed&&encoded.endPinsChecked&&encoded.cases.length===8);
  const data=await observations(),features=[];ledger.push(...data.ledger);
  for(const id of IDS){const pin=encoded.cases.find(p=>p.file===id+'.json');need(pin);features.push(await json(ENCODE+'/'+id+'.json',pin,ledger));}
  const {projected,values,ledger:retainedLedger}=await readRetainedHierarchyChildInputs();ledger.push(...retainedLedger.map(p=>({file:p.path,bytes:p.bytes,sha256:p.sha256})));
  const extended=extendChildCalibration({projected,probes:data.probes,features,inputDefinition:values.inputDefinition});need(extended.rows.length===44&&extended.extensionUnavailable.length===0);
+ return {extended,values,ledger};
+}
+export async function fitChildCalibrationExtension(expectedFeatureSha){
+ need(!used&&/^[a-f0-9]{64}$/u.test(expectedFeatureSha));used=true;const sources=await pins(),{extended,values,ledger}=await readExtendedChildInputs(expectedFeatureSha);
  await directory(FIT);const artifacts={},handles={},started=performance.now();
  await save(FIT,'inputs.json',{inputPins:ledger,sourcePins:sources,featureManifestSha256:expectedFeatureSha,trainingUnchanged:true,calibrationExtendedBy:8,...flags});
  for(const node of CHILD_TASKS){artifacts[node]=trainBinaryHierarchyDetail(retainedChildTrainingArguments(extended,node));handles[node]=compileBinaryHierarchyDetail(artifacts[node]);await save(FIT,node+'-artifact.json',artifacts[node]);}

@@ -1,5 +1,12 @@
 # E5 matching across broad and specific topics
 
+29Oct held-out counterexample: the eligible CAL candidates do NOT generalize
+well enough. Animals falsely refines a Wollemi pine; Video-games accepts neither
+available new game. Both remain inactive. Frozen TEST12/14 available, root11right/
+1abstention;2 unavailable retained. Do not optimize on these consumed TEST rows.
+Next fixed comparison: parent-conditioned training and calibration rather than
+global one-vs-rest negatives; retain minimum support and separate fresh validation.
+
 29Oct offline refinement: retained labelled observations produce an eligible
 Video-games candidate without re-encoding (172ms). It adds5 CAL refinements and
 preserves4 GTA paths; no accepted known CAL negatives, but only2 are insideGames.

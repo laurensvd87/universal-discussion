@@ -51,6 +51,19 @@ export function retainedChildTrainingArguments(projected,nodeId){
   calibrationRows:projected.rows.filter(r=>r.split==='calibration').map(r=>({id:r.id,groupId:r.groupId,label:r.labels[nodeId],vector:r.vector,language:r.language}))};
 }
 
+// The root gate already supplies branch membership. A child can learn the
+// distinction inside that branch instead of spending capacity relearning roots.
+// These are editor-reviewed parent labels, never predictions or guessed labels.
+export function parentConditionedChildTrainingArguments(projected,nodeId,mode){
+ if(!['parent-training','parent-training-and-calibration'].includes(mode))invalid();
+ const original=retainedChildTrainingArguments(projected,nodeId),inside=row=>nodeId==='koalas'?row.labels.animals===true:row.expectedRootId===original.canonicalPath[0];
+ const trainingIds=new Set(projected.rows.filter(r=>r.split==='training'&&inside(r)).map(r=>r.id));
+ const calibrationIds=new Set(projected.rows.filter(r=>r.split==='calibration'&&inside(r)).map(r=>r.id));
+ return {...original,trainingVersion:'parent-conditioned-child/20261029/'+mode+'/'+nodeId,
+  trainingRows:original.trainingRows.filter(r=>trainingIds.has(r.id)),
+  calibrationRows:mode==='parent-training-and-calibration'?original.calibrationRows.filter(r=>calibrationIds.has(r.id)):original.calibrationRows};
+}
+
 // Off-branch examples cannot establish hard-negative performance within a parent.
 export function summarizeParentConditionedChildRows(rows,nodeId){
  if(!CHILD_TASKS.includes(nodeId)||!Array.isArray(rows))invalid();
