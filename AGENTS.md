@@ -8,6 +8,43 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct current goalturn PROGRESS: actual190 full schema18 migration ACCEPTED,
+then ordinary API/worker integration SOURCE+actual190 ACCEPTED; NOT LIVE.
+Previous goalturnPROGRESS (registered18 source/two audited failures). Root-only.
+Recovered479676780 allocated bytes by same-handle NTFS compression of1118 inactive
+>2day sessionJSONL files;6 locked/changed candidates skipped; all content SHA256,
+creation/write times and ACLs verified unchanged; no deletion/move/host setting.
+Receipt data/inactive-session-compression-20261029.json; helper initialUInt16 alias
+failure occurred BEFORE compression, correctedUInt16 then completed normally.
+After fresh original floors+extra256MiB D margin, ONE map540f8de0...6ce4/source
+d144eb73/run6a26014f...6c56 ACCEPTED190(original170+20): registered fresh9->18
+rollback/install, original-thread17->18 upgrade/replay/idempotence/roles/profile/
+hash refusals, full14 components present during combined author hierarchy SQL.
+Root audit560af592...a3c0 all2639pins/2DBdrop/exactsmartstop/emptyJob/handles/
+stderr0/noemergency. Result8f2909e2...9f47/stdoutc3807072...67d.
+New source5646f366 binds explicit automaticTopics+hierarchicalTopics/exact18 to
+ordinary app+URL-selection reads, combined author editor and global search. Worker
+same flag binds discovery/recovery/feed/public-evidence/single-Source/search to
+existing worker pool/shared serialE5; no second model/pool. Shutdown signals all
+producers and ingestion stop before joining originals and releasing sharedencoder.
+Defaults/sealed live17 unchanged; null/unknown controls refuse. Guarded738PASS/
+pure78controllerPASS. Native case46 now ordinary API startup on real appSQLrole;
+case48 real worker SQL ports via original workerB FIFO, stubencoder(open1/close1),
+empty fixture/no actual E5/textencoding or production-pool concurrency claim.
+Catalogb378a22c/map90d45571...aa2b ONE runcd7f59ba...277b ACCEPTED190 with2642pins,
+2DBdrops/exactsmartstop/emptyJob/handles/stderr0/noemergency. Root runtime audit
+ a2ed2fb849199dd1699c44ec1cbff4596377df386a8870e20b0d39e6d41de78b in data/automatic18-
+runtime-native-root-audit-20261029.json. Closed report/output hashes equal preceding
+190 run, but separately invoked new source/catalog/run and all endpins authenticated.
+All consumed versions/maps/outputs retained immutable in their commits; no adoption.
+PG18688/worker11880/API38860/dashboard28420 originalstarts unchanged; crawler26784
+same20:23:49Z advancing1400ingested/stderr0. Normal D4GiB floor again met after
+compression; fullprivate restore11GiB D floor still UNMET (last4674555904 free),
+no waiver. GoalACTIVE: dashboard18 learned-topic counts, mixed breadcrumbs,
+protected full-data18 recovery, representative E5/UI/provider/load/latency and
+verified live cutover OPEN. No service/HBA/host action or live activation.
+
+
 LATEST29Oct registered automatic schema18 SOURCE checkpoint278546dc; corrected
 fixture d144eb73. Fixed14-component checked-in018 bundle/atomic owner fresh9->18
 and upgrade17->18 preserve canonical records/head/policy, strict18 health profile;

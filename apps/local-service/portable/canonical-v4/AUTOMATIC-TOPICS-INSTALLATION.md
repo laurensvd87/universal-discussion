@@ -84,5 +84,14 @@ Guarded738 Node tests pass, including exact-profile refusals and held-original
 shutdown tests. The native fixture extends its existing HTTP and joined setup
 cases to call ordinary startup and the real worker SQL ports with a stub encoder
 and a FIFO over the original workerB session; it adds no physical client or report
-waiver. That extended runtime proof is pending. A FIFO fixture proves wiring and
-drains, not production pool concurrency, real E5 quality or live readiness.
+waiver. That extended runtime proof completed all190 reports on29 October with
+source `5646f366`, catalog commit `b378a22c` and execution catalog
+`90d45571f7c92bccb9b110114b151c4ee5cda7ee0a7d68fd6b02ff393679aa2b`.
+Run `run-cd7f59baa693d505272b12a714f39c43d348fa395ab5277b` was independently checked
+against all2642 consumed pins, both database drops and the same complete normal
+shutdown. Root receipt `data/automatic18-runtime-native-root-audit-20261029.json`
+has SHA256 `a2ed2fb849199dd1699c44ec1cbff4596377df386a8870e20b0d39e6d41de78b`.
+Its closed report names/statuses and outcome hashes equal the earlier accepted190
+run; the distinct invocation/source catalog and audited run identify this new
+execution. A FIFO fixture proves wiring and drains, not production pool concurrency,
+real E5 quality or live readiness. The live sealed release still uses schema17.
