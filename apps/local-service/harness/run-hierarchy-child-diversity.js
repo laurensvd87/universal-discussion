@@ -12,6 +12,7 @@ import {CHILD_TASKS,parentConditionedChildTrainingArguments} from './retained-hi
 import {trainBinaryHierarchyDetail} from '../src/domain/hierarchy-binary-detail.js';
 import {compileRootedHierarchyMatcher,classifyRootedHierarchyMatcher,describeRootedHierarchyMatcher} from '../src/domain/hierarchy-rooted-matcher.js';
 import {summarizeChildMatchRows} from './hierarchy-child-match-metrics.js';
+import {ADDITIONAL_CHILD_TEST_PROBES} from './hierarchy-child-additional-test-corpus.js';
 const D='apps/local-service/data/',DEV=D+'hierarchy-child-diversity-development-20261029',FIT=D+'hierarchy-child-diversity-fit-20261029',
  TEST=D+'hierarchy-child-diversity-test-20261029',EVAL=D+'hierarchy-child-diversity-evaluation-20261029';
 const CORPUS='apps/local-service/harness/hierarchy-child-diversity-corpus.json',CORPUS_PIN={bytes:7635,sha256:'b12b30c0b923deccd0c2658d75e3671e9ecb4b0a8ca3dc5237668bc36ace5d01'},
@@ -28,7 +29,8 @@ const SOURCES=Object.freeze(['apps/local-service/harness/run-hierarchy-child-div
  'apps/local-service/src/domain/hierarchical-e5-paired-input.js','apps/local-service/src/domain/hierarchical-e5-paired-linear-heads.js',
  'apps/local-service/src/domain/hierarchical-e5-observed-head-policy.js','apps/local-service/experiments/topic-encoder/hierarchical-e5-pooled-root-rank-dev-v1/rank-policy.js',
  'apps/local-service/experiments/topic-encoder/hierarchical-e5-broad-heads-v1/vector-packet.js','spikes/topic-resolution/browser/core/page-content-policy.js',
- 'spikes/topic-resolution/browser/embedding/embedding-contract.js','spikes/topic-resolution/browser/embedding/.assets/manifest.json']);
+ 'spikes/topic-resolution/browser/embedding/embedding-contract.js','spikes/topic-resolution/browser/embedding/.assets/manifest.json',
+ 'apps/local-service/harness/hierarchy-child-additional-test-corpus.js','apps/local-service/harness/run-hierarchy-child-additional-test.js']);
 const flags={liveChanged:false,assignmentAuthority:false,productionValidated:false,independentValidation:false,representativePopulation:false,statisticalIndependenceClaim:false};
 export const CHILD_DIVERSITY_SOURCE_FILES=SOURCES;
 async function load(){
@@ -140,18 +142,27 @@ export async function fitChildDiversity(captureSha){
   calibrationSummary:summarizeChildMatchRows(calibration),testEvaluated:false,encoderClosed,endPinsChecked,elapsedMs:performance.now()-started,inputPins:data.ledger,sourcePins:sources,...flags};
  return {status:result.status,heads:Object.fromEntries(CHILD_TASKS.map(n=>[n,heads[n]?{eligible:heads[n].eligible,reason:heads[n].reason}:null])),result:await save(FIT,'result.json',result)};
 }
-export async function evaluateChildDiversity(fitSha,testSha){
- need(!used&&/^[a-f0-9]{64}$/u.test(fitSha)&&/^[a-f0-9]{64}$/u.test(testSha));used=true;const data=await load(),sources=await pins(SOURCES),candidate=await loadCandidate(data,fitSha),capture=await loadCapture(data,TEST,testSha,'test');
- need(capture.result.fitSha===fitSha);await directory(EVAL);const rows=[],casePins=[],started=performance.now();let encoder=null,encoderClosed=false,endPinsChecked=false,failure=null;
+export async function evaluateChildDiversity(fitSha,testSha,extraTestSha=null){
+ need(!used&&/^[a-f0-9]{64}$/u.test(fitSha)&&/^[a-f0-9]{64}$/u.test(testSha)&&(extraTestSha===null||/^[a-f0-9]{64}$/u.test(extraTestSha)));used=true;
+ const data=await load(),sources=await pins(SOURCES),candidate=await loadCandidate(data,fitSha),capture=await loadCapture(data,TEST,testSha,'test'),probes=[...data.corpus.test],observations=[...capture.rows];
+ need(capture.result.fitSha===fitSha);
+ if(extraTestSha!==null){
+  const folder=D+'hierarchy-child-additional-test-capture-20261029',extra=await json(folder+'/result.json',{sha256:extraTestSha},data.ledger);
+  need(extra.status==='completed'&&extra.endPinsChecked&&extra.candidateSha256===fitSha&&extra.originalTestCaptureSha256===testSha&&extra.casePins.length===2);
+  for(const p of ADDITIONAL_CHILD_TEST_PROBES){const pin=extra.casePins.find(x=>x.file===p.id+'.json');need(pin);const r=await json(folder+'/'+pin.file,pin,data.ledger);
+   need(r.id===p.id&&r.url===p.url&&r.groupId===p.groupId&&r.split==='test'&&JSON.stringify(r.labels)===JSON.stringify(p.labels));probes.push(p);observations.push(r);
+  }
+ }
+ await directory(EVAL);const rows=[],casePins=[],started=performance.now();let encoder=null,encoderClosed=false,endPinsChecked=false,failure=null;
  try{
-  await save(EVAL,'inputs.json',{fitSha,testSha,inputPins:data.ledger,sourcePins:sources,trainedOrRetunedAfterTest:false,...flags});
+  await save(EVAL,'inputs.json',{fitSha,testSha,extraTestSha,inputPins:data.ledger,sourcePins:sources,trainedOrRetunedAfterTest:false,...flags});
   encoder=await createPackagedCrawlerEmbedder({expectedManifestSha256:MANIFEST});
-  for(let i=0;i<capture.rows.length;i++){const p=data.corpus.test[i],f=await encode(encoder,p,capture.rows[i]),r=classify(data,candidate.matcher,p,f);
+  for(let i=0;i<observations.length;i++){const p=probes[i],f=await encode(encoder,p,observations[i]),r=classify(data,candidate.matcher,p,f);
    casePins.push(await save(EVAL,p.id+'.json',{...f,match:r}));rows.push({...r,encodingMs:f.encodingMs??null});}
  }catch{failure={stage:'evaluation-or-persistence',completed:rows.length};}
  finally{if(encoder)try{await encoder.close();encoderClosed=true;}catch{failure??={stage:'encoder-close'};}}
  try{await endPins(data.ledger,SOURCES,sources);endPinsChecked=true;}catch{failure??={stage:'end-pins'};}
- const result={schema:'child-diversity-evaluation/v1',status:failure?'failed':'completed',failure,fitSha,testSha,corpusSha256:CORPUS_PIN.sha256,rows,casePins,summary:summarizeChildMatchRows(rows),
+ const result={schema:'child-diversity-evaluation/v1',status:failure?'failed':'completed',failure,fitSha,testSha,extraTestSha,originalDeclared:11,additionalDeclared:extraTestSha===null?0:2,corpusSha256:CORPUS_PIN.sha256,rows,casePins,summary:summarizeChildMatchRows(rows),
   encoderClosed,endPinsChecked,elapsedMs:performance.now()-started,inputPins:data.ledger,sourcePins:sources,...flags};
  return {status:result.status,summary:result.summary,result:await save(EVAL,'result.json',result)};
 }
@@ -159,7 +170,7 @@ if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.ur
  const a=process.argv.slice(2);try{let result;
   if(a.length===1&&a[0]==='--source-check')result=await checkChildDiversitySource();else if(a.length===2&&a[0]==='--candidate-check')result=await checkFrozenChildDiversityCandidate(a[1]);else if(a.length===1&&a[0]==='--capture-development')result=await captureChildDiversity('development');
   else if(a.length===2&&a[0]==='--fit')result=await fitChildDiversity(a[1]);else if(a.length===2&&a[0]==='--capture-test')result=await captureChildDiversity('test',a[1]);
-  else if(a.length===3&&a[0]==='--evaluate')result=await evaluateChildDiversity(a[1],a[2]);else throw new Error();
+  else if((a.length===3||a.length===4)&&a[0]==='--evaluate')result=await evaluateChildDiversity(a[1],a[2],a[3]??null);else throw new Error();
   process.stdout.write(JSON.stringify(result)+'\n');if(result.status==='failed')process.exitCode=1;
  }catch{process.stderr.write('Child diversity experiment refused; existing artifacts retained.\n');process.exitCode=1;}
 }

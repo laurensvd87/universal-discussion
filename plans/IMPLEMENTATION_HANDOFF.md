@@ -1,5 +1,19 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct current TEST capture completed/terminalexit0:11declared/10available/1Dixit
+redirect-refused,62392B SHA a85804ae9546e28a65828b32f177b810904040fd725255a67438ff61f6f3ce20.
+No candidate TEST encoder/vector/prediction yet. Only1insideGames physical negative
+available, below frozen minimum2. Before first predictions, declared2 additional
+physical board/card games (Harmonies/Seasons), same TEST-only Libellud publisher.
+Original11 inclDixit failure stays counted, candidate519104.../all acceptance
+minimums unchanged; no retry/redirect-following/subject relabel. New capture
+requires observed absence of evaluation output and exact original capture/candidate
+hashes. Max4requests/5s spacing; Source-check34listedfiles passes, no encoder/
+network.48guarded tests pass plus2metric cases, including false Animals refinement
+on a nature-themed game despite wrong root (cannot hide an outside-parent error).
+Additional actual decision still next; then evaluate original11+additional2 in
+one offline E5 session, same frozen candidate. Reviews remain Root-only.
+
 29Oct current01:02UTC: new11-page TEST capture RUNNING execsession92229; monitor
 only this session, no duplicate/retry. Candidate manifest
 data/hierarchy-child-combined-candidate-20261029/manifest.json SHA

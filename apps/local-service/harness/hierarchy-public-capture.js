@@ -10,6 +10,7 @@ import {RECIPE_CAL_PROBES,RECIPE_TEST_PROBES} from './hierarchy-recipe-corpus.js
 import {GTA_TRAIN_PROBES,GTA_CAL_PROBES,GTA_TEST_PROBES} from './hierarchy-gta-corpus.js';
 import childCorpus from './hierarchy-child-corpus.json' with {type:'json'};
 import diversityCorpus from './hierarchy-child-diversity-corpus.json' with {type:'json'};
+import {ADDITIONAL_CHILD_TEST_PROBES} from './hierarchy-child-additional-test-corpus.js';
 
 const ORIGIN='https://en.wikipedia.org',MAX_REQUESTS=34,MAX_DURATION=240000,MIN_DELAY=5000;
 // Closed development TRAIN/CAL batch. TEST IDs/URLs are deliberately absent.
@@ -86,16 +87,17 @@ export function createHierarchyChildDiversityCapture(phase,dependencies={}){
 }
 export function createHierarchyKoalaTrainingSupplementCapture(dependencies={}){return createCapture(dependencies,true,false,false,false,null,true);}
 export function createHierarchyKoalaAdditionalTrainingCapture(dependencies={}){return createCapture(dependencies,true,false,false,false,null,'additional');}
+export function createHierarchyChildAdditionalBoardTestCapture(dependencies={}){return createCapture(dependencies,true,false,false,false,null,'board-test');}
 function createCapture({fetchPublic=fetchPublicResource,clock=Date.now,sleep=defaultSleep,signal,deadline},child,diagnosis=false,calibrationRepair=false,evaluation=false,diversityPhase=null,koalaSupplement=false){
  if(typeof fetchPublic!=='function'||typeof clock!=='function'||typeof sleep!=='function')throw new TypeError('Invalid fixed public capture dependencies');
  const start=clock();if(!Number.isFinite(start)||start<0)throw new TypeError('Invalid fixed public capture clock');
  deadline??=start+MAX_DURATION;
  if(!Number.isFinite(deadline)||deadline<=start||deadline>start+MAX_DURATION||signal!==undefined&&(!signal||typeof signal.aborted!=='boolean'))throw new TypeError('Invalid fixed public capture deadline or signal');
- const approved=koalaSupplement?(koalaSupplement==='additional'?KOALA_ADDITIONAL_TRAIN:KOALA_TRAIN_SUPPLEMENT):diversityPhase?diversityCorpus[diversityPhase]:child?(evaluation?CHILD_TEST:calibrationRepair?CHILD_CAL_REPAIR:diagnosis?CHILD_DIAGNOSIS:CHILD_TRAIN_CAL):[...PUBLIC_HIERARCHY_PROBES,...RECIPE_CAL_PROBES,...RECIPE_TEST_PROBES,...GTA_TRAIN_PROBES,...GTA_CAL_PROBES,...GTA_TEST_PROBES];
+ const approved=koalaSupplement?(koalaSupplement==='board-test'?ADDITIONAL_CHILD_TEST_PROBES:koalaSupplement==='additional'?KOALA_ADDITIONAL_TRAIN:KOALA_TRAIN_SUPPLEMENT):diversityPhase?diversityCorpus[diversityPhase]:child?(evaluation?CHILD_TEST:calibrationRepair?CHILD_CAL_REPAIR:diagnosis?CHILD_DIAGNOSIS:CHILD_TRAIN_CAL):[...PUBLIC_HIERARCHY_PROBES,...RECIPE_CAL_PROBES,...RECIPE_TEST_PROBES,...GTA_TRAIN_PROBES,...GTA_CAL_PROBES,...GTA_TEST_PROBES];
  const origins=new Set(child?approved.map(p=>new URL(p.url).origin):[ORIGIN]);
  const probes=new Map(approved.map(p=>[p.id,p]));
- if(probes.size!==(koalaSupplement?(koalaSupplement==='additional'?2:1):diversityPhase?(diversityPhase==='development'?7:11):child?(evaluation?14:calibrationRepair?6:diagnosis?2:11):64)||probes.size!==approved.length||[...probes.values()].some(p=>normalizeCrawlUrl(p.url,undefined,[])!==p.url||!origins.has(new URL(p.url).origin)))throw new TypeError('Invalid fixed probe source');
- const maxRequests=koalaSupplement?(koalaSupplement==='additional'?6:3):calibrationRepair?8:diagnosis?6:MAX_REQUESTS;
+ if(probes.size!==(koalaSupplement?(['additional','board-test'].includes(koalaSupplement)?2:1):diversityPhase?(diversityPhase==='development'?7:11):child?(evaluation?14:calibrationRepair?6:diagnosis?2:11):64)||probes.size!==approved.length||[...probes.values()].some(p=>normalizeCrawlUrl(p.url,undefined,[])!==p.url||!origins.has(new URL(p.url).origin)))throw new TypeError('Invalid fixed probe source');
+ const maxRequests=koalaSupplement?(koalaSupplement==='board-test'?4:koalaSupplement==='additional'?6:3):calibrationRepair?8:diagnosis?6:MAX_REQUESTS;
  const unavailableRow=(probe,reason,parserDiagnostic=null)=>{
   if(!diagnosis)return unavailable(probe,reason);
   const observed=['document-invalid','insufficient-text'].includes(reason)?parserDiagnostic:null;

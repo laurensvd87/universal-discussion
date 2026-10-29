@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {createHierarchyPublicCapture,createHierarchyChildTrainCalCapture,createHierarchyChildDiagnosisCapture,createHierarchyChildCalibrationRepairCapture,createHierarchyChildEvaluationCapture,createHierarchyChildDiversityCapture,createHierarchyKoalaTrainingSupplementCapture,createHierarchyKoalaAdditionalTrainingCapture} from '../harness/hierarchy-public-capture.js';
+import {createHierarchyPublicCapture,createHierarchyChildTrainCalCapture,createHierarchyChildDiagnosisCapture,createHierarchyChildCalibrationRepairCapture,createHierarchyChildEvaluationCapture,createHierarchyChildDiversityCapture,createHierarchyKoalaTrainingSupplementCapture,createHierarchyKoalaAdditionalTrainingCapture,createHierarchyChildAdditionalBoardTestCapture} from '../harness/hierarchy-public-capture.js';
+import {ADDITIONAL_CHILD_TEST_PROBES} from '../harness/hierarchy-child-additional-test-corpus.js';
 import {readFileSync} from 'node:fs';
 import {PUBLIC_HIERARCHY_PROBES as probes} from '../harness/hierarchy-public-probes.js';
 import {RECIPE_CAL_PROBES,RECIPE_TEST_PROBES} from '../harness/hierarchy-recipe-corpus.js';
@@ -28,6 +29,13 @@ function fixture({robots='',tdm=null,page=()=>html(),onRequest}={}){
 const childPlan=JSON.parse(readFileSync(new URL('../harness/hierarchy-child-corpus.json',import.meta.url),'utf8'));
 const childRows=childPlan.freshCandidates.filter(r=>r.split!=='test');
 const diversityPlan=JSON.parse(readFileSync(new URL('../harness/hierarchy-child-diversity-corpus.json',import.meta.url),'utf8'));
+
+test('additional board TEST is a separate two-document frozen collector with no TRAIN/CAL or original TEST retry',async()=>{
+ const f=fixture(),capture=createHierarchyChildAdditionalBoardTestCapture(f.options);
+ for(const p of [...childPlan.freshCandidates,...diversityPlan.development,...diversityPlan.test,{id:'koala-supplement-train-01'},{id:'koala-additional-train-02'}])await assert.rejects(capture.capture(p.id));
+ for(const p of ADDITIONAL_CHILD_TEST_PROBES){const r=await capture.capture(p.id);assert.equal(r.status,'available');assert.equal(r.url,p.url);assert.equal(p.split,'test');assert.equal(p.labels['video-games'],false);}
+ assert.equal(f.calls.length,4);assert.equal(capture.snapshot().maxRequests,4);
+});
 
 test('separate Koala TRAIN supplement cannot fetch any old/new CAL or TEST or replace a failed TRAIN ID',async()=>{
  const f=fixture(),capture=createHierarchyKoalaTrainingSupplementCapture(f.options);

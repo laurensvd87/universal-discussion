@@ -13,3 +13,8 @@ test('unavailable pages and root abstentions stay separate from child correctnes
  assert.equal(r.metrics.animals.acceptedPositive,1);assert.equal(r.metrics.animals.acceptedNegative,1);assert.equal(r.metrics.animals.insideParentNegative,1);
  assert.equal(r.metrics.koalas.acceptedPositive,1);assert.equal(r.metrics.koalas.insideParentNegative,0);
 });
+test('a nature-themed board game wrongly routed to Animals remains a false refinement outside the expected parent',()=>{
+ const r=summarizeChildMatchRows([{status:'scored',labels:{'video-games':false,animals:false,koalas:false},expectedRootId:'games',rootPath:['nature'],after:['nature','animals']}]);
+ assert.equal(r.rootCorrect,0);assert.equal(r.metrics.animals.insideParentNegative,0);assert.equal(r.metrics.animals.acceptedNegative,1);
+ assert.equal(r.metrics['video-games'].insideParentNegative,1);assert.equal(r.metrics['video-games'].rootGateNegative,0);
+});
