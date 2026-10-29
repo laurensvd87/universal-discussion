@@ -14,6 +14,7 @@ import {createLocalAiClient} from '../../../../spikes/topic-resolution/browser/c
 import {authoredFixtureInsightContext} from './automatic-author-insight-native-assertions.js';
 import {runAutomaticPageTopicNativeAssertions} from './automatic-page-topic-native-assertions.js';
 import {runNamedOwnerGroupingNativeAssertions} from './named-owner-grouping-native-assertions.js';
+import {runUnifiedTopicSearchNativeAssertions} from './unified-topic-search-native-assertions.js';
 import names from './automatic-topic-public-native-cases.json' with {type:'json'};
 export const AUTOMATIC_TOPIC_PUBLIC_NATIVE_CASES=Object.freeze([...names]);
 const actor={id:'demo-alex',type:'human',demo:true},code=c=>e=>e?.code===c;
@@ -23,7 +24,7 @@ async function within(promise){let timer;try{return await Promise.race([promise,
 async function test(cases,index,work){let stage='CALL';const at=value=>{if(!['BUNDLE','CONTEXT','START','RESULT','PUBLISH','THREAD'].includes(value))throw new TypeError('Invalid public check stage');stage=value;};
  const row={name:names[index],status:'running'};cases.push(row);try{await work(at);row.status='passed';}catch(error){row.status='failed';
  const d=error&&!types.isProxy(error)&&Object.getOwnPropertyDescriptor(error,'code'),raw=d&&Object.hasOwn(d,'value')?d.value:null;
- const safe=['ERR_ASSERTION','42601','42702','42883','23503','23505','42501','P1301','P1001','P1221','P1223','P1291','P1293','invalid-response','invalid-request','invalid','conflict','forbidden','unauthorized','storage-failure','storage-corrupt','unavailable'].includes(raw)?raw.toUpperCase().replaceAll('-','_'):'UNKNOWN';
+ const safe=['ERR_ASSERTION','42601','42702','42703','42P01','42804','42830','42883','23503','23505','23514','42501','2BP01','0A000','P1301','P1303','P1304','P1001','P1221','P1223','P1291','P1293','invalid-response','invalid-request','invalid','conflict','forbidden','unauthorized','storage-failure','storage-corrupt','unavailable'].includes(raw)?raw.toUpperCase().replaceAll('-','_'):'UNKNOWN';
  throw Object.assign(Error('Owned public topic check did not complete'),{code:`PUBLIC_${index}_${stage}_${safe}`});}}
 
 export async function runAutomaticTopicPublicNativeAssertions(scope){
@@ -122,9 +123,12 @@ export async function runAutomaticTopicPublicNativeAssertions(scope){
    await assert.rejects(owner.transaction(async tx=>{await tx.exec('SET LOCAL ROLE '+role);await tx.query(sql);}),code('42501'));
   for(const role of ['murmingle_ingest_worker','murmingle_crawler_submitter'])await assert.rejects(owner.transaction(async tx=>{await tx.exec('SET LOCAL ROLE '+role);await tx.query('SELECT canonical_v4.named_read_root_contexts($1,$2::text[])',[generation,[root]]);}),code('42501'));
  });
- const finishGrouping=await runNamedOwnerGroupingNativeAssertions({...scope,check:(index,body)=>test(cases,index,body)});
- const finishPages=await runAutomaticPageTopicNativeAssertions({...scope,cases:scope.pageCases});
- return async()=>{await finishGrouping();await finishPages();return test(cases,18,async()=>{
+ const finishGrouping=await runNamedOwnerGroupingNativeAssertions({...scope,check:(index,body)=>test(cases,index===17?26:index,body)});
+ let finishSearch;
+ const finishPages=await runAutomaticPageTopicNativeAssertions({...scope,cases:scope.pageCases,afterInstall:async()=>{
+  finishSearch=await runUnifiedTopicSearchNativeAssertions({...scope,check:(index,body)=>test(cases,index===27?27:index-1,body)});
+ }});
+ return async()=>{await finishGrouping();await finishSearch();await finishPages();return test(cases,28,async()=>{
   assert.equal((await one(owner,'SELECT count(*)::integer n FROM canonical_v4.sources')).n,0);await drain();
   const view=await target();assert.equal(view.scope.caption,selected.scope.caption);
   await assert.rejects(service.semanticTarget({nodeId:'subject-'+parent,rootId:root,targetId:root}),code('not-found'));

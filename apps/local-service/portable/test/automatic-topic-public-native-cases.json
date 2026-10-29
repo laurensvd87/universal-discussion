@@ -16,6 +16,16 @@
  "Only owner role can change grouping and internal path selectors retain role restrictions",
  "An uncommitted owner policy update permits MVCC editors and a real human post",
  "Normal HTTP shows the owner default while specific existing conversations remain searchable",
+ "Unified public topic search installs without canonical mutations",
+ "Fixed learned and saved legacy topics share one global directory",
+ "Original saved discussions retain their canonical route and public title",
+ "One keyset order pages all topic kinds without duplicate or missing scopes",
+ "Normal HTTP opens an original discussion and replies to its exact destination",
+ "Forged legacy membership refuses without contribution writes",
+ "Unified public search and maintenance preserve SQL role and input boundaries",
+ "A held search worker clock permits foreground posting and search",
+ "Public changes invalidate search signatures and withdrawal is immediate",
  "Source erasure preserves authored group captions and only opaque owner scope rules",
+ "Source erasure retains authored and original saved conversation search routes",
  "Source erasure preserves expressly authored public threads and direct-scope replies without derived ancestors"
 ]

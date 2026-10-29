@@ -50,6 +50,9 @@ export async function runAutomaticPageTopicNativeAssertions(scope){
   assert.equal((await one(owner,'SELECT count(*)::integer n FROM canonical_v4.named_page_root_material')).n,0);await drain();
   assert.equal(await has(scopeId(oldNamed),legacyRoot),false);assert.equal(await has(pageId(c),legacyRoot),true);
  });
+ // Additional joined public checks run after this real component is installed,
+ // before subsequent cases replace the original invented Source titles/heads.
+ if(scope.afterInstall)await scope.afterInstall();
  await check(cases,1,async()=>{
   await changeFixtureTitle(a,'Atlas Camera Pro battery guide');await changeFixtureTitle(b,'Atlas Camera Pro screen guide');await prepareFixtureSources();
   oldPage=await editor(a);assert.equal(oldPage.scope.kind,'page');original=await pagePost(oldPage);

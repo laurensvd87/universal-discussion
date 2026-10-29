@@ -23,6 +23,23 @@ test('two public evidence tasks share the existing turn without blocking subsequ
  assert.equal(loop.describe().counts.publicEvidenceCompleted,1);assert.equal(loop.describe().counts.publicEvidenceDeferred,1);assert.equal(loop.describe().limits.publicEvidenceTasks,2);await loop.close();
 });
 
+test('public search work is bounded in the existing loop and does not prevent independent discovery',async()=>{
+ const s=setup();s.options.topicSearch={tasks:async()=>['1','2','3'],process:async raw=>{const a=JSON.parse(raw);assert.equal(a.generation,s.a.generation);s.events.push('search-'+a.eventId);return ['completed','busy','retired'][Number(a.eventId)-1];}};
+ const loop=create(s.options,{wait:s.pause}).start();await s.waiting.promise;assert.deepEqual(s.events.slice(0,3),['search-1','search-2','search-3']);assert(s.events.includes('publish'));
+ const d=loop.describe();assert.equal(d.limits.searchTasks,8);assert.equal(d.counts.searchCompleted,1);assert.equal(d.counts.searchBusy,1);assert.equal(d.counts.searchRetired,1);await loop.close();
+});
+test('invalid public search jobs and a failed search port leave independent Source work available',async()=>{
+ for(const tasks of [['1','1'],Array.from({length:9},(_,i)=>String(i+1)),['0']]){
+  const s=setup();s.options.topicSearch={tasks:async()=>tasks,process:async()=>assert.fail('Malformed list dispatched')};
+  const loop=create(s.options,{wait:s.pause}).start();await s.waiting.promise;assert(s.events.includes('publish'));assert.equal(loop.describe().counts.failures,1);await loop.close();
+ }
+});
+test('shutdown joins physical public search maintenance before dispatching any later work',async()=>{
+ const s=setup(),entered=defer(),release=defer();s.options.topicSearch={tasks:async()=>['1'],process:async()=>{entered.resolve();return release.promise;}};
+ const loop=create(s.options,{wait:s.pause}).start();await entered.promise;let closed=false;const closing=loop.close().then(()=>{closed=true;});await Promise.resolve();assert.equal(closed,false);
+ release.resolve('completed');await closing;assert(!s.events.includes('publish'));
+});
+
 test('a failed public evidence port does not acknowledge its jobs or prevent independent discovery',async()=>{
  const s=setup();s.options.publicEvidence={turn:async()=>{throw Error('temporary public index refusal');}};
  const loop=create(s.options,{wait:s.pause}).start();await s.waiting.promise;assert(s.events.includes('publish'));assert.equal(loop.describe().counts.failures,1);await loop.close();

@@ -17,7 +17,8 @@ function create(options,pause,testComposition){
  if(!options||types.isProxy(options))bad();const hasFeeds=Object.hasOwn(options,'feeds');
  const hasPublic=Object.hasOwn(options,'publicEvidence');
  const hasSingle=Object.hasOwn(options,'singleSourceTopics');
- const {retrieval,subjects,readGeneration,descriptorJson,feeds=null,publicEvidence=null,singleSourceTopics=null}=fields(options,['retrieval','subjects','readGeneration','descriptorJson',...(hasFeeds?['feeds']:[]),...(hasPublic?['publicEvidence']:[]),...(hasSingle?['singleSourceTopics']:[])]);
+ const hasSearch=Object.hasOwn(options,'topicSearch');
+ const {retrieval,subjects,readGeneration,descriptorJson,feeds=null,publicEvidence=null,singleSourceTopics=null,topicSearch=null}=fields(options,['retrieval','subjects','readGeneration','descriptorJson',...(hasFeeds?['feeds']:[]),...(hasPublic?['publicEvidence']:[]),...(hasSingle?['singleSourceTopics']:[]),...(hasSearch?['topicSearch']:[])]);
  if(typeof readGeneration!=='function'||typeof descriptorJson!=='string'||Buffer.byteLength(descriptorJson)>2048)bad();let descriptor;
  try{descriptor=fields(JSON.parse(descriptorJson),['matcherHash','representationHash','inputDefinition']);}catch{bad();}
  if(typeof descriptor.matcherHash!=='string'||typeof descriptor.representationHash!=='string'||!/^[a-f0-9]{64}$/u.test(descriptor.matcherHash)||!/^[a-f0-9]{64}$/u.test(descriptor.representationHash)||
@@ -27,11 +28,13 @@ function create(options,pause,testComposition){
  if(hasFeeds&&(!feeds||typeof feeds.tasks!=='function'||typeof feeds.process!=='function'))bad();
  if(hasPublic&&(!publicEvidence||typeof publicEvidence.turn!=='function'))bad();
  if(hasSingle&&(!singleSourceTopics||typeof singleSourceTopics.match!=='function'))bad();
+ if(hasSearch&&(!topicSearch||typeof topicSearch.tasks!=='function'||typeof topicSearch.process!=='function'))bad();
  let started=false,closed=false,running=null,closing=null,generation=null,phase='idle',lastOutcome='not-started';const abort=new AbortController();
  const counts={turns:0,indexed:0,indexRetired:0,discoveries:0,published:0,retained:0,capacity:0,conflicts:0,failures:0,generationChanges:0,
   feedCompleted:0,feedAdvanced:0,feedBusy:0,feedRetired:0};
  if(hasPublic)Object.assign(counts,{publicEvidenceCompleted:0,publicEvidenceDeferred:0});
  if(hasSingle)Object.assign(counts,{singleMatched:0,singleRetained:0,singleUnresolved:0,singleCapacity:0,singleBusy:0,singleRetired:0});
+ if(hasSearch)Object.assign(counts,{searchCompleted:0,searchBusy:0,searchRetired:0});
  const bump=key=>{counts[key]=Math.min(MAX,counts[key]+1);};
  function failure(error){bump(error?.code==='conflict'?'conflicts':'failures');lastOutcome=phase+'-unavailable';}
  async function matchSingle(scope,sourceId){
@@ -53,6 +56,14 @@ function create(options,pause,testComposition){
     if(!['completed','advanced','busy','retired'].includes(status))bad();
     const key={completed:'feedCompleted',advanced:'feedAdvanced',busy:'feedBusy',retired:'feedRetired'}[status];bump(key);
     if(status!=='busy')work=true;
+   }catch(error){failure(error);}}
+  }catch(error){failure(error);}}
+  if(topicSearch){phase='search-tasks';try{
+   const tasks=await topicSearch.tasks(JSON.stringify({generation}));if(closed)return work;
+   if(!Array.isArray(tasks)||tasks.length>8||new Set(tasks).size!==tasks.length||tasks.some(t=>typeof t!=='string'||!/^[1-9][0-9]{0,18}$/u.test(t)||BigInt(t)>9223372036854775807n))bad();
+   for(const eventId of tasks){if(closed)return work;phase='search';try{
+    const status=await topicSearch.process(JSON.stringify({generation,eventId}));if(closed)return work;
+    if(!['completed','busy','retired'].includes(status))bad();bump({completed:'searchCompleted',busy:'searchBusy',retired:'searchRetired'}[status]);if(status!=='busy')work=true;
    }catch(error){failure(error);}}
   }catch(error){failure(error);}}
   if(publicEvidence){phase='public-evidence';try{
@@ -97,7 +108,7 @@ function create(options,pause,testComposition){
   }phase='closed';}
  const api=Object.freeze({start(){if(started||closed)throw unavailable();started=true;running=run();return api;},
   describe:()=>Object.freeze({schema:'automatic-topic-coordinator/v1',phase,lastOutcome,counts:Object.freeze({...counts}),testComposition,
-   limits:Object.freeze({indexTasks:8,discoveryTasks:4,feedTasks:feeds?8:0,...(hasPublic?{publicEvidenceTasks:2}:{}),...(hasSingle?{singleSourceMatches:12}:{}),rawNeighbours:128,cohort:64}),assignmentAuthority:false,nativeObservation:false}),
+   limits:Object.freeze({indexTasks:8,discoveryTasks:4,feedTasks:feeds?8:0,...(hasPublic?{publicEvidenceTasks:2}:{}),...(hasSingle?{singleSourceMatches:12}:{}),...(hasSearch?{searchTasks:8}:{}),rawNeighbours:128,cohort:64}),assignmentAuthority:false,nativeObservation:false}),
   close(){if(!closing){closed=true;abort.abort();closing=(async()=>{if(running)await running;phase='closed';})();}return closing;}
  });return api;
 }
