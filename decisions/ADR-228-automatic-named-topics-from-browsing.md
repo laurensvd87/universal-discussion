@@ -41,6 +41,23 @@ features}-20261029/result.json` and the Root audit. Exact first feature result:
 The closed E5 run exited0, disposed its encoder and checked source/input pins.
 All original unavailable outcomes remain; no old hierarchy TEST was repurposed.
 
+Same-response metadata DEV subsequently retained all four new allowed captures.
+Two articles supplied machine-readable publication claims: Cambridge a calendar
+day, Berkeley a timestamp. UW and Caltech remained unknown. Normalized dates are
+bound to the current response/observation hashes; the four title/body hashes
+still match the earlier encodings, but new response identities are not aliases
+for the old Source inputs. This does not authorize rebinding live embeddings.
+The collector never substitutes annotated gold event dates or visit time.
+
+Actual metadata result:
+`8479d0da2ddf9efdf5e0abfa7560bc134f9c7d6d2f349e4579475527ed57cb39`,
+66.03s for the policy-paced four-page HTTP batch,0.9-1.3ms per native DOM
+extraction. All39 source pins, owned browser exit/profile cleanup and zero browser
+external requests passed. Nine separate native Chrome fixtures and a two-document
+response/CSP check pass;46 joined pure collector/DOM/normalizer tests pass.
+These are Root-only extraction/coverage results. They are not live Source
+metadata integration, event-time truth, assignment quality or UI latency evidence.
+
 Read-only live inspection found installed pgvector0.8.2 and `vector_mirror`
 columns in embeddings/fixed_references, with no HNSW/IVFFlat index. Six read-only
 distance queries over these four retained DEV vectors agreed with exact binary64
@@ -135,6 +152,13 @@ or silently reinterpret the author's original destination.
 
 Show a readable concrete topic title plus optional ancestry. A page-only fallback
 must say that it describes the current page, rather than claiming a shared topic.
+Show the selected concrete context before the person posts. An eligible first
+page can supply a provisional readable title immediately; discovering a useful
+new story must not require another site to be visited first. Later automatic
+shared-topic confirmation improves discovery without silently changing the
+original comment's meaning. Distinguish enduring subjects such as AI from
+specific events such as the2024 Physics Nobel announcement in the displayed
+context, even when both are available as ancestor browsing scopes.
 Keep global Search Topics independent of the foreground page; add indexed server
 search/pagination instead of exporting every future topic for local filtering.
 Keep provisional/page-only records out of global shared-topic discovery. Prioritize

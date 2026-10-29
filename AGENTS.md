@@ -8,6 +8,17 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct publication DOM+same-response DEV4 COMPLETE/experiment-only:46purePASS,
+9nativeChrome fixtures+2CSPresponse checksPASS. Actual11128 EXIT0/4eligible/2known
+pubclaims(day+timestamp)/2missing; result8479d0da...ed57cb39/39pins/endpinsTRUE/
+ownedexit+profilecleanupTRUE. DOM0.9-1.3ms, pacedHTTP66.03s NOTUIlatency. All4
+body/title hashes equal priorencoding; NEWSourceinputs stayseparate. NoHTMLsaved,
+noDDL/liveSource metadata/autotopic activation. Root-only. ReadlatestHANDOFF/
+STATUS/ADR228. Firstpage mustoffer readableconcrete context beforeposting;
+backgroundconfirmation mustnotrequire a secondpublisher before commenting.
+GoalACTIVE: temporalpolicy/prospectivequality/registry18/roles/races/erase/
+recovery/realUIintegration stillREQUIRED. Crawler6384 advancing6199/stderr0.
+
 LATEST29Oct publication-claim normalizer nowSOURCE/experimentonly: no clock/IO/
 DOM/provider; dayprecision keptwithoutUTCmidnight, timestampsnormalizeoffsets/
 resolution, conflict/invalid/modified/visit/unknown-zone fields refused. 11meta+

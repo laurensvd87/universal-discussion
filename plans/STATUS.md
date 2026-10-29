@@ -1,5 +1,16 @@
 # Project status
 
+29October metadata-capture progress: publication claims can now be extracted in
+an isolated browser world and normalized without executing page code.46 joined
+pure tests, nine native Chrome fixtures and a two-document response/CSP check
+pass. A fresh closed DEV capture of the four previously usable literal articles
+found two publication dates (calendar-day/timestamp) and two missing;4/4 HTTP
+captures eligible. Each DOM extraction took0.9-1.3ms; the paced HTTP batch66.03s.
+All title/body material stayed unchanged,39 source pins checked, own browser
+exited/profile removed. This is extraction evidence, not new live Source storage
+or automatic topic activation. Registry18, temporal policy, prospective event
+quality and real UI integration remain open. Crawler6384 continues advancing.
+
 29October automatic-growth development: a first bounded grouping/name prototype
 now forms two correct groups from four real articles about two different award
 announcements, without predefined child names. Ten documents were declared;

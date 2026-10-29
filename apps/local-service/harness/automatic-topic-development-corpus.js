@@ -25,3 +25,10 @@ export const AUTOMATIC_TOPIC_ADDITIONAL_DEVELOPMENT=Object.freeze([
  {id:'automatic-extra-chemistry-01',eventId:'nobel-chemistry-2024-announcement',eventDate:'2024-10-09',publisherKey:'ucl.ac.uk',url:'https://www.ucl.ac.uk/news/2024/oct/ucl-alumnus-and-ai-innovator-awarded-nobel-prize-chemistry'},
  {id:'automatic-extra-chemistry-02',eventId:'nobel-chemistry-2024-announcement',eventDate:'2024-10-09',publisherKey:'berkeley.edu',url:'https://news.berkeley.edu/2024/10/09/david-baker-a-uc-berkeley-ph-d-awarded-2024-nobel-prize-in-chemistry/'},
 ].map(p=>Object.freeze({...p,split:'development'})));
+
+// New same-response metadata observation on the four previously usable DEV
+// pages only. No denied publisher, alternate URL, replacement or TEST is fetched.
+export const AUTOMATIC_TOPIC_METADATA_DEVELOPMENT=Object.freeze([
+ AUTOMATIC_TOPIC_DEVELOPMENT[4],AUTOMATIC_TOPIC_ADDITIONAL_DEVELOPMENT[0],
+ AUTOMATIC_TOPIC_ADDITIONAL_DEVELOPMENT[1],AUTOMATIC_TOPIC_ADDITIONAL_DEVELOPMENT[3],
+].map((p,i)=>Object.freeze({...p,priorObservationId:p.id,id:'automatic-metadata-dev-0'+(i+1)})));

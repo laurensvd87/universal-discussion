@@ -1,5 +1,30 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct publication DOM/same-response metadata slice COMPLETE in experiment only.
+Collector46 joined purePASS251ms64MiB; offline native fixture9PASS result
+A000A545...0F6F44 (attempt-UVvhWb). Separate response/CSP check2nativePASS,
+resulted8a4da4...7b3df; scripts blocked, JSON-LD readable, ownChrome exited and
+workspace profiles removed. New explicit closed public runner
+run-automatic-topic-publication-development.js captures ONLY four previously
+usable DEV literalURLs/no denied publisher retry/redirect/oldTEST. Actual11128
+EXIT0:4available/0unavailable,2pubclaims known(Cambridge day/Berkeley timestamp),
+UW/Caltech missing;66.032s total,0.9-1.3msDOM. result12684B SHA
+8479d0da2ddf9efdf5e0abfa7560bc134f9c7d6d2f349e4579475527ed57cb39 under
+data/automatic-topic-publication-development-capture-20261029.39sourcepins checked,
+ownbrowserexit/profilecleanupTRUE/browserexternalrequests0. Same response hash
+joined BEFORE offline DOM; only normalizedclaims/observationhashes persisted,
+no HTML. All4title/body hashes equal priorencodedmaterial, but NEW inputhashes
+stay separate/no live rebinding. Rootaudit saved; Root-only/notqualityacceptance.
+Metadata precision is typed: day not invented UTC midnight, publication not event
+time; current proposal API still epoch-only, needs temporal-policy integration
+before these become event inputs. Live schema17/20nodes/model/policy unchanged.
+Crawler6384 advancing6199 atlatestcheck/stderr0, no agent stop/restart. GoalACTIVE:
+automatic live registry18/roles/races/erase/recovery, prospective event quality and
+visible concrete topic before posting remain REQUIRED. Do not frame new subjects
+as requiring pretraining/manual approval or block first-page comments on another
+publisher. Current response-parser/browser source is maintained; saved outputs
+remain immutable. Full restore11GiB Dfloor still unmet(no waiver).
+
 29Oct next-source slice: publication-metadata.js/test added ONLY to unregistered
 automatic-topic-discovery-v1 experiment, not extension inventory/live. Portable
 boundedJSON claim normalization, no clock/IO/DOM/provider: baredate remainsday/no

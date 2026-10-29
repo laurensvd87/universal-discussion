@@ -36,6 +36,33 @@ invented UTC midnight. A known UTC instant is usable even when its publisher-loc
 offset is unspecified; see [RFC9557](https://www.rfc-editor.org/info/rfc9557/).
 The helper accepts bounded JSON data and never returns invalid raw field values.
 
+The isolated-world DOM collector now reads bounded publication claims from the
+current article. It ignores modified times, other URL-bound articles, author and
+comment fields, and ambiguous unscoped article graphs. Nine actual offline Chrome
+fixtures pass, including a page that overrides its own DOM methods. A separate
+owned-response browser check verifies that HTTP CSP blocks executable page code
+while publication JSON-LD remains readable. These prove native DOM behavior,
+not the truth of a publisher's date or production Source attestation.
+
+The closed metadata DEV runner fetched the four previously usable literal public
+URLs again, with normal robots/TDM checks and all new outcomes retained. It hashes
+the same allowed response before parsing it in offline Chrome, then saves only
+normalized publication metadata and existing observation hashes, not full HTML.
+Actual result8479d0da...ed57cb39:4/4available, two known dates (one calendar day,
+one timestamp), two missing. All four title/body hashes match the prior encoding;
+new response/input identities remain separate. Parsing took0.9-1.3ms per document;
+the whole policy-checked HTTP batch took66.03s, not user matching latency. Owned
+Chrome exited, its exact profile was removed and39 source pins checked unchanged.
+No metadata was installed in live Sources or used as event-assignment authority.
+
+Topic lifecycle must remain useful even before multi-source confirmation: an
+eligible page can immediately offer its readable page-context title for a new
+discussion; background grouping supplies a stable shared subject/event identity
+only when supported. Show that concrete context before posting and keep existing
+posts bound to it when labels or assignments later change. Global Search Topics
+should emphasize supported topics with real human discussion. A provisional page
+label is not evidence that unrelated articles belong to the same shared topic.
+
 Next compare real same-event/different-event/novelty cases against other bounded
 approaches. Include different news about the same entity, delayed arrivals,
 syndication, singletons, multilingual captures and erased inputs. Calibrate on

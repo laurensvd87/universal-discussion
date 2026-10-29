@@ -11,7 +11,7 @@ import {GTA_TRAIN_PROBES,GTA_CAL_PROBES,GTA_TEST_PROBES} from './hierarchy-gta-c
 import childCorpus from './hierarchy-child-corpus.json' with {type:'json'};
 import diversityCorpus from './hierarchy-child-diversity-corpus.json' with {type:'json'};
 import {ADDITIONAL_CHILD_TEST_PROBES} from './hierarchy-child-additional-test-corpus.js';
-import {AUTOMATIC_TOPIC_DEVELOPMENT,AUTOMATIC_TOPIC_ADDITIONAL_DEVELOPMENT} from './automatic-topic-development-corpus.js';
+import {AUTOMATIC_TOPIC_DEVELOPMENT,AUTOMATIC_TOPIC_ADDITIONAL_DEVELOPMENT,AUTOMATIC_TOPIC_METADATA_DEVELOPMENT} from './automatic-topic-development-corpus.js';
 
 const ORIGIN='https://en.wikipedia.org',MAX_REQUESTS=34,MAX_DURATION=240000,MIN_DELAY=5000;
 // Closed development TRAIN/CAL batch. TEST IDs/URLs are deliberately absent.
@@ -91,6 +91,7 @@ export function createHierarchyKoalaAdditionalTrainingCapture(dependencies={}){r
 export function createHierarchyChildAdditionalBoardTestCapture(dependencies={}){return createCapture(dependencies,true,false,false,false,null,'board-test');}
 export function createAutomaticTopicDevelopmentCapture(dependencies={}){return createCapture(dependencies,true,false,false,false,null,'automatic-development');}
 export function createAutomaticTopicAdditionalDevelopmentCapture(dependencies={}){return createCapture(dependencies,true,false,false,false,null,'automatic-development-additional');}
+export function createAutomaticTopicMetadataDevelopmentCapture(dependencies={}){return createCapture(dependencies,true,false,false,false,null,'automatic-development-metadata');}
 function createCapture({fetchPublic=fetchPublicResource,clock=Date.now,sleep=defaultSleep,signal,deadline},child,diagnosis=false,calibrationRepair=false,evaluation=false,diversityPhase=null,koalaSupplement=false){
  if(typeof fetchPublic!=='function'||typeof clock!=='function'||typeof sleep!=='function')throw new TypeError('Invalid fixed public capture dependencies');
  const start=clock();if(!Number.isFinite(start)||start<0)throw new TypeError('Invalid fixed public capture clock');
@@ -102,6 +103,7 @@ function createCapture({fetchPublic=fetchPublicResource,clock=Date.now,sleep=def
   ['board-test',{probes:ADDITIONAL_CHILD_TEST_PROBES,count:2,requests:4}],
   ['automatic-development',{probes:AUTOMATIC_TOPIC_DEVELOPMENT,count:6,requests:16}],
   ['automatic-development-additional',{probes:AUTOMATIC_TOPIC_ADDITIONAL_DEVELOPMENT,count:4,requests:12}],
+  ['automatic-development-metadata',{probes:AUTOMATIC_TOPIC_METADATA_DEVELOPMENT,count:4,requests:12}],
  ]).get(koalaSupplement):null;
  if(koalaSupplement&&!supplemental)throw new TypeError('Invalid fixed probe source');
  const approved=supplemental?supplemental.probes:diversityPhase?diversityCorpus[diversityPhase]:child?(evaluation?CHILD_TEST:calibrationRepair?CHILD_CAL_REPAIR:diagnosis?CHILD_DIAGNOSIS:CHILD_TRAIN_CAL):[...PUBLIC_HIERARCHY_PROBES,...RECIPE_CAL_PROBES,...RECIPE_TEST_PROBES,...GTA_TRAIN_PROBES,...GTA_CAL_PROBES,...GTA_TEST_PROBES];

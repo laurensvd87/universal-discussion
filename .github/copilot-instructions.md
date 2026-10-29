@@ -2,6 +2,11 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current29October metadata:46pure tests,9native DOM fixtures and2response/CSP
+checks pass. Four new same-response DEV captures yield2known publication claims
+and2missing;39pins/ownbrowsercleanup pass. Experiment only; no live Source
+metadata/registry18/automatic topic activation. See latest handoff/ADR228.
+
 Current29October: live20-node hierarchy/schema17/head2/policy6; read current
 STATUS, IMPLEMENTATION_HANDOFF and docs/HIERARCHY_MATCHING.md. Extension0.13.76
 fixes visible global discovery without a current page catalog. Preserve original
