@@ -12,6 +12,14 @@ import {AUTOMATIC_AUTHOR_INSIGHT_NATIVE_CASES} from '../test/automatic-author-in
 import {AUTOMATIC_TOPIC_FEED_NATIVE_CASES} from '../test/automatic-topic-feed-native-assertions.js';
 import {AUTOMATIC_TOPIC_PUBLIC_NATIVE_CASES} from '../test/automatic-topic-public-native-assertions.js';
 import {AUTOMATIC_PAGE_TOPIC_NATIVE_CASES} from '../test/automatic-page-topic-native-assertions.js';
+import {PUBLISHED_TOPIC_EVIDENCE_NATIVE_CASES} from '../test/published-topic-evidence-native-assertions.js';
+
+test('public evidence reports are mandatory independently of page material membership',()=>{
+ for(const length of [0,1,11]){const input=lifecycle();input.checks.publishedTopicEvidenceCases.length=length;assert.equal(projectSemanticNativeResult(input).accepted,false);}
+ for(const status of ['running','failed']){const input=lifecycle();input.checks.publishedTopicEvidenceCases[4].status=status;assert.equal(projectSemanticNativeResult(input).accepted,false);}
+ const wrong=lifecycle();wrong.checks.publishedTopicEvidenceCases[0].name=AUTOMATIC_PAGE_TOPIC_NATIVE_CASES[0];assert.throws(()=>projectSemanticNativeResult(wrong),TypeError);
+ const absent=lifecycle();delete absent.checks.publishedTopicEvidenceCases;assert.throws(()=>projectSemanticNativeResult(absent),TypeError);
+});
 
 test('captured page adoption evidence is mandatory separately from public named-root replies',()=>{
  for(const length of [0,1,9]){const input=lifecycle();input.checks.automaticPageTopicCases.length=length;assert.equal(projectSemanticNativeResult(input).accepted,false);}
@@ -62,6 +70,7 @@ function lifecycle(){return {
   automaticTopicFeedCases:AUTOMATIC_TOPIC_FEED_NATIVE_CASES.map(name=>({name,status:'passed'})),
   automaticTopicPublicCases:AUTOMATIC_TOPIC_PUBLIC_NATIVE_CASES.map(name=>({name,status:'passed'})),
   automaticPageTopicCases:AUTOMATIC_PAGE_TOPIC_NATIVE_CASES.map(name=>({name,status:'passed'})),
+  publishedTopicEvidenceCases:PUBLISHED_TOPIC_EVIDENCE_NATIVE_CASES.map(name=>({name,status:'passed'})),
   concurrencyScope:'head-switch-vs-apply-and-mvcc-read',multiUserLoadValidated:false,semanticQualityMeasured:false,lastObservedSqlFailure:null,
   cleanup:{status:'passed',used:2,finished:true,adminClosed:true,failures:[],databases:names.map((name,i)=>({name,oid:String(17001+i),created:true,closed:true,dropped:true,pending:0,sessionCleanupFailures:[]}))}},
 };}

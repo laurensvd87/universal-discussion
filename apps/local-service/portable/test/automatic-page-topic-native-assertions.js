@@ -8,6 +8,7 @@ import {createCanonicalV4ReadFacade} from '../canonical-v4/read-facade.js';impor
 import {createCanonicalV4LifecycleRepository} from '../canonical-v4/lifecycle-repository.js';
 import {createPostgresCanonicalService} from '../../src/application/create-postgres-canonical-service.js';import {createRequestHandler} from '../../src/http/request-handler.js';
 import {createLocalServiceClient} from '../../../../spikes/topic-resolution/browser/core/local-service-client.js';
+import {runPublishedTopicEvidenceNativeAssertions} from './published-topic-evidence-native-assertions.js';
 import names from './automatic-page-topic-native-cases.json' with {type:'json'};
 export const AUTOMATIC_PAGE_TOPIC_NATIVE_CASES=Object.freeze([...names]);
 const actor={id:'demo-alex',type:'human',demo:true},code=c=>e=>e?.code===c;
@@ -113,7 +114,8 @@ export async function runAutomaticPageTopicNativeAssertions(scope){
    await assert.rejects(owner.transaction(async tx=>{await tx.exec('SET LOCAL ROLE '+role);await tx.query(sql);}),code('42501'));
   assert(!JSON.stringify(await client.semanticFeed({nodeId:pageId(a),limit:20,cursor:null})).includes(oldPage.pageScope.materialDigest));
  });
- return async()=>check(cases,9,async()=>{
+ const finishEvidence=await runPublishedTopicEvidenceNativeAssertions({...scope,cases:scope.evidenceCases});
+ return async()=>{await finishEvidence();return check(cases,9,async()=>{
   assert.equal((await one(owner,'SELECT count(*)::integer n FROM canonical_v4.sources')).n,0);assert.equal((await one(owner,'SELECT count(*)::integer n FROM canonical_v4.named_page_root_material')).n,0);
   await drain();assert.equal(await has(scopeId(harbor),currentRoot),false);assert.equal(await has(pageId(a),original),true);assert.equal(await has(pageId(a),currentRoot),true);
   assert(!(await search('Harbor binoculars')).topics.some(v=>v.nodeId===scopeId(harbor)));const thread=await client.semanticThread({nodeId:pageId(a),rootId:original,limit:20,cursor:null});assert.equal(thread.scope.caption,oldPage.pageScope.caption);
@@ -131,5 +133,5 @@ export async function runAutomaticPageTopicNativeAssertions(scope){
    await owner.exec(statement);
   }
   await owner.exec('UPDATE canonical_v4.named_topic_directory d SET human=c.human,root_ordinal=c.root_ordinal FROM canonical_v4.named_topic_cards c WHERE (d.generation,d.scope_kind,d.scope_id,d.caption)=(c.generation,c.scope_kind,c.scope_id,c.caption)');
- });
+ });};
 }

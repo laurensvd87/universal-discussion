@@ -1,0 +1,14 @@
+[
+ "published-evidence: additive schema captures only explicit named contexts",
+ "published-evidence: actual authored root enters bounded shared-model maintenance",
+ "published-evidence: exact public digest and paired vectors reach indexed candidates",
+ "published-evidence: stable representative avoids repeated inference",
+ "published-evidence: current revision invalidates stale proof before reindex",
+ "published-evidence: short edited root yields to another public root",
+ "published-evidence: deferred root does not starve another task",
+ "published-evidence: held prototype write permits MVCC reads and another post",
+ "published-evidence: held authored edit makes indexing busy without waiting",
+ "published-evidence: raw representative capacity refuses incomplete lookup",
+ "published-evidence: execute-only roles cannot export or mutate underlying rows",
+ "published-evidence: independent public text survives actual Source erasure"
+]

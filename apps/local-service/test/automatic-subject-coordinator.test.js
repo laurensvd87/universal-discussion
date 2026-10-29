@@ -17,6 +17,17 @@ function setup(){
  return {a,options,events,waiting,pause,published:()=>published};
 }
 
+test('two public evidence tasks share the existing turn without blocking subsequent Source discovery',async()=>{
+ const s=setup();s.options.publicEvidence={turn:async raw=>{assert.deepEqual(JSON.parse(raw),{generation:s.a.generation,matcherHash:s.a.matcherHash});s.events.push('public');return ['stored','deferred'];}};
+ const loop=create(s.options,{wait:s.pause}).start();await s.waiting.promise;assert.equal(s.events[0],'public');assert(s.events.includes('publish'));
+ assert.equal(loop.describe().counts.publicEvidenceCompleted,1);assert.equal(loop.describe().counts.publicEvidenceDeferred,1);assert.equal(loop.describe().limits.publicEvidenceTasks,2);await loop.close();
+});
+
+test('a failed public evidence port does not acknowledge its jobs or prevent independent discovery',async()=>{
+ const s=setup();s.options.publicEvidence={turn:async()=>{throw Error('temporary public index refusal');}};
+ const loop=create(s.options,{wait:s.pause}).start();await s.waiting.promise;assert(s.events.includes('publish'));assert.equal(loop.describe().counts.failures,1);await loop.close();
+});
+
 test('bounded discovery uses the real cohort and general publisher without model, capture or canonical queue work',async()=>{
  const s=setup(),loop=create(s.options,{wait:s.pause});assert.deepEqual(s.events,[]);loop.start();assert.equal(await s.waiting.promise,100);
  assert.deepEqual(s.events,['candidates','publish','complete']);assert.equal(s.published().updates[0].label,'Kapsalon');

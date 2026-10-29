@@ -31,6 +31,7 @@ AUTOMATIC_AUTHOR_INSIGHT_LEDGER = 'apps/local-service/portable/test/automatic-au
 AUTOMATIC_TOPIC_FEED_LEDGER = 'apps/local-service/portable/test/automatic-topic-feed-native-cases.json'
 AUTOMATIC_TOPIC_PUBLIC_LEDGER = 'apps/local-service/portable/test/automatic-topic-public-native-cases.json'
 AUTOMATIC_PAGE_TOPIC_LEDGER = 'apps/local-service/portable/test/automatic-page-topic-native-cases.json'
+PUBLISHED_TOPIC_EVIDENCE_LEDGER = 'apps/local-service/portable/test/published-topic-evidence-native-cases.json'
 RUNS_ROOT = REPO / 'apps/local-service/portable/data/hierarchy-native-runs'
 PRIVATE_ENTRY = OWN + 'owner-restore-native-check.js'
 HTTP_ENTRY = OWN + 'owner-http-native-check.js'
@@ -189,6 +190,15 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/portable/canonical-v4/automatic-subject-retrieval-repository.js',
     'apps/local-service/portable/canonical-v4/drafts/AUTOMATIC-TOPIC-FEEDS.md',
     'apps/local-service/portable/canonical-v4/drafts/AUTOMATIC-TOPIC-PUBLIC.md',
+    'apps/local-service/src/application/published-topic-evidence.js',
+    'apps/local-service/src/application/published-topic-maintenance.js',
+    'apps/local-service/portable/canonical-v4/published-topic-evidence-repository.js',
+    'apps/local-service/portable/canonical-v4/drafts/published-topic-evidence.sql',
+    'apps/local-service/portable/canonical-v4/drafts/PUBLISHED-TOPIC-EVIDENCE.md',
+    'apps/local-service/portable/test/published-topic-evidence.test.js',
+    'apps/local-service/portable/test/published-topic-evidence-native-assertions.js',
+    'apps/local-service/portable/test/published-topic-evidence-native-cases.json',
+    'apps/local-service/experiments/public-topic-recovery-v1/recovery.js',
     'apps/local-service/portable/canonical-v4/drafts/AUTOMATIC-PAGE-TOPIC.md',
     'apps/local-service/portable/canonical-v4/drafts/automatic-page-topic-membership.sql',
     'apps/local-service/portable/test/automatic-page-topic.test.js',
@@ -503,7 +513,7 @@ def semantic_completion(stdout, stderr, exit_code):
             or not all(cleanup[key] is True for key in cleanup if key != 'reason')):
         return refused('json-cleanup')
     proof = value['proof']
-    if not shape(proof, 'schema status nativeExecuted pendingAssertions cases publicSubjectCases publicSourceBindingCases automaticSubjectCases automaticRetrievalCases automaticAuthorContextCases automaticAuthorInsightCases automaticTopicFeedCases automaticTopicPublicCases automaticPageTopicCases restrictedRoleValidated concurrencyScope multiUserLoadValidated semanticQualityMeasured lastObservedSqlFailure cleanup'):
+    if not shape(proof, 'schema status nativeExecuted pendingAssertions cases publicSubjectCases publicSourceBindingCases automaticSubjectCases automaticRetrievalCases automaticAuthorContextCases automaticAuthorInsightCases automaticTopicFeedCases automaticTopicPublicCases automaticPageTopicCases publishedTopicEvidenceCases restrictedRoleValidated concurrencyScope multiUserLoadValidated semanticQualityMeasured lastObservedSqlFailure cleanup'):
         return refused('json-shape')
     if (proof['schema'] != 'canonical-semantic-postgres-proof/v1' or proof['status'] != 'passed'
             or proof['nativeExecuted'] is not True or not integer(proof['pendingAssertions'],0)
@@ -662,6 +672,20 @@ def semantic_completion(stdout, stderr, exit_code):
             return refused('json-automatic-page-topic-cases')
     except (OSError, ValueError, TypeError, UnicodeError, RecursionError):
         return refused('json-automatic-page-topic-cases')
+    try:
+        raw = (REPO/PUBLISHED_TOPIC_EVIDENCE_LEDGER).read_bytes()
+        if not 0 < len(raw) <= 4096:
+            return refused('json-published-topic-evidence-cases')
+        names = parse(raw)
+        observed = proof['publishedTopicEvidenceCases']
+        if (type(names) is not list or len(names) != 12 or len(set(names)) != 12
+                or any(type(name) is not str for name in names)
+                or type(observed) is not list or len(observed) != 12
+                or observed != [{'name':name,'status':'passed'} for name in names]
+                or any(not shape(row,'name status') for row in observed)):
+            return refused('json-published-topic-evidence-cases')
+    except (OSError, ValueError, TypeError, UnicodeError, RecursionError):
+        return refused('json-published-topic-evidence-cases')
     # Preserve the frozen transport's25/3 counters. The additional actual
     # registry checks are separately required above and retained in child JSON.
     result.update(testPoints=25, outerTests=3)

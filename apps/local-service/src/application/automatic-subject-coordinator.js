@@ -15,7 +15,8 @@ function wait(ms,signal){if(signal.aborted)return Promise.resolve();return new P
  function done(){clearTimeout(timer);signal.removeEventListener('abort',done);resolve();}signal.addEventListener('abort',done,{once:true});});}
 function create(options,pause,testComposition){
  if(!options||types.isProxy(options))bad();const hasFeeds=Object.hasOwn(options,'feeds');
- const {retrieval,subjects,readGeneration,descriptorJson,feeds=null}=fields(options,['retrieval','subjects','readGeneration','descriptorJson',...(hasFeeds?['feeds']:[])]);
+ const hasPublic=Object.hasOwn(options,'publicEvidence');
+ const {retrieval,subjects,readGeneration,descriptorJson,feeds=null,publicEvidence=null}=fields(options,['retrieval','subjects','readGeneration','descriptorJson',...(hasFeeds?['feeds']:[]),...(hasPublic?['publicEvidence']:[])]);
  if(typeof readGeneration!=='function'||typeof descriptorJson!=='string'||Buffer.byteLength(descriptorJson)>2048)bad();let descriptor;
  try{descriptor=fields(JSON.parse(descriptorJson),['matcherHash','representationHash','inputDefinition']);}catch{bad();}
  if(typeof descriptor.matcherHash!=='string'||typeof descriptor.representationHash!=='string'||!/^[a-f0-9]{64}$/u.test(descriptor.matcherHash)||!/^[a-f0-9]{64}$/u.test(descriptor.representationHash)||
@@ -23,9 +24,11 @@ function create(options,pause,testComposition){
  for(const name of ['indexTasks','index','discoveryTasks','neighbours','complete'])if(typeof retrieval?.[name]!=='function')bad();
  for(const name of ['candidates','publish'])if(typeof subjects?.[name]!=='function')bad();
  if(hasFeeds&&(!feeds||typeof feeds.tasks!=='function'||typeof feeds.process!=='function'))bad();
+ if(hasPublic&&(!publicEvidence||typeof publicEvidence.turn!=='function'))bad();
  let started=false,closed=false,running=null,closing=null,generation=null,phase='idle',lastOutcome='not-started';const abort=new AbortController();
  const counts={turns:0,indexed:0,indexRetired:0,discoveries:0,published:0,retained:0,capacity:0,conflicts:0,failures:0,generationChanges:0,
   feedCompleted:0,feedAdvanced:0,feedBusy:0,feedRetired:0};
+ if(hasPublic)Object.assign(counts,{publicEvidenceCompleted:0,publicEvidenceDeferred:0});
  const bump=key=>{counts[key]=Math.min(MAX,counts[key]+1);};
  function failure(error){bump(error?.code==='conflict'?'conflicts':'failures');lastOutcome=phase+'-unavailable';}
  async function turn(){
@@ -41,6 +44,11 @@ function create(options,pause,testComposition){
     const key={completed:'feedCompleted',advanced:'feedAdvanced',busy:'feedBusy',retired:'feedRetired'}[status];bump(key);
     if(status!=='busy')work=true;
    }catch(error){failure(error);}}
+  }catch(error){failure(error);}}
+  if(publicEvidence){phase='public-evidence';try{
+   const outcomes=await publicEvidence.turn(rawScope);if(closed)return work;
+   if(!Array.isArray(outcomes)||outcomes.length>2||outcomes.some(s=>!['stored','retained','excluded','busy','retired','completed','advanced','deferred'].includes(s)))bad();
+   for(const outcome of outcomes){if(outcome==='deferred')bump('publicEvidenceDeferred');else if(outcome!=='busy'){bump('publicEvidenceCompleted');work=true;}}
   }catch(error){failure(error);}}
   phase='index-tasks';const tasks=await retrieval.indexTasks(rawScope);if(closed)return false;
   if(!Array.isArray(tasks)||tasks.length>8)bad();
@@ -73,7 +81,7 @@ function create(options,pause,testComposition){
   }phase='closed';}
  const api=Object.freeze({start(){if(started||closed)throw unavailable();started=true;running=run();return api;},
   describe:()=>Object.freeze({schema:'automatic-topic-coordinator/v1',phase,lastOutcome,counts:Object.freeze({...counts}),testComposition,
-   limits:Object.freeze({indexTasks:8,discoveryTasks:4,feedTasks:feeds?8:0,rawNeighbours:128,cohort:64}),assignmentAuthority:false,nativeObservation:false}),
+   limits:Object.freeze({indexTasks:8,discoveryTasks:4,feedTasks:feeds?8:0,...(hasPublic?{publicEvidenceTasks:2}:{}),rawNeighbours:128,cohort:64}),assignmentAuthority:false,nativeObservation:false}),
   close(){if(!closing){closed=true;abort.abort();closing=(async()=>{if(running)await running;phase='closed';})();}return closing;}
  });return api;
 }
