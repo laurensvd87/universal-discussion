@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {createHierarchyPublicCapture,createHierarchyChildTrainCalCapture,createHierarchyChildDiagnosisCapture,createHierarchyChildCalibrationRepairCapture} from '../harness/hierarchy-public-capture.js';
+import {createHierarchyPublicCapture,createHierarchyChildTrainCalCapture,createHierarchyChildDiagnosisCapture,createHierarchyChildCalibrationRepairCapture,createHierarchyChildEvaluationCapture} from '../harness/hierarchy-public-capture.js';
 import {readFileSync} from 'node:fs';
 import {PUBLIC_HIERARCHY_PROBES as probes} from '../harness/hierarchy-public-probes.js';
 import {RECIPE_CAL_PROBES,RECIPE_TEST_PROBES} from '../harness/hierarchy-recipe-corpus.js';
@@ -27,6 +27,16 @@ function fixture({robots='',tdm=null,page=()=>html(),onRequest}={}){
 
 const childPlan=JSON.parse(readFileSync(new URL('../harness/hierarchy-child-corpus.json',import.meta.url),'utf8'));
 const childRows=childPlan.freshCandidates.filter(r=>r.split!=='test');
+
+test('held-out collector contains exactly the declared fourteen TEST pages and never TRAIN or CAL',async()=>{
+ const f=fixture(),capture=createHierarchyChildEvaluationCapture(f.options),heldout=childPlan.freshCandidates.filter(r=>r.split==='test');
+ for(const row of childRows)await assert.rejects(capture.capture(row.id));
+ for(const row of heldout){const result=await capture.capture(row.id);assert.equal(result.status,'available');assert.equal(result.url,row.url);}
+ assert.equal(heldout.length,14);assert.equal(f.calls.filter(c=>c.resourceKind==='page').length,14);assert.equal(f.calls.length,30);
+ assert.deepEqual(f.calls.filter(c=>c.resourceKind==='page').map(c=>c.url),heldout.map(r=>r.url));
+ assert.equal((await capture.capture(heldout[0].id)).reason,'already-attempted');
+ assert.ok(f.buffers.every(b=>b.every(n=>n===0)));
+});
 
 test('parser repair collection stays on six declared CAL pages, with one policy and eight requests',async()=>{
  const f=fixture(),capture=createHierarchyChildCalibrationRepairCapture(f.options);

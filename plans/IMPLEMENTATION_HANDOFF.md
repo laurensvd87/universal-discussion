@@ -1,5 +1,18 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct extended CAL actual PASSED:8 retained CAL observations encoded with pinned
+packaged E5 in6.391s, encoderclosed/endpins/terminalexit0. Pure fixed-lambda fit
+then passed: Video-games9/9 CAL positives accepted,0/13 negatives (3 insideGames);
+Animals5/7 accepted,0/15 negatives (2 insideNature); Koalas disabled/TRAIN0.
+Root gate abstains on one animal-care CAL page; report that separately from child
+recall. No root/GTA retuning or TRAIN changes. Fit11475B SHA
+097260251f99564f1c20ebb0bcb81f782b823a3b6c15e6796f942a03867bc1e2.
+Candidate assets now frozen for separate14-page TEST capture/evaluation source:
+run-hierarchy-child-heldout.js. Normal public robots/TDM/SSRF policy, no redirects
+or retry; unavailable outcomes retained.54 guarded capture/parser/split tests pass;
+source-check19listedJS/10fixedinputs, no network/encoder. Fresh TEST actual still
+next. No automatic deployment; all reviews this continuation Root-only.
+
 29Oct CAL parser repair actual PASSED: all6 declared QLD pages now available,
 8 paced requests/53.126s/endpins true. Original6 failures preserved. Result
 data/hierarchy-child-calibration-parser-repair-20261029/result.json33012B SHA
