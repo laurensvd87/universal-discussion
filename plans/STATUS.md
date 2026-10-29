@@ -1,5 +1,51 @@
 # Project status
 
+## Current29October: hierarchy live; automatic named-topic discovery next
+
+The running service is on PostgreSQL schema17 with the verified20-node model
+`4e9b3d3d2053327707d6ff395a8373e6e5ac3195333183ac8516f84195c45524`.
+Nature/Animals/Koalas and the unchanged Games/Video-games/GTA path are available;
+the general Video-games head failed its fresh test and was omitted. Head2 and
+owner policy6 are live: default depth1/Games3/Nature3. The owner cut3-to1-to3
+changed the same Koala Source immediately without reclassification.
+
+API38860/worker11880/dashboard23660 load releasebe901259...d83f. Original crawler
+6384 continues with its original start and advancing progress; PostgreSQL was not
+restarted. Exact110 contribution rows/seven original snapshots/edges survived
+the cutover. Seven original discussions passed paired public reads. A new own
+Koala root and two flat replies appeared in all three ancestor feeds; its own
+root/session were cleaned up. A real provider reply passed and its own QA root
+was withdrawn. The normal account session survived the API restart.
+
+Three real retained public inputs took216/170/137ms through normal HTTP ingestion,
+worker E5 and SQL recording. Recipe/video remain Cooking,633/35ms in that probe.
+32 reads/concurrency8 passed at P50~8ms/P95~247ms under the crawler. The actual
+dashboard snapshot refreshes automatically with20 active/display nodes. Bulk
+preparation of existing pages continues; opening a page gets priority.
+
+Fresh encrypted PostgreSQL backup1354423835 dump bytes authenticated and cleaned
+up normally. The preceding disk-reserve failure was retained; only the exact
+unusable encrypted partial of the original failed attempt was hash-recorded and
+removed. Published backups remain. The new archive has not been restored in a
+new full private rehearsal; the existing successful restore/migration proofs are
+historical. Native-fixture disk admission floors remain unchanged.
+
+Extension0.13.76 fixes a newly reproduced shell bug: global navigation was hidden
+without a foreground catalog despite verified service health.49 guarded checks
+pass. A real visible native popup at390px verifies Search Topics,20 entries,
+Koala search/feed and no horizontal overflow. Earlier DOM-only browser success
+is insufficient and superseded by screenshot-reviewed visibility checks. No
+viewport-emulation/320px claim is made for this live popup check.
+
+Overall goal remains ACTIVE. The owner clarified that visits must also create
+new named specific topics/news events; this is not implemented by the fixed
+taxonomy. Next: background automatic discovery/naming and a dynamic topic
+registry that preserves stable discussion destinations, followed by real event
+quality checks. Small Root-only child cohorts do not establish population98%/1%
+targets or many-user capacity. See [current explanation](../docs/HIERARCHY_MATCHING.md).
+
+The following status entries are historical and keep their original scope.
+
 ## Current: full-data migration and real application HTTP checks passed
 
 The corrected private run84275 passed the complete rehearsal: hierarchy17,

@@ -1,5 +1,22 @@
 # E5 matching across broad and specific topics
 
+29Oct latest: selected20-node/3-head model4e9b3d3d...45524 is live with actual
+HTTP ingestion/worker/titleE5/SQL and owner-cut checks. Animals4/4held-out positives,
+0/8negatives; Koalas2/2,0/10; one of13declared TEST unavailable retained. General
+Video-games1/3 belowminimum2 is rejected. Old failed TEST cohorts remain consumed.
+No general98%/1% quality or many-user claim; all new reviews Root-only.
+
+New explicit owner requirement: topics and their readable titles must also emerge
+automatically from browsing, including previously unseen news. E5 numerical
+classification into the installed taxonomy cannot do this alone. Compare bounded
+incremental groups with parent-scoped batch discovery, separating stable subjects
+from events. HDBSCAN approximate prediction preserves its old cluster labels and
+does not discover new clusters; do not mistake frozen prediction for growth.
+Do not repeat the failed84-text study or recluster all pages on user requests.
+Keep a stable dynamic topic registry distinct from fixed classifier registration,
+with provenance/deletion and old discussion routes preserved. This work is next;
+the overall goal remains active. See docs/HIERARCHY_MATCHING.md for current evidence.
+
 29Oct current: a broader TRAIN cohort plus fully parent-conditioned fitting now
 provides provisional Video-games, Animals and Koalas candidates. Existing roots
 and GTA are unchanged. Separate English/German Koala TRAIN documents support the

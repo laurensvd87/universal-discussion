@@ -1,5 +1,25 @@
 # Hierarchical topic assignment and discussion plan
 
+29Oct latest: the20-node root/GTA/Animals/Koalas model is LIVE on schema17/head2,
+policy6 default1/Games3/Nature3. Real public HTTP, original discussion preservation,
+owner cuts, ancestor feeds, flat human replies, provider reply, session continuity
+and refreshing dashboard pass under original crawler6384. General Video-games head
+failed fresh support and stays absent. Extension0.13.76 fixes visible global search
+without a current page catalog. See STATUS and docs/HIERARCHY_MATCHING.md.
+
+Owner clarification29Oct expands the unfinished growth requirement: visited pages
+must automatically supply new named specific topics, including novel news events.
+The fixed taxonomy is not that mechanism. Do not require manual creation/review of
+every news topic; develop a bounded background dynamic registry/discovery layer,
+with provisional titles, explicit ambiguity and stable canonical discussion routes.
+This supersedes an interpretation that seed taxonomy plus permanent manual child
+approval completes the product. Evaluate false merges/splits across same-entity
+different-event cases, freshness, duplicate publishers, multilingual titles and
+new-event arrival. Keep ordinary commenting fast while discovery runs. Overall
+goal remains active; small held-out cohorts do not prove population quality targets.
+
+Earlier checkpoints follow with their original scope.
+
 29Oct current: live18-node hierarchy remains unchanged. A frozen20-node candidate
 adds separate Video-games, Animals and Koalas heads using broader declared TRAIN
 and calibration only within their parent branches. It now needs the newly reserved

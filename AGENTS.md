@@ -8,6 +8,31 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct LIVE schema17/model4e9b3d3d...45524/head2/policy6/default1/Games3/Nature3.
+20nodes/3heads Animals+GTA+Koalas; generalVideoGames failed heldout/NOTinstalled.
+Releasebe901259...d83f/api38860/worker11880/dashboard23660. Crawler6384 ORIGINAL
+23:08:22Z start/advancing; PG18688 preserved. Exact110contributions+7snapshots/
+edges unchanged atswitch; actualHTTP3publicinputs216/170/137ms, recipe/video
+Cooking633/35ms,7oldthreads,32reads/8concurrent P95~247ms PASS. Nature3→1→3
+ownerCAS188ms/finalpolicy6; Koalaroot+2flatreplies all3ancestorfeeds PASS/owncleanup;
+actualAI1start/1storedreply PASS/owncleanup; normalaccountrestartcontinuity PASS.
+Fresh encrypted backup1354423835B verified/cleanupTRUE; previousdiskfloorfailure
+and exactunusablespoolretirement audited/allpublishedbackups preserved; nonewfull
+restore. Current11GiB fixturefloor NOTwaived. Extension0.13.76 fixes actualhidden
+globalnavwithoutpagecatalog;49guardedPASS+visibleactualChrome390px/search20/
+Koalasearch/feed/nooverflow/ownedexit/profilecleanup. EarlyDOMonlysuccess NOT
+visibilityproof; nativepopup rejectsviewportemulation/no320pxclaim. Currentnew
+reviews Root-only; old consumedmaps/packages/output immutable, maintained source
+evolves inGit. See STATUS/HANDOFF/current docs/HIERARCHY_MATCHING.md first.
+GOALACTIVE: owner29Oct explicitly requires automatic named topics from browsing,
+including unseen news. Fixed taxonomy does NOT do this. Next boundedbackground
+discovery/subject-vs-event/stable dynamicregistry/naming/no globalheadreinstall
+perstory, no mandatory manualreviewpernewtopic, preserveoriginaldestinations,
+no defaultprovidertransmissionofbrowsingtext. Broadpopulationquality remains
+unproved; no98%/1% or productioncapacity claim. Freshruntime/resourcechecks needed.
+
+Earlier continuation entries below are historical where superseded.
+
 Current27Oct REALMODEL actual70183 SUCCESS/exit0, run8c34ad84977a3f5b693e61330784e462561123110889aa66,
 cataloge69df8e8...316b/HEADcf4b6a82 PUSHED. Full25upgrade+35phases+16HTTP+2realE5
 queued completions and owner2/2/2 joins PASS; all18legacyFP/7seq beforewrites.

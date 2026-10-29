@@ -1,5 +1,63 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct LIVE20nodes/3heads installed after successful1354423835B encrypted backup.
+Model4e9b3d3d2053327707d6ff395a8373e6e5ac3195333183ac8516f84195c45524/head2/
+policy6 default1/Games3/Nature3; sourcecc88c144+LFfix05f602eb. Sealed release
+be9012599733de4a1abe94626f1d1e010e2ce0839a605ffeff54f5dfead3d83f,
+hierarchy-release-20261029-nature-heads1204files163203647B. New API38860 start
+05:37:57.4279552Z/worker11880 start05:36:53.7003223Z/dashboard23660 start
+05:38:12.8207138Z. All three exact old processes drained130/exclusiveconsole;
+PG18688 never restarted. Crawler6384 original23:08:22Z start/advancing unchanged;
+no reset, discard or second crawler. Fresh process/resource readbacks required.
+
+Before/after exact110contributions/seven snapshots/edges identical. Normal
+session continuity PASS; initial stdin-EOF test failed/ownlogout and is preserved.
+Normal static-crawler HTTP three retained real captures: Koala216ms→Koalas,
+Panda170ms→Animals,Ginkgo137ms→Nature; no synthetic axis/directSQL inputwrite.
+Initial browser-client static-provenance input refusal preserved; server static
+contract used without widening browser contract. Original recipe633ms/video35ms
+→Cooking; seven original threads read via actual public API.32reads/concurrency8
+P50~8.3/P95~247.2/max247.8ms. Actual owner Nature3→1→3 PASS188ms; Source version/
+supported path unchanged; finalpolicy6. Actual own Koala root+2replies appears
+Nature/Animals/Koalas/samecanonicaldiscussion/flatreply-to-reply,378.8ms; own
+rootwithdrawn/sessionlogout. Actual recipe AI1start/2reads/1storedreply PASS13.55s,
+German markers, ownrootwithdrawn/sessionlogout; fresh public policychecked evidence,
+not native/original-observation or population-quality proof. Actual dashboard
+JSON-only two-read check5.7s PASS/pending39934→39814/policy6/nodes20.
+
+Backup fixed attempt82967 exit1/disk-reserve retained (dump1353747622/limit1383124964);
+new partials cleaned. New package copy consumed163MB after admission, sampled disk
+floor correctly refused final copying. Original unusable1GiB partial exacthash/
+path/absence audit then removed; all published backups preserved. Separate final
+52962 exit0: encrypted zstd3 dump1354423835/archivebudget1834655716,28same-snapshot
+fingerprints/authenticated/cleanupTRUE,02:04:16→02:06:38Z. File postgres-canonical-
+2026-10-29T02-06-29-777Z-0c3c99b5-781a-46bb-bb85-ed6b516feda7.murmingle-pgbackup.
+No new fullrestore; original11GiB fixture diskfloor remains.
+
+Native browser discovered real shell bug: actual20topic DOM existed while hidden
+because shell required catalog despite connected service. Sourcefix now uses
+verified connection OR existing catalog; extension0.13.76/49guardedPASS. Proper
+action popup sender required; directextensiontab refusal is intentional. Test
+selectors corrected tosemantic-discover. Chromium popup Emulation viewport call
+refused-32000; no320px claim. Early DOM-onlysuccess screenshot showed connection
+setup only and is NOT visibility acceptance. Final visible run passes actual
+SearchTopics/global20/Koalasearch/feed/390px nooverflow/runtimeexceptions0/no
+blockedrequests/ownedChromeexited+profileremoved. Screenshot Root reviewed.
+Receipts hierarchy-nature-{preservation-before,preservation-after,live-http-final,
+owner-control,thread-proof,browser-visible}-20261029*.json; AI and dashboard receipts
+hierarchy-nature-live-ai-reply-20261029.json/hierarchy-nature-dashboard-refresh-20261029.json.
+
+OWNER CLARIFICATION: automatic topic population from browsing, including novel
+current news, is REQUIRED. Current20-node fixed taxonomy does NOT discover/name
+new nodes automatically. GoalACTIVE; next dynamic topic discovery/naming, explicit
+subject vs event model, stable IDs independent of matcher head, no per-story global
+reinstall/no human review bottleneck/no critical-path clustering/provider. Existing
+plan's owner-reviewed taxonomy seed is not a sufficient final implementation for
+this clarification. Preserve author destinations on merge/split; do not default
+to provider transmission of browsing text. docs/HIERARCHY_MATCHING.md records state
+and primary algorithm references. Root-only newreviews; no independent reviewer or
+98%population/productioncapacity claim. All consumed packages/maps/outputs immutable.
+
 29Oct release preparation: selected Nature model SOURCE installed20nodes/3heads
 (Animals/GTA/Koalas), identity4e9b3d3d2053327707d6ff395a8373e6e5ac3195333183ac8516f84195c45524.
 Real held-out13declared/12scored/1Dixit unavailable: root11correct/1abstain,

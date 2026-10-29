@@ -2,6 +2,14 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current29October: live20-node hierarchy/schema17/head2/policy6; read current
+STATUS, IMPLEMENTATION_HANDOFF and docs/HIERARCHY_MATCHING.md. Extension0.13.76
+fixes visible global discovery without a current page catalog. Preserve original
+crawler6384 and all canonical routes. Owner now explicitly requires automatic
+named topics/new news events from browsing; the fixed taxonomy does not provide
+this. That background dynamic-discovery work is next. Goal remains active and
+new population quality is not established. Earlier notes below are historical.
+
 Current continuation26October: read the new Git-consolidation sections at the top
 of AGENTS, STATUS and IMPLEMENTATION_HANDOFF. Archival/WIP commits preserve the
 backlog; they are not release or hierarchy-quality acceptance. No new experiment
