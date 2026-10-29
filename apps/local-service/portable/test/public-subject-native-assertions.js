@@ -51,6 +51,10 @@ export async function runPublicSubjectNativeAssertions({database,cases}){
  });
  await test(5,async()=>{
   const before=await state(database),collision=structuredClone(changed);collision.entities.Q101.lastrevid=125;collision.entities.Q101.labels.mul.value='Must roll back';
+  // Q202 already owns this title in PostgreSQL. It must be absent from this
+  // incoming batch: duplicating its sitelink inside one API response would be
+  // rejected by provider validation before the SQL rollback boundary is tested.
+  delete collision.entities.Q202;
   collision.entities.Q404=subject('Q404','Another entity','invented collision',{enwiki:'Atlas Mountains'});
   await assert.rejects(registry.importWikipedia(JSON.stringify(collision)),code('P1261'));assert.deepEqual(await state(database),before);
  });
