@@ -45,7 +45,30 @@ pagination, index plans, execute-only grants and Source erasure. Its nine-case
 ledger is required by both the Node and Python completion validators. Pure
 adapter/coordinator tests use no database and cannot stand in for SQL evidence.
 
-Current stage: source and pure tests only; actual SQL has not run for this
-component. Owner policy for named subjects, aliases across languages/model
-changes, public feed/search/reply integration, complete schema18 installation
-and migration/recovery/browser/live validation remain separate required work.
+## Verification
+
+The owned native run `run-7d7843c132eb21d014c996e6e6b8b8fcde293bc2e1bb0726`
+passed on PostgreSQL17.11 with source `1f435e63` and catalog
+`50b1bfafb267c5c43a748efcb007f9f09c2cec000927dc4e0767a91b79c35c70`.
+All original82 reports and nine new feed/search reports passed. Root separately
+authenticated all2585 source/runtime end pins and the two scratch-database
+drops, exact owned smart stop, empty Job, closed handles and zero stderr.
+There was no independent reviewer. This is narrow concurrency evidence with
+invented general-web material, not representative semantic accuracy, many-user
+load, real browser, external-provider or live-latency evidence.
+
+The prior run `run-bd5e3326a7f84117643d68a08e1db417b93b13a210ecb796`
+failed installation with SQLSTATE42601 and closed normally. The source had a
+CASE expression without surrounding parentheses in an IF condition. PostgreSQL17
+`read_sql_construct` stops at the inner THEN at parenthesis depth zero (see
+[PostgreSQL's parser source](https://github.com/postgres/postgres/blob/REL_17_STABLE/src/pl/plpgsql/src/pl_gram.y)).
+The accepted run derives two actual DO compile probes from the installed
+condition: removing the outer parentheses must reproduce42601; the protected
+form must compile. Saved failed outputs and catalog remain unchanged.
+
+533 guarded Node and67 pure Python controller tests also pass. Root audit:
+`apps/local-service/data/automatic-topic-feeds-native-root-audit-20261029.json`
+(local ignored evidence). The installed application is still schema17. Owner
+policy for named subjects, aliases across languages/model changes, public
+feed/search/reply integration, complete schema18 installation and
+migration/recovery/browser/live validation remain separate required work.

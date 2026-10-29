@@ -8,6 +8,34 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct namedfeed/globalSearch SOURCE+ownedSQL ACTUALPASS. Source659ea7b2/
+1f435e63; acceptedcatalog50b1bfaf...35c70/2585files277551311B; run7d7843c1...
+1bb0726 EXIT0/all91reportsPASS(original82+9feeds). Rootall2585endpins/saved
+strictNode+Pythonledger/2DBdrops/exactownsmartstop/emptyJob/allhandlesTRUE,
+stderr0/emergencyFALSE. resultce6bcdb3...db58d/stdout1644f367...3f613.
+Root-only inventedgeneralweb, NOrepresentativequality/manyuser/browser/live
+latencyclaim. Directauthoredfeed edge atomicwithroot; boundedworker8events/
+16roots16children, frozenupperkeyset; actualnamedparents<=8/SKIPLOCKED+recheck,
+SourceheadwitnessFKerasesderivededges, authorcaptionssurvive. GlobalUnicode
+prefixsearch+GINaliases/uniqueindexedbrowse/keysetboundquerygenlimit; occupied
+humanpriority. Physicalworker-indextransaction permitsMVCCreads+newnamedroot;
+heldheadreturnsbusy/directfeedremainsavailable; indexplans+roles+erasurePASS.
+Priorbd5e3326...ecb796 CLOSED42601/install; savedfailureallpinsRootPASS. Source
+CASEinIF parenthesized, acceptedactualpairedold42601/fixedcompile causalprobe
+fromsameinstalledcondition. Limits/assertionsunchanged/nooldrunadoption.
+533guardedNodePASS2394.0136ms/67PythonPASS. Rootaudit data/automatic-topic-feeds-
+native-root-audit-20261029.json. ThreeverifiedSTOPPEDownedclusters transparently
+NTFScompressed/all977filehashes+writeTimes+ACLsperclusterunchanged, no deletion.
+Firstmaintenanceauditserializationfixedafterchecks; savedoutputs/mapsuntouched.
+Original5servicespreserved/crawler6384advancing11674/stderr0. Dfree4344336384B
+nearoriginal4GiBfloor; freshchecksmandatory/private11GiBadmissionstillunmet.
+Next publicfeed/search/replywitness+UI, ownerdepthnamed/staticaliases/model
+continuity, complete18/profile/startup/recovery/browser/livecutover. GoalACTIVE;
+thisturnconcretesource+causalSQL+concurrency evidence, NOTproductcompletion.
+Verificationdocs nowupdated AFTERacceptedrun; rebuildcurrentcatalogbeforeany
+futureactualrun (no SQL assertion or executed-source delta).
+
+
 LATEST29Oct normal browser/HTTP/app/realAIjob bridge ACTUALPASS: source50822a35/
 catalog7dcce43f/mapae22ca88...11b56/2579files/277477561B. Ownedrun156db538...
 61aa59 EXIT0/acceptedTRUE/all82reportsPASS (25inclwrappers+8metadata+10Source+
