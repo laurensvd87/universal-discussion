@@ -88,8 +88,9 @@ const PRIVATE_CONTAINER=LEGACY.replace('canonical_v4.ingest_apply(','canonical_v
  * worker only, acquired after every A role and primary has closed. With the
  * controller admin this is exactly8 nonbootstrap physical clients in total.
  */
-export async function runSemanticAssertions(test,{acquireFixture}){
+export async function runSemanticAssertions(test,{acquireFixture,beforeSemanticCases}={}){
  assert.equal(typeof test,'function');assert.equal(typeof acquireFixture,'function');
+ if(beforeSemanticCases!==undefined)assert.equal(typeof beforeSemanticCases,'function');
  assert.equal(SEMANTIC_CASES.length,25);assert.equal(new Set(SEMANTIC_CASES.map(c=>c.name)).size,25);
  const matcher1=numericMatcher('one'),matcher2=numericMatcher('two'),badMatcher=numericMatcher('reparent',{reparent:true});
  const identity1=JSON.stringify(describeRootedHierarchyMatcher(matcher1)),hash1=sha(identity1),hash2=digest(describeRootedHierarchyMatcher(matcher2));
@@ -204,6 +205,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
    reads=createCanonicalV4ReadFacade({database:app});service=createPostgresCanonicalService({reads,runtime:appRuntime,lifecycle:appLifecycle,semanticDiscussions:true,
     requestSemanticPreparation:value=>preparationHint?.(value)});
    workerSources=createCanonicalV4SemanticSourceRepository({database:worker});ownerSources=createCanonicalV4SemanticSourceRepository({database:owner});
+   if(beforeSemanticCases)await beforeSemanticCases({owner,worker,app,observer,generation:fixture.generation});
    await t.test(GROUPS[0].children[0],async()=>{
     const c=await counts(owner);assert.equal(c.sources,0);assert.equal(c.inputs,0);assert.equal(c.observations,0);
     assert.deepEqual(await scalar(owner,'SELECT revision::text,matcher_hash FROM canonical_v4.semantic_installation WHERE singleton'),{revision:'0',matcher_hash:null});

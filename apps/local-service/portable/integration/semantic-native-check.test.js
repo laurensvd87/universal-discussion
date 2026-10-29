@@ -4,13 +4,15 @@ import test from 'node:test';
 import {projectSemanticNativeResult} from './semantic-native-check.js';
 import {SEMANTIC_CASES,runSemanticAssertions} from '../test/semantic-native-assertions.js';
 import {PUBLIC_SUBJECT_NATIVE_CASES} from '../test/public-subject-native-assertions.js';
+import {PUBLIC_SOURCE_NATIVE_CASES} from '../test/public-subject-source-native-assertions.js';
 
 const names=['murmingle_hierarchy_fixture_20261026_a','murmingle_hierarchy_fixture_20261026_b'];
 function lifecycle(){return {
  status:'passed',server:{port:55433,version:170011,ownershipVerified:true},
  cleanup:{reason:'verified-own-server-smart-stopped',stopped:true,childExited:true,clientsClosed:true,physicalSettled:true,directoryRetained:true},
  checks:{schema:'canonical-semantic-postgres-proof/v1',status:'passed',primary:null,nativeExecuted:true,pendingAssertions:0,
-  cases:SEMANTIC_CASES.map(row=>({...row,status:'passed'})),publicSubjectCases:PUBLIC_SUBJECT_NATIVE_CASES.map(name=>({name,status:'passed'})),restrictedRoleValidated:true,
+  cases:SEMANTIC_CASES.map(row=>({...row,status:'passed'})),publicSubjectCases:PUBLIC_SUBJECT_NATIVE_CASES.map(name=>({name,status:'passed'})),
+  publicSourceBindingCases:PUBLIC_SOURCE_NATIVE_CASES.map(name=>({name,status:'passed'})),restrictedRoleValidated:true,
   concurrencyScope:'head-switch-vs-apply-and-mvcc-read',multiUserLoadValidated:false,semanticQualityMeasured:false,lastObservedSqlFailure:null,
   cleanup:{status:'passed',used:2,finished:true,adminClosed:true,failures:[],databases:names.map((name,i)=>({name,oid:String(17001+i),created:true,closed:true,dropped:true,pending:0,sessionCleanupFailures:[]}))}},
 };}
@@ -62,6 +64,13 @@ test('additional public registry cases are required separately and never replace
  for(const status of ['failed','running']){const input=lifecycle();input.checks.publicSubjectCases[2].status=status;assert.equal(projectSemanticNativeResult(input).accepted,false);}
  const wrong=lifecycle();wrong.checks.publicSubjectCases[0].name='borrowed assertion';assert.throws(()=>projectSemanticNativeResult(wrong),TypeError);
  const absent=lifecycle();delete absent.checks.publicSubjectCases;assert.throws(()=>projectSemanticNativeResult(absent),TypeError);
+});
+
+test('Source binding and concurrency cases cannot be replaced by passing metadata cases',()=>{
+ for(const length of [0,1,9]){const input=lifecycle();input.checks.publicSourceBindingCases.length=length;assert.equal(projectSemanticNativeResult(input).accepted,false);}
+ for(const status of ['failed','running']){const input=lifecycle();input.checks.publicSourceBindingCases[6].status=status;assert.equal(projectSemanticNativeResult(input).accepted,false);}
+ const wrong=lifecycle();wrong.checks.publicSourceBindingCases[0].name=PUBLIC_SUBJECT_NATIVE_CASES[0];assert.throws(()=>projectSemanticNativeResult(wrong),TypeError);
+ let hooks=0;const getter=lifecycle();Object.defineProperty(getter.checks.publicSourceBindingCases[0],'name',{get(){hooks++;throw Error();}});assert.throws(()=>projectSemanticNativeResult(getter),TypeError);assert.equal(hooks,0);
 });
 
 test('incomplete or failed server, proof and database cleanup remain explicitly unaccepted',()=>{

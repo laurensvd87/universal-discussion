@@ -1,0 +1,12 @@
+[
+ "Source binding draft encodes exact multilingual sitelink URLs and starts without associations",
+ "worker keyset candidates expose only bounded current Source witnesses",
+ "exact stored URLs bind multilingual entity identity without changing canonical routes",
+ "stale generation, version, receipt and stamp cannot bind a different Source material",
+ "Source renewal, receipt replacement and eligibility changes invalidate derived bindings",
+ "app, worker and crawler retain separate Source association role boundaries",
+ "held binding allows MVCC reads and revision writes while generation changes wait",
+ "metadata update waits for the binding head fence while readers see committed context",
+ "Source erasure waits in receipt order, removes associations and preserves the human discussion",
+ "owned fixture associations, registry and invented canonical records retire completely"
+]

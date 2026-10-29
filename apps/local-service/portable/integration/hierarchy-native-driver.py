@@ -23,6 +23,7 @@ NODE = 'C:/Program Files/nodejs/node.exe'
 ENTRY = OWN + 'semantic-native-check.js'
 SEMANTIC_LEDGER = 'apps/local-service/portable/test/semantic-native-cases.json'
 PUBLIC_SUBJECT_LEDGER = 'apps/local-service/portable/test/public-subject-native-cases.json'
+PUBLIC_SOURCE_LEDGER = 'apps/local-service/portable/test/public-subject-source-native-cases.json'
 RUNS_ROOT = REPO / 'apps/local-service/portable/data/hierarchy-native-runs'
 PRIVATE_ENTRY = OWN + 'owner-restore-native-check.js'
 HTTP_ENTRY = OWN + 'owner-http-native-check.js'
@@ -163,6 +164,11 @@ NORMAL_KEYS = frozenset([
     OWN + 'semantic-native-context.js', OWN + 'semantic-native-check.test.js',
     SEMANTIC_LEDGER,
     PUBLIC_SUBJECT_LEDGER,
+    PUBLIC_SOURCE_LEDGER,
+    'apps/local-service/portable/test/public-subject-source-native-assertions.js',
+    'apps/local-service/portable/test/public-subject-source-repository.test.js',
+    'apps/local-service/portable/canonical-v4/public-subject-source-repository.js',
+    'apps/local-service/portable/canonical-v4/drafts/public-subject-source-bindings.sql',
     'apps/local-service/portable/test/public-subject-native-assertions.js',
     'apps/local-service/portable/test/public-subject-registry.test.js',
     'apps/local-service/portable/canonical-v4/public-subject-registry.js',
@@ -433,7 +439,7 @@ def semantic_completion(stdout, stderr, exit_code):
             or not all(cleanup[key] is True for key in cleanup if key != 'reason')):
         return refused('json-cleanup')
     proof = value['proof']
-    if not shape(proof, 'schema status nativeExecuted pendingAssertions cases publicSubjectCases restrictedRoleValidated concurrencyScope multiUserLoadValidated semanticQualityMeasured lastObservedSqlFailure cleanup'):
+    if not shape(proof, 'schema status nativeExecuted pendingAssertions cases publicSubjectCases publicSourceBindingCases restrictedRoleValidated concurrencyScope multiUserLoadValidated semanticQualityMeasured lastObservedSqlFailure cleanup'):
         return refused('json-shape')
     if (proof['schema'] != 'canonical-semantic-postgres-proof/v1' or proof['status'] != 'passed'
             or proof['nativeExecuted'] is not True or not integer(proof['pendingAssertions'],0)
@@ -480,6 +486,20 @@ def semantic_completion(stdout, stderr, exit_code):
             return refused('json-public-subject-cases')
     except (OSError, ValueError, TypeError, UnicodeError, RecursionError):
         return refused('json-public-subject-cases')
+    try:
+        raw = (REPO/PUBLIC_SOURCE_LEDGER).read_bytes()
+        if not 0 < len(raw) <= 4096:
+            return refused('json-public-source-cases')
+        names = parse(raw)
+        observed = proof['publicSourceBindingCases']
+        if (type(names) is not list or len(names) != 10 or len(set(names)) != 10
+                or any(type(name) is not str for name in names)
+                or type(observed) is not list or len(observed) != 10
+                or observed != [{'name':name,'status':'passed'} for name in names]
+                or any(not shape(row,'name status') for row in observed)):
+            return refused('json-public-source-cases')
+    except (OSError, ValueError, TypeError, UnicodeError, RecursionError):
+        return refused('json-public-source-cases')
     # Preserve the frozen transport's25/3 counters. The eight additional actual
     # registry checks are separately required above and retained in child JSON.
     result.update(testPoints=25, outerTests=3)

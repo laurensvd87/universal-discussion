@@ -225,6 +225,7 @@ class MaintainedDriverTest(unittest.TestCase):
             'proof':{'schema':'canonical-semantic-postgres-proof/v1','status':'passed','nativeExecuted':True,
                 'pendingAssertions':0,'cases':cases,
                 'publicSubjectCases':[{'name':name,'status':'passed'} for name in json.loads((D.REPO/D.PUBLIC_SUBJECT_LEDGER).read_bytes())],
+                'publicSourceBindingCases':[{'name':name,'status':'passed'} for name in json.loads((D.REPO/D.PUBLIC_SOURCE_LEDGER).read_bytes())],
                 'restrictedRoleValidated':True,
                 'concurrencyScope':'head-switch-vs-apply-and-mvcc-read','multiUserLoadValidated':False,
                 'semanticQualityMeasured':False,'lastObservedSqlFailure':None,
@@ -252,6 +253,17 @@ class MaintainedDriverTest(unittest.TestCase):
             elif change=='order':rows[0],rows[1]=rows[1],rows[0]
             elif change=='name':rows[0]['name']='borrowed semantic case'
             elif change=='status':rows[0]['status']='skipped'
+            elif change=='extra':rows[0]['extra']=True
+            self.assertFalse(self.complete(value)['accepted'])
+
+    def test_public_source_cases_cannot_borrow_metadata_or_omit_concurrency(self):
+        for change in ('missing','partial','order','name','status','extra'):
+            value=self.semantic_result();rows=value['proof']['publicSourceBindingCases']
+            if change=='missing':del value['proof']['publicSourceBindingCases']
+            elif change=='partial':rows.pop()
+            elif change=='order':rows[0],rows[1]=rows[1],rows[0]
+            elif change=='name':rows[0]['name']=value['proof']['publicSubjectCases'][0]['name']
+            elif change=='status':rows[6]['status']='skipped'
             elif change=='extra':rows[0]['extra']=True
             self.assertFalse(self.complete(value)['accepted'])
 
