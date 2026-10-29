@@ -1,0 +1,18 @@
+// Primary-publisher DEV only. New news-event discovery, not the old consumed
+// hierarchy TEST. Labels/dates are evaluation annotations, never model inputs.
+export const AUTOMATIC_TOPIC_DEVELOPMENT=Object.freeze([
+ {id:'automatic-dev-physics-01',eventId:'nobel-physics-2024-announcement',eventDate:'2024-10-08',publisherKey:'nobelprize.org',url:'https://www.nobelprize.org/prizes/physics/2024/press-release/'},
+ {id:'automatic-dev-physics-02',eventId:'nobel-physics-2024-announcement',eventDate:'2024-10-08',publisherKey:'princeton.edu',url:'https://www.princeton.edu/news/2024/10/08/princetons-john-hopfield-receives-nobel-prize-physics'},
+ {id:'automatic-dev-physics-03',eventId:'nobel-physics-2024-announcement',eventDate:'2024-10-08',publisherKey:'aps.org',url:'https://www.aps.org/about/news/2024/10/nobel-physics-2024-winners'},
+ {id:'automatic-dev-chemistry-01',eventId:'nobel-chemistry-2024-announcement',eventDate:'2024-10-09',publisherKey:'nobelprize.org',url:'https://www.nobelprize.org/prizes/chemistry/2024/press-release/'},
+ {id:'automatic-dev-chemistry-02',eventId:'nobel-chemistry-2024-announcement',eventDate:'2024-10-09',publisherKey:'washington.edu',url:'https://www.washington.edu/33rd-president/2024/10/09/david-baker-nobel-prize/'},
+ {id:'automatic-dev-chemistry-03',eventId:'nobel-chemistry-2024-announcement',eventDate:'2024-10-09',publisherKey:'royalsociety.org',url:'https://royalsociety.org/news/2024/10/demis-hassabis-nobel-prize/'},
+].map(p=>Object.freeze({...p,split:'development'})));
+export const AUTOMATIC_TOPIC_DEVELOPMENT_PROTOCOL=Object.freeze({
+ review:'Root-only primary-source event/date review; search snippets and some primary text were visible before declaration. No independent reviewer or population claim.',
+ subject:'Two distinct announcements one day apart, both Nobel awards involving AI; check same-event grouping versus similar but different events.',
+ unavailable:'Retain every declared outcome; no replacement, redirect-following or automatic retry. Primary-site403 was already observed through browsing before this collector.',
+ dates:'eventDate is a gold annotation only. The capture currently exports no publication metadata; do not substitute the visit date or the gold date as an event-matcher input.',
+ validation:'This is DEV, not final validation. Freeze a selected policy before declaring and capturing prospective unseen events/sites. Old hierarchy TEST is not tuning data.',
+ maximumRequests:16,maximumCaptureMs:240000,minimumRequestSpacingMs:5000,
+});
