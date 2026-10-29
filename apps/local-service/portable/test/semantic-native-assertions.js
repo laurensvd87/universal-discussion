@@ -835,7 +835,10 @@ export async function runSemanticAssertions(test,{acquireFixture}){
       await assert.rejects(factory({database:db,schemaProfile:'hierarchy16'}).health(),e=>e.code==='unavailable');
     }
     assert.notEqual(installed.matcherIdentityHash,hash1);
-    assert.equal(installed.matcherIdentityHash,'eead1b2dcd6508ebf3d5c45358c71be95e81363da7c0b8325f7466ce487ed21c');
+    // The maintained installed artifact now includes the passed Animals and
+    // Koalas heads. Assert that exact20-node artifact, not the retired18-node
+    // predecessor. The original transaction/rollback/role assertions remain.
+    assert.equal(installed.matcherIdentityHash,'4e9b3d3d2053327707d6ff395a8373e6e5ac3195333183ac8516f84195c45524');
     assert.deepEqual(await scalar(db,'SELECT revision::text,matcher_hash FROM canonical_v4.semantic_installation WHERE singleton'),
       {revision:'1',matcher_hash:installed.matcherIdentityHash});
     assert.deepEqual(await createCanonicalV4SemanticDiscussionRepository({database:db}).ownerPolicy(),{revision:1,defaultMaxDepth:1,overrides:[]});
@@ -848,7 +851,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     assert.deepEqual(summary.legacyContainers,{active:0,total:1,multiMember:0,singleton:0});
     assert.equal(summary.point.totalSources,0);assert.equal(summary.point.learnedPages,0);
     assert.deepEqual(summary.semantic.counts,{preparedSources:0,currentHeadClassifiedSources:0,currentHeadAbstainedSources:0,
-      currentHeadExcludedSources:0,currentHeadPendingSources:0,distinctRoots:0,activeNodes:18,configuredDisplayGroups:16,occupiedDisplayGroups:0});
+      currentHeadExcludedSources:0,currentHeadPendingSources:0,distinctRoots:0,activeNodes:20,configuredDisplayGroups:16,occupiedDisplayGroups:0});
     const snapshot=await dashboardSource.readSnapshot({now:fixedNow});assert.equal(snapshot.state,null);
     assert.deepEqual(snapshot, {...summary,state:null});
     const bFeeds=createCanonicalV4SemanticDiscussionRepository({database:db}),canonicalBeforePolicy=await canonical();
@@ -856,7 +859,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     try{
      assert.notEqual(await dashboardSource.readRevision(),revision,'semantic policy changes invalidate dashboard refresh without canonical writes');
      const changed=await dashboardSource.readHierarchySummary({now:fixedNow});assert.equal(changed.semantic.policyRevision,deeper.revision);
-     assert.equal(changed.semantic.counts.configuredDisplayGroups,18);assert.equal(changed.semantic.counts.occupiedDisplayGroups,0);
+     assert.equal(changed.semantic.counts.configuredDisplayGroups,20);assert.equal(changed.semantic.counts.occupiedDisplayGroups,0);
      assert.deepEqual(await canonical(),canonicalBeforePolicy);
     }finally{await bFeeds.setOwnerPolicy({expectedRevision:deeper.revision,defaultMaxDepth:1,overrides:[]});}
     const restored=await dashboardSource.readHierarchySummary({now:fixedNow});assert.equal(restored.semantic.counts.configuredDisplayGroups,16);
