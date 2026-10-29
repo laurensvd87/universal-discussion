@@ -4,6 +4,17 @@ Date:2026-10-29
 
 ## Current priority: general websites, without a Wikipedia dependency
 
+Author-selected context now passes actual owned PostgreSQL checks:10 new cases
+plus all prior65 required reports. Atomic root publication retains the exact
+page/named caption and original canonical destination. Evidence revisions,
+identical-material renewals and a new preferred leaf do not change a draft's
+meaning. A page draft can finish as page context after discovery; Source erase
+preserves expressly posted captions while human root withdrawal erases them.
+Exact retries retain historical responses and cannot retrospectively label old
+receipts. See [author-context proof and remaining shipping work](../apps/local-service/portable/canonical-v4/drafts/AUTOMATIC-AUTHOR-CONTEXT.md).
+This is an unregistered component, not live UI integration or semantic-quality
+proof. AI-root scope, browser freezing, feeds/search and complete18 still follow.
+
 Bounded indexed discovery now also passes actual owned PostgreSQL checks:10 new
 retrieval cases plus all prior25+8+10+12 reports. A normal production coordinator
 uses the existing prepared vectors,95 HNSW candidates, up to32 indexed title

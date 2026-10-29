@@ -8,6 +8,30 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct author-selected context ACTUALPASS: source15222ccd/catalog73417c7a/
+map0fb68802...9175e/2569files/276888953B. Owned run4e45065d...786789 EXIT0/
+acceptedTRUE: all10new authored +prior25/metadata8/Source10/general12/retrieval10
+PASS (75reports, not75independent quality cases). Root all2569endpins/2freshDB
+drops/exactownsmartstop/emptyJob/allhandlesTRUE/emergencyFALSE/stderr0; result
+a91962f9...8384/stdoutdb676830...8e74. Root-only/invented vectors; NOreal UI/
+representative recall/manyuser/live claim. 90guardedNode563ms +65Python PASS.
+Atomic root scope/caption uses existing canonical destination, original actor/
+receipt/Source/domain lock order; page draft survives newsubject, named draft
+survives evidence revision/same-material renewal, earlier broad membership valid.
+Exact scope replay historical; changedscope/legacyreceiptadoption/stalematerial
+refuse atomically. Committed Source forget keeps expressly authored caption/body/
+route; normal app withdrawal erases caption. Firstactual ba5e80d6...18bc3 failed
+case9 invalid fixture UPDATE violated001 CHECK; immutable savedfailure/audit,
+normal-lifecycle causal correction/no productionSQL change/assertion waiver.
+Newcomponent UNREGISTERED/notlive18; README drafts/AUTOMATIC-AUTHOR-CONTEXT.md.
+Next shipping: AI-root scope +immutable browser intent, fixedalias reuse/model
+activation continuity, named feeds/global occupied search, complete18/readiness/
+startup/recovery/live concurrency+cutover. Full private rehearsal still11GiB D
+admission; last4.8GB, no waiver/cleanup. All5 original service starts preserved;
+crawler6384 advancing10449/stderr0,55433absent. GoalACTIVE; concrete SQL+source
+progress, not completion.
+
+
 LATEST29Oct authored-context ONE actual ba5e80d6...18bc3 CLOSED exit1/23514:
 first8 authored cases PASS, ninth invalid fixture directwithdraw violates001
 CHECK(authorNULL/revisions0). Root savedfailure/all2569endpins auditPASS; exact

@@ -7,6 +7,17 @@ model is required by this candidate. Wikipedia metadata remains optional.
 These are inspected development examples, not representative accuracy or live
 activation. Original v1 code, policy and all earlier results remain unchanged.
 
+The general-site shipping bridge now also has actual owned PostgreSQL proof for
+author-selected context:10 additional cases plus all prior65 reports pass.
+Ordinary page-only posting is available before classification, a frozen page
+scope survives new shared-topic discovery, and named scopes survive evidence
+revision/identical-material renewals. Exact replay, rollback, MVCC contention,
+execute-only roles, human withdrawal and committed Source erasure are checked.
+Source `15222ccd` / catalog `73417c7a`; details and retained first-fixture failure
+are in `portable/canonical-v4/drafts/AUTOMATIC-AUTHOR-CONTEXT.md`. Invented vectors
+are used for those SQL assertions; this adds no representative recall, live or
+browser-latency claim. UI/AI-root binding and the complete18 profile remain open.
+
 ## Actual recipe and video
 
 The owner's two specified public pages have stored title/body E5 vectors:

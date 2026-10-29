@@ -1,5 +1,29 @@
 # Implementation handoff: local-service discussion MVP
 
+LATEST29Oct author-selected context ACTUALPASS: source15222ccd/catalog73417c7a/
+map0fb68802...9175e/2569files/276888953B. Owned run4e45065d...786789 EXIT0/
+acceptedTRUE: all10new authored +prior25/metadata8/Source10/general12/retrieval10
+PASS (75reports, not75independent quality cases). Root all2569endpins/2freshDB
+drops/exactownsmartstop/emptyJob/allhandlesTRUE/emergencyFALSE/stderr0; result
+a91962f9...8384/stdoutdb676830...8e74. Root-only/invented vectors; NOreal UI/
+representative recall/manyuser/live claim. 90guardedNode563ms +65Python PASS.
+Atomic root scope/caption uses existing canonical destination, original actor/
+receipt/Source/domain lock order; page draft survives newsubject, named draft
+survives evidence revision/same-material renewal, earlier broad membership valid.
+Exact scope replay historical; changedscope/legacyreceiptadoption/stalematerial
+refuse atomically. Committed Source forget keeps expressly authored caption/body/
+route; normal app withdrawal erases caption. Firstactual ba5e80d6...18bc3 failed
+case9 invalid fixture UPDATE violated001 CHECK; immutable savedfailure/audit,
+normal-lifecycle causal correction/no productionSQL change/assertion waiver.
+Newcomponent UNREGISTERED/notlive18; README drafts/AUTOMATIC-AUTHOR-CONTEXT.md.
+Next shipping: AI-root scope +immutable browser intent, fixedalias reuse/model
+activation continuity, named feeds/global occupied search, complete18/readiness/
+startup/recovery/live concurrency+cutover. Full private rehearsal still11GiB D
+admission; last4.8GB, no waiver/cleanup. All5 original service starts preserved;
+crawler6384 advancing10449/stderr0,55433absent. GoalACTIVE; concrete SQL+source
+progress, not completion.
+
+
 LATEST29Oct indexed retrieval+normal coordinator ACTUALPASS: source9e2259d0/
 catalogfbf83fc5/map3f3e8bae...99cb/2564files/276848863B. Owned run
 ed4e9e2bda85d5000bfa2f58de3b9707515a7aa1e244b26e EXIT0/acceptedTRUE:
