@@ -12,6 +12,7 @@ import {createRequestHandler} from '../../src/http/request-handler.js';import {c
 import {createLocalServiceClient} from '../../../../spikes/topic-resolution/browser/core/local-service-client.js';
 import {createLocalAiClient} from '../../../../spikes/topic-resolution/browser/core/local-ai-client.js';
 import {authoredFixtureInsightContext} from './automatic-author-insight-native-assertions.js';
+import {runAutomaticPageTopicNativeAssertions} from './automatic-page-topic-native-assertions.js';
 import names from './automatic-topic-public-native-cases.json' with {type:'json'};
 export const AUTOMATIC_TOPIC_PUBLIC_NATIVE_CASES=Object.freeze([...names]);
 const actor={id:'demo-alex',type:'human',demo:true},code=c=>e=>e?.code===c;
@@ -120,7 +121,8 @@ export async function runAutomaticTopicPublicNativeAssertions(scope){
    await assert.rejects(owner.transaction(async tx=>{await tx.exec('SET LOCAL ROLE '+role);await tx.query(sql);}),code('42501'));
   for(const role of ['murmingle_ingest_worker','murmingle_crawler_submitter'])await assert.rejects(owner.transaction(async tx=>{await tx.exec('SET LOCAL ROLE '+role);await tx.query('SELECT canonical_v4.named_read_root_contexts($1,$2::text[])',[generation,[root]]);}),code('42501'));
  });
- return async()=>test(cases,8,async()=>{
+ const finishPages=await runAutomaticPageTopicNativeAssertions({...scope,cases:scope.pageCases});
+ return async()=>{await finishPages();return test(cases,8,async()=>{
   assert.equal((await one(owner,'SELECT count(*)::integer n FROM canonical_v4.sources')).n,0);await drain();
   const view=await target();assert.equal(view.scope.caption,selected.scope.caption);
   await assert.rejects(service.semanticTarget({nodeId:'subject-'+parent,rootId:root,targetId:root}),code('not-found'));
@@ -142,5 +144,5 @@ export async function runAutomaticTopicPublicNativeAssertions(scope){
    GRANT EXECUTE ON FUNCTION canonical_v4.named_process_feed_event(text,bigint) TO murmingle_ingest_worker;
    DROP FUNCTION canonical_v4.named_schedule_context_read(),canonical_v4.named_read_revision(),canonical_v4.named_read_root_contexts(text,text[]),canonical_v4.named_reply_member(text,text,text,bigint,text,text);
    DROP TABLE canonical_v4.named_feed_clock;`);
- });
+ });};
 }
