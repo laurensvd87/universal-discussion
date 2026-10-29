@@ -4,6 +4,7 @@
 // publisher must recheck all Source fences and existing revision CAS atomically.
 import {randomUUID,createHash} from 'node:crypto';
 import {proposeFocusedSubjects} from '../../experiments/automatic-topic-discovery-v1/focus-subjects.js';
+import {proposeFocusedSubjects as proposeGeneralSubjects} from '../../experiments/automatic-topic-discovery-v2/focus-subjects.js';
 const fail=()=>{throw new TypeError('Invalid general named subject publication');};
 const shape=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).sort().join(',')===[...keys].sort().join(',');
 const sha=v=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
@@ -15,13 +16,33 @@ const vector=v=>Array.isArray(v)&&v.length===384&&v.every(n=>typeof n==='number'
 const dot=(a,b)=>a.reduce((sum,n,i)=>sum+n*b[i],0);
 function centroid(rows){const mean=Array(384).fill(0);for(const row of rows)for(let i=0;i<384;i++)mean[i]+=row.vector[i]/rows.length;const norm=Math.hypot(...mean);if(norm<1e-12)fail();return mean.map(n=>n/norm);}
 
+// Explicit policy identity: a v1 caller must never silently acquire the relaxed
+// publisher rule. This descriptor is data, not an activation or quality claim.
+export const GENERAL_SUBJECT_POLICY_V2=freeze({schema:'general-named-subject-policy/v2',
+ algorithmSchema:'automatic-focus-subjects/v2',
+ algorithmSha256:'55d20893a961274cbaf122d60d1f1b6afda5fea453ddd9ac961aa004f6d32b92',
+ minimumSimilarity:.8,minimumDistinctMaterials:2,independentPublishersRequired:false,
+ maximumObservations:64,maximumCandidates:64,kind:'subject',eventIdentityAsserted:false});
+export const GENERAL_SUBJECT_POLICY_V2_HASH=sha(GENERAL_SUBJECT_POLICY_V2);
+
 export function planAutomaticNamedSubjects(rawJson){
- if(arguments.length!==1||typeof rawJson!=='string'||Buffer.byteLength(rawJson)>1048576)fail();let input;
+ if(arguments.length!==1)fail();
+ return plan(rawJson,proposeFocusedSubjects,false);
+}
+
+export function planAutomaticNamedSubjectsV2(rawJson){
+ if(arguments.length!==1)fail();
+ return plan(rawJson,proposeGeneralSubjects,true);
+}
+
+function plan(rawJson,propose,v2){
+ if(typeof rawJson!=='string'||Buffer.byteLength(rawJson)>1048576)fail();let input;
  try{input=JSON.parse(rawJson);}catch{fail();}
  if(!shape(input,['generation','policyHash','representationHash','matcherHash','minimumSimilarity','observations','sourceWitnesses','candidates'])||
     !id(input.generation)||!HASH.test(input.policyHash)||!Array.isArray(input.candidates)||input.candidates.length>64||
     !Array.isArray(input.sourceWitnesses)||input.sourceWitnesses.length>64)fail();
- const proposal=proposeFocusedSubjects(JSON.stringify({representationHash:input.representationHash,matcherHash:input.matcherHash,
+ if(v2&&(input.policyHash!==GENERAL_SUBJECT_POLICY_V2_HASH||input.minimumSimilarity!==GENERAL_SUBJECT_POLICY_V2.minimumSimilarity))fail();
+ const proposal=propose(JSON.stringify({representationHash:input.representationHash,matcherHash:input.matcherHash,
   minimumSimilarity:input.minimumSimilarity,observations:input.observations}));
  const sourceMap=new Map(input.observations.map(row=>[row.sourceId,row])),witnessMap=new Map();
  for(const w of input.sourceWitnesses){
@@ -60,6 +81,16 @@ export function planAutomaticNamedSubjects(rawJson){
   // Existing reparenting requires its own owner/ancestry CAS, outside this plan.
   if(update.parentId===null)update.parentId=parent?mapping.get(parent):null;delete update.parentProposalKey;
  }
+ if(v2){
+  // Detect cycles visible in the retrieved cohort, including preserved parents.
+  // The SQL transaction must still check ancestry outside this bounded input.
+  const parents=new Map(input.candidates.map(c=>[c.subjectId,c.parentId]));
+  for(const update of updates)parents.set(update.subjectId,update.parentId);
+  for(const start of parents.keys()){
+   const seen=new Set();let current=start;
+   while(current!==null&&parents.has(current)){if(seen.has(current))fail();seen.add(current);current=parents.get(current);}
+  }
+ }
  const selections=proposal.selections.map(s=>{
   const matched=proposal.proposals.filter(p=>s.supportedProposalKeys.includes(p.proposalKey)&&mapping.has(p.proposalKey));
   const preferred=matched.find(p=>p.proposalKey===s.preferredProposalKey)??matched.filter(p=>!matched.some(q=>q.parentProposalKey===p.proposalKey))
@@ -68,7 +99,7 @@ export function planAutomaticNamedSubjects(rawJson){
    reason:preferred?'most-specific-resolved-subject':'page-context-only'};
  });
  const usedSources=new Set(updates.flatMap(u=>u.members.map(m=>m.sourceId)));
- return freeze({schema:'general-named-subject-publication-plan/v1',generation:input.generation,policyHash:input.policyHash,
+ return freeze({schema:v2?'general-named-subject-publication-plan/v2':'general-named-subject-publication-plan/v1',generation:input.generation,policyHash:input.policyHash,
   representationHash:input.representationHash,matcherHash:input.matcherHash,updates,selections,decisions,
   commitWitnesses:[...witnessMap.values()].filter(w=>usedSources.has(w.sourceId)).sort((a,b)=>a.sourceId.localeCompare(b.sourceId)),
   proposalStatus:proposal.status,work:proposal.work,wikipediaRequired:false,providerUsed:false,registryChanged:false,

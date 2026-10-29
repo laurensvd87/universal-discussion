@@ -2,6 +2,39 @@
 
 Date:2026-10-29
 
+## Current priority: general websites, without a Wikipedia dependency
+
+The owner explicitly requires normal websites, videos, products and novel news.
+The Wikipedia-heavy crawler inventory is not a reason to make exact sitelinks
+the core assignment mechanism. They remain optional public enrichment.
+
+Real general-web development now supports the named-subject path: the owner's
+recipe/video pair yields Kapsalon from stored paired E5; a new closed cohort
+supports Red panda, Giant panda, Nintendo Switch and Steam Deck. See
+[general-web evidence and limits](../apps/local-service/experiments/automatic-topic-discovery-v2/RESULTS.md).
+Product results currently identify families; German matching and model-specific
+leaves remain unresolved. The alternative v2 policy permits two distinct
+materials from the same publisher for a subject, preserving deduplication,
+cohesion and conflicting-root checks. Publisher/instructional boilerplate needs
+additional guards. This does not claim event equality or independent reporting.
+
+The application planner has an explicitly fingerprinted v2 entry, opaque stable
+IDs, bounded candidate reuse, Source witnesses and visible-cycle rejection.
+Frozen v1 remains unchanged. The generic persistent publisher is still missing:
+complete hierarchy18 must store provider-independent subjects/evidence, validate
+current Source/version/receipt/stamp/generation and revision CAS atomically,
+withdraw erased Source-derived names/prototypes/membership, and preserve human
+posts/routes and the exact author-selected context. Never make new names require
+an existing Wikipedia record or an LLM call on a reader's critical path.
+
+The prior provider registry's actual8 metadata plus25 semantic checks remain
+historical component evidence. A later10-case Source-binding/race extension is
+SOURCE-only and has not run in PostgreSQL; the maintained native source catalog
+is stale after those changes. Do not invoke it or report those10 as executed
+before rebuilding/reviewing the closure and making a separate owned-run decision.
+
+General extraction repairs are also source-only; no live service was cut over.
+
 Status: Implementation direction. Bounded pure proposal prototype and first real
 development diagnostic implemented; dynamic registry, publication metadata,
 prospective validation and live integration remain open. No new SQL migration,

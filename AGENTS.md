@@ -8,6 +8,31 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+29Oct GENERAL-WEB priority: Wikipedia is optional enrichment, never the core
+assignment dependency. Real owner recipe/video yields Kapsalon (paired cosine
+0.9184236); opaque UUID reused in planning only, no SQL persistence. Closed12
+nonwiki capture5available/7unavailable +6 declared repair observations4/2 =>9
+unique available. Same-response old/fixed parser proves4 attribute-limit failures
+repaired without cap raises; early-timer pacing repaired with finite waits.
+No policy bypass, raw HTML persistence, provider or model download. Source-only,
+live sealed parser unchanged. Frozen v1 unchanged; explicit v2 allows2distinct
+materials from1publisher. First6names include2bad scopes; retained refined output
+has4names/8assignments: Giant panda, Red panda, Nintendo Switch, Steam Deck.
+German WWF stays page-only; product families are NOT model-specific leaf proof.
+DEV pure9 median0.6572ms/p951.5748ms, NOT UI/capture/inference or population quality.
+Root7result hashes+27casepins PASS (same agent; historical source pins not reaudited).
+General v2 application planner added with fingerprinted policy/old v1 preserved,
+stableUUID/revision reuse/Source witnesses/visible-cycle rejection; joined37 pure
+PASS64MiB. No generic SQL publisher, registry/UI/live18 activation yet.
+Prior33bf9423 adds10 Source-binding/race assertions SOURCE-only/UNEXECUTED; old
+maintained native catalog is STALE: rebuild/review/commit/separate actual decision
+before invocation. Earlier8metadata+25 actual proof remains historical only.
+Crawler6384 progressing8949/stderr0; no stop/reset/reseal or live service changes.
+Next generic persistent registry+Source erasure/author context+indexed retrieval/
+roles/races/UI/cutover, plus prospective language/model-leaf coverage. GoalACTIVE.
+Read apps/local-service/experiments/automatic-topic-discovery-v2/RESULTS.md.
+
+
 LATEST29Oct registrymetadata SQL ACTUALPASS: source4653efe2/catalogba7fb0f8,
 mapf0b39c33...7d360/2538files/276601238B. Ownednative run-b47368558c2bbde803d763ac117efe1ea9a41159d3acffe6 EXIT0:
 8newpublicmetadata cases+original25 PASS; transport25/3 retained, extra8required
