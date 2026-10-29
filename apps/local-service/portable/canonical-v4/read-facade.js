@@ -11,6 +11,7 @@ import { createEmbeddingWireQuery, decodeEmbeddingBase64Array } from './embeddin
 import { readRelatedCatalogEvidence } from './related-catalog-evidence.js';
 import { buildRelatedCatalogIndex, createRelatedCatalogEntryPreparation, relatedCatalogChanges, rankRelatedCatalogIndex } from './related-catalog-index.js';
 import { inspectPageNavigationUrl, inspectPageUrl } from '../../../../spikes/topic-resolution/browser/core/page-content-policy.js';
+import {createAutomaticTopicFeedRepository,isAutomaticTopicRoute} from './automatic-topic-feed-repository.js';
 import { createCanonicalV4SemanticDiscussionRepository } from './semantic-discussion-repository.js';
 import { createCanonicalV4SemanticMetadataRepository } from './semantic-metadata-repository.js';
 import { projectSemanticTopicDirectory, projectSemanticSourceContext } from '../../src/domain/semantic-topic-directory.js';
@@ -150,9 +151,10 @@ async function semanticPublicContributions(tx, rows, topicId) {
   });
 }
 
-async function semanticRootCards(tx, references) {
+async function semanticRootCards(tx, references, {automaticTopics=false,generation=null}={}) {
   if (!references.length) return [];
   const ids = references.map(ref => ref.rootId), rows = await latestContributionRows(tx, ids);
+  const scopes=automaticTopics?new Map((await createAutomaticTopicFeedRepository({database:tx}).rootContexts(JSON.stringify({generation,rootIds:ids}))).map(v=>[v.rootId,v.scope])):new Map();
   const byId = new Map(rows.map(row => [row.id, row]));
   if (byId.size !== references.length || rows.length !== references.length) corrupt('Missing semantic root');
   const discussionIds = [...new Set(references.map(ref => ref.discussionId))];
@@ -170,7 +172,7 @@ async function semanticRootCards(tx, references) {
     const root = { ...entries[i] };
     delete root.regrouped;
     if (decoded(row.payload, 'root payload').originalTopicId !== ref.topicId) root.regrouped = true;
-    return { topic: publicDiscussionTopic(topic), discussionId: discussion.id, root };
+    return { topic: publicDiscussionTopic(topic), discussionId: discussion.id, root,...(scopes.has(ref.rootId)?{scope:scopes.get(ref.rootId)}:{}) };
   });
 }
 
@@ -340,12 +342,12 @@ async function snapshot(database, work) {
 
 // Fixed composite reads may reuse the already-open repeatable-read transaction.
 // This is private composition only: callers cannot provide SQL or callbacks.
-function sameSnapshotFacade(tx, relatedState) {
+function sameSnapshotFacade(tx, relatedState, automaticTopics=false) {
   const nested = Object.freeze({ dialect: 'canonical-snapshot', wireDialect: tx.wireDialect ?? tx.dialect,
     query: (...args) => tx.query(...args) });
   return createCanonicalV4ReadFacade({
     database: Object.freeze({ query: (...args) => tx.query(...args), transaction: (work) => work(nested) }),
-    [RELATED_STATE]: relatedState,
+    [RELATED_STATE]: relatedState,automaticTopics,
   });
 }
 
@@ -858,13 +860,17 @@ async function indexedRelatedSources(tx, header, sourceId, limit, state) {
     results }, 'Related Sources');
 }
 
-export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inheritedRelatedState } = {}) {
+export function createCanonicalV4ReadFacade({ database, automaticTopics=false, [RELATED_STATE]: inheritedRelatedState } = {}) {
   if (!database || typeof database.query !== 'function' || typeof database.transaction !== 'function')
     throw new TypeError('Invalid canonical PostgreSQL read dependencies');
 
+  if(typeof automaticTopics!=='boolean')throw new TypeError('Invalid automatic topic read dependency');
   const relatedState = inheritedRelatedState ?? { view: null };
+  const semanticRepository=tx=>{const legacy=createCanonicalV4SemanticDiscussionRepository({database:tx});if(!automaticTopics)return legacy;
+   const named=createAutomaticTopicFeedRepository({database:tx});return {...legacy,feedReferences:value=>isAutomaticTopicRoute(value.nodeId)?named.feedReferences(JSON.stringify(value)):legacy.feedReferences(value)};};
 
   const facade = {
+    automaticTopicsEnabled:automaticTopics,
     async topicSpaceStamp() {
       return snapshot(database, async tx => {
         const header = await headerIn(tx), roots = await topicSpaceRoots(tx);
@@ -918,7 +924,7 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
 
     async fullCatalog() {
       return snapshot(database, async (tx) => {
-        const scoped = sameSnapshotFacade(tx, relatedState), topics = [], sources = [];
+        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics), topics = [], sources = [];
         let version = null, catalogVersion = null;
         for (const kind of ['topics', 'sources']) {
           let cursor = null;
@@ -937,7 +943,7 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
     async fullDiscussion(topicId) {
       topicId = readId(topicId);
       return snapshot(database, async (tx) => {
-        const scoped = sameSnapshotFacade(tx, relatedState), items = [];
+        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics), items = [];
         let cursor = null, header = null;
         do {
           const page = await scoped.discussionPage({ topicId, limit: MAX_PAGE_ITEMS, cursor });
@@ -955,7 +961,7 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
       const sourceId = input.sourceId === null ? null : readId(input.sourceId);
       const topicId = readId(input.topicId);
       return snapshot(database, async (tx) => {
-        const scoped = sameSnapshotFacade(tx, relatedState);
+        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics);
         const catalog = await scoped.catalogContext({ sourceId, topicId });
         const discussion = await scoped.fullDiscussion(topicId);
         if (catalog.version.generation !== discussion.version.generation ||
@@ -977,7 +983,7 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
         if (source.value.url !== url || source.value.provenance !== LEARNED_SOURCE_PROVENANCE ||
             !source.link?.topicId || source.public.topicId !== source.link.topicId)
           corrupt('Invalid learned Source URL selection');
-        const scoped = sameSnapshotFacade(tx, relatedState);
+        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics);
         const catalog = await scoped.catalogContext({ sourceId: source.value.id, topicId: source.link.topicId });
         const discussion = await scoped.fullDiscussion(source.link.topicId);
         if (catalog.version.generation !== discussion.version.generation ||
@@ -989,7 +995,7 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
 
     async catalogPageWithContexts(value) {
       return snapshot(database, async (tx) => {
-        const scoped = sameSnapshotFacade(tx, relatedState), page = await scoped.catalogPage(value), contexts = [];
+        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics), page = await scoped.catalogPage(value), contexts = [];
         if (page.kind === 'sources') for (const source of page.items)
           contexts.push(await scoped.catalogContext({ sourceId: source.id, topicId: source.topicId }));
         return { page, contexts };
@@ -999,7 +1005,7 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
     async alternateBundle(sourceId) {
       sourceId = readId(sourceId);
       return snapshot(database, async (tx) => {
-        const scoped = sameSnapshotFacade(tx, relatedState), header = await headerIn(tx);
+        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics), header = await headerIn(tx);
         const source = await scoped.exactSource(sourceId);
         if (!Array.isArray(source.topicIds) || !source.topicId || !source.topicIds.includes(source.topicId))
           fail('not-found', 'Object unavailable');
@@ -1028,7 +1034,7 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
       if (typeof input.includeDiscussion !== 'boolean' || typeof includeRelatedSources !== 'boolean')
         fail('invalid', 'Invalid request');
       return snapshot(database, async (tx) => {
-        const scoped = sameSnapshotFacade(tx, relatedState);
+        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics);
         const base = await scoped.catalogContext({ sourceId, topicId });
         const discussion = input.includeDiscussion
           ? await scoped.fullDiscussion(topicId) : await scoped.topicDiscussion(topicId);
@@ -1055,7 +1061,7 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
       const sourceId = readId(input.sourceId), topicId = readId(input.topicId);
       const destinationTopicId = input.destinationTopicId === null ? null : readId(input.destinationTopicId);
       return snapshot(database, async (tx) => {
-        const scoped = sameSnapshotFacade(tx, relatedState);
+        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics);
         const semanticTarget = input.semanticTarget === undefined ? null : await insightSemanticTarget(tx, scoped, input.semanticTarget, destinationTopicId);
         const anchor = await scoped.insightAnchor(topicId, sourceId, semanticTarget !== null);
         const followupDiscussion = semanticTarget !== null ? null : destinationTopicId === null
@@ -1071,7 +1077,7 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
       const sourceId = readId(input.sourceId), topicId = readId(input.topicId);
       if (typeof input.includeAlternate !== 'boolean') fail('invalid', 'Invalid request');
       return snapshot(database, async (tx) => {
-        const scoped = sameSnapshotFacade(tx, relatedState);
+        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics);
         const base = await scoped.catalogContext({ sourceId, topicId });
         const discussion = await scoped.fullDiscussion(topicId);
         const errors = { related: null, prior: null, alternate: null };
@@ -1214,7 +1220,7 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
       // One SQL statement owns its snapshot. Background preparation changes this
       // signature without pretending that canonical Sources/discussions changed.
       try {
-        const { rows } = await database.query('SELECT * FROM canonical_v4.semantic_read_revision()');
+        const { rows } = await database.query(automaticTopics?'SELECT * FROM canonical_v4.named_read_revision()':'SELECT * FROM canonical_v4.semantic_read_revision()');
         if (rows.length !== 1 || typeof rows[0].revision !== 'string' || !/^[a-f0-9]{64}$/u.test(rows[0].revision))
           corrupt('Invalid semantic revision');
         let generation;
@@ -1229,13 +1235,13 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
     async semanticFeed(value) {
       const input = semanticInput(value);
       return snapshot(database, async tx => {
-        const header = await headerIn(tx), semantic = createCanonicalV4SemanticDiscussionRepository({ database: tx });
+        const header = await headerIn(tx), semantic = semanticRepository(tx);
         const policy = await semantic.ownerPolicy(), binding = { generation: header.version.generation,
           policyRevision: policy.revision, nodeId: input.nodeId, limit: input.limit };
         const before = semanticPosition(input.cursor, binding, SEMANTIC_FEED_CURSOR_SCHEMA);
         const page = await semantic.feedReferences({ generation: binding.generation, nodeId: input.nodeId,
           beforeOrdinal: before, limit: input.limit + 1 });
-        const refs = page.references.slice(0, input.limit), cards = await semanticRootCards(tx, refs);
+        const refs = page.references.slice(0, input.limit), cards = await semanticRootCards(tx, refs,{automaticTopics,generation:header.version.generation});
         const result = { version: header.version, policyRevision: policy.revision, nodeId: input.nodeId, roots: [], nextCursor: null };
         for (let i = 0; i < cards.length; i++) {
           const more = i < cards.length - 1 || page.references.length > input.limit;
@@ -1254,10 +1260,10 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
     async semanticThread(value) {
       const input = semanticInput(value, true);
       return snapshot(database, async tx => {
-        const header = await headerIn(tx), semantic = createCanonicalV4SemanticDiscussionRepository({ database: tx });
+        const header = await headerIn(tx), semantic = semanticRepository(tx);
         const policy = await semantic.ownerPolicy();
         const { ref, revision } = await semanticRootMembership(tx, semantic, header.version.generation, input.nodeId, input.rootId);
-        const [card] = await semanticRootCards(tx, [ref]);
+        const [card] = await semanticRootCards(tx, [ref],{automaticTopics,generation:header.version.generation});
         const binding = { generation: header.version.generation, policyRevision: policy.revision,
           nodeId: input.nodeId, rootId: ref.rootId, discussionId: ref.discussionId,
           rootRevision: revision, limit: input.limit };
@@ -1295,6 +1301,16 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
       });
     },
 
+    async semanticSearch(value) {
+      if(!automaticTopics)fail('unavailable','Topic search unavailable');
+      const input=readRecord(value,['query','limit','cursor']);
+      return snapshot(database,async tx=>{
+        const header=await headerIn(tx),named=createAutomaticTopicFeedRepository({database:tx});
+        const result=await named.search(JSON.stringify({generation:header.version.generation,...input}));
+        return assertDtoSize({version:header.version,topics:result.topics,nextCursor:result.nextCursor},'Topic search');
+      });
+    },
+
     async semanticContext(value) {
       const input = readRecord(value, ['sourceId']), sourceId = readId(input.sourceId);
       return snapshot(database, async tx => {
@@ -1313,9 +1329,9 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
       const nodeId = readText(input.nodeId, 160), rootId = readId(input.rootId), targetId = readId(input.targetId);
       if (nodeId !== input.nodeId) fail('invalid', 'Invalid semantic target');
       return snapshot(database, async tx => {
-        const header = await headerIn(tx), semantic = createCanonicalV4SemanticDiscussionRepository({ database: tx });
+        const header = await headerIn(tx), semantic = semanticRepository(tx);
         const policy = await semantic.ownerPolicy(), { ref, revision } = await semanticRootMembership(tx, semantic, header.version.generation, nodeId, rootId);
-        const [card] = await semanticRootCards(tx, [ref]);
+        const [card] = await semanticRootCards(tx, [ref],{automaticTopics,generation:header.version.generation});
         let replies = [], targetRevision = revision;
         if (targetId !== rootId) {
           const rows = await latestContributionRows(tx, [targetId]);

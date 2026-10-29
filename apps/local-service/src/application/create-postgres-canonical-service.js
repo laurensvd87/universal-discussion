@@ -116,7 +116,7 @@ function chatTitle(root, topic) {
 export function createPostgresCanonicalService({ reads, urlSelectionReads = reads, runtime, ingestion = null, lifecycle = null,
   model = Object.freeze({ id: "hand-authored-demo-vectors/1", status: "fixture-only" }),
   resolveAccountActor = null, readAccountActors = () => [], accountCursorSecret, semanticDiscussions = false,
-  requestSemanticPreparation = null,authoredTopics=null } = {}) {
+  requestSemanticPreparation = null,authoredTopics=null,automaticTopics=false } = {}) {
   if (!reads || typeof reads.version !== "function" || typeof reads.catalogContext !== "function" ||
       typeof reads.catalogPage !== "function" || typeof reads.discussionPage !== "function" ||
       typeof reads.exactSource !== "function" || !runtime || typeof runtime.command !== "function" ||
@@ -129,6 +129,8 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
   if(requestSemanticPreparation!==null&&typeof requestSemanticPreparation!=='function')throw new TypeError('Invalid preparation request dependency');
   if(authoredTopics!==null&&['editor','appendRoot','shareInsight','scopeCurrent'].some(name=>typeof authoredTopics[name]!=='function'))
     throw new TypeError('Invalid authored topic dependencies');
+  if(typeof automaticTopics!=='boolean'||automaticTopics&&(!semanticDiscussions||!authoredTopics||reads.automaticTopicsEnabled!==true||typeof reads.semanticSearch!=='function'))
+    throw new TypeError('Invalid automatic topic service dependencies');
   const cursorKey = accountCursorKey(accountCursorSecret);
   const publicFlights = createPostgresPublicReadFlights();
   const urlFlights = createPostgresPublicReadFlights({ maxTasks: 8 });
@@ -407,7 +409,7 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
     // accounts, credentials, and caller-provided version claims.
     let expected = method === "urlSelection" && typeof urlSelectionReads.version === "function"
       ? await urlSelectionReads.version() : await reads.version();
-    if (semanticDiscussions && ["semanticFeed", "semanticThread", "semanticTarget", "semanticTopics", "semanticContext"].includes(method)) {
+    if (semanticDiscussions && ["semanticFeed", "semanticThread", "semanticTarget", "semanticTopics", "semanticContext",...(automaticTopics?['semanticSearch','authorContext']:[])].includes(method)) {
       const stamp = await reads.semanticStamp();
       if (stamp.generation !== expected.generation || typeof stamp.revision !== "string" || !/^[a-f0-9]{64}$/u.test(stamp.revision))
         fail("unavailable", "Semantic read unavailable");
@@ -448,6 +450,7 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
     if (semanticDiscussions && method === "semanticThread") return semanticDto(await reads.semanticThread(input));
     if (semanticDiscussions && method === "semanticTarget") return semanticDto(await reads.semanticTarget(input));
     if (semanticDiscussions && method === "semanticTopics") return reads.semanticTopics(input);
+    if (automaticTopics && method === 'semanticSearch') return reads.semanticSearch(input);
     if (semanticDiscussions && method === "semanticContext") return reads.semanticContext(input);
     if(authoredTopics&&method==='authorContext'){
       const a=readRecord(input,['sourceId']);readId(a.sourceId);const version=await reads.version();
@@ -536,6 +539,7 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
 
   const service = {
     coherentSnapshotReads: true,
+    ...(automaticTopics?{semanticSearch:input=>readPublic('semanticSearch',input)}:{}),
     ...(authoredTopics?{
       authorContext:input=>readPublic('authorContext',input),
       authorScopeCurrent:input=>authoredTopics.scopeCurrent(JSON.stringify(readRecord(input,['generation','topicId','scope']))),

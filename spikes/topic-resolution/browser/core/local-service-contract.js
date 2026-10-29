@@ -197,9 +197,10 @@ export function readHealth(value) {
   return item;
 }
 export function readSemanticCapabilities(value) {
-  const item = record(value, ["protocol",...(Object.hasOwn(value??{},'authorContext')?['authorContext']:[])]);
+  const item = record(value, ["protocol",...(Object.hasOwn(value??{},'authorContext')?['authorContext']:[]),...(Object.hasOwn(value??{},'topicSearch')?['topicSearch']:[])]);
   oneOf(item.protocol, ["semantic-topics/v1"]);
   if(Object.hasOwn(item,'authorContext'))oneOf(item.authorContext,['authored-topics/v1']);
+  if(Object.hasOwn(item,'topicSearch'))oneOf(item.topicSearch,['named-topics/v1']);
   return Object.freeze(item);
 }
 export function readAuthoredTopicScope(value){
@@ -339,13 +340,15 @@ function semanticHeader(item, expected) {
   if (expected && nodeId !== expected.nodeId) invalid();
   return { version: readVersion(item.version), policyRevision: item.policyRevision, nodeId };
 }
+export function readPublicTopicScope(value){const s=record(value,['kind','id','caption']);oneOf(s.kind,['page','named']);readId(s.id);text(s.caption,200);
+ if(s.kind==='named'&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(s.id))invalid();return freeze(s);}
 export function readSemanticFeed(value, expected = null) {
   const item = record(value, ["version", "policyRevision", "nodeId", "roots", "nextCursor", "actors"]);
   const header = semanticHeader(item, expected);
   const roots = array(item.roots, expected?.limit ?? 50, value => {
-    const card = record(value, ["topic", "discussionId", "root"]), root = contribution(card.root, null, true, { preview: true });
+    const card = record(value, ["topic", "discussionId", "root",...(Object.hasOwn(value??{},'scope')?['scope']:[])]), root = contribution(card.root, null, true, { preview: true });
     if (root.state !== "visible") invalid();
-    return { topic: topic(card.topic), discussionId: readId(card.discussionId), root };
+    return { topic: topic(card.topic), discussionId: readId(card.discussionId), root,...(Object.hasOwn(card,'scope')?{scope:readPublicTopicScope(card.scope)}:{}) };
   });
   if (new Set(roots.map(card => card.root.id)).size !== roots.length) invalid();
   const destinations = new Map(), topics = new Map();
@@ -358,7 +361,7 @@ export function readSemanticFeed(value, expected = null) {
 }
 function semanticThread(value, expected, target) {
   const item = record(value, ["version", "policyRevision", "nodeId", "topic", "discussionId", "root",
-    ...(target ? ["targetId", "rootRevision", "targetRevision"] : ["nextCursor"]), "actors"]);
+    ...(target ? ["targetId", "rootRevision", "targetRevision"] : ["nextCursor"]), "actors",...(Object.hasOwn(value??{},'scope')?['scope']:[])]);
   const header = semanticHeader(item, expected), root = contribution(item.root, null, true, { partial: true });
   if (root.state !== "visible" || expected && root.id !== expected.rootId || root.replies.length > (target ? 1 : expected?.limit ?? 50)) invalid();
   unique([root, ...root.replies]);
@@ -372,11 +375,19 @@ function semanticThread(value, expected, target) {
   }
   // A reply's parent may be on another page. Its root binding remains exact;
   // canonical destination comes from this card, never from the foreground page.
-  return { ...header, topic: topic(item.topic), discussionId: readId(item.discussionId), root, ...tail,
+  return { ...header, topic: topic(item.topic), discussionId: readId(item.discussionId), root, ...tail,...(Object.hasOwn(item,'scope')?{scope:readPublicTopicScope(item.scope)}:{}),
     actors: semanticActors(item.actors, [root, ...root.replies]) };
 }
 export function readSemanticThread(value, expected = null) { return semanticThread(value, expected, false); }
 export function readSemanticTarget(value, expected = null) { return semanticThread(value, expected, true); }
+export function readSemanticSearchRequest(value){const a=record(value,['query','limit','cursor']);
+ if(typeof a.query!=='string'||!a.query.isWellFormed()||a.query.length>256||UNSAFE.test(a.query)||!Number.isInteger(a.limit)||a.limit<1||a.limit>50)invalid();
+ return freeze({query:a.query,limit:a.limit,cursor:semanticCursor(a.cursor)});}
+export function readSemanticSearch(value,expected=null){const r=record(value,['version','topics','nextCursor']),version=readVersion(r.version);
+ const topics=array(r.topics,expected?.limit??50,raw=>{const v=record(raw,['nodeId','label','path','occupied','human']),nodeId=semanticNode(v.nodeId),path=semanticPath(v.path,true);
+  if(path.at(-1)!==nodeId||typeof v.occupied!=='boolean'||typeof v.human!=='boolean'||v.human&&!v.occupied)invalid();
+  return {nodeId,label:text(v.label,200),path,occupied:v.occupied,human:v.human};});
+ if(new Set(topics.map(t=>t.nodeId)).size!==topics.length)invalid();return freeze({version,topics,nextCursor:semanticCursor(r.nextCursor)});}
 export function readSemanticTopicsRequest(value) { return freeze(record(value, [])); }
 export function readSemanticContextRequest(value) {
   const item = record(value, ["sourceId"]);

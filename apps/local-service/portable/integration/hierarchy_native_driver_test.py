@@ -231,6 +231,7 @@ class MaintainedDriverTest(unittest.TestCase):
                 'automaticAuthorContextCases':[{'name':name,'status':'passed'} for name in json.loads((D.REPO/D.AUTOMATIC_AUTHOR_CONTEXT_LEDGER).read_bytes())],
                 'automaticAuthorInsightCases':[{'name':name,'status':'passed'} for name in json.loads((D.REPO/D.AUTOMATIC_AUTHOR_INSIGHT_LEDGER).read_bytes())],
                 'automaticTopicFeedCases':[{'name':name,'status':'passed'} for name in json.loads((D.REPO/D.AUTOMATIC_TOPIC_FEED_LEDGER).read_bytes())],
+                'automaticTopicPublicCases':[{'name':name,'status':'passed'} for name in json.loads((D.REPO/D.AUTOMATIC_TOPIC_PUBLIC_LEDGER).read_bytes())],
                 'restrictedRoleValidated':True,
                 'concurrencyScope':'head-switch-vs-apply-and-mvcc-read','multiUserLoadValidated':False,
                 'semanticQualityMeasured':False,'lastObservedSqlFailure':None,
@@ -324,6 +325,17 @@ class MaintainedDriverTest(unittest.TestCase):
             elif change=='order':rows[0],rows[1]=rows[1],rows[0]
             elif change=='name':rows[0]['name']=value['proof']['automaticAuthorContextCases'][0]['name']
             elif change=='status':rows[5]['status']='skipped'
+            elif change=='extra':rows[0]['extra']=True
+            self.assertFalse(self.complete(value)['accepted'])
+
+    def test_public_topic_bridge_requires_all_exact_completed_cases(self):
+        for change in ('missing','partial','order','name','status','extra'):
+            value=self.semantic_result();rows=value['proof']['automaticTopicPublicCases']
+            if change=='missing':del value['proof']['automaticTopicPublicCases']
+            elif change=='partial':rows.pop()
+            elif change=='order':rows[0],rows[1]=rows[1],rows[0]
+            elif change=='name':rows[0]['name']=value['proof']['automaticTopicFeedCases'][0]['name']
+            elif change=='status':rows[6]['status']='skipped'
             elif change=='extra':rows[0]['extra']=True
             self.assertFalse(self.complete(value)['accepted'])
 

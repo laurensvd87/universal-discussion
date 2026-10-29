@@ -10,6 +10,14 @@ import {AUTOMATIC_RETRIEVAL_NATIVE_CASES} from '../test/automatic-retrieval-nati
 import {AUTOMATIC_AUTHOR_CONTEXT_NATIVE_CASES} from '../test/automatic-author-context-native-assertions.js';
 import {AUTOMATIC_AUTHOR_INSIGHT_NATIVE_CASES} from '../test/automatic-author-insight-native-assertions.js';
 import {AUTOMATIC_TOPIC_FEED_NATIVE_CASES} from '../test/automatic-topic-feed-native-assertions.js';
+import {AUTOMATIC_TOPIC_PUBLIC_NATIVE_CASES} from '../test/automatic-topic-public-native-assertions.js';
+
+test('public topic bridge evidence cannot be omitted or replaced by lower-level feed reports',()=>{
+ for(const length of [0,1,8]){const input=lifecycle();input.checks.automaticTopicPublicCases.length=length;assert.equal(projectSemanticNativeResult(input).accepted,false);}
+ for(const status of ['running','failed']){const input=lifecycle();input.checks.automaticTopicPublicCases[6].status=status;assert.equal(projectSemanticNativeResult(input).accepted,false);}
+ const wrong=lifecycle();wrong.checks.automaticTopicPublicCases[0].name=AUTOMATIC_TOPIC_FEED_NATIVE_CASES[0];assert.throws(()=>projectSemanticNativeResult(wrong),TypeError);
+ const absent=lifecycle();delete absent.checks.automaticTopicPublicCases;assert.throws(()=>projectSemanticNativeResult(absent),TypeError);
+});
 
 test('named feed and global search evidence cannot be omitted or borrowed from author-scope cases',()=>{
  for(const length of [0,1,8]){const input=lifecycle();input.checks.automaticTopicFeedCases.length=length;assert.equal(projectSemanticNativeResult(input).accepted,false);}
@@ -44,6 +52,7 @@ function lifecycle(){return {
   automaticAuthorContextCases:AUTOMATIC_AUTHOR_CONTEXT_NATIVE_CASES.map(name=>({name,status:'passed'})),
   automaticAuthorInsightCases:AUTOMATIC_AUTHOR_INSIGHT_NATIVE_CASES.map(name=>({name,status:'passed'})),
   automaticTopicFeedCases:AUTOMATIC_TOPIC_FEED_NATIVE_CASES.map(name=>({name,status:'passed'})),
+  automaticTopicPublicCases:AUTOMATIC_TOPIC_PUBLIC_NATIVE_CASES.map(name=>({name,status:'passed'})),
   concurrencyScope:'head-switch-vs-apply-and-mvcc-read',multiUserLoadValidated:false,semanticQualityMeasured:false,lastObservedSqlFailure:null,
   cleanup:{status:'passed',used:2,finished:true,adminClosed:true,failures:[],databases:names.map((name,i)=>({name,oid:String(17001+i),created:true,closed:true,dropped:true,pending:0,sessionCleanupFailures:[]}))}},
 };}

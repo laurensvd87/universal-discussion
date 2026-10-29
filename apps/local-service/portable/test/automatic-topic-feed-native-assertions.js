@@ -5,6 +5,7 @@ import {types} from 'node:util';
 import {createAutomaticTopicFeedRepository as feedRepository} from '../canonical-v4/automatic-topic-feed-repository.js';
 import {createAutomaticAuthorContextRepository as authorRepository} from '../canonical-v4/automatic-author-context-repository.js';
 import {createCanonicalV4LifecycleRepository as lifecycle} from '../canonical-v4/lifecycle-repository.js';
+import {runAutomaticTopicPublicNativeAssertions} from './automatic-topic-public-native-assertions.js';
 import names from './automatic-topic-feed-native-cases.json' with {type:'json'};
 export const AUTOMATIC_TOPIC_FEED_NATIVE_CASES=Object.freeze([...names]);
 const code=c=>e=>e?.code===c;
@@ -34,7 +35,8 @@ export function automaticFeedAncestryCompileProbe(sql,broken=false){
  BEGIN PERFORM 1;IF NOT FOUND OR parent_ IS DISTINCT FROM ${condition} THEN RAISE EXCEPTION 'Invalid ancestry probe' USING ERRCODE='P1304';END IF;END $probe$;`;
 }
 
-export async function runAutomaticTopicFeedNativeAssertions({owner,worker,app,observer,generation,sourceIds,cases}){
+export async function runAutomaticTopicFeedNativeAssertions(scope){
+ const {owner,worker,app,observer,generation,sourceIds,cases}=scope;
  const feeds=feedRepository({database:app}),maintenance=feedRepository({database:worker}),roots=[];let serial=0,leaf=null,parent=null,page=null,first=null;
  const author=authorRepository({database:app,nextId:()=>`feed-native-root-${++serial}`}),raw=JSON.stringify({generation});
  const expected=()=>one(owner,'SELECT generation,revision::integer revision FROM canonical_v4.runtime_state WHERE singleton');
@@ -119,7 +121,8 @@ export async function runAutomaticTopicFeedNativeAssertions({owner,worker,app,ob
   assert.equal(await contains(route(leaf.scope),first),false);assert.equal(await contains('subject-'+parent.id,first),false);
   await drain();assert((await search('Orion Console Pro')).topics.some(t=>t.nodeId===route(leaf.scope)&&t.human));
  });
- return async()=>test(cases,8,async()=>{
+ const finishPublic=await runAutomaticTopicPublicNativeAssertions({...scope,cases:scope.publicCases});
+ return async()=>{await finishPublic();return test(cases,8,async()=>{
   assert.equal((await one(owner,'SELECT count(*)::integer n FROM canonical_v4.sources')).n,0);
   assert.equal((await one(owner,"SELECT count(*)::integer n FROM canonical_v4.named_feed_edges WHERE basis='ancestor'")).n,0);
   assert.equal((await one(owner,'SELECT count(*)::integer n FROM canonical_v4.named_topic_cards WHERE head_id IS NOT NULL')).n,0);
@@ -137,5 +140,5 @@ export async function runAutomaticTopicFeedNativeAssertions({owner,worker,app,ob
     canonical_v4.named_feed_tasks(text),canonical_v4.named_process_feed_event(text,bigint),canonical_v4.named_read_feed(text,text,text,bigint,integer),
     canonical_v4.named_root_in_scope(text,text,text),canonical_v4.named_search_topics(text,text[],jsonb,integer);
    DROP INDEX canonical_v4.named_subject_child_order;`);
- });
+ });};
 }

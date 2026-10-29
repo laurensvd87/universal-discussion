@@ -12,6 +12,12 @@ test('global search has no Source requirement and sends bounded literal Unicode 
  assert.deepEqual(result.topics,[{nodeId,label:'Kapsalon',path:[nodeId],human:true,occupied:true}]);assert.equal(result.nextCursor,null);assert(Object.isFrozen(result.topics[0].path));
 });
 
+test('valid joined emoji in an expressly posted page title remains readable under the canonical text policy',async()=>{
+ const caption='Chef \u{1f468}\u200d\u{1f373} recipes',r=create({database:{async query(sql){return {rows:sql.includes('named_read_root_contexts')?
+  [{result:[{rootId:'root-a',scope:{kind:'page',id:'source-a',caption}}]}]:[card(subject,{caption})]};}}});
+ assert.equal((await r.search(raw('Chef'))).topics[0].label,caption);assert.equal((await r.rootContexts(JSON.stringify({generation,rootIds:['root-a']})))[0].scope.caption,caption);
+});
+
 test('search cursors bind generation normalized terms and page size without consulting the current page',async()=>{
  let calls=0,args;const second='22345678-1234-4123-8123-123456789abc';const r=create({database:{async query(sql,a){calls++;args=a;return {rows:calls===1?[card(),card(second,{root_ordinal:'8'})]:[]};}}});
  const first=await r.search(raw('Kapsalon',1));assert(first.nextCursor);await r.search(raw('ＫAPSALON',1,first.nextCursor));
@@ -67,6 +73,15 @@ test('membership reads only the requested root and internal SQL details never re
  for(const [sqlState,resultCode] of [['P1301','conflict'],['P1303','invalid'],['42501','storage-failure']]){
   const fail=create({database:{async query(){throw Object.assign(Error('private page title and token'),{code:sqlState});}}});
   await assert.rejects(fail.search(raw()),e=>e.code===resultCode&&!e.message.includes('private'));
+ }
+});
+
+test('root titles are read once per bounded public page without Source material snapshots or implicit legacy relabelling',async()=>{
+ const result=[{rootId:'root-a',scope:{kind:'named',id:subject,caption:'Kapsalon'}}];let calls=0;
+ const r=create({database:{async query(sql,args){calls++;assert(sql.includes('named_read_root_contexts'));assert.deepEqual(args,[generation,['root-a','legacy-root']]);return {rows:[{result}]};}}});
+ const page=await r.rootContexts(JSON.stringify({generation,rootIds:['root-a','legacy-root']}));assert.deepEqual(page,result);assert(Object.isFrozen(page[0].scope));assert.equal(calls,1);
+ for(const bad of [[{rootId:'other-root',scope:result[0].scope}],[...result,...result],[{rootId:'root-a',scope:{...result[0].scope,sourceId:'private-source'}}]]){
+  const repo=create({database:{async query(){return {rows:[{result:bad}]};}}});await assert.rejects(repo.rootContexts(JSON.stringify({generation,rootIds:['root-a']})),code('storage-corrupt'));
  }
 });
 

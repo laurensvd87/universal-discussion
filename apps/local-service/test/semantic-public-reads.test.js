@@ -63,10 +63,10 @@ test('a reader after background adoption cannot join a pending older absence at 
  older.resolve({version,roots:[]});assert.deepEqual((await pending).roots,[]);
 });
 
-for(const route of ['feed','thread','target','topics','context'])for(const invalidation of ['none','pairing','session','transport','abort'])
+for(const route of ['feed','thread','target','topics','context','search'])for(const invalidation of ['none','pairing','session','transport','abort'])
  test(`semantic ${route} HTTP delivery revalidates ${invalidation}`,async()=>{
   let release,paired=true,active=true,session=true,calls=0;const abort=new AbortController();
-  const method={feed:'semanticFeed',thread:'semanticThread',target:'semanticTarget',topics:'semanticTopics',context:'semanticContext'}[route];
+  const method={feed:'semanticFeed',thread:'semanticThread',target:'semanticTarget',topics:'semanticTopics',context:'semanticContext',search:'semanticSearch'}[route];
   const service={coherentSnapshotReads:true,[method]:()=>assert.fail('Must use guarded public read'),
    readPublic(selected,value,guards){calls++;assert.equal(selected,method);assert.equal(guards.signal,abort.signal);
     return new Promise(resolve=>{release=()=>resolve(Object.freeze({publicMarker:'SEMANTIC_BODY_MUST_NOT_ESCAPE'}));});}};

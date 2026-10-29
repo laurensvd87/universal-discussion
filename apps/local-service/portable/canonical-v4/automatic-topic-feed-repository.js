@@ -7,6 +7,7 @@ const bad=()=>{throw new ServiceError('invalid','Invalid topic feed request');};
 const corrupt=()=>{throw new ServiceError('storage-corrupt','Invalid topic feed result');};
 const id=v=>typeof v==='string'&&/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u.test(v);
 const uuid=v=>typeof v==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(v);
+const unsafe=/[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 const ordinal=v=>typeof v==='string'&&/^(0|[1-9][0-9]{0,18})$/u.test(v)&&BigInt(v)<=9223372036854775807n;
 const freeze=v=>{if(v&&typeof v==='object'){for(const child of Object.values(v))freeze(child);Object.freeze(v);}return v;};
 function fields(v,keys){if(!v||types.isProxy(v)||Object.getPrototypeOf(v)!==Object.prototype||Reflect.ownKeys(v).length!==keys.length)bad();
@@ -17,11 +18,12 @@ function one(r){if(!Array.isArray(r?.rows)||r.rows.length!==1)bad();return field
 function route(kind,key){if(!['page','named'].includes(kind)||!id(key)||kind==='named'&&!uuid(key))bad();return (kind==='named'?'subject-':'page-')+key;}
 function scope(nodeId){if(typeof nodeId!=='string')bad();const kind=nodeId.startsWith('subject-')?'named':nodeId.startsWith('page-')?'page':null;
  const key=nodeId.slice(kind==='named'?8:5);if(route(kind,key)!==nodeId)bad();return {kind,key};}
+export function isAutomaticTopicRoute(value){try{scope(value);return true;}catch{return false;}}
 function storage(e){if(e instanceof ServiceError)return e;
  if(['P1301','40001','23503','23505'].includes(e?.code))return new ServiceError('conflict','Topics changed; retry this view');
  if(e?.code==='P1303')return new ServiceError('invalid','Invalid topic feed request');
  return new ServiceError('storage-failure','Topic feed unavailable');}
-function terms(query){if(typeof query!=='string'||query.length>256||!query.isWellFormed()||/[\p{Cc}\p{Cf}]/u.test(query))bad();
+function terms(query){if(typeof query!=='string'||query.length>256||!query.isWellFormed()||unsafe.test(query))bad();
  const normalized=query.normalize('NFKC').toLowerCase(),tokens=normalized.match(/[\p{L}\p{N}]+/gu)??[];
  if(normalized.length>1024||tokens.length>8||tokens.some(t=>t.length>64)||query.trim()&&tokens.length===0)bad();return [...new Set(tokens)];}
 const digest=v=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
@@ -57,6 +59,15 @@ export function createAutomaticTopicFeedRepository({database}={}){
    const r=one(await database.query('SELECT canonical_v4.named_root_in_scope($1,$2,$3) AS result',[a.generation,a.nodeId,a.rootId]));
    if(typeof r!=='boolean')corrupt();return r;
   }catch(e){throw storage(e);}},
+  async rootContexts(raw){const a=input(raw,['rootIds']);if(!Array.isArray(a.rootIds)||a.rootIds.length>100||a.rootIds.some(v=>!id(v))||new Set(a.rootIds).size!==a.rootIds.length)bad();
+   try{const result=one(await database.query('SELECT canonical_v4.named_read_root_contexts($1,$2::text[]) AS result',[a.generation,a.rootIds]));
+    try{if(!Array.isArray(result)||result.length>a.rootIds.length)bad();const seen=new Set();const rows=result.map(raw=>{
+     const v=fields(raw,['rootId','scope']),s=fields(v.scope,['kind','id','caption']);route(s.kind,s.id);
+     if(!a.rootIds.includes(v.rootId)||seen.has(v.rootId)||typeof s.caption!=='string'||!s.caption.trim()||!s.caption.isWellFormed()||s.caption.length>200||unsafe.test(s.caption))bad();
+     seen.add(v.rootId);return {rootId:v.rootId,scope:s};});return freeze(rows);
+    }catch{corrupt();}
+   }catch(e){throw storage(e);}
+  },
   async search(raw){const a=input(raw,['query','limit','cursor']),tokens=terms(a.query);
    if(!Number.isInteger(a.limit)||a.limit<1||a.limit>50)bad();
    const binding=digest(['named-topic-search/v1',a.generation,tokens,a.limit]),after=position(a.cursor,binding);
@@ -64,7 +75,7 @@ export function createAutomaticTopicFeedRepository({database}={}){
      [a.generation,tokens,after===null?null:JSON.stringify(after),a.limit+1]);
     try{if(!Array.isArray(r.rows)||r.rows.length>a.limit+1)bad();const seen=new Set();
      const rows=r.rows.map(raw=>{const v=fields(raw,['scope_kind','scope_id','caption','path','human','root_ordinal','occupied']),nodeId=route(v.scope_kind,v.scope_id);
-      if(typeof v.caption!=='string'||!v.caption.trim()||!v.caption.isWellFormed()||v.caption.length>200||/[\p{Cc}\p{Cf}]/u.test(v.caption)||
+      if(typeof v.caption!=='string'||!v.caption.trim()||!v.caption.isWellFormed()||v.caption.length>200||unsafe.test(v.caption)||
         typeof v.human!=='boolean'||typeof v.occupied!=='boolean'||v.human&&!v.occupied||!ordinal(v.root_ordinal)||
         !Array.isArray(v.path)||v.path.length<1||v.path.length>8||v.path.at(-1)!==nodeId||new Set(v.path).size!==v.path.length||seen.has(nodeId))bad();
       for(const p of v.path)scope(p);seen.add(nodeId);return {...v,nodeId};});

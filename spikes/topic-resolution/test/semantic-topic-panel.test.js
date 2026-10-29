@@ -14,12 +14,13 @@ const thread=()=>({version,policyRevision:2,nodeId:'games',topic,discussionId:'d
 const target=()=>{const value=thread();delete value.nextCursor;return {...value,targetId:'reply-a',rootRevision:2,targetRevision:1,root:{...value.root,replies:[value.root.replies[0]]}};};
 const topics=()=>({version,policyRevision:2,topics:Array.from({length:25},(_,i)=>({id:i?'node-'+i:'games',title:i?'Topic '+i:'<Games>',path:[i?'node-'+i:'games']}))});
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
-function harness({onReply}={}){const created=[],calls=[],replies=[],selections=[];
+function harness({onReply,remote=false}={}){const created=[],calls=[],replies=[],selections=[];
   const document={createElement(tag){const item={tag,textContent:'',children:[],listeners:new Map(),attributes:{},style:{},hidden:false,
     append(...items){this.children.push(...items);},replaceChildren(...items){this.children=items;},setAttribute(key,value){this.attributes[key]=value;},
     addEventListener(event,fn){this.listeners.set(event,fn);},removeEventListener(event,fn){if(this.listeners.get(event)===fn)this.listeners.delete(event);}};created.push(item);return item;}};
-  const root=document.createElement('section'),client={};for(const method of ['semanticTopics','semanticFeed','semanticThread','semanticTarget'])client[method]=(args,options)=>new Promise((resolve,reject)=>calls.push({method,args,options,resolve,reject}));
+  const root=document.createElement('section'),client={};for(const method of ['semanticTopics','semanticFeed','semanticThread','semanticTarget','semanticSearch'])client[method]=(args,options)=>new Promise((resolve,reject)=>calls.push({method,args,options,resolve,reject}));
   const panel=mountSemanticTopicPanel(document,root,{client,onReply:value=>{replies.push(value);return onReply?.(value);},onSelectionChange:value=>selections.push(value)});
+  if(remote)panel.setSearchAvailable(true);
   const byId=id=>created.findLast(n=>n.id===id),all=n=>[n,...n.children.flatMap(all)];
   return {panel,root,calls,replies,selections,created,byId,all,click(id){byId(id).listeners.get('click')?.();},
     start(){panel.observe({actorId:'demo-alex',sessionRevision:1,sourceId:'page-b'});panel.setActive(true);panel.setConnection(true);},
@@ -27,6 +28,39 @@ function harness({onReply}={}){const created=[],calls=[],replies=[],selections=[
     async open(){panel.openTopic('games');calls.at(-1).resolve(feed());await settle();},
     async thread(){panel.openThread({nodeId:'games',rootId:'root-a'});calls.at(-1).resolve(thread());await settle();}};
 }
+
+const searchResults=(label='Kapsalon',cursor=null)=>({version,topics:[{nodeId:'subject-12345678-1234-4123-8123-123456789abc',label,
+ path:['subject-22345678-1234-4123-8123-123456789abc','subject-12345678-1234-4123-8123-123456789abc'],occupied:true,human:true}],nextCursor:cursor});
+
+test('new global search requests a bounded server page and opaque cursor without a foreground Source or full directory',async()=>{
+ const ui=harness({remote:true});ui.start();assert.equal(ui.calls[0].method,'semanticSearch');assert.deepEqual(ui.calls[0].args,{query:'',limit:20,cursor:null});
+ ui.calls[0].resolve(searchResults('Kapsalon','next_Search'));await settle();assert.equal(ui.byId('semantic-topic-results').children.length,1);
+ assert(!ui.all(ui.byId('semantic-topic-results')).some(n=>n.textContent.includes('22345678')));
+ ui.click('semantic-topic-next');assert.deepEqual(ui.calls.at(-1).args,{query:'',limit:20,cursor:'next_Search'});
+ ui.calls.at(-1).resolve(searchResults());await settle();ui.click('semantic-topic-previous');assert.equal(ui.calls.at(-1).args.cursor,null);
+ assert(ui.calls.every(c=>c.method==='semanticSearch'));ui.panel.dispose();
+});
+
+test('typing debounces server search and rejects an older response even when transport ignores cancellation',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});const ui=harness({remote:true});ui.start();const old=ui.calls[0],input=ui.byId('semantic-topic-search');
+ input.value='koa';input.listeners.get('input')();assert(old.options.signal.aborted);t.mock.timers.tick(150);
+ input.value='koalas';input.listeners.get('input')();t.mock.timers.tick(199);assert.equal(ui.calls.length,1);t.mock.timers.tick(1);
+ const current=ui.calls.at(-1);assert.deepEqual(current.args,{query:'koalas',limit:20,cursor:null});old.resolve(searchResults('Wrong old result'));await settle();assert.equal(ui.byId('semantic-topic-results').children.length,0);
+ current.resolve(searchResults('<Koalas>'));await settle();assert(ui.all(ui.byId('semantic-topic-results')).some(n=>n.textContent==='<Koalas>'));ui.panel.dispose();
+});
+
+test('disposing or changing account cancels pending global queries and debounce timers without late UI results',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});const ui=harness({remote:true});ui.start();const old=ui.calls[0],input=ui.byId('semantic-topic-search');
+ input.value='new question';input.listeners.get('input')();ui.panel.dispose();t.mock.timers.tick(1000);old.resolve(searchResults());await settle();assert.equal(ui.calls.length,1);assert.equal(ui.root.children.length,0);
+ const other=harness({remote:true});other.start();const initial=other.calls[0];other.panel.observe({actorId:'other-actor',sessionRevision:2});assert(initial.options.signal.aborted);initial.resolve(searchResults('Old account'));await settle();assert.equal(other.byId('semantic-topic-results').children.length,0);other.panel.dispose();
+});
+
+test('public cards display the expressly posted caption while replies preserve the original canonical discussion',async()=>{
+ const ui=harness();ui.start();await ui.directory();ui.panel.openTopic('games');const scope={kind:'page',id:'source-a',caption:'Kapsalon'};
+ ui.calls.at(-1).resolve({...feed(),roots:[{...feed().roots[0],scope}]});await settle();assert.equal(ui.byId('semantic-topic-thread-root-a').textContent,'Kapsalon');
+ ui.click('semantic-topic-thread-root-a');ui.calls.at(-1).resolve({...thread(),scope});await settle();assert.equal(ui.byId('semantic-topic-heading').textContent,'Kapsalon');
+ ui.click('semantic-topic-reply-reply-a');ui.calls.at(-1).resolve({...target(),scope});await settle();assert.deepEqual(ui.replies,[{nodeId:'games',rootId:'root-a',targetId:'reply-a',topicId:'topic-a',discussionId:'discussion-a'}]);ui.panel.dispose();
+});
 
 test('global directory is bounded, locally searched and paginated without Source context',async()=>{
   const ui=harness();assert.equal(ui.calls.length,0);ui.start();assert.deepEqual(ui.calls[0].args,{});await ui.directory();
