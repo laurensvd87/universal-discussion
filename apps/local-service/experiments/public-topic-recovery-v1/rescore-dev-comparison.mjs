@@ -41,6 +41,13 @@ for(const q of original.comparisons){
  comparisons.push({label:q.label,expected:q.expected,result:comparePublishedTopicRecovery(input)});
 }
 const timings=[];for(let i=0;i<100;i++){const at=performance.now();for(const input of inputs)comparePublishedTopicRecovery(input);timings.push((performance.now()-at)/inputs.length);}timings.sort((a,b)=>a-b);
+// Counterfactual library subsets, not new page observations: the matching
+// public topic is missing while an unrelated homonym or specific siblings exist.
+const missingTargetChecks=[['Kapsalon','kapsalon-recipe'],['Steam Deck','deck-family']].map(([label,missing])=>{
+ const input=JSON.parse(inputs[original.comparisons.findIndex(q=>q.label===label)]);
+ input.candidates=input.candidates.filter(c=>c.topicId!==missing);
+ return {label,excludedTopicId:missing,expectedTopicId:null,derivedLibrarySubset:true,result:comparePublishedTopicRecovery(JSON.stringify(input))};
+});
 // Repeated numerical vectors are only a maximum-size scorer workload, never
 // distinct materials, public roots or additional semantic evaluation cases.
 const syntheticCandidates=Array.from({length:64},(_,i)=>{
@@ -54,9 +61,9 @@ const counts=Object.fromEntries(['literal-name','public-semantic','literal-and-p
  const d=comparisons.map(q=>({expected:q.expected,...q.result.decisions.find(d=>d.strategy===strategy)}));
  return [strategy,{correct:d.filter(r=>r.topicId===r.expected).length,wrong:d.filter(r=>r.topicId!==null&&r.topicId!==r.expected).length,ambiguous:d.filter(r=>r.status==='ambiguous').length,unresolved:d.filter(r=>r.status==='unresolved').length}];
 }));
-const output=new URL('public-topic-recovery-margin-review-20261029/',data);await mkdir(output);
-const result={schema:'public-topic-recovery-dev-rescore/v1',policyHash:PUBLIC_RECOVERY_POLICY_HASH,comparisons,counts,pins,endPinsChecked:true,
+const output=new URL('public-topic-recovery-margin-and-absence-review-20261029/',data);await mkdir(output);
+const result={schema:'public-topic-recovery-dev-rescore/v2',policyHash:PUBLIC_RECOVERY_POLICY_HASH,comparisons,counts,missingTargetChecks,pins,endPinsChecked:true,
  retainedScoresRecomputed:true,casePinsFirstRecordedHere:true,
  scoringMs:{averageSixQueriesP50:timings[49],averageSixQueriesP95:timings[94],synthetic64x64P50:loadTimings[14],synthetic64x64P95:loadTimings[28]},
  freshValidation:false,encoderOpened:false,sqlExecuted:false,liveChanged:false,assignmentAuthority:false,representativeQuality:false};
-await writeFile(new URL('result.json',output),JSON.stringify(result)+'\n',{flag:'wx'});console.log(JSON.stringify({counts,scoringMs:result.scoringMs,endPinsChecked:true,encoderOpened:false}));
+await writeFile(new URL('result.json',output),JSON.stringify(result)+'\n',{flag:'wx'});console.log(JSON.stringify({counts,missingTargetChecks:missingTargetChecks.map(q=>({label:q.label,decisions:q.result.decisions.map(d=>({strategy:d.strategy,status:d.status,topicId:d.topicId}))})),scoringMs:result.scoringMs,endPinsChecked:true,encoderOpened:false}));
