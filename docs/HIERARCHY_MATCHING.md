@@ -1,5 +1,16 @@
 # Hierarchical matching in the running local application
 
+Automatic growth work now has a frozen development candidate alongside the live
+hierarchy below: repeated headline focus supplies new names, stored E5 checks
+cohesion and explicit evidence builds subject branches. The real12-page DEV
+produces names such as David Baker and Nobel Prize in Physics →2025 edition,
+without a predefined topic list or LLM. These are subject scopes spanning events;
+event identity remains separately unproven. New-data quality, registry18 with
+current-Source/erasure gates, indexed retrieval and actual UI remain required.
+This candidate is not active in the running application. See
+[policy](../apps/local-service/experiments/automatic-topic-discovery-v1/focus-policy.json)
+and [measured results](../apps/local-service/experiments/automatic-topic-discovery-v1/RESULTS.md).
+
 As of 29 October 2026, PostgreSQL schema17 serves a 20-node hierarchy with
 16 broad roots and three calibrated detail heads: Animals, GTA and Koalas.
 The active model identity is

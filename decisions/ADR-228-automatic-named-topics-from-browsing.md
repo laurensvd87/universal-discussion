@@ -84,6 +84,23 @@ throughput. No production index or row was changed.
 
 ## Registry and assignment
 
+The next implemented DEV candidate combines shared literal headline focus with
+stored-E5 cohesion and independent source support. It automatically forms named
+subject branches, including Physics/Chemistry prize editions, without a supplied
+topic list or LLM call. See the [frozen development policy](../apps/local-service/experiments/automatic-topic-discovery-v1/focus-policy.json).
+This supplies subject scopes, not proof that all their pages describe one event;
+the earlier event errors remain errors. Preserve that distinction in kinds,
+labels and UI. A broad person subject must not carry one member's event headline.
+
+At0.8 the inspected12-article DEV gives9 proposals/11 covered pages, median2.68ms
+for bounded naming/hierarchy. This is promising implementation evidence, not
+publication acceptance. Same-name/different-person ambiguity required an explicit
+partial-name guard; multilingual/plural/alias and new-domain tests are still open.
+Unknown roots are not conflicting roots, but they cannot bridge two known senses
+or acquire an invented classifier path. Only strict name-focus/member containment
+currently supplies inferred subject ancestry. Keep existing accepted Source paths
+as separate facts. The source/artifact/policy is frozen before new validation.
+
 Keep the fixed embedding/classifier model independent of a growing named-topic
 registry. A new story must not require registering a whole new classifier head,
 duplicating every existing vector under a new model or reclassifying every page.

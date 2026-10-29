@@ -1,5 +1,49 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct named-subject candidate implemented+DEV frozen. NEW focus-subjects.js/test
+and run-automatic-topic-focus-subjects.js use retainedE5/no model/provider/DB.
+Literalheadline focus1..8words +independent material/publisher≥2 +coscohesion;
+strictphrasecontainment/membersubset yieldsforest, leavesselectedwithinproven
+branches/earlierheadlinefocus across unrelated axes. InputmatcherHash/current
+acceptedPath keptseparate; unknown cancorroborateoneknownsense, NOTbridge2known
+roots or acquireinventedpath. Globaldedupunion material/input/≥.995 stopsfakevotes.
+Bounds64docs/12288patterns/131072cohesionchecks/128temporaryproposals, NOTglobal
+topiccap. Capacityreturnsno partialnamedtopics.17focused/80joinedPASS225.77ms64MiB.
+
+Three SOURCE commits/actualpuredata projections terminal0, no native/SQL/UI claim:
+53b6c801 initial result53464B SHA f0a948cc...ce8c5 (known/unknown fragmentation);
+80c7ae59 context result62138B SHA3f74fbff...ef4a65 (badJohn firstname cohort);
+b32e5c6f guard result60005B SHA
+500d8f8d7534f87b66ef0fefa846dd6fb553104751682ed1af6f57287d337a42.
+Alloldoutputs/codeversions preservedGit, no overwrite or freshqualityclaim.
+Final0.8 gives9names/11of12covered: Nobel→NobelPrize→Physics/Chemistry→2025,
+DavidBaker4members/2pub, annualNobel2024/25 scopes. NameJohn falsepairHopfield/
+Clarke rejected now. Ceremonyheadline hasnosupportedprecisefocus/pageonly.
+Median2.68ms/p954.08ms/100reps,66pairs/25344products/1152Bmatrix/342patterns/
+104cohesionchecks. At.88:7names10covered, .9:6/9; fullgridretained. Rootaudit
+data/automatic-topic-focus-subject-root-audit-20261029.json checks36pins/22labels/
+11parents/30leaf selections. Root-only/noindependentreview, all22declared outcomes
+retained(12usable10unavailable). KindSUBJECT, noteventidentity! Old17wrongevent
+pairs remainwrong; doNOTredefineallthose as successful event matches.
+
+focus-policy.json freezes ONLYthis DEVcandidate/minSimilarity0.8/algorithmSHA
+6dfb8459fb01f54ccbfeefecbc2a8cd916c96a9d97bd241c3061fe5d45e21580/Node24.19/ICU/
+representation/matcher for NEWvalidation. Sourceproposalkeys disposable, notpublic
+TopicIDs. NEXT new-domain/language/plural/same-name/multisense cases underfrozen
+policy, thenstablecanonical18registry/aliases/Source-version+erasure commitfences/
+index/roles/races/recovery/visiblepostingcontext/ownerper-topicdepth. No personal
+slider, no perstorymanualheads, no mandatoryLLM or readpathglobalfit. Cohortcap
+mustnotbecome a topiccatalogcap. Do not choose ordinary label length as semantic
+specificity across unrelated axes or infer allunknownSourcepaths fromoneknown.
+
+Readonly storage audit: D5.505GB/C7.897GB; relocated npm220.9MB/pip28.3MB/uv1439B,
+complete/nojunctionskipped. Cachecleanup cannot satisfy11GiBfullrestorefloor;
+no cachedeleted, no waiver. SmallisolatedSQLfixture source/tests can proceed.
+CIMoriginal PG18688/API38860/worker11880/dashboard23660/crawler6384 starts all
+preserved; crawler advancing7024+/stderr0. No host/HBA/service/profile changes.
+GoalACTIVE; lastgoalturn changedsource and produced genuine actualnamedhierarchy
+evidence, NOTcompletion. ReadlatestRESULTS/ADR228/HIERARCHY_MATCHING.
+
 29Oct hard-case comparison COMPLETE/DEV ONLY. Closed12 new primary URLs declared
 in automatic-topic-comparison-corpus.js; no oldTEST or deniedpublisherretry.
 Actual7078 EXIT0:8available/4policy refusals(UT3/Waterloo1),5knownpubclaims,

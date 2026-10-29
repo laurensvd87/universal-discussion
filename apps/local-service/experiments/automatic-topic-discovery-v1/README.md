@@ -6,6 +6,14 @@ event pairs, a threshold graph62. A separate compact sentence encoder also leave
 wrong/missed events. None is activated as event matching. The goal now requires
 subject/event focus evidence and accurate common-scope names as well as geometry.
 
+The new shared-headline subject candidate now supplies automatic names and nested
+annual prize scopes on the retained real12-article DEV cohort. It uses stored E5,
+independent inputs/publishers, explicit focus witnesses and compatible contexts.
+At0.8:9 subjects/11 covered pages, median2.68ms for the full bounded pass. This is
+not event equality, whole-library latency or production validation. Seventeen
+focus tests pass; see RESULTS and the pinned [policy](focus-policy.json). The
+candidate remains unregistered while new-data/registry/erasure/UI work proceeds.
+
 This unregistered pure module starts the owner's29October requirement: visits
 must supply novel named topics/news, not merely populate a predefined taxonomy.
 It loads no model/database, changes no registry and grants no assignment/posting

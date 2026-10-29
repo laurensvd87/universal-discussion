@@ -1,5 +1,16 @@
 # Project status
 
+29October automatic named subjects: a new stored-E5/shared-headline focus candidate
+now builds names and literal subject hierarchies without predefined topic labels,
+LLM calls or a new model. On inspected realDEV12:9 proposed subjects/11covered at
+the selected0.8 cohesion floor; median2.68ms/p954.08ms for the bounded full pass.
+Physics/Chemistry annual branches and David Baker are explicit subjects, not
+event-equality claims. Two DEV source repairs handle unknown roots and partial
+person names; all earlier results preserved.17focus/80joined tests pass. A pinned
+development policy is frozen for new tests only. Root checks all36sourcepins/
+22labels/11edges/30leaf selections. NOTlive; registry18/fences/index/new-domain/
+language/plural/alias/roles/races/recovery/UI remain. Crawler and schema17 preserved.
+
 29October hard-case method comparison: new12 primary-page DEV declarations yield
 8usable/4policy refusals; together with the original10,12encoded/10unavailable.
 Three E5 grouping methods across three views now measured. Paired complete-link

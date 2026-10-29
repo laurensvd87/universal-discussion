@@ -1,0 +1,54 @@
+{
+  "schema": "automatic-focused-subject-development-policy/v1",
+  "status": "frozen-for-new-validation-only",
+  "date": "2026-10-29",
+  "sourceCommit": "b32e5c6f",
+  "algorithm": {
+    "file": "apps/local-service/experiments/automatic-topic-discovery-v1/focus-subjects.js",
+    "bytes": 12241,
+    "sha256": "6dfb8459fb01f54ccbfeefecbc2a8cd916c96a9d97bd241c3061fe5d45e21580"
+  },
+  "runtime": {
+    "node": "v24.19.0",
+    "icu": "78.3",
+    "unicode": "17.0"
+  },
+  "representationHash": "7032cfbccb21a088308c9cd73cd8a813939473d05c62194713d1350a1e7d0904",
+  "matcherHash": "4e9b3d3d2053327707d6ff395a8373e6e5ac3195333183ac8516f84195c45524",
+  "parameters": {
+    "minimumSimilarity": 0.8,
+    "kind": "subject",
+    "minimumIndependentInputs": 2,
+    "minimumPublishers": 2,
+    "maximumPhraseWords": 8,
+    "nearDuplicateSimilarity": 0.995
+  },
+  "developmentEvidence": {
+    "resultSha256": "500d8f8d7534f87b66ef0fefa846dd6fb553104751682ed1af6f57287d337a42",
+    "usableArticles": 12,
+    "declaredArticles": 22,
+    "selection": "Inspected development/coherence grid, not independent quality. More complete literal subject hierarchy at0.8; not an inherited Related threshold."
+  },
+  "constraints": {
+    "noInventedClassifierPaths": true,
+    "noKnownRootConflictBridges": true,
+    "noEventIdentityClaim": true,
+    "noLLMRequired": true,
+    "noNewModelRequired": true,
+    "stableRegistryIdsRequired": true,
+    "currentSourceCommitFencesRequired": true,
+    "erasureInvalidationRequired": true,
+    "postingContextSnapshotRequired": true
+  },
+  "validationRequired": [
+    "prospective unrelated domains and languages",
+    "similar names and multiple senses",
+    "singletons, syndication and missing metadata",
+    "indexed candidate recall and bounded work",
+    "canonical18 roles/races/recovery/erasure",
+    "visible names, owner breadth controls and actual user/crawler concurrency"
+  ],
+  "liveApproved": false,
+  "assignmentAuthority": false,
+  "registryActivated": false
+}

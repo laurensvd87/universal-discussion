@@ -8,6 +8,21 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct NAMEDSUBJECT candidate implemented/frozenDEV: sharedheadlinefocus+
+storedE5/independentpublishers buildsnew names+literalhierarchy, noLLM/newmodel.
+17focus/80joinedPASS64MiB. Source53b6c801 initial?80c7ae59 context?b32e5c6f
+partialnameguard; all3actualterminal0/oldoutputsimmutable. Final500d8f8d...37a42
+0.8:9subjects11of12covered/median2.68ms/p954.08ms; Physics/Chemistry2025 branches
++DavidBaker4/2pub. Root36pins/22labels/11edges/30leaves PASS/sameagentonly.
+KindSUBJECT noteventidentity; earlier17eventerrorsremainerrors. Freeze policy
+algorithm6dfb8459...e21580/runtime/representation/matcher BEFOREnewvalidation.
+NEXT newdomain/language/plural/homonym tests thenregistry18/Sourcefences/erasure/
+index/SQLroles-races/recovery/UI. Noalias/permanentTopicID fromproposalhash.
+Rootunknown?conflict, no2knownsensebridge/noinventedpaths. No liveactivation.
+CIMoriginal5processes/crawleradvances7024+/stderr0. D5.5GB/fullrestore11GiBfloor
+unmet; cacheinventoryonly250MB/no cleanup/waiver. SmallisolatedSQLworkavailable.
+GoalACTIVE/actualsource+namedhierarchyprogress notcompletion. ReadlatestHANDOFF.
+
 LATEST29Oct realhardcase comparison: NEW12 capture7078 EXIT0/8usable4refused;
 all22retained/12encoded10unavailable. E5actual34143 EXIT0/closed36pins: paired
 complete-link+centroid4true17wrong; graph62wrong; title1true0wrong3missed.

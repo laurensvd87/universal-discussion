@@ -112,3 +112,55 @@ Exact saved results (ignored local data):
 The exact original E5 comparison source is preserved at commit`ab67a753` before
 the maintained diagnostic accepts the alternative encoder's numeric range and
 exports its common DEV metric. All original result/case bytes remain immutable.
+
+## Named subject focus: a usable development candidate
+
+A new pure implementation proposes names from shared literal headline focus,
+checks independent material/publishers and paired-E5 cohesion, and constructs a
+forest from strict phrase containment/member subset. It opens no model/provider
+and contains no predefined Nobel/Baker topic list. A person or annual prize can
+span different events: this does not make the earlier wrong event merges correct.
+
+Seventeen targeted tests cover new names, nested editions, focal unigrams,
+different senses, copied material/publisher votes, Unicode witnesses, insertion
+order, capacity, partial names and branch selection. The joined suite passes80
+tests under64MiB. Every name has a literal Source/title/input witness. Unknown
+roots can corroborate one unopposed context without receiving an invented path;
+they cannot bridge two known conflicting senses. Structural subject ancestry is
+separate from each Source's independently accepted classifier path.
+
+All three DEV results and sources remain: initial`53b6c801`, context`80c7ae59`,
+partial-name guard`b32e5c6f`. The initial version fragmented a common focus between
+known/unknown roots. The next exposed a shared first name belonging to different
+people. The final guard rejects that incomplete name. These are inspected DEV
+repairs, not independent validation or proof that all homonyms are solved.
+
+At the0.8 cohesion floor the final12-article projection automatically proposes:
+
+- Nobel → Nobel Prize → Nobel Prize in Physics →2025 Nobel Prize in Physics.
+- Nobel → Nobel Prize → Nobel Prize in Chemistry →2025 Nobel Prize in Chemistry.
+- David Baker, supported by four pages/two independent publishers.
+- 2024 and2025 Nobel Prize umbrella subjects, with explicit overlapping members.
+
+It supplies9 proposed subjects and covers11/12 usable pages. The ceremony title
+has no supported precise common focus and remains page-context-only. Root reviewed
+the nine names as subjects/annual prize scopes. This is not11/12 population
+accuracy or an event-precision estimate. The full predeclared grid remains:
+0.88 gives7 subjects/10 covered pages;0.9 gives6/9. No Related/live policy changed.
+
+At0.8 the complete naming/hierarchy pass measured median2.68ms/p954.08ms over100
+repetitions including JSON parsing, with66 vector pairs/25344 coordinate products,
+1152B matrix/342 phrase candidates/104 cohesion checks. No encoder opened. These
+are bounded-cohort arithmetic timings, not whole-library/index/UI throughput.
+
+The [frozen candidate](focus-policy.json) pins the algorithm/runtime/representation/
+matcher for new validation only. Its disposable evidence keys cannot become
+persistent public topic IDs. Next: new domain/language/name-collision cohorts,
+plural/alias coverage, stable registry18/Source-version/erasure fences, indexed
+retrieval, role/race/recovery and actual UI. Owner breadth selects a supported
+ancestor; it does not change cosine thresholds or an existing author's context.
+
+Final result`500d8f8d7534f87b66ef0fefa846dd6fb553104751682ed1af6f57287d337a42`.
+The separate Root audit checks22 literal labels,11 parent edges,30 selected leaves
+across the grid and all36 source pins. This is the same agent's explicit check,
+not an independent reviewer. No live registry/schema/model or crawler changed.

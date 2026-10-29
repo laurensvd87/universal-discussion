@@ -2,6 +2,11 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current29October named-subject DEV candidate now builds literal headline/E5
+hierarchies automatically:9names/11of12covered, median2.68ms.17focus/80joined
+tests pass. Frozen focus-policy.json for NEWvalidation only; not live/event
+identity. Stable registry18/Source fences/erasure/index/roles/recovery/UI remain.
+
 Current29October hard-case DEV disproves geometry-only event promotion. E5
 complete-link4true17wrong pairs; compact sentence encoder also wrong/missed events.
 Neither activated. See experiment RESULTS/latest handoff for subject/event focus
