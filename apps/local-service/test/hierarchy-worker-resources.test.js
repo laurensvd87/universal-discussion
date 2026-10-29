@@ -42,7 +42,7 @@ function setup({encoderReady=null,embed=async()=>({modelId:MODEL,values:axis()})
 test('encoder is ready before any claim; real worker passes exact durable preparation only to semantic apply',async()=>{
  const ready=defer(),f=setup({encoderReady:ready});const opening=f.open();await Promise.resolve();assert.equal(f.state.claims,0);
  ready.resolve();const r=await opening;assert.equal(f.state.claims,0);assert.equal(r.descriptor.productionBinding,false);assert.equal(r.descriptor.titleEncoder.packagedAssetsVerified,false);
- assert.equal(r.descriptor.installed.matcherIdentity.nodes.length,18);assert.deepEqual(await r.health(),{ready:true});
+ assert.equal(r.descriptor.installed.matcherIdentity.nodes.length,20);assert.deepEqual(await r.health(),{ready:true});
  const loop=r.startWorker({onOutcome:o=>f.completed.resolve(o)});assert.equal((await f.completed.promise).outcome,'completed');await r.close();await loop.close();
  assert.equal(f.state.semantic.length,1);assert.equal(f.state.legacy,0);assert.equal(f.state.failed,0);assert.equal(f.state.encodes,1);
  const {claim:c,value}=f.state.semantic[0];assert.deepEqual(c,claim());assert.deepEqual(value.representedValues,axis());

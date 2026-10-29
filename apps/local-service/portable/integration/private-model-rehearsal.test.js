@@ -24,7 +24,7 @@ function setup(){
     status:sources.has(input.sourceId)?'classified':'pending',supportedPath:[],selectedPath:[],topic:null};
    assert.fail('Staged apply must not request URL discovery');},
  };
- const resources={descriptor:{productionBinding:false,titleEncoder:{modelId:MODEL,packagedAssetsVerified:false},installed:{matcherIdentityHash:'eead1b2dcd6508ebf3d5c45358c71be95e81363da7c0b8325f7466ce487ed21c'}},
+ const resources={descriptor:{productionBinding:false,titleEncoder:{modelId:MODEL,packagedAssetsVerified:false},installed:{matcherIdentityHash:'4e9b3d3d2053327707d6ff395a8373e6e5ac3195333183ac8516f84195c45524'}},
   embedCapturedBody:async text=>{events.push('body');assert.ok(text.startsWith('Invented captured body'));return {modelId:MODEL,values:axis()};},
   startWorker:()=>{assert.equal(worker,false);worker=true;events.push('worker');},close:async()=>events.push('resources-close')};
  const submitter={enqueueCrawler:async(input,authority)=>{assert.equal(worker,true);events.push('enqueue');

@@ -281,7 +281,7 @@ function buildCheck(deps,inputs,application=null){return async()=>deps.lifecycle
 // Trusted fake-port seam only. Normal invocation never accepts dependencies,
 // alternate data pins, callbacks, credentials, filenames or target selectors.
 export function createOwnerRestoreCheckForTest(dependencies,inputs){return buildCheck(dependencies,inputs);}
-const INSTALLED_MATCHER='eead1b2dcd6508ebf3d5c45358c71be95e81363da7c0b8325f7466ce487ed21c';
+const INSTALLED_MATCHER='4e9b3d3d2053327707d6ff395a8373e6e5ac3195333183ac8516f84195c45524';
 async function verifyUpgrade(context,ports,checks,phase){
  const {database,receipt,checkDeadline:check}=context;check();const directories=await ports.directories(database,check);check();
  let hadPrimary=false,primary;

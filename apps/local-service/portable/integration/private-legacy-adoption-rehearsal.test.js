@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {runPrivateLegacyAdoptionRehearsalForTest as run} from './private-legacy-adoption-rehearsal.js';
 
-const HASH='eead1b2dcd6508ebf3d5c45358c71be95e81363da7c0b8325f7466ce487ed21c';
+const HASH='4e9b3d3d2053327707d6ff395a8373e6e5ac3195333183ac8516f84195c45524';
 function fixture({pending=true,empty=false,manual=false,wrongSource=false,nullPrep=false,changedCanonical=false,failPrepare=false,failClose=false,wrongBasis=false,pages=false}={}){
  const calls=[];let adopted=false,epoch=0,canonicalReads=0,closed=0;
  const root={rootId:'root-original',rootVersion:'0',ordinal:'7',topicId:'topic-original',discussionId:'discussion-original',status:pending?'pending':'eligible'};

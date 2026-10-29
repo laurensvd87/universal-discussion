@@ -8,6 +8,15 @@ const topology={generation,matcherIdentityHash,nodes:[{id:'games',parentId:null,
  {id:'nature',parentId:null,path:['nature']}]};
 const policy={revision:2,defaultMaxDepth:1,overrides:[]};
 const context={generation,matcherIdentityHash,sourceId:'current-source',sourceVersion:'0',status:'classified',supportedPath:['games','video-games','gta']};
+
+test('owner Nature depth exposes installed Animals and Koalas labels while preserving the coarse default',()=>{
+ const tree={...topology,nodes:[...topology.nodes,{id:'animals',parentId:'nature',path:['nature','animals']},{id:'koalas',parentId:'animals',path:['nature','animals','koalas']}]};
+ const source={...context,supportedPath:['nature','animals','koalas']};
+ assert.equal(projectSemanticSourceContext(tree,policy,source).topic.title,'Nature');
+ const fine={...policy,overrides:[{nodeId:'nature',maxDepth:3}]};
+ assert.equal(projectSemanticSourceContext(tree,fine,source).topic.title,'Koalas');
+ const directory=projectSemanticTopicDirectory(tree,fine);assert.equal(directory.topics.find(t=>t.id==='animals').title,'Animals');assert.equal(directory.topics.find(t=>t.id==='koalas').title,'Koalas');
+});
 test('owner breadth cuts only an existing supported path and applies identically to the global directory',()=>{
  const broad=projectSemanticSourceContext(topology,policy,context);assert.deepEqual(broad.supportedPath,context.supportedPath);assert.deepEqual(broad.selectedPath,['games']);
  assert.equal(broad.topic.title,'Games');assert.equal(broad.sourceVersion,'0');assert.equal(broad.policyRevision,2);

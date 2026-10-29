@@ -15,7 +15,7 @@ import {readSemanticContext,readSemanticTopics,readVersion} from '../../../../sp
 import {inputText} from '../../../../spikes/topic-resolution/browser/embedding/embedding-contract.js';
 
 const MODEL='e5-small-q8-browser-main-prefix-v1',SHA=/^[a-f0-9]{64}$/u;
-const MATCHER='eead1b2dcd6508ebf3d5c45358c71be95e81363da7c0b8325f7466ce487ed21c';
+const MATCHER='4e9b3d3d2053327707d6ff395a8373e6e5ac3195333183ac8516f84195c45524';
 const TRAIN=Object.freeze([
  Object.freeze({id:'real-train-01',url:'https://en.wikipedia.org/wiki/Tetris',sourceInputHash:'aba50dd9302b5448b0e5b4f14792e681810e6238d45d7b524c772a21c4fd5115'}),
  Object.freeze({id:'real-train-04',url:'https://fr.wikipedia.org/wiki/Octopoda',sourceInputHash:'4c89c4fe4490894cd7877790a4d4021c8a1babd5accf91be0212411c7952b3ff'}),

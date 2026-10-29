@@ -8,7 +8,7 @@ import {openInstalledHierarchyWorkerResources} from '../../src/application/hiera
 import {readInstalledOwnerTopicConfiguration} from '../../src/application/owner-topic-configuration.js';
 import {createInstalledFixedReferenceMatcher} from '../../src/domain/fixed-reference-topic-integration.js';
 
-const MATCHER='eead1b2dcd6508ebf3d5c45358c71be95e81363da7c0b8325f7466ce487ed21c';
+const MATCHER='4e9b3d3d2053327707d6ff395a8373e6e5ac3195333183ac8516f84195c45524';
 const fail=()=>Object.assign(new Error('Private original legacy adoption unavailable'),{code:'PRIVATE_LEGACY_ADOPTION'});
 const need=value=>{if(!value)throw fail();};
 function exact(value,keys){need(value&&typeof value==='object'&&!types.isProxy(value)&&Object.getPrototypeOf(value)===Object.prototype&&Reflect.ownKeys(value).length===keys.length);const out={};for(const key of keys){const d=Object.getOwnPropertyDescriptor(value,key);need(d?.enumerable&&Object.hasOwn(d,'value'));out[key]=d.value;}return out;}

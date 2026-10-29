@@ -1029,7 +1029,7 @@ class MaintainedDriverTest(unittest.TestCase):
         return {'schema':'private-model-contention-proof/v1','status':'passed','failure':None,'testComposition':False,'elapsedMs':1000,'maximumPending':3,
             'completed':[{'id':name,'sourceInputHash':digest,'operationId':'ingest-'+str(i),'operationDigest':'a'*64,'sourceId':'source-'+str(i),'sourceVersion':'0','topicId':'topic-'+str(i),'supportedPath':['games'] if i==0 else ['nature']} for i,(name,digest) in enumerate(expected)],
             'phases':[{'stage':stage,'elapsedMs':10,'pendingWorkProbeCount':0 if i==0 else 2,'context':summary(3 if i==0 else 2),'topics':summary(3 if i==0 else 2)} for i,stage in enumerate(('baseline','encoder-initialization','body-encoding-1','queue-application-1','body-encoding-2','queue-application-2'))],
-            'installed':{'matcherIdentityHash':'eead1b2dcd6508ebf3d5c45358c71be95e81363da7c0b8325f7466ce487ed21c','encoderModelId':'e5-small-q8-browser-main-prefix-v1','packagedAssetsVerified':True},
+            'installed':{'matcherIdentityHash':'4e9b3d3d2053327707d6ff395a8373e6e5ac3195333183ac8516f84195c45524','encoderModelId':'e5-small-q8-browser-main-prefix-v1','packagedAssetsVerified':True},
             'cleanup':{'resourcesClosed':True,'originalsSettled':True,'callerDatabasesClosed':False},
             'scope':{**dict.fromkeys(('realE5','realQueuedApply','realHttp','sharedEncoder','stagedCrawlerClient'),True),**dict.fromkeys(('fullCrawlerDiscovery','storedBackfill','browser','provider','qualityEvaluation','productionValidated','assignmentAuthority'),False)},
             'ownerVerification':{'operations':2,'sources':2,'observations':2},

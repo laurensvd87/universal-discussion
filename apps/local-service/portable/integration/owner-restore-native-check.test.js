@@ -100,7 +100,7 @@ function httpPorts(f,{application=async()=>applicationResult(),installFailure=nu
  f.deps.http={manifest:async()=>manifest,directories:async()=>({clusterDirectory:'invented-private-cluster',outputDirectory:'invented-private-output'}),
   install:async value=>{f.events.push('install');assert.deepEqual(value.policy,{defaultMaxDepth:1,overrides:[]});assert.equal(value.expectedHeadRevision,0);assert.equal(value.expectedPolicyRevision,0);
    assert.equal(f.queries.filter(sql=>sql.startsWith('DECLARE')).length,0);if(installFailure)throw installFailure;f.setManifest(manifest);
-   return {schemaVersion:17,matcherIdentityHash:'eead1b2dcd6508ebf3d5c45358c71be95e81363da7c0b8325f7466ce487ed21c',headRevision:1,policy:{revision:1,defaultMaxDepth:1,overrides:[]}};},
+   return {schemaVersion:17,matcherIdentityHash:'4e9b3d3d2053327707d6ff395a8373e6e5ac3195333183ac8516f84195c45524',headRevision:1,policy:{revision:1,defaultMaxDepth:1,overrides:[]}};},
   application:async context=>{f.events.push('application-enter');assert.equal(f.queries.filter(sql=>sql.startsWith('DECLARE')).length,18);assert.equal(context.deadline,195000);
    assert.deepEqual(context.upgrade,{schemaVersion:17,preservedLegacyTables:18,legacyRowsUnchanged:true});assert.ok(Object.isFrozen(context.upgrade));
    const result=await application(context);f.events.push('application-retired');return result;},

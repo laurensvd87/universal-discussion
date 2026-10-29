@@ -224,6 +224,8 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/assets/hierarchy/root-policy.json',
     'apps/local-service/assets/hierarchy/input-definition.json',
     'apps/local-service/assets/hierarchy/gta-detail.json',
+    'apps/local-service/assets/hierarchy/animals-detail.json',
+    'apps/local-service/assets/hierarchy/koalas-detail.json',
     'spikes/topic-resolution/browser/embedding/.assets/manifest.json',
     'apps/local-service/portable/canonical-v4/migrations/017-semantic-dashboard-counts.sql',
     'apps/local-service/portable/test/semantic-dashboard-counts.test.js',
@@ -795,7 +797,7 @@ def checked_model_proof(I,value):
         and bounded(value['maximumPending'],1,8),'model-proof-shape')
     installed,cleanup,scope,owner = value['installed'],value['cleanup'],value['scope'],value['ownerVerification']
     I.require(shape(installed,'matcherIdentityHash encoderModelId packagedAssetsVerified')
-        and installed['matcherIdentityHash']=='eead1b2dcd6508ebf3d5c45358c71be95e81363da7c0b8325f7466ce487ed21c'
+        and installed['matcherIdentityHash']=='4e9b3d3d2053327707d6ff395a8373e6e5ac3195333183ac8516f84195c45524'
         and installed['encoderModelId']=='e5-small-q8-browser-main-prefix-v1'
         and installed['packagedAssetsVerified'] is True,'model-proof-identity')
     I.require(shape(cleanup,'resourcesClosed originalsSettled callerDatabasesClosed')

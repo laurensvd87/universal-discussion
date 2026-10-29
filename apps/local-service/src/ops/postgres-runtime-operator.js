@@ -16,8 +16,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const localServiceRoot = path.resolve(fileURLToPath(new URL("../../", import.meta.url)));
 const repositoryRoot = path.resolve(localServiceRoot, "..", "..");
 const dataDir = path.join(localServiceRoot, "data");
-const snapshotRoot = path.join(dataDir, "hierarchy-release-20261029-http-priority");
-const manifestPath = path.join(dataDir, "postgres-hierarchy-release-20261029-http-priority-manifest.json");
+const snapshotRoot = path.join(dataDir, "hierarchy-release-20261029-nature-heads");
+const manifestPath = path.join(dataDir, "postgres-hierarchy-release-20261029-nature-heads-manifest.json");
 const databasePath = path.join(dataDir, "demo.sqlite");
 const pairingPath = path.join(dataDir, "pairing.json");
 const accountDatabasePath = path.join(dataDir, "accounts.sqlite");
@@ -30,7 +30,7 @@ const bodyPath = path.join(dataDir, "body-topic-metric-v1.json");
 const assetRoot = path.join(snapshotRoot, "spikes", "topic-resolution", "browser", "embedding", ".assets");
 
 const SNAPSHOT_SCHEMA = "murmingle-postgresql-runtime-snapshot/v2";
-const SNAPSHOT_LEAF = "hierarchy-release-20261029-http-priority";
+const SNAPSHOT_LEAF = "hierarchy-release-20261029-nature-heads";
 const MAX_MANIFEST_BYTES = 2 * 1024 * 1024;
 const MAX_SNAPSHOT_FILES = 5_000;
 const MAX_SNAPSHOT_BYTES = 512 * 1024 * 1024;
@@ -106,7 +106,7 @@ const REQUIRED_SNAPSHOT_FILES = Object.freeze([
     "013-semantic-public-topic-metadata.sql", "014-semantic-source-containers.sql", "015-semantic-reply-witness.sql",
     "016-semantic-insight-reply.sql", "017-semantic-dashboard-counts.sql",
   ].map(name => `apps/local-service/portable/canonical-v4/migrations/${name}`),
-  ...["root-model.json", "root-policy.json", "input-definition.json", "gta-detail.json"]
+  ...["root-model.json", "root-policy.json", "input-definition.json", "gta-detail.json", "animals-detail.json", "koalas-detail.json"]
     .map(name => `apps/local-service/assets/hierarchy/${name}`),
   "spikes/topic-resolution/browser/embedding/.assets/config.json",
   "spikes/topic-resolution/browser/embedding/.assets/manifest.json",

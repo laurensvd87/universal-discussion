@@ -4,7 +4,7 @@ import {compileSemanticTopicGrouping,groupSupportedSemanticPath} from './semanti
 const LABELS=Object.freeze({business:'Business',cooking:'Cooking',culture:'Culture',education:'Education',games:'Games',
  geography:'Geography',health:'Health',history:'History','ideas-beliefs':'Ideas and beliefs',languages:'Languages',nature:'Nature',
  science:'Science',society:'Society',sports:'Sports',technology:'Technology',vehicles:'Vehicles',
- 'video-games':'Video games',gta:'Grand Theft Auto (GTA)'});
+ 'video-games':'Video games',gta:'Grand Theft Auto (GTA)',animals:'Animals',koalas:'Koalas'});
 function grouping(topology,policy){
  const ids=new Set(topology.nodes.map(node=>node.id));
  // Rules for a retired model's nodes remain owner state. They cannot create a
