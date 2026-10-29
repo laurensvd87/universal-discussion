@@ -8,6 +8,20 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+CURRENT29Oct authored-context SOURCE: new execute-only editor/root ports and
+immutable posted scope/caption; canonical destinations remain unchanged. Page
+drafts survive new named subjects; named drafts bind stableID/title/material,
+not evidence/Source revisions or preferred leaf. Exact replay rejects different
+scope/legacy adoption. Source withdrawal retains expressly authored caption;
+root withdrawal erases it. Original actor/receipt/Source/domain lock order.
+New10 owned SQL assertions wired into strict Node+Python ledgers, UNEXECUTED.
+89 guarded Node +65 pure Python PASS; Root-only, no independent/UI/live proof.
+Current maintained catalog STALE until rebuilt. Newcomponent UNREGISTERED; no
+startup/profile18/crawler change. Full18, AI-root context, browser freeze, feeds/
+occupied search, activation continuity/recovery/cutover still OPEN. Crawler6384
+advancing10324/stderr0. No service/host changes; goalACTIVE.
+
+
 LATEST29Oct indexed retrieval+normal coordinator ACTUALPASS: source9e2259d0/
 catalogfbf83fc5/map3f3e8bae...99cb/2564files/276848863B. Owned run
 ed4e9e2bda85d5000bfa2f58de3b9707515a7aa1e244b26e EXIT0/acceptedTRUE:

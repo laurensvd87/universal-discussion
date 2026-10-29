@@ -26,6 +26,7 @@ PUBLIC_SUBJECT_LEDGER = 'apps/local-service/portable/test/public-subject-native-
 PUBLIC_SOURCE_LEDGER = 'apps/local-service/portable/test/public-subject-source-native-cases.json'
 AUTOMATIC_SUBJECT_LEDGER = 'apps/local-service/portable/test/automatic-subject-native-cases.json'
 AUTOMATIC_RETRIEVAL_LEDGER = 'apps/local-service/portable/test/automatic-retrieval-native-cases.json'
+AUTOMATIC_AUTHOR_CONTEXT_LEDGER = 'apps/local-service/portable/test/automatic-author-context-native-cases.json'
 RUNS_ROOT = REPO / 'apps/local-service/portable/data/hierarchy-native-runs'
 PRIVATE_ENTRY = OWN + 'owner-restore-native-check.js'
 HTTP_ENTRY = OWN + 'owner-http-native-check.js'
@@ -182,6 +183,11 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/portable/test/automatic-retrieval-native-assertions.js',
     'apps/local-service/portable/canonical-v4/drafts/automatic-subject-retrieval.sql',
     'apps/local-service/portable/canonical-v4/automatic-subject-retrieval-repository.js',
+    'apps/local-service/portable/canonical-v4/drafts/automatic-author-context.sql',
+    'apps/local-service/portable/canonical-v4/automatic-author-context-repository.js',
+    'apps/local-service/portable/test/automatic-author-context-native-cases.json',
+    'apps/local-service/portable/test/automatic-author-context-native-assertions.js',
+    'apps/local-service/portable/test/automatic-author-context-repository.test.js',
     'apps/local-service/portable/test/automatic-subject-retrieval-repository.test.js',
     'apps/local-service/src/application/automatic-subject-cohort.js',
     'apps/local-service/src/application/automatic-subject-coordinator.js',
@@ -463,7 +469,7 @@ def semantic_completion(stdout, stderr, exit_code):
             or not all(cleanup[key] is True for key in cleanup if key != 'reason')):
         return refused('json-cleanup')
     proof = value['proof']
-    if not shape(proof, 'schema status nativeExecuted pendingAssertions cases publicSubjectCases publicSourceBindingCases automaticSubjectCases automaticRetrievalCases restrictedRoleValidated concurrencyScope multiUserLoadValidated semanticQualityMeasured lastObservedSqlFailure cleanup'):
+    if not shape(proof, 'schema status nativeExecuted pendingAssertions cases publicSubjectCases publicSourceBindingCases automaticSubjectCases automaticRetrievalCases automaticAuthorContextCases restrictedRoleValidated concurrencyScope multiUserLoadValidated semanticQualityMeasured lastObservedSqlFailure cleanup'):
         return refused('json-shape')
     if (proof['schema'] != 'canonical-semantic-postgres-proof/v1' or proof['status'] != 'passed'
             or proof['nativeExecuted'] is not True or not integer(proof['pendingAssertions'],0)
@@ -552,6 +558,20 @@ def semantic_completion(stdout, stderr, exit_code):
             return refused('json-automatic-retrieval-cases')
     except (OSError, ValueError, TypeError, UnicodeError, RecursionError):
         return refused('json-automatic-retrieval-cases')
+    try:
+        raw = (REPO/AUTOMATIC_AUTHOR_CONTEXT_LEDGER).read_bytes()
+        if not 0 < len(raw) <= 4096:
+            return refused('json-automatic-author-context-cases')
+        names = parse(raw)
+        observed = proof['automaticAuthorContextCases']
+        if (type(names) is not list or len(names) != 10 or len(set(names)) != 10
+                or any(type(name) is not str for name in names)
+                or type(observed) is not list or len(observed) != 10
+                or observed != [{'name':name,'status':'passed'} for name in names]
+                or any(not shape(row,'name status') for row in observed)):
+            return refused('json-automatic-author-context-cases')
+    except (OSError, ValueError, TypeError, UnicodeError, RecursionError):
+        return refused('json-automatic-author-context-cases')
     # Preserve the frozen transport's25/3 counters. The additional actual
     # registry checks are separately required above and retained in child JSON.
     result.update(testPoints=25, outerTests=3)

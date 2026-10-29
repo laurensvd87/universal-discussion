@@ -7,6 +7,14 @@ import {PUBLIC_SUBJECT_NATIVE_CASES} from '../test/public-subject-native-asserti
 import {PUBLIC_SOURCE_NATIVE_CASES} from '../test/public-subject-source-native-assertions.js';
 import {AUTOMATIC_SUBJECT_NATIVE_CASES} from '../test/automatic-subject-native-assertions.js';
 import {AUTOMATIC_RETRIEVAL_NATIVE_CASES} from '../test/automatic-retrieval-native-assertions.js';
+import {AUTOMATIC_AUTHOR_CONTEXT_NATIVE_CASES} from '../test/automatic-author-context-native-assertions.js';
+
+test('authored context cases cannot be omitted or borrowed from another proof',()=>{
+ for(const length of [0,1,9]){const input=lifecycle();input.checks.automaticAuthorContextCases.length=length;assert.equal(projectSemanticNativeResult(input).accepted,false);}
+ for(const status of ['running','failed']){const input=lifecycle();input.checks.automaticAuthorContextCases[7].status=status;assert.equal(projectSemanticNativeResult(input).accepted,false);}
+ const wrong=lifecycle();wrong.checks.automaticAuthorContextCases[0].name=AUTOMATIC_RETRIEVAL_NATIVE_CASES[0];assert.throws(()=>projectSemanticNativeResult(wrong),TypeError);
+ const absent=lifecycle();delete absent.checks.automaticAuthorContextCases;assert.throws(()=>projectSemanticNativeResult(absent),TypeError);
+});
 
 const names=['murmingle_hierarchy_fixture_20261026_a','murmingle_hierarchy_fixture_20261026_b'];
 function lifecycle(){return {
@@ -17,6 +25,7 @@ function lifecycle(){return {
   publicSourceBindingCases:PUBLIC_SOURCE_NATIVE_CASES.map(name=>({name,status:'passed'})),restrictedRoleValidated:true,
   automaticSubjectCases:AUTOMATIC_SUBJECT_NATIVE_CASES.map(name=>({name,status:'passed'})),
   automaticRetrievalCases:AUTOMATIC_RETRIEVAL_NATIVE_CASES.map(name=>({name,status:'passed'})),
+  automaticAuthorContextCases:AUTOMATIC_AUTHOR_CONTEXT_NATIVE_CASES.map(name=>({name,status:'passed'})),
   concurrencyScope:'head-switch-vs-apply-and-mvcc-read',multiUserLoadValidated:false,semanticQualityMeasured:false,lastObservedSqlFailure:null,
   cleanup:{status:'passed',used:2,finished:true,adminClosed:true,failures:[],databases:names.map((name,i)=>({name,oid:String(17001+i),created:true,closed:true,dropped:true,pending:0,sessionCleanupFailures:[]}))}},
 };}

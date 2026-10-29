@@ -22,7 +22,7 @@ async function waiting(observer,pid){const end=performance.now()+1200;while(perf
 export function automaticSubjectNativeCommand(input){const p=plan(JSON.stringify(input));return structuredClone({generation:p.generation,policyHash:p.policyHash,matcherHash:p.matcherHash,representationHash:p.representationHash,
  updates:p.updates,selections:p.selections,witnesses:p.commitWitnesses,candidates:input.candidates.map(({subjectId,revision,focusKey,contextRootId})=>({subjectId,revision,focusKey,contextRootId}))});}
 
-export async function runAutomaticSubjectNativeAssertions({owner,worker,app,observer,generation,matcher,cases,beforeRetirement}){
+export async function runAutomaticSubjectNativeAssertions({owner,worker,app,observer,generation,matcher,cases,beforeRetirement,afterSourcesForgotten}){
  const identity=describeRootedHierarchyMatcher(matcher),matcherHash=sha(JSON.stringify(identity)),
   fusion=compilePairedE5Input({bodyWeight:identity.inputDefinition.bodyWeight,titleWeight:identity.inputDefinition.titleWeight,encoderHash:identity.inputDefinition.encoderHash});
  const repo=repository({database:worker}),read=repository({database:app}),stored=createCanonicalV4SemanticSourceRepository({database:worker});
@@ -168,6 +168,7 @@ export async function runAutomaticSubjectNativeAssertions({owner,worker,app,obse
   }});
  await test(11,async()=>{
   await prep.close();for(const id of ids.slice(1))await owner.query('SELECT canonical_v4.ingest_forget_source($1,$2)',[generation,id]);
+  if(afterSourcesForgotten)await afterSourcesForgotten();
   await owner.transaction(async tx=>{
    await tx.query('DELETE FROM canonical_v4.command_receipts WHERE contribution_id=$1',[humanRoot]);await tx.query('DELETE FROM canonical_v4.revisions WHERE contribution_id=$1',[humanRoot]);await tx.query('DELETE FROM canonical_v4.contributions WHERE id=$1',[humanRoot]);
    await tx.query('DELETE FROM canonical_v4.id_registry WHERE id=ANY($1::text[])',[[...ids,humanRoot]]);
