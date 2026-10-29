@@ -46,7 +46,7 @@ export function createAutomaticNamedSubjectRepository({database}={}){
    const wire=JSON.stringify(command);if(Buffer.byteLength(wire)>4194304)bad();
    try{
     const raw=await database.query('SELECT canonical_v4.named_publish($1::jsonb) AS result',[wire]);
-    let r,subjects;try{
+    let r,subjects,selections;try{
      r=fields(result(raw),['generation','policyHash','subjects','selections']);
      if(r.generation!==plan.generation||r.policyHash!==plan.policyHash)bad();
      const seen=new Set();subjects=list(r.subjects,128).map(value=>{
@@ -54,10 +54,16 @@ export function createAutomaticNamedSubjectRepository({database}={}){
       if(!expected||seen.has(row.subjectId)||!count(row.revision)||BigInt(row.revision)!==(expected.expectedRevision===null?1n:BigInt(expected.expectedRevision)+1n))bad();
       seen.add(row.subjectId);return row;
      });if(subjects.length!==plan.updates.length)bad();
-     const selections=list(r.selections,64).map(v=>fields(v,['sourceId','sourceVersion','subjectId','reason']));
-     if(JSON.stringify(selections)!==JSON.stringify(plan.selections))bad();
+     selections=list(r.selections,64).map(v=>fields(v,['sourceId','sourceVersion','subjectId','reason']));
+     if(selections.length!==plan.selections.length)bad();
+     for(let i=0;i<selections.length;i++){
+      const actual=selections[i],expected=plan.selections[i];
+      if(JSON.stringify(actual)===JSON.stringify(expected))continue;
+      if(expected.subjectId!==null||actual.sourceId!==expected.sourceId||actual.sourceVersion!==expected.sourceVersion||
+       !uuid(actual.subjectId)||actual.reason!=='retained-supported-subject')bad();
+     }
     }catch{corrupt();}
-    return freeze({status:'published',subjects,selections:plan.selections});
+    return freeze({status:'published',subjects,selections});
    }catch(error){throw storage(error);}
   },
   async candidates(rawJson){

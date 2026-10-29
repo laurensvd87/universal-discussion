@@ -8,6 +8,19 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+CURRENT29Oct retrieval WIP SOURCE: new bounded95ANN+32lexical+seed ->128 raw,
+64 exact binary64 cohort/16 lexical reserve; durable Source-scoped index and
+discovery queues/urgency/fairness; coordinator uses existing vectors/no new model.
+New10 retrieval native assertions composed, UNEXECUTED; current native catalog
+is STALE until rebuilt/authenticated. Generic publisher now preserves valid
+selections absent from partial cohorts and permits first-parent CAS attachment
+with member-superset proof. Those SQL changes UNEXECUTED; old accepted12+25+8+10
+run below is historical, not acceptance of current edited source. New44 joined
+Node pure/64 Python controller PASS; further full tests/source review/commit/
+catalog/owned decision required. No live/startup/profile18 activation. Source
+spelling and reviewed bounds in drafts/AUTOMATIC-RETRIEVAL.md. Goal ACTIVE.
+
+
 LATEST29Oct GENERAL named-subject SQL ACTUALPASS: source8ecb1671/catalog50083bc7,
 mapd397aed7...17923/2554files/276769749B. Owned run55c556577344a46f247baea5eb98867229ca16b7aae807db EXIT0/acceptedTRUE:
 12general +original25 +metadata8 +Source-binding10 required/pass. Root all2554

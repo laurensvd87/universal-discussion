@@ -6,6 +6,7 @@ import {SEMANTIC_CASES,runSemanticAssertions} from '../test/semantic-native-asse
 import {PUBLIC_SUBJECT_NATIVE_CASES} from '../test/public-subject-native-assertions.js';
 import {PUBLIC_SOURCE_NATIVE_CASES} from '../test/public-subject-source-native-assertions.js';
 import {AUTOMATIC_SUBJECT_NATIVE_CASES} from '../test/automatic-subject-native-assertions.js';
+import {AUTOMATIC_RETRIEVAL_NATIVE_CASES} from '../test/automatic-retrieval-native-assertions.js';
 
 const names=['murmingle_hierarchy_fixture_20261026_a','murmingle_hierarchy_fixture_20261026_b'];
 function lifecycle(){return {
@@ -15,6 +16,7 @@ function lifecycle(){return {
   cases:SEMANTIC_CASES.map(row=>({...row,status:'passed'})),publicSubjectCases:PUBLIC_SUBJECT_NATIVE_CASES.map(name=>({name,status:'passed'})),
   publicSourceBindingCases:PUBLIC_SOURCE_NATIVE_CASES.map(name=>({name,status:'passed'})),restrictedRoleValidated:true,
   automaticSubjectCases:AUTOMATIC_SUBJECT_NATIVE_CASES.map(name=>({name,status:'passed'})),
+  automaticRetrievalCases:AUTOMATIC_RETRIEVAL_NATIVE_CASES.map(name=>({name,status:'passed'})),
   concurrencyScope:'head-switch-vs-apply-and-mvcc-read',multiUserLoadValidated:false,semanticQualityMeasured:false,lastObservedSqlFailure:null,
   cleanup:{status:'passed',used:2,finished:true,adminClosed:true,failures:[],databases:names.map((name,i)=>({name,oid:String(17001+i),created:true,closed:true,dropped:true,pending:0,sessionCleanupFailures:[]}))}},
 };}
@@ -80,6 +82,13 @@ test('generic subject persistence and erasure cases are mandatory independently 
  for(const status of ['running','failed']){const input=lifecycle();input.checks.automaticSubjectCases[7].status=status;assert.equal(projectSemanticNativeResult(input).accepted,false);}
  const wrong=lifecycle();wrong.checks.automaticSubjectCases[0].name=PUBLIC_SUBJECT_NATIVE_CASES[0];assert.throws(()=>projectSemanticNativeResult(wrong),TypeError);
  const absent=lifecycle();delete absent.checks.automaticSubjectCases;assert.throws(()=>projectSemanticNativeResult(absent),TypeError);
+});
+
+test('indexed retrieval, coordinator, first-parent attachment and retention cases cannot be borrowed from registry cases',()=>{
+ for(const length of [0,1,9]){const input=lifecycle();input.checks.automaticRetrievalCases.length=length;assert.equal(projectSemanticNativeResult(input).accepted,false);}
+ for(const status of ['running','failed']){const input=lifecycle();input.checks.automaticRetrievalCases[7].status=status;assert.equal(projectSemanticNativeResult(input).accepted,false);}
+ const wrong=lifecycle();wrong.checks.automaticRetrievalCases[0].name=AUTOMATIC_SUBJECT_NATIVE_CASES[0];assert.throws(()=>projectSemanticNativeResult(wrong),TypeError);
+ const absent=lifecycle();delete absent.checks.automaticRetrievalCases;assert.throws(()=>projectSemanticNativeResult(absent),TypeError);
 });
 
 test('incomplete or failed server, proof and database cleanup remain explicitly unaccepted',()=>{

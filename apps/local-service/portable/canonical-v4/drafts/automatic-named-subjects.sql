@@ -118,7 +118,7 @@ DECLARE generation_ text;matcher_ text;representation_ text;w_ jsonb;u_ jsonb;c_
  source_ canonical_v4.sources%ROWTYPE;receipt_ canonical_v4.operation_receipts%ROWTYPE;stamp_ canonical_v4.runtime_source_stamps%ROWTYPE;
  label_source_ canonical_v4.sources%ROWTYPE;keys_ text[];lock_ integer;subject_ uuid;parent_ uuid;seen_ uuid[];
  current_ bigint;expected_ bigint;depth_ integer;prototype_ double precision[];path_ text[];input_hash_ text;
- actual_ jsonb;expected_candidates_ jsonb;result_ jsonb:='[]'::jsonb;old_parent_ uuid;
+ actual_ jsonb;expected_candidates_ jsonb;result_ jsonb:='[]'::jsonb;selections_ jsonb:='[]'::jsonb;old_parent_ uuid;
 BEGIN
  IF current_setting('transaction_isolation')<>'read committed' OR jsonb_typeof(p) IS DISTINCT FROM 'object' OR octet_length(p::text)>4194304 THEN
   RAISE EXCEPTION 'Invalid named subject publication' USING ERRCODE='P1283';END IF;
@@ -239,8 +239,16 @@ BEGIN
   ELSE
    expected_:=(u_->>'expectedRevision')::bigint;
    SELECT parent_id INTO old_parent_ FROM canonical_v4.named_subject_heads WHERE subject_id=subject_;
-   IF NOT FOUND OR current_ IS DISTINCT FROM expected_ OR old_parent_ IS DISTINCT FROM parent_ THEN
+   IF NOT FOUND OR current_ IS DISTINCT FROM expected_ OR (old_parent_ IS NOT NULL AND old_parent_ IS DISTINCT FROM parent_) THEN
     RAISE EXCEPTION 'Named revision or parent changed' USING ERRCODE='P1281';END IF;
+   IF old_parent_ IS NULL AND parent_ IS NOT NULL AND NOT EXISTS(
+     SELECT 1 FROM jsonb_array_elements(p->'updates') parent_update
+     WHERE parent_update->>'subjectId'=parent_::text AND NOT EXISTS(
+      SELECT 1 FROM jsonb_array_elements(u_->'members') child_member WHERE NOT EXISTS(
+       SELECT 1 FROM jsonb_array_elements(parent_update->'members') parent_member WHERE parent_member->>'sourceId'=child_member->>'sourceId'
+      )
+     )
+   ) THEN RAISE EXCEPTION 'New named parent lacks the current child cohort' USING ERRCODE='P1283';END IF;
    UPDATE canonical_v4.named_subject_ids SET revision=revision+1 WHERE id=subject_ RETURNING revision INTO current_;
   END IF;
   -- Parents may appear later in this batch. The deferred FK checks those IDs
@@ -250,7 +258,7 @@ BEGIN
   -- discard earlier Sources' assignments. An explicit rebuild is separate work.
   INSERT INTO canonical_v4.named_subject_heads VALUES(subject_,current_,generation_,p->>'policyHash',matcher_,representation_,u_->>'focusKey',u_->>'contextRootId',
     u_->>'label',c_->>'sourceId',parent_,path_,prototype_)
-   ON CONFLICT(subject_id) DO UPDATE SET revision=excluded.revision;
+   ON CONFLICT(subject_id) DO UPDATE SET revision=excluded.revision,parent_id=excluded.parent_id;
   FOR c_ IN SELECT value FROM jsonb_array_elements(u_->'members') LOOP
    INSERT INTO canonical_v4.named_subject_members VALUES(subject_,c_->>'sourceId',(c_->>'sourceVersion')::bigint,c_->>'operationId',c_->>'operationDigest',c_->>'sourceStamp')
     ON CONFLICT(subject_id,source_id) DO UPDATE SET source_version=excluded.source_version,operation_id=excluded.operation_id,
@@ -271,14 +279,31 @@ BEGIN
  FOR s_ IN SELECT value FROM jsonb_array_elements(p->'selections') LOOP
   SELECT value INTO w_ FROM jsonb_array_elements(p->'witnesses') WHERE value->>'sourceId'=s_->>'sourceId';
   IF w_ IS NULL OR s_->>'sourceVersion' IS DISTINCT FROM w_->>'sourceVersion' THEN RAISE EXCEPTION 'Invalid named selection witness' USING ERRCODE='P1283';END IF;
+  -- Absence of a second supporting page in one bounded neighbourhood is not
+  -- evidence against an already published, still-current subject. A material
+  -- change/erasure already withdraws its evidence in the Source triggers.
+  IF s_->>'subjectId' IS NULL THEN
+   SELECT h.subject_id INTO subject_ FROM canonical_v4.named_subject_selections selected_
+    JOIN canonical_v4.named_subject_members m USING(subject_id,source_id)
+    JOIN canonical_v4.named_subject_heads h ON h.subject_id=m.subject_id
+    JOIN canonical_v4.named_subject_ids base_ ON base_.id=h.subject_id AND base_.revision=h.revision
+    WHERE selected_.source_id=s_->>'sourceId' AND m.source_version=(w_->>'sourceVersion')::bigint AND m.operation_id=w_->>'operationId'
+     AND m.operation_digest=w_->>'operationDigest' AND m.source_stamp=w_->>'sourceStamp'
+     AND h.generation=generation_ AND h.matcher_hash=matcher_ AND h.policy_hash=p->>'policyHash';
+   IF FOUND THEN
+    selections_:=selections_||jsonb_build_array(jsonb_build_object('sourceId',s_->>'sourceId','sourceVersion',s_->>'sourceVersion',
+      'subjectId',subject_::text,'reason','retained-supported-subject'));CONTINUE;
+   END IF;
+  END IF;
   DELETE FROM canonical_v4.named_subject_selections WHERE source_id=s_->>'sourceId';
   IF s_->>'subjectId' IS NOT NULL THEN
    IF NOT EXISTS(SELECT 1 FROM jsonb_array_elements(p->'updates') WHERE value->>'subjectId'=s_->>'subjectId') THEN
     RAISE EXCEPTION 'Named selection outside publication' USING ERRCODE='P1283';END IF;
    INSERT INTO canonical_v4.named_subject_selections VALUES(s_->>'sourceId',(s_->>'subjectId')::uuid);
   END IF;
+  selections_:=selections_||jsonb_build_array(s_);
  END LOOP;
- RETURN jsonb_build_object('generation',generation_,'policyHash',p->>'policyHash','subjects',result_,'selections',p->'selections');
+ RETURN jsonb_build_object('generation',generation_,'policyHash',p->>'policyHash','subjects',result_,'selections',selections_);
 EXCEPTION WHEN unique_violation THEN RAISE EXCEPTION 'Named publication conflict' USING ERRCODE='P1281';
  WHEN invalid_text_representation OR numeric_value_out_of_range OR check_violation OR not_null_violation OR foreign_key_violation THEN
   RAISE EXCEPTION 'Invalid named publication encoding or relation' USING ERRCODE='P1283';

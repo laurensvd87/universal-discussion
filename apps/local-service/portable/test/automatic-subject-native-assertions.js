@@ -22,7 +22,7 @@ async function waiting(observer,pid){const end=performance.now()+1200;while(perf
 export function automaticSubjectNativeCommand(input){const p=plan(JSON.stringify(input));return structuredClone({generation:p.generation,policyHash:p.policyHash,matcherHash:p.matcherHash,representationHash:p.representationHash,
  updates:p.updates,selections:p.selections,witnesses:p.commitWitnesses,candidates:input.candidates.map(({subjectId,revision,focusKey,contextRootId})=>({subjectId,revision,focusKey,contextRootId}))});}
 
-export async function runAutomaticSubjectNativeAssertions({owner,worker,app,observer,generation,matcher,cases}){
+export async function runAutomaticSubjectNativeAssertions({owner,worker,app,observer,generation,matcher,cases,beforeRetirement}){
  const identity=describeRootedHierarchyMatcher(matcher),matcherHash=sha(JSON.stringify(identity)),
   fusion=compilePairedE5Input({bodyWeight:identity.inputDefinition.bodyWeight,titleWeight:identity.inputDefinition.titleWeight,encoderHash:identity.inputDefinition.encoderHash});
  const repo=repository({database:worker}),read=repository({database:app}),stored=createCanonicalV4SemanticSourceRepository({database:worker});
@@ -156,6 +156,16 @@ export async function runAutomaticSubjectNativeAssertions({owner,worker,app,obse
   const a=await input(ids.slice(1)),stale=JSON.stringify(a);await repo.publish(stale);
   const before=await state();await assert.rejects(repo.publish(stale),code('conflict'));assert.deepEqual(await state(),before);
  });
+ if(beforeRetirement)await beforeRetirement({owner,worker,app,observer,generation,matcher,sourceIds:ids.slice(1),publicationInput:input,
+  prepareFixtureSources:prepare,changeFixtureTitle:async(id,title)=>{
+   assert(ids.slice(1).includes(id));const old=rows.get(id),material={...old.material,title},operationId='general-native-renamed-'+(++serial),operationDigest=operationDigestFor(material);
+   byTitle.set(title,material.embedding.values);
+   await owner.transaction(async tx=>{
+    await tx.query('UPDATE canonical_v4.operation_receipts SET operation_id=$2,operation_digest=$3 WHERE source_id=$1',[id,operationId,operationDigest]);
+    await tx.query('UPDATE canonical_v4.sources SET write_version=write_version+1,title=$2,operation_id=$3,payload=(payload::jsonb||$4::jsonb)::text WHERE id=$1',
+     [id,title,operationId,JSON.stringify({title,operationId,operationDigest})]);
+   });rows.set(id,{...old,material,operationId,operationDigest});
+  }});
  await test(11,async()=>{
   await prep.close();for(const id of ids.slice(1))await owner.query('SELECT canonical_v4.ingest_forget_source($1,$2)',[generation,id]);
   await owner.transaction(async tx=>{

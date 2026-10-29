@@ -27,6 +27,15 @@ test('empty material and bounded algorithm capacity never touch SQL',async()=>{
  assert.equal((await repo.publish(raw(input([])))).status,'no-material');
  const a=input(['\ufdfa'.repeat(40)]);assert.equal((await repo.publish(raw(a))).status,'capacity');assert.equal(calls,0);
 });
+test('a bounded singleton may retain an existing supported subject but cannot silently choose a different new one',async()=>{
+ const a=input(['Steam Deck OLED battery replacement']);
+ const repo=create({database:{async query(sql,args){const r=answer(JSON.parse(args[0]));r.rows[0].result.selections[0]={...r.rows[0].result.selections[0],subjectId:uuid,reason:'retained-supported-subject'};return r;}}});
+ assert.equal((await repo.publish(raw(a))).selections[0].subjectId,uuid);
+ for(const change of [s=>{s.reason='most-specific-resolved-subject';},s=>{s.sourceVersion='9';},s=>{s.subjectId='not-a-subject';}]){
+  const bad=create({database:{async query(sql,args){const r=answer(JSON.parse(args[0]));const s=r.rows[0].result.selections[0];s.subjectId=uuid;s.reason='retained-supported-subject';change(s);return r;}}});
+  await assert.rejects(bad.publish(raw(a)),{code:'storage-corrupt'});
+ }
+});
 test('forged plans, wrong policies and detached observation hashes fail before database access',async()=>{
  let calls=0;const repo=create({database:{async query(){calls++;throw Error();}}});
  for(const change of [a=>{a.updates=[];},a=>{a.policyHash='e'.repeat(64);},a=>{a.observations[0].inputHash='f'.repeat(64);},a=>{a.sourceWitnesses.pop();}]){
