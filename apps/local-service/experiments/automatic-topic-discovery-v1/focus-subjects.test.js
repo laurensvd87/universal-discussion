@@ -84,3 +84,11 @@ test('lowercase reporting-verb prefixes do not become the shared subject label',
  const r=run([doc('a','Experts awarded 2041 Copper Crown'),doc('b','Researchers awarded 2041 Copper Crown')]);
  assert.deepEqual(label(r),['2041 copper crown']);
 });
+test('different full names cannot be collapsed into their common first name even when vectors are close',()=>{
+ const r=run([doc('a','Amina Patel studies robotics'),doc('b','Amina Singh builds robots')]);
+ assert.equal(r.proposals.length,0);assert.equal(r.rejected.ambiguousNameComponents,1);
+});
+test('product editions and a standalone brand mention do not become contradictory person-name expansions',()=>{
+ assert.ok(label(run([doc('a','Falcon V launched'),doc('b','FALCON VI announced')])).includes('falcon'));
+ assert.ok(label(run([doc('a','Marlin Studio opens'),doc('b','Marlin reduces prices')])).includes('marlin'));
+});

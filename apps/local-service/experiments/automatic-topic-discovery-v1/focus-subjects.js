@@ -27,7 +27,8 @@ function titlePatterns(title){
    // supported phrase, so a mid-title occurrence can corroborate a focal one.
    const named=span.some(w=>!STOP.has(w.key)&&/\p{L}/u.test(w.raw)&&(w.raw!==w.raw.toLowerCase()||w.raw.toUpperCase()===w.raw.toLowerCase()));
    const cleanStart=first.raw!==first.raw.toLowerCase()||first.raw.toUpperCase()===first.raw.toLowerCase();
-   const key=span.map(w=>w.key).join('\u001f');if(!output.has(key))output.set(key,{key,tokens:span.map(w=>w.key),label,start:first.start,end:last.end,named,cleanStart,focal:first.start===0});
+   const next=words[i+1],namedSuffix=length===1&&next&&/^\p{Lu}\p{Ll}[\p{L}\p{M}'’-]*$/u.test(next.raw)&&!STOP.has(next.key)?next.key:null;
+   const key=span.map(w=>w.key).join('\u001f');if(!output.has(key))output.set(key,{key,tokens:span.map(w=>w.key),label,start:first.start,end:last.end,named,cleanStart,namedSuffix,focal:first.start===0});
    else{const old=output.get(key);old.named||=named;old.cleanStart||=cleanStart;old.focal||=first.start===0;}
   }
  }
@@ -84,9 +85,12 @@ export function proposeFocusedSubjects(rawJson){
     labelSourceIndex:members[witnesses.indexOf(labelWitness)]});
   }
  }
- const closed=new Map();let incoherent=0,insufficient=0;
+ const closed=new Map();let incoherent=0,insufficient=0,ambiguousNameComponents=0;
  for(const p of scoped){
   if(!p.named||!p.cleanStart||p.tokens.length===1&&!p.focal){insufficient++;continue;}
+  // A repeated first component cannot name two different full names. Keep the
+  // distinct full subjects instead of publishing a shared first-name topic.
+  if(p.tokens.length===1){const suffixes=p.members.map(i=>p.witnesses.get(i).namedSuffix);if(suffixes.every(v=>v!==null)&&new Set(suffixes).size>1){ambiguousNameComponents++;continue;}}
   const independent=new Map();for(const i of p.members)if(!independent.has(find(i)))independent.set(find(i),i);
   const publishers=new Set([...independent.values()].map(i=>docs[i].publisherKey));
   if(independent.size<2||publishers.size<2){insufficient++;continue;}
@@ -123,6 +127,6 @@ export function proposeFocusedSubjects(rawJson){
   return {sourceId:d.sourceId,inputHash:d.inputHash,preferredProposalKey:leaves[0]?.proposalKey??null,supportedProposalKeys:matches.map(p=>p.proposalKey),
    reason:leaves.length?'most-specific-supported-headline-branch':'page-context-only'};
  });
- return frozen({...base,status:'proposed',proposals,selections,rejected:{incoherent,insufficient},
+ return frozen({...base,status:'proposed',proposals,selections,rejected:{incoherent,insufficient,ambiguousNameComponents},
   scope:'Bounded shared SUBJECT names and literal focus nesting, not event equality or a learned semantic taxonomy. Publisher keys/material identities supplied by trusted producer; source/version/erasure gates still required before live use.'});
 }
