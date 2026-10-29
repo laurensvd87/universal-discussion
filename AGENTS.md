@@ -8,6 +8,15 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct diagnostic actualf7ce1a37...93f32f CLOSEDexit1 AUTHOR_START_UNKNOWN;
+cap/editor/bundle/context precedingPASS. Root all2579endpins/normalownedcleanup
+PASS. ExactHTTPerror unretained. Pure SAMEsixproducttitles reproduces fixture
+raw5peers vsrealUIexplicitpool1; realAIruntime rejectsraw BEFOREprovider, accepts
+normal. Narrow fixturebuilder now uses exact UI two-step21pool->6 selected path;
+24focusedPASS. No service validation/assertion/limit relaxation. CatalogSTALE/
+newsource/catalog/separateONEactual required. Allfailedruns immutable. GoalACTIVE.
+
+
 LATEST29Oct corrected bridge ONE actualdcd35e25...03a320 CLOSEDexit1: context9
 PASS +AIinstallPASS; normalHTTP/realAIjobcase failed primarygeneric, exactstep/
 causeUNKNOWN. Root all2579endpins/savedfailure auditPASS; expected42501 role

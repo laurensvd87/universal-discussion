@@ -14,6 +14,10 @@ import {createLocalAiClient} from '../../../../spikes/topic-resolution/browser/c
 import {createLocalServiceClient} from '../../../../spikes/topic-resolution/browser/core/local-service-client.js';
 import names from './automatic-author-insight-native-cases.json' with {type:'json'};
 export const AUTOMATIC_AUTHOR_INSIGHT_NATIVE_CASES=Object.freeze([...names]);
+export function authoredFixtureInsightContext(bundle,sourceId,topicId){
+ const input={...bundle,sourceId,topicId,includeDiscussion:false},pool=buildInsightContext({...input,sourceLimit:21});
+ return buildInsightContext({...input,allowedRelatedSourceIds:[...pool.sameTopicSources,...pool.relatedSources].map(source=>source.id),sourceLimit:6});
+}
 export async function authoredBridgeStep(stage,work){
  if(!['CAPABILITIES','EDITOR','BUNDLE','CONTEXT','START','RESULT','PUBLISH'].includes(stage)||typeof work!=='function')throw new TypeError('Invalid owned bridge stage');
  try{return await work();}catch(error){
@@ -72,7 +76,7 @@ export async function runAutomaticAuthorInsightNativeAssertions(scope){
    await authoredBridgeStep('CAPABILITIES',async()=>assert.equal((await client.semanticCapabilities()).authorContext,'authored-topics/v1'));
    await authoredBridgeStep('EDITOR',async()=>assert.deepEqual((await client.authorContext({sourceId:source})).context.scope,e.scope));
    const bundle=await authoredBridgeStep('BUNDLE',()=>service.insightBundle({sourceId:source,topicId:e.topicId,includeDiscussion:false,includeRelatedSources:false,destinationTopicId:null}));
-   const context=await authoredBridgeStep('CONTEXT',()=>buildInsightContext({...bundle,sourceId:source,topicId:e.topicId,includeDiscussion:false}));
+   const context=await authoredBridgeStep('CONTEXT',()=>authoredFixtureInsightContext(bundle,source,e.topicId));
    original.expected=bundle.version;
    await authoredBridgeStep('START',()=>aiClient.start({operationId:original.command.operationId,model:'synthetic',context,articleText:'Invented foreground article text',allowWebResearch:false,
     includeRelatedSources:false,expected:bundle.version,authorScope:e.scope},actor.id));

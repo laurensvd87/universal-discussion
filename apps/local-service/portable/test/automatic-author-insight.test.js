@@ -1,7 +1,9 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
 import {createAutomaticAuthorContextRepository as repository} from '../canonical-v4/automatic-author-context-repository.js';
 import {createCanonicalV4LifecycleRepository as lifecycle,prepareCanonicalV4LifecycleCommand as prepare} from '../canonical-v4/lifecycle-repository.js';
-import {authoredBridgeStep} from './automatic-author-insight-native-assertions.js';
+import {authoredBridgeStep,authoredFixtureInsightContext} from './automatic-author-insight-native-assertions.js';
+import {buildInsightContext} from '../../../../spikes/topic-resolution/browser/core/insight-context.js';
+import {createChatGPTRuntime} from '../../src/ai/chatgpt-runtime.js';
 const generation='invented-generation',actor={id:'demo-alex',type:'human',demo:true},expected={generation,revision:7};
 const scope={kind:'named',id:'12345678-1234-4123-8123-123456789abc',caption:'Steam Deck',sourceId:'source-a',materialDigest:'a'.repeat(64)};
 const command={type:'share-insight',topicId:'topic-a',body:'Exact generated result',operationId:'operation-a',originSourceId:'source-a'};
@@ -9,6 +11,19 @@ const proof={kind:'generated-insight',operationId:command.operationId,actorId:ac
 const request=()=>structuredClone({expected,command,actor,proof,scope}),dependencies={nextId:()=> 'generated-root',now:()=> '2026-10-29T13:30:00Z'};
 const result={version:{generation,revision:8},result:{contributionId:'generated-root'}};
 const code=c=>e=>e?.code===c;
+
+test('the owned request uses the real UI selected-pool projection; the raw product context is rejected by the real AI runtime',async t=>{
+ const topicId='topic-a',titles=['Steam Deck OLED screen replacement','Orion Console Pro battery replacement','Orion Console Pro screen replacement','Orion Console Lite battery replacement','Orion Console Lite screen replacement','Unannounced novel product'];
+ const version={generation,revision:7},catalog={version,topics:[{id:topicId,title:'Invented manual destination'}],sources:titles.map((title,i)=>({id:'source-'+i,title,url:'https://general.example.org/products/'+i,topicId}))};
+ const bundle={catalog,discussion:{version},related:null,version,anchor:{version}},sourceId='source-1',raw=buildInsightContext({...bundle,sourceId,topicId,includeDiscussion:false}),normal=authoredFixtureInsightContext(bundle,sourceId,topicId);
+ assert.equal(raw.sameTopicSources.length,5);assert.equal(normal.sameTopicSources.length,1);let calls=0;
+ const ai=createChatGPTRuntime({service:{actor:()=>actor,insightBundle:async()=>bundle,authorScopeCurrent:async()=>true},
+  connectionAdapter:{status:()=>({connected:true,planEnabled:true,pending:false}),dispose(){}},
+  insightsAdapter:{async createInsight(){calls++;return {body:'Complete answer',citations:[],model:'synthetic'};},cancel(){},dispose(){}}});t.after(()=>ai.dispose());
+ const input={operationId:'raw-context',model:'synthetic',context:raw,articleText:'Invented foreground text',allowWebResearch:false,includeRelatedSources:false,expected:version,authorScope:{...scope,sourceId}};
+ await assert.rejects(ai.create(input,actor.id),code('invalid'));assert.equal(calls,0);
+ await ai.create({...input,operationId:'normal-context',context:normal},actor.id);await Promise.resolve();await Promise.resolve();assert.equal(calls,1);
+});
 
 test('owned bridge diagnostics preserve only a finite stage and known error code, never private error text or object hooks',async()=>{
  await assert.rejects(authoredBridgeStep('BUNDLE',()=>{throw Object.assign(Error('Private page and credentials'),{code:'storage-corrupt'});}),
