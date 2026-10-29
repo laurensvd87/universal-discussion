@@ -23,7 +23,8 @@ function command(input){const p=plan(JSON.stringify(input));return {generation:p
  updates:p.updates,selections:p.selections,witnesses:p.commitWitnesses,candidates:input.candidates.map(({subjectId,revision,focusKey,contextRootId})=>({subjectId,revision,focusKey,contextRootId}))};}
 
 export async function runAutomaticSubjectNativeAssertions({owner,worker,app,observer,generation,matcher,cases}){
- const identity=describeRootedHierarchyMatcher(matcher),matcherHash=sha(JSON.stringify(identity)),fusion=compilePairedE5Input(identity.inputDefinition);
+ const identity=describeRootedHierarchyMatcher(matcher),matcherHash=sha(JSON.stringify(identity)),
+  fusion=compilePairedE5Input({bodyWeight:identity.inputDefinition.bodyWeight,titleWeight:identity.inputDefinition.titleWeight,encoderHash:identity.inputDefinition.encoderHash});
  const repo=repository({database:worker}),read=repository({database:app}),stored=createCanonicalV4SemanticSourceRepository({database:worker});
  const titles=['Steam Deck OLED battery replacement','Steam Deck OLED screen replacement','Steam Deck LCD battery replacement','Steam Deck LCD screen replacement',
   'Nintendo Switch 2 repair','Nintendo Switch OLED repair','Unannounced novel product'];
@@ -59,9 +60,10 @@ export async function runAutomaticSubjectNativeAssertions({owner,worker,app,obse
   work.catch(error=>ready.resolve({error}));try{const r=await ready.promise;if(r.error)throw r.error;await body(r.result,()=>release.resolve());}catch(error){primary=error;}
   finally{release.resolve();try{await work;}catch(error){primary??=error;}}if(primary)throw primary;
  }
- const ownerPid=Number((await one(owner,'SELECT pg_backend_pid() pid')).pid);
+ let ownerPid=null;
  await test(0,async()=>{
   await owner.exec(await readFile(new URL('../canonical-v4/drafts/automatic-named-subjects.sql',import.meta.url),'utf8'));
+  ownerPid=Number((await one(owner,'SELECT pg_backend_pid() pid')).pid);
   for(const [title,start,end,expected]of [['Koalas',0,6,'Koalas'],['\ud83d\udc28 Koalas',3,9,'Koalas'],['\ud83d\udc28 Koalas',1,2,null],['\ufb01sh',0,4,'fish']])
    assert.equal((await one(owner,'SELECT canonical_v4.named_title_slice($1,$2,$3) value',[title,start,end])).value,expected);
  });

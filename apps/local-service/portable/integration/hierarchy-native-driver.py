@@ -173,6 +173,7 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/portable/canonical-v4/drafts/public-subject-source-bindings.sql',
     'apps/local-service/portable/test/automatic-subject-native-cases.json',
     'apps/local-service/portable/test/automatic-subject-native-assertions.js',
+    'apps/local-service/portable/test/automatic-subject-native-source.test.js',
     'apps/local-service/portable/test/automatic-named-subject-repository.test.js',
     'apps/local-service/portable/canonical-v4/automatic-named-subject-repository.js',
     'apps/local-service/portable/canonical-v4/drafts/automatic-named-subjects.sql',

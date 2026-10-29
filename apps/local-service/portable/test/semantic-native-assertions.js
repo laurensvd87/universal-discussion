@@ -44,7 +44,7 @@ const sqlCode=expected=>error=>Boolean(error&&error.code===expected);
 
 // Actual numeric trainers/compilers, entirely invented axis vectors and groups.
 // No archived study material, real embeddings or native observation claims.
-function numericMatcher(version,{reparent=false}={}){
+export function numericMatcher(version,{reparent=false}={}){
  const inputDefinition={bodyWeight:.75,titleWeight:.25,encoderHash:'a'.repeat(64)},paired=describePairedE5Input(compilePairedE5Input(inputDefinition));
  const roots=[{id:'games',parentId:null},{id:'nature',parentId:null}];
  const rootModel=trainHierarchyLinearHeads({nodes:roots,rows:Array.from({length:4},(_,i)=>({id:'invented-train-'+i,groupId:'invented-train-group-'+i,
