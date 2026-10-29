@@ -8,6 +8,15 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct corrected bridge ONE actualdcd35e25...03a320 CLOSEDexit1: context9
+PASS +AIinstallPASS; normalHTTP/realAIjobcase failed primarygeneric, exactstep/
+causeUNKNOWN. Root all2579endpins/savedfailure auditPASS; expected42501 role
+checks are NOT failurecause. Exactownsmartstop/oneusedDBdrop/emptyJob/handles
+TRUE/emergencyFALSE/stderr0. New SOURCE only finite stage+knowncode projection
+(no error text/cause/getters),23focusedPASS. No production behavior/limit change.
+CatalogSTALE/newcommit/catalog/separateONEdecision needed. GoalACTIVE.
+
+
 LATEST29Oct bridge ONE actual83948467...c04824 CLOSEDexit1/42883 atcontext
 installation; noHTTP/AIcase reached. Root all2579endpins/savedfailure auditPASS,
 exactownsmartstop/oneusedDBdrop/emptyJob/allhandlesTRUE/emergencyFALSE/stderr0.

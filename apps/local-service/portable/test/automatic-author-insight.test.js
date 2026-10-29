@@ -1,6 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
 import {createAutomaticAuthorContextRepository as repository} from '../canonical-v4/automatic-author-context-repository.js';
 import {createCanonicalV4LifecycleRepository as lifecycle,prepareCanonicalV4LifecycleCommand as prepare} from '../canonical-v4/lifecycle-repository.js';
+import {authoredBridgeStep} from './automatic-author-insight-native-assertions.js';
 const generation='invented-generation',actor={id:'demo-alex',type:'human',demo:true},expected={generation,revision:7};
 const scope={kind:'named',id:'12345678-1234-4123-8123-123456789abc',caption:'Steam Deck',sourceId:'source-a',materialDigest:'a'.repeat(64)};
 const command={type:'share-insight',topicId:'topic-a',body:'Exact generated result',operationId:'operation-a',originSourceId:'source-a'};
@@ -8,6 +9,14 @@ const proof={kind:'generated-insight',operationId:command.operationId,actorId:ac
 const request=()=>structuredClone({expected,command,actor,proof,scope}),dependencies={nextId:()=> 'generated-root',now:()=> '2026-10-29T13:30:00Z'};
 const result={version:{generation,revision:8},result:{contributionId:'generated-root'}};
 const code=c=>e=>e?.code===c;
+
+test('owned bridge diagnostics preserve only a finite stage and known error code, never private error text or object hooks',async()=>{
+ await assert.rejects(authoredBridgeStep('BUNDLE',()=>{throw Object.assign(Error('Private page and credentials'),{code:'storage-corrupt'});}),
+  e=>e.code==='AUTHOR_BUNDLE_STORAGE_CORRUPT'&&e.message==='Owned topic bridge did not complete'&&!Object.hasOwn(e,'cause'));
+ const unknown=Error('Private details');Object.defineProperty(unknown,'code',{get(){assert.fail('No unknown getter');}});
+ await assert.rejects(authoredBridgeStep('CONTEXT',()=>{throw unknown;}),code('AUTHOR_CONTEXT_UNKNOWN'));
+ await assert.rejects(authoredBridgeStep('arbitrary-page-title',()=>assert.fail('Invalid stage executes no work')),TypeError);
+});
 
 test('all context permission signatures match real declarations and the saved undefined-function regression is detected',async()=>{
  const sql=(await readFile(new URL('../canonical-v4/drafts/automatic-author-context.sql',import.meta.url),'utf8')).replace(/\r\n/g,'\n');

@@ -14,6 +14,14 @@ import {createLocalAiClient} from '../../../../spikes/topic-resolution/browser/c
 import {createLocalServiceClient} from '../../../../spikes/topic-resolution/browser/core/local-service-client.js';
 import names from './automatic-author-insight-native-cases.json' with {type:'json'};
 export const AUTOMATIC_AUTHOR_INSIGHT_NATIVE_CASES=Object.freeze([...names]);
+export async function authoredBridgeStep(stage,work){
+ if(!['CAPABILITIES','EDITOR','BUNDLE','CONTEXT','START','RESULT','PUBLISH'].includes(stage)||typeof work!=='function')throw new TypeError('Invalid owned bridge stage');
+ try{return await work();}catch(error){
+  const d=error&&Object.getOwnPropertyDescriptor(error,'code'),code=d&&Object.hasOwn(d,'value')?d.value:null;
+  const reason=['invalid-response','invalid-request','invalid','conflict','forbidden','unavailable','storage-corrupt','storage-failure','ERR_ASSERTION'].includes(code)?code.replaceAll('-','_').toUpperCase():'UNKNOWN';
+  throw Object.assign(new Error('Owned topic bridge did not complete'),{code:`AUTHOR_${stage}_${reason}`});
+ }
+}
 const actor={id:'demo-alex',type:'human',demo:true},code=c=>e=>e?.code===c;
 async function one(db,sql,args=[]){const r=await db.query(sql,args);assert.equal(r.rows.length,1);return r.rows[0];}
 const deferred=()=>{let resolve;const promise=new Promise(done=>{resolve=done;});return {promise,resolve};};
@@ -61,15 +69,15 @@ export async function runAutomaticAuthorInsightNativeAssertions(scope){
     const r=await handle({method:options.method,url:u.pathname,headers:{...options.headers,host:config.hostHeader,origin:config.origin},body:options.body});
     return new Response(r.body,{status:r.status,headers:r.headers});};
    const client=createLocalServiceClient({fetchImpl,getToken:()=>config.capability}),aiClient=createLocalAiClient({fetchImpl,getToken:()=>config.capability});
-   assert.equal((await client.semanticCapabilities()).authorContext,'authored-topics/v1');
-   const shown=await client.authorContext({sourceId:source});assert.deepEqual(shown.context.scope,e.scope);
-   const bundle=await service.insightBundle({sourceId:source,topicId:e.topicId,includeDiscussion:false,includeRelatedSources:false,destinationTopicId:null});
-   const context=buildInsightContext({...bundle,sourceId:source,topicId:e.topicId,includeDiscussion:false});
+   await authoredBridgeStep('CAPABILITIES',async()=>assert.equal((await client.semanticCapabilities()).authorContext,'authored-topics/v1'));
+   await authoredBridgeStep('EDITOR',async()=>assert.deepEqual((await client.authorContext({sourceId:source})).context.scope,e.scope));
+   const bundle=await authoredBridgeStep('BUNDLE',()=>service.insightBundle({sourceId:source,topicId:e.topicId,includeDiscussion:false,includeRelatedSources:false,destinationTopicId:null}));
+   const context=await authoredBridgeStep('CONTEXT',()=>buildInsightContext({...bundle,sourceId:source,topicId:e.topicId,includeDiscussion:false}));
    original.expected=bundle.version;
-   await aiClient.start({operationId:original.command.operationId,model:'synthetic',context,articleText:'Invented foreground article text',allowWebResearch:false,
-    includeRelatedSources:false,expected:bundle.version,authorScope:e.scope},actor.id);
-   const result=await aiClient.result(original.command.operationId,actor.id);assert.equal(result.state,'completed');assert.deepEqual(result.authorScope,e.scope);
-   posted=await client.command(bundle.version,{...original.command,authorScope:e.scope},actor.id);roots.push(posted.result.contributionId);
+   await authoredBridgeStep('START',()=>aiClient.start({operationId:original.command.operationId,model:'synthetic',context,articleText:'Invented foreground article text',allowWebResearch:false,
+    includeRelatedSources:false,expected:bundle.version,authorScope:e.scope},actor.id));
+   await authoredBridgeStep('RESULT',async()=>{const result=await aiClient.result(original.command.operationId,actor.id);assert.equal(result.state,'completed');assert.deepEqual(result.authorScope,e.scope);});
+   posted=await authoredBridgeStep('PUBLISH',()=>client.command(bundle.version,{...original.command,authorScope:e.scope},actor.id));roots.push(posted.result.contributionId);
    assert.equal(providerCalls,1);assert.deepEqual(issued.authorScope,e.scope);assert.equal(issued.body,original.command.body);
   }finally{ai.dispose();}
   const c=await root(posted.result.contributionId);assert.equal(c.scope.id,e.scope.id);assert.equal(c.scope.caption,e.scope.caption);
