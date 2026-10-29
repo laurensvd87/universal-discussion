@@ -1,5 +1,17 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct parent-conditioned comparison actual PASSED/terminalexit0. Both fixed
+Video-games variants accept9 CAL positives and0/3 insideGames negatives; the
+predeclared tie selects fully parent-conditioned training+CAL. Animals correctly
+disabled: only2 insideNature negative CAL groups (<3); training-only variant has
+no error-free cut. Koalas disabled/TRAIN0. Comparison23308B SHA
+8508e062337386363443856aabc3d49ee12ad61cc7313585fc1e7bade0985a77;
+Root audit hierarchy-child-parent-conditioning-root-audit-20261029.json.
+No encoder/TEST/network/SQL/live change. Remaining issue is real TRAIN diversity
+(Animals only octopus/whale-shark, Video-games GTA-heavy) and valid Koalas TRAIN.
+Next declare broader TRAIN and more withinNature negative CAL, preserving old
+corpora/splits and consumed TEST. Fresh acceptance must use newly frozen subjects.
+
 29Oct next method SOURCE ready: run-hierarchy-child-parent-conditioning.js compares
 exactly2 declared modes on the existing44 TRAIN/CAL rows: parent-only training,
 then parent-only training AND calibration. Pure64MiB/no encoder/network/TEST/SQL;
