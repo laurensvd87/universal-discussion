@@ -43,6 +43,20 @@ test('default startup retains the old canonical API until the trusted operator o
  await application.close();assert.equal(f.calls.some(([kind])=>kind==='canonical-close'),false,'caller owns an unowned pool');
 });
 
+test('explicit automatic18 API exposes the authored context and one global topic search without an encoder',async()=>{
+ const f=await fixture('hierarchy18'),application=await openDormantPostgresApplication({...f.options,hierarchicalTopics:true,automaticTopics:true});
+ try{for(const name of ['semanticSearch','authorContext','authorScopeCurrent','semanticFeed','semanticThread','semanticTarget'])assert.equal(typeof application.service[name],'function');
+  assert.equal(application.topicSpaces,null);assert(f.calls.every(([kind])=>kind==='canonical-query'));
+ }finally{await application.close();}
+});
+
+test('automatic topic startup requires the explicit hierarchy control and exact schema18',async()=>{
+ for(const extra of [{automaticTopics:true},{hierarchicalTopics:true,automaticTopics:'true'}]){
+  const f=await fixture('hierarchy18');await assert.rejects(openDormantPostgresApplication({...f.options,...extra}),TypeError);assert.deepEqual(f.calls,[]);
+ }
+ for(const profile of ['legacy9','hierarchy16','hierarchy17']){const f=await fixture(profile);await assert.rejects(openDormantPostgresApplication({...f.options,hierarchicalTopics:true,automaticTopics:true}),{code:'unavailable'});}
+});
+
 test('invalid hierarchy controls and legacy worker overrides fail before any database work',async()=>{
  for(const extra of [{hierarchicalTopics:'true'},
   {hierarchicalTopics:true,ingestionWorkerDatabase:{query:async()=>assert.fail('No query')},ingestionWorkerRepository:{}}]){

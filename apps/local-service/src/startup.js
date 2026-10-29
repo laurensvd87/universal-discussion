@@ -21,6 +21,7 @@ import { createCanonicalV4ReadFacade } from "../portable/canonical-v4/read-facad
 import { createCanonicalV4RuntimeRepository } from "../portable/canonical-v4/runtime-repository.js";
 import { createCanonicalV4IngestionRepository } from "../portable/canonical-v4/ingestion-repository.js";
 import { createCanonicalV4LifecycleRepository } from "../portable/canonical-v4/lifecycle-repository.js";
+import { createAutomaticAuthorContextRepository } from "../portable/canonical-v4/automatic-author-context-repository.js";
 import { createPostgresCanonicalService } from "./application/create-postgres-canonical-service.js";
 import { createStoredSourcePreparationRequests } from "./application/stored-source-preparation-requests.js";
 import { createPostgresInteractiveIngestion } from "./application/postgres-interactive-ingestion.js";
@@ -96,12 +97,13 @@ export async function openDormantPostgresApplication({ config: input, databasePa
   workerOptions = {}, chatgptFetchImpl, chatgptRefreshStore = null, insightTrace = null,
   insightDebug = null, insightRequestTrace = null, ai, pairingVerifier = null,
   accountsEnabled = false, accountHmacKey = null, accountDatabasePath = null,
-  hierarchicalTopics = false } = {}) {
+  hierarchicalTopics = false, automaticTopics = false } = {}) {
   const config = validateStartupConfig(input);
   if (!canonicalDatabase || typeof canonicalDatabase.query !== "function" ||
       typeof canonicalDatabase.transaction !== "function" || typeof nextId !== "function" || typeof now !== "function" ||
       typeof canonicalDatabaseOwned !== "boolean" || typeof urlSelectionDatabaseOwned !== "boolean" ||
-      typeof ingestionWorkerDatabaseOwned !== "boolean" || typeof hierarchicalTopics !== "boolean")
+      typeof ingestionWorkerDatabaseOwned !== "boolean" || typeof hierarchicalTopics !== "boolean" ||
+      typeof automaticTopics !== "boolean" || automaticTopics && !hierarchicalTopics)
     throw new TypeError("Invalid PostgreSQL application dependencies");
   if (urlSelectionDatabase !== null && (typeof urlSelectionDatabase.query !== "function" ||
       typeof urlSelectionDatabase.transaction !== "function" || urlSelectionDatabase === canonicalDatabase ||
@@ -117,10 +119,11 @@ export async function openDormantPostgresApplication({ config: input, databasePa
   if (hierarchicalTopics && ingestionWorkerRepository !== null)
     throw new TypeError("Installed hierarchy requires its own worker repository");
   mkdirSync(path.dirname(databasePath), { recursive: true });
-  const reads = createCanonicalV4ReadFacade({ database: canonicalDatabase });
+  const automaticReads=automaticTopics?{automaticTopics:true,unifiedTopicSearch:true,combinedHierarchy:true}:{};
+  const reads = createCanonicalV4ReadFacade({ database: canonicalDatabase,...automaticReads });
   const urlSelectionReads = urlSelectionDatabase === null ? reads :
-    createCanonicalV4ReadFacade({ database: urlSelectionDatabase });
-  const schemaProfile = hierarchicalTopics ? 'hierarchy17' : 'legacy9';
+    createCanonicalV4ReadFacade({ database: urlSelectionDatabase,...automaticReads });
+  const schemaProfile = automaticTopics ? 'hierarchy18' : hierarchicalTopics ? 'hierarchy17' : 'legacy9';
   const commands = createCanonicalV4RuntimeRepository({ database: canonicalDatabase, nextId, now, schemaProfile });
   const contributionLifecycle = createCanonicalV4LifecycleRepository({ database: canonicalDatabase, nextId, now, schemaProfile });
   const appIngestionRepository = ingestion?.enqueueInteractive ? ingestion :
@@ -162,6 +165,8 @@ export async function openDormantPostgresApplication({ config: input, databasePa
   const service = createPostgresCanonicalService({ reads, urlSelectionReads, runtime: commands,
     ingestion: interactiveIngestion, lifecycle: lifecycleBoundary,
     semanticDiscussions: hierarchicalTopics,
+    automaticTopics,
+    authoredTopics:automaticTopics?createAutomaticAuthorContextRepository({database:canonicalDatabase,ownerGrouping:true,combinedHierarchy:true,nextId,now}):null,
     requestSemanticPreparation: preparationRequests?.request ?? null,
     resolveAccountActor: id => accounts?.principalForAccountId(id) ?? null,
     readAccountActors: () => accounts?.publicActors() ?? [] });
@@ -199,7 +204,7 @@ export async function openDormantPostgresApplication({ config: input, databasePa
     if (hierarchicalTopics && ingestionWorkerDatabase !== null) {
       referenceMatcher ??= alternateRidgeAdapter === null ? null : createInstalledFixedReferenceMatcher(alternateRidgeAdapter);
       worker = await openInstalledHierarchyRuntime({ database: ingestionWorkerDatabase,
-        referenceMatcher, nextId, now, workerOptions });
+        referenceMatcher, nextId, now, workerOptions,...(automaticTopics?{automaticTopics:true}:{}) });
     } else if (ingestionWorkerRepository !== null) {
       referenceMatcher ??= alternateRidgeAdapter === null ? null : createInstalledFixedReferenceMatcher(alternateRidgeAdapter);
       worker = startPostgresIngestionWorkerLoop({ ...workerOptions,

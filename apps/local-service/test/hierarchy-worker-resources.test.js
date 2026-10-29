@@ -39,6 +39,13 @@ function setup({encoderReady=null,embed=async()=>({modelId:MODEL,values:axis()})
  return {state,options,dependencies,completed,open:()=>openHierarchyWorkerResourcesForTest(options,dependencies)};
 }
 
+test('the automatic worker selects schema18 explicitly and refuses unrelated profiles before opening an encoder',async()=>{
+ const f=setup(),original=f.dependencies.createIngestionRepository;let selected;
+ f.dependencies.createIngestionRepository=value=>{selected=value;return original(value);};
+ const resource=await openHierarchyWorkerResourcesForTest({...f.options,schemaProfile:'hierarchy18'},f.dependencies);assert.equal(selected.schemaProfile,'hierarchy18');await resource.close();assert.equal(f.state.encoderClosed,1);
+ for(const schemaProfile of ['legacy9','hierarchy16','hierarchy19',18,null,undefined]){const g=setup();await assert.rejects(openHierarchyWorkerResourcesForTest({...g.options,schemaProfile},g.dependencies),TypeError);assert.deepEqual(g.state.events,[]);}
+});
+
 test('encoder is ready before any claim; real worker passes exact durable preparation only to semantic apply',async()=>{
  const ready=defer(),f=setup({encoderReady:ready});const opening=f.open();await Promise.resolve();assert.equal(f.state.claims,0);
  ready.resolve();const r=await opening;assert.equal(f.state.claims,0);assert.equal(r.descriptor.productionBinding,false);assert.equal(r.descriptor.titleEncoder.packagedAssetsVerified,false);
@@ -50,6 +57,12 @@ test('encoder is ready before any claim; real worker passes exact durable prepar
  assert.equal(value.preparation.matcherIdentityHash,r.descriptor.installed.matcherIdentityHash);assert.equal(value.preparation.numericPreparedOnly,true);
  assert.equal(value.preparation.assignmentAuthority,false);assert.equal(value.preparation.titleEmbedding.modelId,MODEL);
  assert.ok(f.state.events.indexOf('encoder-ready')<f.state.events.indexOf('claim'));assert.equal(f.state.encoderClosed,1);
+});
+
+test('stopping ingestion joins its original work while keeping the shared encoder alive for other drains',async()=>{
+ const gate=defer(),entered=defer(),f=setup({embed:async()=>{entered.resolve();await gate.promise;return {modelId:MODEL,values:axis()};}}),r=await f.open();
+ r.startWorker();await entered.promise;let stopped=false;const stopping=r.stopWorker().then(()=>{stopped=true;});await Promise.resolve();assert.equal(stopped,false);assert.equal(f.state.encoderClosed,0);
+ gate.resolve();await stopping;assert.throws(()=>r.startWorker(),{code:'unavailable'});await r.embedCapturedBody('Remaining public evidence uses the same owned encoder.');assert.equal(f.state.encoderClosed,0);await r.close();assert.equal(f.state.encoderClosed,1);
 });
 
 test('live and stored actual preparations share one encoder and total pending admission stays at eight',async()=>{

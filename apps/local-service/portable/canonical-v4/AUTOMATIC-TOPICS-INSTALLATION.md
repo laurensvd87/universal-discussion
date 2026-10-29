@@ -43,9 +43,8 @@ third scratch database or additional physical connection is introduced.
 
 The original170 reports remain mandatory. These joined tests are invented numeric
 fixture evidence, not representative E5 quality, genuine browser/provider, many-user
-load or live latency. Native execution is pending. Runtime/worker/dashboard wiring,
-final breadcrumbs, protected full-data migration/recovery, real quality/UI/load
-and verified live activation are still required.
+load or live latency. Dashboard wiring, final breadcrumbs, protected full-data
+migration/recovery, real quality/UI/load and verified live activation are still required.
 
 On 29 October the first owned native invocation passed the fresh migration/install
 rollback checks and the existing-thread upgrade, idempotence, strict-profile and
@@ -56,6 +55,34 @@ token; the migration and installer bytes did not change. A separately authorized
 invocation of that correction stopped at the original D: resource floor, with no
 retained child assertion report. Both failed runs remain unadopted and immutable;
 all2639 consumed pins and their distinct normal/emergency cleanup were audited.
-There is no accepted190-case result yet. Guarded699 Node tests and78 pure controller
-tests pass; these do not replace actual SQL completion, storage recovery or the
-remaining product integration and quality checks.
+After verified lossless compression of inactive development session logs recovered
+479676780 allocated bytes, a new separately decided invocation completed all190
+reports. Run `run-6a26014f047d2ca53f3537621205018c806c416c77b26c56` used catalog
+`540f8de002f76c7be2284efe12858827d45e5494b55e8c4a15037ba443666ce4`.
+Result SHA256 `8f2909e2c74ad0871489e677dd8f0aa112d64bb317780a2c9940521e21b39f47`;
+stdout SHA256 `c38070725f430107ef58a7486bd1f91d8aea9bb4739f917d70b6bb53046a067d`.
+Root audit `data/automatic18-native-root-audit-20261029.json` verifies every2639
+consumed pin, both database drops, exact smart stop, empty Job, closed handles,
+no emergency and empty stderr. It tests the previously composed HTTP service;
+the later ordinary startup/worker composition described below needs its own proof.
+
+The trusted PostgreSQL startup now accepts `automaticTopics:true` only together
+with `hierarchicalTopics:true` and an exact registered18 database. It binds the
+combined author editor, named/fixed/legacy feeds and unified global search to
+the existing app and URL-selection pools. No API-side encoder or migration is
+opened. Default startup and the currently sealed live release retain their old
+profiles until the operator explicitly switches them.
+
+The installed worker's same flag selects18 health checks and combines the stored
+Source preparation loop with the bounded automatic discovery coordinator. Its
+retrieval, subject registry/public-identity recovery, feeds, public evidence,
+single-Source lookup and global directory share the existing worker pool. Public
+text and Source titles share the one serial owned E5 encoder; no second model or
+connection pool is added. Shutdown signals all producers and stops new ingestion
+claims before joining their original work, then releases shared encoder resources.
+Guarded738 Node tests pass, including exact-profile refusals and held-original
+shutdown tests. The native fixture extends its existing HTTP and joined setup
+cases to call ordinary startup and the real worker SQL ports with a stub encoder
+and a FIFO over the original workerB session; it adds no physical client or report
+waiver. That extended runtime proof is pending. A FIFO fixture proves wiring and
+drains, not production pool concurrency, real E5 quality or live readiness.

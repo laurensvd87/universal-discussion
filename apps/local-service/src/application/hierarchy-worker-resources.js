@@ -37,9 +37,10 @@ function freeze(value){if(value&&typeof value==='object'){for(const child of Obj
 
 // Used by both explicit runtime composition and the direct production factory.
 // This is verification only: it cannot migrate, register, activate or claim.
-export async function verifyInstalledHierarchyWorkerReadiness(database,installed){
+export async function verifyInstalledHierarchyWorkerReadiness(database,installed,schemaProfile='hierarchy17'){
  try{
-  await createCanonicalV4IngestionRepository({database,schemaProfile:'hierarchy17'}).health();
+  if(!['hierarchy17','hierarchy18'].includes(schemaProfile))throw unavailable();
+  await createCanonicalV4IngestionRepository({database,schemaProfile}).health();
   const rows=(await database.query(`SELECT pg_catalog.to_regprocedure($1) IS NOT NULL AS container_installed,
    pg_catalog.has_function_privilege(current_user,pg_catalog.to_regprocedure($2),'EXECUTE') AS semantic_execute,
    coalesce(pg_catalog.has_function_privilege(current_user,pg_catalog.to_regprocedure($1),'EXECUTE'),false) AS container_execute,
@@ -62,22 +63,23 @@ export async function verifyInstalledHierarchyWorkerReadiness(database,installed
 }
 
 async function openResources(options,dependencies,productionBinding){
- const a=fields(options,['database','referenceMatcher','nextId','now']);
+ const a=fields(options,['database','referenceMatcher','nextId','now','schemaProfile'],['database','referenceMatcher','nextId','now']);
+ const schemaProfile=Object.hasOwn(a,'schemaProfile')?a.schemaProfile:'hierarchy17';if(!['hierarchy17','hierarchy18'].includes(schemaProfile))invalid();
  if(!a.database||typeof a.database.query!=='function'||typeof a.referenceMatcher?.represent!=='function'||typeof a.nextId!=='function'||typeof a.now!=='function')invalid();
  const represent=a.referenceMatcher.represent.bind(a.referenceMatcher);
  const installed=await dependencies.loadInstalled();let encoder=null;
  try{
-  const ingest=dependencies.createIngestionRepository({database:a.database,nextId:a.nextId,now:a.now,schemaProfile:'hierarchy17'});
-  if(productionBinding)await verifyInstalledHierarchyWorkerReadiness(a.database,installed);
+  const ingest=dependencies.createIngestionRepository({database:a.database,nextId:a.nextId,now:a.now,schemaProfile});
+  if(productionBinding)await verifyInstalledHierarchyWorkerReadiness(a.database,installed,schemaProfile);
   else await ingest.health(); // Trusted test composition never claims production readiness.
   // Packaged production opener verifies all nine encoder assets and creates
   // its fixed runtime before any loop, claim or externally callable prep exists.
   encoder=await dependencies.openEncoder(installed);
   if(encoder?.modelId!==MODEL||typeof encoder.embed!=='function'||typeof encoder.close!=='function')throw unavailable();
-  if(productionBinding)await verifyInstalledHierarchyWorkerReadiness(a.database,installed);
+  if(productionBinding)await verifyInstalledHierarchyWorkerReadiness(a.database,installed,schemaProfile);
   const semantic=dependencies.createSemanticRepository({database:a.database,nextId:a.nextId,now:a.now});
   const stored=dependencies.createStoredRepository({database:a.database});
-  let closed=false,started=false,worker=null,closing=null,admitted=0,firstClaimChecked=false,tail=Promise.resolve();
+  let closed=false,started=false,workerStopped=false,worker=null,closing=null,admitted=0,firstClaimChecked=false,tail=Promise.resolve();
   const encoding=new Map(),preparations=new Set(),sqlCalls=new Set();
   async function embedTitle(title){
    if(closed)throw unavailable();
@@ -110,7 +112,7 @@ async function openResources(options,dependencies,productionBinding){
   const repository=Object.freeze({
    claim:async value=>{
     if(closed)throw unavailable();
-    if(productionBinding&&!firstClaimChecked){await verifyInstalledHierarchyWorkerReadiness(a.database,installed);if(closed)throw unavailable();firstClaimChecked=true;}
+    if(productionBinding&&!firstClaimChecked){await verifyInstalledHierarchyWorkerReadiness(a.database,installed,schemaProfile);if(closed)throw unavailable();firstClaimChecked=true;}
     return ingest.claim(value);
    },
    failClaim:(...args)=>ingest.failClaim(...args),
@@ -136,10 +138,11 @@ async function openResources(options,dependencies,productionBinding){
    prepareStoredSource:value=>prepare(storedPrep,value),
    storedSources:Object.freeze({requested:value=>sqlCall(()=>stored.requested(value)),candidates:value=>sqlCall(()=>stored.candidates(value)),reclassify:value=>sqlCall(()=>stored.reclassify(value))}),
    startWorker(options={}){
-    const selected=workerOptions(options);if(closed||started)throw unavailable();started=true;
+    const selected=workerOptions(options);if(closed||started||workerStopped)throw unavailable();started=true;
     worker=startPostgresIngestionWorkerLoop({...selected,repository,referenceMatcher:Object.freeze({represent}),prepareClaim});
     return worker;
    },
+   stopWorker(){workerStopped=true;return worker?.close()??Promise.resolve();},
    close(){
     if(!closing){
      closed=true;

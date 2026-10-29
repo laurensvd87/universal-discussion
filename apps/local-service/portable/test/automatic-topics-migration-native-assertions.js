@@ -2,18 +2,18 @@
 // ownerB and workerB only; app SQL roles run with SET LOCAL on ownerB's original
 // exclusive physical session. No new client, model, provider or live connection.
 import assert from 'node:assert/strict';import {createHash} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
 import {migrateCanonicalV4,readCanonicalV4MigrationManifest} from '../canonical-v4/index.js';
 import {installAutomaticTopics,upgradeAutomaticTopics} from '../canonical-v4/automatic-topics-installation.js';
 import {createCanonicalV4RuntimeRepository as runtime} from '../canonical-v4/runtime-repository.js';
 import {createCanonicalV4IngestionRepository as ingestion} from '../canonical-v4/ingestion-repository.js';
-import {createCanonicalV4LifecycleRepository} from '../canonical-v4/lifecycle-repository.js';
-import {createCanonicalV4ReadFacade} from '../canonical-v4/read-facade.js';
 import {createCanonicalV4SemanticRepository} from '../canonical-v4/semantic-repository.js';
-import {createAutomaticAuthorContextRepository} from '../canonical-v4/automatic-author-context-repository.js';
+import {createCanonicalV4SemanticSourceRepository} from '../canonical-v4/semantic-source-repository.js';
 import {createUnifiedTopicSearchMaintenance} from '../canonical-v4/unified-topic-search-maintenance.js';
 import {loadInstalledHierarchyMatcher} from '../../src/application/installed-hierarchy-matcher.js';
-import {createPostgresCanonicalService} from '../../src/application/create-postgres-canonical-service.js';
-import {createRequestHandler} from '../../src/http/request-handler.js';
+import {openDormantPostgresApplication} from '../../src/startup.js';
+import {openInstalledHierarchyRuntimeForTest} from '../../src/application/installed-hierarchy-runtime.js';
+import {openHierarchyWorkerResourcesForTest} from '../../src/application/hierarchy-worker-resources.js';
 import {createLocalServiceClient} from '../../../../spikes/topic-resolution/browser/core/local-service-client.js';
 import {runCombinedAuthorHierarchyNativeAssertions} from './combined-author-hierarchy-native-assertions.js';
 import {automaticTopicsFixtureInput} from './automatic-topics-fixture-input.js';
@@ -79,13 +79,17 @@ export function createAutomaticTopicsMigrationNativeAssertions({check}){
   });
   await check(46,async()=>{
    const maintenance=createUnifiedTopicSearchMaintenance({database:worker});for(let i=0;i<8;i++){const tasks=await maintenance.tasks(JSON.stringify({generation}));if(!tasks.length)break;for(const eventId of tasks)await maintenance.process(JSON.stringify({generation,eventId}));}
-   const reads=createCanonicalV4ReadFacade({database:app,automaticTopics:true,unifiedTopicSearch:true,combinedHierarchy:true}),service=createPostgresCanonicalService({reads,runtime:runtime({database:app,schemaProfile:'hierarchy18'}),lifecycle:createCanonicalV4LifecycleRepository({database:app,schemaProfile:'hierarchy18'}),authoredTopics:createAutomaticAuthorContextRepository({database:app,ownerGrouping:true,combinedHierarchy:true}),semanticDiscussions:true,automaticTopics:true});
-   const config={hostHeader:'127.0.0.1:4174',origin:'chrome-extension://'+'a'.repeat(32),capability:AUTOMATIC_TOPICS_NATIVE_CAPABILITY},handle=createRequestHandler({config,service});
-   const client=createLocalServiceClient({fetchImpl:async(url,o)=>{const u=new URL(url),r=await handle({method:o.method,url:u.pathname,headers:{...o.headers,host:config.hostHeader,origin:config.origin},body:o.body});return new Response(r.body,{status:r.status,headers:r.headers});},getToken:()=>config.capability});
+   const config={host:'127.0.0.1',port:4174,origin:'chrome-extension://'+'a'.repeat(32),capability:AUTOMATIC_TOPICS_NATIVE_CAPABILITY};let serial=0;
+   const application=await openDormantPostgresApplication({config,canonicalDatabase:app,hierarchicalTopics:true,automaticTopics:true,
+    databasePath:fileURLToPath(new URL('../data/automatic18-unused.sqlite',import.meta.url)),nextId:kind=>'automatic18-http-'+kind+'-'+(++serial),now:()=> '2026-10-29T00:00:00.000Z',ai:{dispose(){},restore:async()=>false}});
+   try{
+   const handle=application.handle;
+   const client=createLocalServiceClient({fetchImpl:async(url,o)=>{const u=new URL(url),r=await handle({method:o.method,url:u.pathname,headers:{...o.headers,host:'127.0.0.1:4174',origin:config.origin},body:o.body});return new Response(r.body,{status:r.status,headers:r.headers});},getToken:()=>config.capability});
    const rootId=legacyResult.result.contributionId,nodeId='legacy-topic-semantic-manual';assert((await client.semanticSearch({query:'Invented',limit:20,cursor:null})).topics.some(t=>t.nodeId===nodeId));
    const v=await client.semanticTarget({nodeId,rootId,targetId:rootId});assert.equal(v.topic.id,'topic-semantic-manual');
    const reply=await client.command(await header(),{type:'reply',discussionId:v.discussionId,rootId,replyToId:rootId,originSourceId:null,body:'The original conversation stays open after the upgrade.',semanticTarget:{nodeId,topicId:v.topic.id,rootRevision:v.rootRevision,targetRevision:v.targetRevision}},actor.id);
    assert((await client.semanticThread({nodeId,rootId,limit:20,cursor:null})).root.replies.some(r=>r.id===reply.result.contributionId));
+   }finally{await application.close();}
   });
   await check(47,async()=>{
    const rows=await registered(owner),before=await canonical(owner);await rollback(owner,async tx=>{await tx.query("UPDATE canonical_v4.schema_migrations SET hash=repeat('a',64) WHERE version=18");await assert.rejects(migrateCanonicalV4(transactionPort(tx),'hierarchy18'));});
@@ -93,6 +97,20 @@ export function createAutomaticTopicsMigrationNativeAssertions({check}){
   });
   let numeric;
   await check(48,async()=>{
+   // Reuse workerB through a FIFO adapter: the original owned session rejects
+   // overlapping commands, while the production binding uses a bounded pool.
+   // This proves real SQL wiring and physical drains, not pool/load or real E5.
+   let tail=Promise.resolve(),opened=0,closed=0;
+   const enqueue=work=>{const original=tail.then(work);tail=original.then(()=>undefined,()=>undefined);return original;};
+   const database={query:(...args)=>enqueue(()=>worker.query(...args)),transaction:work=>enqueue(()=>worker.transaction(work))};
+   const running=await openInstalledHierarchyRuntimeForTest({database,referenceMatcher:{represent:()=>assert.fail('Empty B must not represent a new claim')},nextId:kind=>'automatic18-worker-'+kind,now:()=> '2026-10-29T00:00:00.000Z',automaticTopics:true,workerOptions:{idleDelayMs:1000}},
+    {openResources:options=>openHierarchyWorkerResourcesForTest(options,{loadInstalled:loadInstalledHierarchyMatcher,
+     openEncoder:async()=>{opened++;return {modelId:'e5-small-q8-browser-main-prefix-v1',embed:()=>assert.fail('Empty B must not encode text'),close:async()=>{closed++;}};},
+     createIngestionRepository:ingestion,createSemanticRepository:createCanonicalV4SemanticRepository,createStoredRepository:createCanonicalV4SemanticSourceRepository})});
+   try{const deadline=performance.now()+3000;while(running.describe().automatic.phase!=='waiting'&&performance.now()<deadline)await new Promise(done=>setTimeout(done,5));
+    const state=running.describe().automatic;assert.equal(state.phase,'waiting');assert.equal(state.counts.failures,0);assert.equal(state.counts.conflicts,0);assert.equal(opened,1);
+   }finally{await running.close();await tail;}
+   assert.equal(closed,1);
    numeric=numericMatcher('joined-automatic18');const semantic=createCanonicalV4SemanticRepository({database:owner}),registered=await semantic.registerMatcher(numeric);
    await semantic.activateMatcher({matcherIdentityHash:registered.matcherIdentityHash,expectedRevision:(await head()).revision});
    const identity=await one(app,'SELECT current_user role');assert.equal(identity.role,'murmingle_app');assert.equal((await ingestion({database:worker,schemaProfile:'hierarchy18'}).health()).schemaVersion,18);
