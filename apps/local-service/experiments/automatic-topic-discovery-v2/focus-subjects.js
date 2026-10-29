@@ -6,6 +6,7 @@ const MAX=64,DIM=384,MAX_PATTERNS=12288,MAX_WORDS=8,MAX_PROPOSALS=128;
 const ID=/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u,SHA=/^[a-f0-9]{64}$/u;
 const STOP=new Set('a an and as at by for from in into is it its of on or our that the their this to we with de den der des die ein eine einer en een het in met op te van voor und von zu zum zur le la les du des un une et au aux pour avec il lo gli da del della di el los las una unos unas y con por'.split(' '));
 const TEMPLATE_START=new Set('how what why when where who learn fix repair help guide guides review reviews official introduction introducing welcome shop buy compare discover wie was warum wann wo wer lernen hilfe reparatur anleitung test offiziell willkommen kaufen entdecken hoe wat waarom wanneer waar wie leren reparatie handleiding kopen ontdek'.split(' '));
+const INSTRUCTION_TAIL=new Set('help guide guides tutorial tutorials review reviews repair official site website news hilfe anleitung reparatur handleiding hulp'.split(' '));
 const bad=()=>{throw new TypeError('Invalid named-subject proposal input');};
 const shape=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).sort().join(',')===[...keys].sort().join(',');
 const frozen=v=>{if(v&&typeof v==='object'){for(const x of Object.values(v))frozen(x);Object.freeze(v);}return v;};
@@ -51,6 +52,7 @@ export function proposeFocusedSubjects(rawJson){
   let norm=0;for(const x of d.vector){if(typeof x!=='number'||!Number.isFinite(x)||Math.abs(x)>1)bad();norm+=x*x;}if(Math.abs(norm-1)>1e-5)bad();
  }
  if(new Set(docs.map(d=>d.sourceId)).size!==docs.length)bad();docs.sort((x,y)=>order(x.sourceId,y.sourceId));
+ const publisherBoundary=docs.map(d=>d.title.normalize('NFKC').indexOf('|'));
  const n=docs.length,matrix=new Float64Array(n*n);let pairs=0,products=0,patternsSeen=0;
  for(let i=0;i<n;i++){matrix[i*n+i]=1;for(let j=0;j<i;j++){let sum=0;for(let k=0;k<DIM;k++)sum+=docs[i].vector[k]*docs[j].vector[k];matrix[i*n+j]=matrix[j*n+i]=Math.max(-1,Math.min(1,sum));pairs++;products+=DIM;}}
  const duplicateParent=Array.from({length:n},(_,i)=>i),find=i=>{while(duplicateParent[i]!==i)i=duplicateParent[i];return i;};let duplicateRelations=0;
@@ -96,6 +98,10 @@ export function proposeFocusedSubjects(rawJson){
   const independent=new Map();for(const i of p.members)if(!independent.has(find(i)))independent.set(find(i),i);
   const publishers=new Set([...independent.values()].map(i=>docs[i].publisherKey));
   if(independent.size<2){insufficient++;continue;}
+  // Repeated publisher branding and instruction suffixes are weak name
+  // evidence on one site. They must not inherit its product/species clusters.
+  // Concrete focal names retain the one-publisher subject policy above.
+  if(publishers.size===1&&(INSTRUCTION_TAIL.has(p.tokens.at(-1))||p.members.every(i=>publisherBoundary[i]>=0&&p.witnesses.get(i).start>publisherBoundary[i]))){insufficient++;continue;}
   let minimum=1;for(let i=0;i<p.members.length;i++)for(let j=0;j<i;j++){
    if(++work.candidatePairChecks>131072)return frozen({...base,status:'capacity',reason:'cohesion-work-bound',proposals:[],selections:[]});
    minimum=Math.min(minimum,matrix[p.members[i]*n+p.members[j]]);

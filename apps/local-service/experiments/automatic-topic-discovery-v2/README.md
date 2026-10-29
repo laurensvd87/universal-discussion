@@ -11,6 +11,10 @@ a product-family subject. This does not establish event equality, independent
 reporting or factual truth. Repeated boilerplate cannot become a useful subject
 name merely because the publisher check is relaxed: instructional/question
 prefixes are excluded, preserving captured-title witness offsets.
+The first same-publisher comparison also surfaced a publisher footer and a
+cross-product instruction suffix. Those weak scopes now still require diverse
+publishers; they cannot inherit a site's coherent product/species pages as their
+own topic evidence. Earlier comparison output and source commit are preserved.
 
 The change follows the general-web screen and its extraction repair. Compare it
 against unchanged v1 on all retained available pages, report naming/coverage and

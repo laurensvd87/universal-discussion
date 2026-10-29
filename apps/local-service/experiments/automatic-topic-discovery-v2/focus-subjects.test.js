@@ -12,7 +12,7 @@ test('instructional headline templates do not become subject names across unrela
  const r=propose(JSON.stringify(input(['Steam Deck OLED Repair Help: Learn How to Fix It Yourself.','Steam Deck LCD Repair Help: Learn How to Fix It Yourself.',
   'Nintendo Switch 2 Repair Help: Learn How to Fix It Yourself.','Nintendo Switch OLED Repair Help: Learn How to Fix It Yourself.'])));
  assert(r.proposals.some(p=>p.label==='Steam Deck'));assert(r.proposals.some(p=>p.label==='Nintendo Switch'));
- assert(!r.proposals.some(p=>/^(learn|how|fix|repair|help)\b/iu.test(p.label)));assert(r.selections.every(s=>s.preferredProposalKey!==null));
+ assert(!r.proposals.some(p=>/^(learn|how|fix|repair|help)\b/iu.test(p.label)));assert(!r.proposals.some(p=>/repair help$/iu.test(p.label)));assert(r.selections.every(s=>s.preferredProposalKey!==null));
 });
 test('question prefixes are excluded while concrete shared recipe focus remains selectable',()=>{
  const a=input(['How to make Kapsalon with chicken','How to make Kapsalon with beef','Kapsalon maken']);a.observations.forEach(r=>{r.acceptedPath=['cooking'];});
@@ -26,4 +26,8 @@ test('one publisher still cannot manufacture support with duplicates or semantic
 test('singletons remain page-only and all old bounded numeric input requirements still apply',()=>{
  const a=input(['New specific product']);const r=propose(JSON.stringify(a));assert.equal(r.proposals.length,0);assert.equal(r.selections[0].preferredProposalKey,null);
  a.observations[0].vector[0]=NaN;assert.throws(()=>propose(JSON.stringify(a)),TypeError);
+});
+test('one publisher footer cannot become the subject of two different animal pages',()=>{
+ const a=input(['Red panda | Example Zoo and Conservation Institute','Giant panda | Example Zoo and Conservation Institute']);a.observations.forEach(r=>{r.acceptedPath=['nature'];});
+ const r=propose(JSON.stringify(a));assert(!r.proposals.some(p=>p.label.includes('Example Zoo')));
 });
