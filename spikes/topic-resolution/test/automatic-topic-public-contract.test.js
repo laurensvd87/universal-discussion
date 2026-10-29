@@ -5,6 +5,19 @@ const root={id:'root-a',rootId:null,replyToId:null,state:'visible',authorId:'dem
 const card={topic:{id:'original-topic',title:'Original canonical destination',kind:'general'},discussionId:'original-discussion',root,scope};
 const actors=[{id:'demo-alex',displayName:'Alex',type:'human'}];
 
+test('public search carries bounded fixed and named breadcrumb labels without changing destination paths',()=>{
+ const parent='subject-22345678-1234-4123-8123-123456789abc',row={nodeId,label:'Kapsalon',path:[parent,nodeId],occupied:true,human:true,
+  breadcrumbs:{fixed:[{nodeId:'food',label:'Food'}],topic:[{nodeId:parent,label:'Recipes'},{nodeId,label:'Kapsalon'}]}};
+ const response={version,topics:[row],nextCursor:null};assert.deepEqual(readSemanticSearch(response),response);
+ for(const change of [r=>r.breadcrumbs.fixed.push({nodeId:'food',label:'Food'}),r=>r.breadcrumbs.topic[0].sourceId='private',
+  r=>r.breadcrumbs.topic[1].label='Different',r=>r.breadcrumbs.topic[0].nodeId='page-other',
+  r=>r.breadcrumbs.fixed[0].nodeId='subject-12345678-1234-4123-8123-123456789abc',r=>r.breadcrumbs.fixed=Array(9).fill(r.breadcrumbs.fixed[0]),
+  r=>r.breadcrumbs.topic=[r.breadcrumbs.topic[1]],r=>r.breadcrumbs.topic[0].label='bad\u202e',r=>r.breadcrumbs.materialDigest='private']){
+  const changed=structuredClone(response);change(changed.topics[0]);assert.throws(()=>readSemanticSearch(changed),TypeError);
+ }
+ const fallback=structuredClone(response);fallback.topics[0].breadcrumbs={fixed:[],topic:[row.breadcrumbs.topic.at(-1)]};assert.deepEqual(readSemanticSearch(fallback),fallback);
+});
+
 test('public author captions accompany rather than replace canonical destinations in feeds and exact reply targets',()=>{
  const feed=readSemanticFeed({version,policyRevision:0,nodeId,roots:[card],nextCursor:null,actors});assert.deepEqual(feed.roots[0].scope,scope);assert.equal(feed.roots[0].topic.id,'original-topic');
  const target=readSemanticTarget({version,policyRevision:0,nodeId,...card,root:{...root,replies:[]},actors,targetId:root.id,rootRevision:1,targetRevision:1});

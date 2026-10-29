@@ -32,6 +32,14 @@ function harness({onReply,remote=false}={}){const created=[],calls=[],replies=[]
 const searchResults=(label='Kapsalon',cursor=null)=>({version,topics:[{nodeId:'subject-12345678-1234-4123-8123-123456789abc',label,
  path:['subject-22345678-1234-4123-8123-123456789abc','subject-12345678-1234-4123-8123-123456789abc'],occupied:true,human:true}],nextCursor:cursor});
 
+test('a global search card shows its complete public hierarchy without fetching or guessing missing parent cards',async()=>{
+ const ui=harness({remote:true});ui.start();const response=searchResults('<Kapsalon>'),row=response.topics[0];
+ row.breadcrumbs={fixed:[{nodeId:'food',label:'Food'}],topic:[{nodeId:row.path[0],label:'Recipes'},{nodeId:row.nodeId,label:'<Kapsalon>'}]};
+ ui.calls[0].resolve(response);await settle();const path=ui.all(ui.byId('semantic-topic-results')).find(n=>n.className==='topic-breadcrumbs');assert.equal(path.textContent,'Food › Recipes › <Kapsalon>');assert.equal(ui.calls.length,1);
+ assert(!ui.all(ui.byId('semantic-topic-results')).some(n=>n.textContent.includes('22345678')));ui.click('semantic-topic-open-'+row.nodeId);
+ assert.deepEqual(ui.calls.at(-1).args,{nodeId:row.nodeId,limit:20,cursor:null});ui.panel.dispose();
+});
+
 test('new global search requests a bounded server page and opaque cursor without a foreground Source or full directory',async()=>{
  const ui=harness({remote:true});ui.start();assert.equal(ui.calls[0].method,'semanticSearch');assert.deepEqual(ui.calls[0].args,{query:'',limit:20,cursor:null});
  ui.calls[0].resolve(searchResults('Kapsalon','next_Search'));await settle();assert.equal(ui.byId('semantic-topic-results').children.length,1);

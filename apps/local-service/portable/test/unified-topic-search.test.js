@@ -9,6 +9,32 @@ const raw=(query='',limit=20,cursor=null)=>JSON.stringify({generation,query,limi
 const fixed={scope_kind:'fixed',scope_id:'koalas',caption:'Koalas',path:['nature','animals','koalas'],human:false,root_ordinal:'0',occupied:false};
 const legacy={scope_kind:'legacy',scope_id:'original-topic',caption:'Saved conversation',path:['legacy-original-topic'],human:true,root_ordinal:'17',occupied:true};
 const named={scope_kind:'named',scope_id:subject,caption:'Steam Deck',path:['subject-'+subject],human:true,root_ordinal:'12',occupied:true};
+
+test('combined search supplies complete public ancestor labels in the same bounded query',async()=>{
+ const parent='22345678-1234-4123-8123-123456789abc',row={...named,path:['subject-'+parent,'subject-'+subject],breadcrumbs:{
+  fixed:[{nodeId:'games',label:'Games'}],topic:[{nodeId:'subject-'+parent,label:'Handheld consoles'},{nodeId:'subject-'+subject,label:'Steam Deck'}]}};
+ let calls=0;const r=repository({unifiedSearch:true,breadcrumbs:true,database:{async query(sql,args){calls++;assert(sql.includes('combined_search_topics'));assert.equal(args.at(-1),21);return {rows:[row]};}}});
+ const result=await r.search(raw('Steam'));assert.deepEqual(result.topics[0].breadcrumbs,row.breadcrumbs);assert.equal(calls,1);assert(Object.isFrozen(result.topics[0].breadcrumbs.topic));
+ const fallback={...row,breadcrumbs:{fixed:[],topic:[row.breadcrumbs.topic.at(-1)]}};
+ assert.deepEqual((await repository({unifiedSearch:true,breadcrumbs:true,database:{async query(){return {rows:[fallback]};}}}).search(raw())).topics[0].breadcrumbs,fallback.breadcrumbs);
+});
+
+test('breadcrumb bounds are independent and malformed private or mismatched metadata is refused',async()=>{
+ const row={...fixed,breadcrumbs:{fixed:fixed.path.map((nodeId,i)=>({nodeId,label:['Nature','Animals','Koalas'][i]})),topic:[]}};
+ for(const change of [r=>r.breadcrumbs.fixed.push({nodeId:'other',label:'Other'}),r=>r.breadcrumbs.fixed[0].label='bad\u202e',
+  r=>r.breadcrumbs.fixed[0].sourceId='private',r=>r.breadcrumbs.fixed[0].nodeId='subject-'+subject,
+  r=>r.breadcrumbs.fixed[2].label='Different',r=>r.breadcrumbs.fixed=Array(9).fill(r.breadcrumbs.fixed[0]),r=>r.breadcrumbs.topic=[{nodeId:'koalas',label:'Koalas'}],r=>r.breadcrumbs.vector=[1]]){
+  const changed=structuredClone(row);change(changed);await assert.rejects(repository({unifiedSearch:true,breadcrumbs:true,database:{async query(){return {rows:[changed]};}}}).search(raw()),code('storage-corrupt'));
+ }
+ const database={query(){assert.fail('Invalid composition must not execute');}};assert.throws(()=>repository({database,breadcrumbs:true}),TypeError);assert.throws(()=>repository({database,unifiedSearch:true,breadcrumbs:1}),TypeError);
+});
+
+test('eight fixed and eight named display steps do not enlarge the original eight-step navigation path',async()=>{
+ const ids=Array.from({length:8},(_,i)=>'12345678-1234-4123-8123-'+String(i).padStart(12,'0')),path=ids.map(id=>'subject-'+id);
+ const row={...named,scope_id:ids.at(-1),path,breadcrumbs:{fixed:Array.from({length:8},(_,i)=>({nodeId:'fixed-'+i,label:'Fixed '+i})),topic:path.map((nodeId,i)=>({nodeId,label:i===7?'Steam Deck':'Named '+i}))}};
+ const r=repository({unifiedSearch:true,breadcrumbs:true,database:{async query(){return {rows:[row]};}}});assert.equal((await r.search(raw())).topics[0].breadcrumbs.topic.length,8);
+ const invalid={...row,path:[...path,'subject-'+subject]};await assert.rejects(repository({unifiedSearch:true,breadcrumbs:true,database:{async query(){return {rows:[invalid]};}}}).search(raw()),code('storage-corrupt'));
+});
 test('one explicit search returns fixed learned and original saved scopes without a current page',async()=>{
  const calls=[],r=repository({unifiedSearch:true,database:{async query(sql,args){calls.push({sql,args});return {rows:[legacy,named,fixed]};}}});
  const result=await r.search(raw());assert.deepEqual(result.topics.map(t=>t.nodeId),['legacy-original-topic','subject-'+subject,'koalas']);assert.deepEqual(result.topics.at(-1).path,['nature','animals','koalas']);

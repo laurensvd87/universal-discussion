@@ -195,6 +195,7 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/portable/canonical-v4/drafts/unified-topic-search.sql',
     'apps/local-service/portable/canonical-v4/drafts/combined-author-hierarchy.sql',
     'apps/local-service/portable/canonical-v4/drafts/automatic-topic-dashboard.sql',
+    'apps/local-service/portable/canonical-v4/drafts/combined-topic-breadcrumbs.sql',
     'apps/local-service/portable/canonical-v4/automatic-topics-installation.js',
     'apps/local-service/portable/canonical-v4/automatic-topics-migration-source.js',
     'apps/local-service/portable/canonical-v4/migrations/018-automatic-topics.sql',

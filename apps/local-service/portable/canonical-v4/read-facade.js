@@ -1305,7 +1305,7 @@ export function createCanonicalV4ReadFacade({ database, automaticTopics=false, u
       if(!automaticTopics)fail('unavailable','Topic search unavailable');
       const input=readRecord(value,['query','limit','cursor']);
       return snapshot(database,async tx=>{
-        const header=await headerIn(tx),named=createAutomaticTopicFeedRepository({database:tx,unifiedSearch:unifiedTopicSearch});
+        const header=await headerIn(tx),named=createAutomaticTopicFeedRepository({database:tx,unifiedSearch:unifiedTopicSearch,breadcrumbs:combinedHierarchy});
         const result=await named.search(JSON.stringify({generation:header.version.generation,...input}));
         return assertDtoSize({version:header.version,topics:result.topics,nextCursor:result.nextCursor},'Topic search');
       });

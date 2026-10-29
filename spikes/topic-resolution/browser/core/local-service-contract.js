@@ -387,10 +387,27 @@ export function readSemanticSearchRequest(value){const a=record(value,['query','
  if(typeof a.query!=='string'||!a.query.isWellFormed()||a.query.length>256||UNSAFE.test(a.query)||!Number.isInteger(a.limit)||a.limit<1||a.limit>50)invalid();
  return freeze({query:a.query,limit:a.limit,cursor:semanticCursor(a.cursor)});}
 export function readSemanticSearch(value,expected=null){const r=record(value,['version','topics','nextCursor']),version=readVersion(r.version);
- const topics=array(r.topics,expected?.limit??50,raw=>{const v=record(raw,['nodeId','label','path','occupied','human']),nodeId=semanticNode(v.nodeId),path=semanticPath(v.path,true);
+ const topics=array(r.topics,expected?.limit??50,raw=>{const v=record(raw,['nodeId','label','path','occupied','human',...(Object.hasOwn(raw,'breadcrumbs')?['breadcrumbs']:[])]),nodeId=semanticNode(v.nodeId),path=semanticPath(v.path,true);
   if(path.at(-1)!==nodeId||typeof v.occupied!=='boolean'||typeof v.human!=='boolean'||v.human&&!v.occupied)invalid();
-  return {nodeId,label:text(v.label,200),path,occupied:v.occupied,human:v.human};});
+  const result={nodeId,label:text(v.label,200),path,occupied:v.occupied,human:v.human};
+  return {...result,...(Object.hasOwn(v,'breadcrumbs')?{breadcrumbs:readSearchBreadcrumbs(v.breadcrumbs,result)}:{})};});
  if(new Set(topics.map(t=>t.nodeId)).size!==topics.length)invalid();return freeze({version,topics,nextCursor:semanticCursor(r.nextCursor)});}
+function readSearchBreadcrumbs(value,row){
+ const v=record(value,['fixed','topic']),named=row.nodeId.startsWith('subject-'),special=/^(subject|page|legacy)-/u;
+ const group=(items,fixed)=>array(items,8,raw=>{const item=record(raw,['nodeId','label']),nodeId=semanticNode(item.nodeId);
+  if(fixed?special.test(nodeId):named?!/^subject-[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(nodeId):nodeId!==row.nodeId)invalid();
+  return {nodeId,label:text(item.label,200)};});
+ const fixed=group(v.fixed,true),topic=group(v.topic,false),all=[...fixed,...topic];
+ if(!all.length||new Set(all.map(x=>x.nodeId)).size!==all.length||all.at(-1).nodeId!==row.nodeId||all.at(-1).label!==row.label)invalid();
+ if(!special.test(row.nodeId)){
+  if(topic.length||JSON.stringify(fixed.map(x=>x.nodeId))!==JSON.stringify(row.path))invalid();
+ }else{
+  if(!topic.length)invalid();
+  if(named){if(topic.length!==1&&JSON.stringify(topic.map(x=>x.nodeId))!==JSON.stringify(row.path)||topic.length===1&&row.path.length>1&&fixed.length)invalid();}
+  else if(fixed.length||topic.length!==1)invalid();
+ }
+ return {fixed,topic};
+}
 export function readSemanticTopicsRequest(value) { return freeze(record(value, [])); }
 export function readSemanticContextRequest(value) {
   const item = record(value, ["sourceId"]);

@@ -34,14 +34,39 @@ function terms(query){if(typeof query!=='string'||query.length>256||!query.isWel
  const normalized=query.normalize('NFKC').toLowerCase(),tokens=normalized.match(/[\p{L}\p{N}]+/gu)??[];
  if(normalized.length>1024||tokens.length>8||tokens.some(t=>t.length>64)||query.trim()&&tokens.length===0)bad();return [...new Set(tokens)];}
 const digest=v=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
+function publicBreadcrumbs(value,row){
+ const v=fields(value,['fixed','topic']);
+ const group=(items,fixed)=>{
+  if(!Array.isArray(items)||items.length>8)bad();
+  return items.map(raw=>{const item=fields(raw,['nodeId','label']);
+   if(fixed)searchRoute('fixed',item.nodeId,true);
+   else if(row.scope_kind==='named'){if(scope(item.nodeId).kind!=='named')bad();}
+   else if(item.nodeId!==row.nodeId)bad();
+   if(typeof item.label!=='string'||!item.label.trim()||!item.label.isWellFormed()||item.label.length>200||unsafe.test(item.label))bad();
+   return item;
+  });
+ };
+ const fixed=group(v.fixed,true),topic=group(v.topic,false),all=[...fixed,...topic];
+ if(!all.length||new Set(all.map(x=>x.nodeId)).size!==all.length||all.at(-1).nodeId!==row.nodeId||all.at(-1).label!==row.caption)bad();
+ if(row.scope_kind==='fixed'){
+  if(topic.length||JSON.stringify(fixed.map(x=>x.nodeId))!==JSON.stringify(row.path))bad();
+ }else{
+  if(!topic.length)bad();
+  if(row.scope_kind==='named'){
+   if(topic.length!==1&&JSON.stringify(topic.map(x=>x.nodeId))!==JSON.stringify(row.path))bad();
+   if(topic.length===1&&row.path.length>1&&fixed.length)bad();
+  }else if(fixed.length||topic.length!==1)bad();
+ }
+ return {fixed,topic};
+}
 function position(value,binding,unified=false){if(value===null)return null;
  if(typeof value!=='string'||value.length>2048||!/^[A-Za-z0-9_-]+$/u.test(value))bad();const bytes=Buffer.from(value,'base64url');
  if(bytes.toString('base64url')!==value)bad();const c=fields(parsed(bytes.toString('utf8'),1536),['schema','binding','after']);
  if(c.schema!==(unified?'unified-topic-search/v1':'named-topic-search/v1'))bad();if(c.binding!==binding)throw new ServiceError('conflict','Topic search changed');
  const a=fields(c.after,['human','ordinal','kind','id']);if(typeof a.human!=='boolean'||!ordinal(a.ordinal))bad();searchRoute(a.kind,a.id,unified);return a;}
 
-export function createAutomaticTopicFeedRepository({database,unifiedSearch=false}={}){
- if(!database||typeof database.query!=='function'||typeof unifiedSearch!=='boolean')throw new TypeError('Invalid topic feed dependencies');
+export function createAutomaticTopicFeedRepository({database,unifiedSearch=false,breadcrumbs=false}={}){
+ if(!database||typeof database.query!=='function'||typeof unifiedSearch!=='boolean'||typeof breadcrumbs!=='boolean'||breadcrumbs&&!unifiedSearch)throw new TypeError('Invalid topic feed dependencies');
  return Object.freeze({
   async tasks(raw){const a=input(raw);try{
    const r=one(await database.query('SELECT canonical_v4.named_feed_tasks($1) AS result',[a.generation]));
@@ -79,18 +104,18 @@ export function createAutomaticTopicFeedRepository({database,unifiedSearch=false
   async search(raw){const a=input(raw,['query','limit','cursor']),tokens=terms(a.query);
    if(!Number.isInteger(a.limit)||a.limit<1||a.limit>50)bad();
    const schema=unifiedSearch?'unified-topic-search/v1':'named-topic-search/v1',binding=digest([schema,a.generation,tokens,a.limit]),after=position(a.cursor,binding,unifiedSearch);
-   try{const r=await database.query(unifiedSearch?'SELECT * FROM canonical_v4.unified_search_topics($1,$2::text[],$3::jsonb,$4)':'SELECT * FROM canonical_v4.named_search_topics($1,$2::text[],$3::jsonb,$4)',
+   try{const r=await database.query(breadcrumbs?'SELECT * FROM canonical_v4.combined_search_topics($1,$2::text[],$3::jsonb,$4)':unifiedSearch?'SELECT * FROM canonical_v4.unified_search_topics($1,$2::text[],$3::jsonb,$4)':'SELECT * FROM canonical_v4.named_search_topics($1,$2::text[],$3::jsonb,$4)',
      [a.generation,tokens,after===null?null:JSON.stringify(after),a.limit+1]);
     try{if(!Array.isArray(r.rows)||r.rows.length>a.limit+1)bad();const seen=new Set();
-     const rows=r.rows.map(raw=>{const v=fields(raw,['scope_kind','scope_id','caption','path','human','root_ordinal','occupied']),nodeId=searchRoute(v.scope_kind,v.scope_id,unifiedSearch);
+     const rows=r.rows.map(raw=>{const v=fields(raw,['scope_kind','scope_id','caption','path','human','root_ordinal','occupied',...(breadcrumbs?['breadcrumbs']:[])]),nodeId=searchRoute(v.scope_kind,v.scope_id,unifiedSearch);
       if(typeof v.caption!=='string'||!v.caption.trim()||!v.caption.isWellFormed()||v.caption.length>200||unsafe.test(v.caption)||
         typeof v.human!=='boolean'||typeof v.occupied!=='boolean'||v.human&&!v.occupied||!ordinal(v.root_ordinal)||
         !Array.isArray(v.path)||v.path.length<1||v.path.length>8||v.path.at(-1)!==nodeId||new Set(v.path).size!==v.path.length||seen.has(nodeId))bad();
       for(const p of v.path){if(unifiedSearch&&v.scope_kind==='fixed')searchRoute('fixed',p,true);else if(unifiedSearch&&v.scope_kind==='legacy'){if(v.path.length!==1)bad();}else scope(p);}
-      seen.add(nodeId);return {...v,nodeId};});
+      seen.add(nodeId);return {...v,nodeId,...(breadcrumbs?{breadcrumbs:publicBreadcrumbs(v.breadcrumbs,{...v,nodeId})}:{})};});
      const selected=rows.slice(0,a.limit),last=selected.at(-1),nextCursor=rows.length>a.limit?Buffer.from(JSON.stringify({schema,binding,
       after:{human:last.human,ordinal:last.root_ordinal,kind:last.scope_kind,id:last.scope_id}})).toString('base64url'):null;
-     return freeze({generation:a.generation,topics:selected.map(v=>({nodeId:v.nodeId,label:v.caption,path:v.path,occupied:v.occupied,human:v.human})),nextCursor});
+     return freeze({generation:a.generation,topics:selected.map(v=>({nodeId:v.nodeId,label:v.caption,path:v.path,occupied:v.occupied,human:v.human,...(breadcrumbs?{breadcrumbs:v.breadcrumbs}:{})})),nextCursor});
     }catch{corrupt();}
    }catch(e){throw storage(e);}
   },

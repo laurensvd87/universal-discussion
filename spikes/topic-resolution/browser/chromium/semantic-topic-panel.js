@@ -38,11 +38,12 @@ export function mountSemanticTopicPanel(document, root, {client, messages={}, on
   function clear(){unlisten(dynamic);results.replaceChildren();page=null;retry.hidden=true;}
   function reset(){directory=null;searchPage=null;selectedLabel=null;selection=contextMode&&topicContext?{nodeId:topicContext.id}:null;offset=0;cursor=null;history=[];clear();controls();}
   function changed(){onSelectionChange?.(selection?{...selection}:null);}
-  function directoryView(){clear();const all=remoteSearch?(searchPage?.topics??[]).map(t=>({id:t.nodeId,title:t.label,path:t.path})):directory.topics;
+  function directoryView(){clear();const all=remoteSearch?(searchPage?.topics??[]).map(t=>({id:t.nodeId,title:t.label,path:t.path,breadcrumbs:t.breadcrumbs})):directory.topics;
     const items=remoteSearch?all:filtered().slice(offset,offset+20);
     const names=new Map(all.map(item=>[item.id,item.title]));
     for(const item of items){const card=node('section'),open=button(item.title,'semantic-topic-open-'+item.id);card.className='discovery-card';
-      if(item.path.length>1){const labels=item.path.map(id=>names.get(id)).filter(Boolean);if(labels.length>1)card.append(node('p',labels.join(' › ')));}
+      const labels=item.breadcrumbs?[...item.breadcrumbs.fixed,...item.breadcrumbs.topic].map(v=>v.label):item.path.map(id=>names.get(id)).filter(Boolean);
+      if(labels.length>1){const path=node('p',labels.join(' › '));path.className='topic-breadcrumbs';card.append(path);}
       listen(open,'click',()=>openTopic(item.id),dynamic);card.append(open);results.append(card);}
     status.textContent=items.length?'':t('empty');controls();}
   function postView(post, actors, destination){const card=node('article');card.className='discussion-contribution';card.setAttribute('data-post-id',post.id);

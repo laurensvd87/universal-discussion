@@ -204,3 +204,28 @@ The closed report wire has the same hashes as earlier190 successes; this separat
 source/catalog/invocation audit establishes execution of the compatibility checks.
 This proves the isolated SQL/client/handler/provider-stub composition, not real E5,
 external-provider behavior, application-browser load, full-data recovery or cutover.
+
+The current pre-activation revision appends a sixteenth component,
+`combined-topic-breadcrumbs.sql`. All previous15 components remain the exact
+378431-byte prefix with SHA256
+`7ac32a90c8f904bf8f970704ebdf78cae88662e00ca0033d447a060c2ec0e725`.
+The resulting018 is382386 bytes, SHA256
+`36e9400e216c77e77f383ba5bc4878098469bedff69b86a70896a63b8db84e1c`.
+The app-only wrapper preserves the original unified filtering, ordering, cursor
+and limit, then adds public labels for at most51 result rows in the same snapshot.
+Independent fixed/topic arrays each retain a maximum of8; the original navigation
+path remains at most8. A matching current named path receives its stable fixed
+prefix and public named ancestor labels. A retired or pending-repair card retains
+only its original public caption, without a guessed new ancestry or Source lookup.
+Old non-combined read compositions keep their exact DTOs. No model, Source body,
+vector, per-card browser request or foreground-page binding is added.
+
+The panel renders these labels literally and opens the original node ID. Guarded
+752 component/contract tests,12 extension inventory/pairing tests and70 maintained
+controller tests pass. The first controller attempt in the filesystem sandbox
+could not access its temporary directories; the unchanged suite passed with the
+normal user token. Three actual offline Chrome checks pass with isolated profiles:
+complete public ancestry and original navigation in a390px panel, literal markup
+labels, retained caption after ancestry retirement, and malformed metadata refusal.
+These browser checks use invented public metadata, not the real app database.
+The new16-component PostgreSQL proof is pending; no live activation is implied.
