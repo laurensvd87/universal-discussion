@@ -8,6 +8,46 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct single-page existing-topic matching actual SQL ACCEPTED, NOT LIVE.
+Previous goalturnPROGRESS (source+owned140 proof), root-only. New production516d68ff:
+worker-only complete NFKC/Intl title focus probes<=512/64words/8wordphrase; raw64
+heads+total64 ancestors/depth8; protected current paired E5, no encoder/model;
+.88 threshold/.03 incomparable-branch margin including below-floor rivals; deepest
+confident leaf, close siblings -> confident parent. Sources->SHARE SKIP LOCKED
+heads, exact versions/parents/current cohort reread; no identity/head/canonical
+writes or global writer lock. Different Source writes coexist; identical current
+assignment retained without member-row churn. Coordinator explicit singleSourceTopics
+opt-in immediately after indexing and after discovery; finalbusy keeps durable
+request; shutdown joins physical work. No default startup/crawler activation.
+First ONE run8c9d8c2cab24d928021ae727d388d3c834b5d611f74eefca/map46179904...
+8005b EXIT1 at retrievalcase16 ERR_ASSERTION; first7new PASS, exact assertion detail
+UNRETAINED. Source finding: native fixture passed exclusive transaction lease
+(no transaction method) to transaction-owning runtime; rollback assertion masks
+constructor refusal. Real-adapter guarded causal repro PASS; normal full-session
+control uses BEGIN/append/COMMIT. Failed output/code/catalog immutable/audit18bc0a38
+...5fc8c9. Corrected fixture ONLY082bbf9a (production4files BYTEidentical516d68ff),
+source review627068fe...2eaa8d/new ONEdecision875453a2...24ead0. Catalog42bdfb96/
+executionc33bfb9d...8e474f; fresh run0a590976e3eb09b407c914f80d4ae2e7f798855bebdb19a0
+EXIT0/all140 mandatory reports PASS (original130+10). Actually committed normal
+post+MVCC page read+different Source assignment while first assignment held;
+synthetic delayed-neighbour coordinator proves early assignment. All physical
+work joins, invented committed root cleaned, actual Source change invalidates.
+Both fresh scratchDBs dropped/exact smartstop/emptyJob/allhandles/stderr0/emergency
+FALSE; all2619 pins+strict saved completion Root authenticated. Audit7eb66f76...
+1f8cf6 in apps/local-service/data/single-source-topic-native-root-audit-20261029.json;
+result26c9fd8c...b619f0/stdoutc367af41...55bb2c. 652guarded64MiBNodePASS2.6062s/
+70purecontrollerPASS3.699s/SQLparser4statements1PLpgSQL. Invented titles/coordinates,
+NOT representative E5/provider/browser/latency/many-user proof. Current docs-only
+catalog9458baf0...8a205,2619files277947187B; executed code/runtime unchanged.
+Live PG18688/crawler6384/worker11880/API38860/dashboard28420 same starts, crawler
+14624 advancing/stderr0. No host/HBA/service action. Read-only private fixture
+output/temp directories empty; no hidden large restore artifacts/compression/delete.
+Private11GiB D floor STILL UNMET (~4.8GBfree), NEVER waived. GoalACTIVE: next
+static/dynamic aliases+unified search/owner-wide per-topic depth/foreground context,
+then complete18 install/startup/migration/recovery, representative quality/real
+app/provider/browser/latency/load and verified live cutover. Prioritize those;
+no more alternative matching experiments. Full objective NOT complete/no live ETA.
+
 LATEST29Oct actual public identity recovery ACCEPTED, automatic matcher NOT LIVE.
 Progress: source8c805beb /catalog58a15dcd /execution372575cc...7fcfc3; ONE new
 owned run-eb197ec5857d3db29e27b16c34621eaf6b60bc112cd15451 EXIT0/all130 reports

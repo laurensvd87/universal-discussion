@@ -21,8 +21,10 @@ This composition restores only an absent head with a surviving opaque identity
 and a current, explicitly published root. It never merges two existing public
 IDs or silently reparents a current head. An unresolved active public head
 prevents a duplicate proposal rather than being overwritten. Static/dynamic
-aliases, single-page lookup and owner-specific depth composition are still
-separate outstanding integration work.
+aliases, single-page lookup and owner-specific depth composition are separate
+integration work. The subsequent [single-page lookup](SINGLE-SOURCE-TOPIC-MATCH.md)
+is now implemented and separately validated in an owned140-report run; it remains
+an explicit opt-in.
 
 The command carries public root IDs, exact current public digest, root version,
 identity revision and the complete bounded candidate snapshot. SQL locks current
@@ -65,6 +67,6 @@ Root-only audit: `data/published-topic-recovery-native-root-audit-20261029.json`
 641 guarded Node and70 pure controller reports also pass. No representative
 semantic quality, genuine provider/browser load or live speed claim follows.
 
-Next: implement the remaining lookup/alias/owner/startup/migration/recovery
+Next: implement the remaining alias/owner/startup/migration/recovery
 integration, then test
 representative E5 quality and the actual application before live activation.

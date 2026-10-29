@@ -66,11 +66,31 @@ test reproduces that exact source behavior and contrasts the valid full-session
 composition. The corrected fixture uses the normal runtime-owned transaction,
 joins all physical work and removes its committed invented root after release.
 Production focus/SQL/repository/coordinator code and all limits are unchanged.
-The first consumed source/catalog/run remain retained; the updated owned SQL
-execution requires a new reviewed catalog and separate decision. Neither this
+The first consumed source/catalog/run remain retained. A new reviewed catalog
+and separate decision were used for the successful corrected run below. Neither this
 component nor these fixtures prove representative semantic quality, cross-language
 recall, many-user load, foreground/provider/browser behavior or live latency.
 
-Next: actual owned verification, then static/dynamic aliases, owner display depth,
+## Verified owned run
+
+Run `run-0a590976e3eb09b407c914f80d4ae2e7f798855bebdb19a0` exits0 and
+passes all140 mandatory reports, including the original130 and all10 single-page
+reports. Production source is byte-identical to`516d68ff`; the fixture-only
+correction is`082bbf9a`, catalog commit`42bdfb96`, execution map
+`c33bfb9d44b2709381e42c6ae8c4bdbb0bdd5f4db01fc3ceeceb4aecdc8e474f`.
+The held-assignment case now proves an actually committed normal runtime post,
+MVCC page reading and another Source's actual assignment write on a separate
+worker-role session. The invented root is removed after all physical work joins.
+Both fresh scratch databases drop, the exact owned server smart-stops, the Job
+is empty and all handles close. Stderr is empty; emergency false. Root
+reauthenticates all2619 source/runtime pins and the saved strict completion.
+Result SHA-256 `26c9fd8c855b417d5dbb8ba9ba1ebd9336600f86143593bc021d677871b619f0`;
+stdout `c367af41263dd9457bfe0f60cd5583a97f11c7a0b743219fe44c71f80955bb2c`.
+Root-only audit: `data/single-source-topic-native-root-audit-20261029.json`.
+652 guarded Node and70 pure controller tests pass. This SQL fixture still uses
+invented coordinates; it does not measure genuine end-to-end/browser latency,
+representative E5 accuracy or many-user throughput. No new matcher is activated.
+
+Next: static/dynamic aliases, owner display depth,
 foreground context and complete18 install/startup/migration/recovery composition
 and representative quality/UI/load/speed tests before live activation.
