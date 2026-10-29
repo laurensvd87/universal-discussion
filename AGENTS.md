@@ -8,6 +8,23 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct AUTOMATICGROWTH: bounded64doc proposal/naming prototype10purePASS;
+closed collectors34PASS (thenlabel10 separately). Actualoriginal6:1usable/5fail,
+additional4:3usable/1fail, all10retained/no retry. E5actual15636 EXIT0/closed/
+endpinsTRUE/3.91s; DEV4→2correctpairs/0false/0missed,2publishers each; result
+897a4d45...2422f0. ALL4 fixed-root ABSTAIN. Newtopics mustallowunknownparent.
+Gold dates NOTinputs/currentSourcesnopublicationmetadata/all4eventproposals
+provisional. Year-in-title tie improvesmedoidlabel ONLY, nottimestamp; reprojection
+storedfeatures unchangedgroups/noencoding. Root-only/notfreshquality/noauthority.
+Pgvector0.8.2 alreadyinstalled/vector_mirror2columns/ANNindexes0. Six readonly
+distancechecksPASS/maxfloat32error1.0854e-7/noDDL/DML/index/capacityclaim. ADR228
+currentdirection: dynamicregistryseparatefromclassifier/optionalparent/subject-vs-
+event/timeprovenance/pgvectorcandidate+exactrerank/names/paginatedoccupiedtopics,
+futureexplicitcanonical18profile, no silent side-schema. NOautotopicliveactivation.
+GOALACTIVE: metadata+prospectivenovel-eventquality+registrySQL/roles/races/restore/
+actualUI integration next. Keepalloldsavedoutputs/packages immutable. Readlatest
+HANDOFF/STATUS/ADR228; no revert to per-story manually trained topicheads.
+
 LATEST29Oct LIVE schema17/model4e9b3d3d...45524/head2/policy6/default1/Games3/Nature3.
 20nodes/3heads Animals+GTA+Koalas; generalVideoGames failed heldout/NOTinstalled.
 Releasebe901259...d83f/api38860/worker11880/dashboard23660. Crawler6384 ORIGINAL

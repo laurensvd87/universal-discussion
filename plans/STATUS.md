@@ -1,5 +1,20 @@
 # Project status
 
+29October automatic-growth development: a first bounded grouping/name prototype
+now forms two correct groups from four real articles about two different award
+announcements, without predefined child names. Ten documents were declared;
+six unavailable results remain counted. This is DEV, not final validation.
+All four articles abstained in the installed root classifier, so discovery cannot
+depend on known-parent acceptance. Publication metadata is absent from current
+Sources; strict event proposals remain provisional. A label tie-break improves
+readability without interpreting a headline year as a publication timestamp.
+
+The live database already has pgvector0.8.2 and vector mirrors but no ANN index.
+Read-only numerical checks pass; no index or automatic topic was installed.
+[ADR228](../decisions/ADR-228-automatic-named-topics-from-browsing.md) defines the
+next dynamic-registry, temporal/evidence, indexed-retrieval and UI boundaries.
+The live working static hierarchy below stays unchanged; the overall goal is active.
+
 ## Current29October: hierarchy live; automatic named-topic discovery next
 
 The running service is on PostgreSQL schema17 with the verified20-node model

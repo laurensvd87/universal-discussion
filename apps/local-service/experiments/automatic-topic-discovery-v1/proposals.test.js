@@ -31,6 +31,11 @@ test('bounded observed window expires grouping candidates without modifying old 
 test('labels retain source attribution, normalize text and cannot break UTF-16 at the bound',()=>{
  const r=run([doc('a',0,{title:'é'.normalize('NFD')+'😀'.repeat(90)})]);assert.ok(Array.from(r.proposals[0].label).length<=160);assert.equal(r.proposals[0].label.isWellFormed(),true);assert.equal(r.proposals[0].labelSourceId,'a');assert.equal(r.proposals[0].label,r.proposals[0].label.normalize('NFC'));assert.ok(Object.isFrozen(r.proposals[0].members));
 });
+test('equally representative headlines prefer an explicit year without inventing a publication date',()=>{
+ const r=run([doc('a',0,{title:'Congratulations to the new laureate',publishedAt:null}),doc('b',.12,{title:'Researcher awarded Nobel Prize in Chemistry 2024',publishedAt:null})]);
+ assert.equal(r.proposals[0].labelSourceId,'b');assert.equal(r.proposals[0].label,'Researcher awarded Nobel Prize in Chemistry 2024');
+ const event=run([doc('a',0,{title:'Award 2024',publishedAt:null}),doc('b',.12,{publishedAt:null})],{kind:'event'});assert.ok(event.proposals.every(p=>p.reason==='publication-time-unknown'));
+});
 test('hard bounds and hostile input refusals occur before any accessor or proxy hook',()=>{
  assert.equal(DISCOVERY_LIMITS.maximumPairs,2016);assert.throws(()=>run(Array.from({length:65},(_,i)=>doc('a'+i,.1))));
  let hooks=0;const hostile=new Proxy({}, {get(){hooks++;throw Error('hook');},ownKeys(){hooks++;throw Error('hook');},getPrototypeOf(){hooks++;throw Error('hook');}});assert.throws(()=>run([hostile]));assert.equal(hooks,0);

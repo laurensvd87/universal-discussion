@@ -39,6 +39,10 @@ function policy(v){
 const freeze=v=>{if(v&&typeof v==='object'){for(const x of Object.values(v))freeze(x);Object.freeze(v);}return v;};
 const sha=v=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
 const compare=(a,b)=>a<b?-1:a>b?1:0;
+// A title's year is useful context for a label, never a publication timestamp.
+// Only resolve equal medoid coherence; do not select a less representative page
+// just because its headline is long or contains a date.
+const labelContext=title=>Number(/\b(?:19|20)\d{2}\b/u.test(title));
 
 export function proposeAutomaticTopics(value){
  if(arguments.length!==1)bad();const a=record(value,['representationHash','parentId','kind','policy','observations']);
@@ -70,7 +74,7 @@ export function proposeAutomaticTopics(value){
   const duplicateParent=new Map(members.map(i=>[i,i]));
   const find=i=>{while(duplicateParent.get(i)!==i)i=duplicateParent.get(i);return i;};
   for(const i of members){let sum=0;for(const j of members){sum+=similarity(i,j);if(i!==j)minimumPair=Math.min(minimumPair,similarity(i,j));}
-   if(sum>best){best=sum;medoid=i;}
+   if(sum>best||sum===best&&labelContext(docs[i].title)>labelContext(docs[medoid].title)){best=sum;medoid=i;}
    // Collapse the whole duplicate relation, not just greedy representatives:
    // a chain of syndicated near-copies must not manufacture a second vote.
    for(const j of members)if(j<i&&(docs[i].url===docs[j].url||docs[i].inputHash===docs[j].inputHash||similarity(i,j)>=.995)){

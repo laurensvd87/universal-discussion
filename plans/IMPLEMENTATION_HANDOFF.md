@@ -1,5 +1,41 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct automatic growth SOURCE+actualDEV progress: commits7612bcca/ec079232 add
+unregistered bounded64doc complete-link proposal/naming and closed DEV collectors.
+First6actual78761 exit0:1available/5unavailable/12requests/55.21s, result12126B SHA
+b979b37197ba0cb231e04862e601ab174c09a9b1358139aa1afe499601297de0. Additional4
+separate80503 exit0:3available/1unavailable, result22084B SHA
+e3972b02513a973362d5ba92cc99ce7c5e83e0f5062d623c8d8a1e856cddd2f9. All10
+outcomes retained; no denied-publisher retry/redirect/oldTEST reuse. Four usable
+DEV are UW+Berkeley chemistry2024 and Cambridge+Caltech physics2024. Actuallocal
+E5 run15636 terminalexit0/encoderclosed/endpinsTRUE/3.91s; result13104B SHA
+897a4d450ab623f55227fec6c990573a381afae8562fbf4490fa61c83f2422f0. Subject proposals
+2truepairs/0false/0missed, similarity.94260/.94086,2publishers each. OnlyDEV4,
+NOTfreshquality/productionauthority. All4 installed fixed-root outputs ABSTAIN!
+Dynamic discovery must allow unknown parent, not require a fixed-root success.
+Gold dates NOTinputs; Source has no publication metadata, all4event proposals
+remain provisional. New equal-medoid year-in-title tie-break improves labels
+without inventing time; pure reprojection of storedfeatures preserves membership,
+no new encoding. Root-only audit automatic-topic-development-root-audit-20261029.json.
+
+Readonlylive readiness: pgvector0.8.2 ALREADYinstalled; embeddings/fixed_references
+vector_mirror columns exist, no HNSW/IVF indexes. Six readonlySQLdistancequeries
+over4retainedDEV vectors PASS/maxfloat32vs64 error1.0854e-7/7.85ms loop; no index/
+table/data mutation or ANN recall/capacity claim. Receipt automatic-topic-pgvector-
+readonly-diagnostic-20261029.json. Primary v0.8.2 docs checked. Current prototype
+10puretests PASS; collector25 and proposal10 checked separately. Decision
+ADR228 selects stable dynamic registry separatefromclassifier, optionalparent,
+subject/event distinction, source-bound time provenance, pgvector candidateindex
++exactrerank, meaningful Source-title naming and paginated occupied-topic search.
+Explicit futurehierarchy18 profile, no silent sideschema, no new migration/DDL/
+registry/liveproposals yet. Next metadata/prospective same-entity/different-event
+cases+registrySQL/role/race/restore/UI integration. KeepGOALACTIVE; doNOTpretend
+the fixed taxonomy or fourDEV pages completes automatic topic population.
+Originalcrawler6384 stilladvancing5749+/stderr0; API38860worker11880dashboard23660
+unchanged. Last pre-modelresources physical15.55GB/commit12.85GB/C7.90GB/D5.59GB;
+freshchecks needed; no floors waived or Windows/HBA/hostchanges. Current docs/ADR228
+and maintainedSource may evolve inGit; saved outputs/sealedpackages immutable.
+
 29Oct LIVE20nodes/3heads installed after successful1354423835B encrypted backup.
 Model4e9b3d3d2053327707d6ff395a8373e6e5ac3195333183ac8516f84195c45524/head2/
 policy6 default1/Games3/Nature3; sourcecc88c144+LFfix05f602eb. Sealed release

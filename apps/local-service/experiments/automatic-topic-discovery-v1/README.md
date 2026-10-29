@@ -13,8 +13,12 @@ provisional. The supplied thresholds are experimental policy, not probabilities
 or quality acceptance. Cohorts have deterministic ordering and explicit windows.
 
 Each candidate automatically obtains a bounded representative-source headline
-and its attribution, with no mandatory LLM. Repeated URLs, material and near-
-identical syndicated vectors do not multiply support. Distinct publisher keys
+and its attribution, with no mandatory LLM.
+For equally representative medoids, prefer a headline containing an explicit
+year. That improves a title's context without treating the year as a publication
+timestamp or choosing a less coherent page merely for its headline.
+Repeated URLs, material and near-identical syndicated vectors do not multiply
+support. Distinct publisher keys
 are separate from document count; their producer must identify publishers rather
 than counting Wikipedia language subdomains as independent publishers.
 
