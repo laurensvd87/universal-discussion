@@ -8,8 +8,9 @@ import {PUBLIC_HIERARCHY_PROBES as probes} from '../harness/hierarchy-public-pro
 import {RECIPE_CAL_PROBES,RECIPE_TEST_PROBES} from '../harness/hierarchy-recipe-corpus.js';
 import {GTA_TRAIN_PROBES,GTA_CAL_PROBES,GTA_TEST_PROBES} from '../harness/hierarchy-gta-corpus.js';
 import {PublicFetchError} from '../src/crawler/public-fetch.js';
-import {createAutomaticTopicDevelopmentCapture,createAutomaticTopicAdditionalDevelopmentCapture,createAutomaticTopicMetadataDevelopmentCapture} from '../harness/hierarchy-public-capture.js';
+import {createAutomaticTopicDevelopmentCapture,createAutomaticTopicAdditionalDevelopmentCapture,createAutomaticTopicMetadataDevelopmentCapture,createAutomaticTopicComparisonDevelopmentCapture} from '../harness/hierarchy-public-capture.js';
 import {AUTOMATIC_TOPIC_DEVELOPMENT,AUTOMATIC_TOPIC_ADDITIONAL_DEVELOPMENT,AUTOMATIC_TOPIC_METADATA_DEVELOPMENT} from '../harness/automatic-topic-development-corpus.js';
+import {AUTOMATIC_TOPIC_COMPARISON_DEVELOPMENT} from '../harness/automatic-topic-comparison-corpus.js';
 
 const sha=s=>createHash('sha256').update(s).digest('hex');
 const body='A public article about this independently selected subject has enough actual prose to pass the existing minimum text policy. '.repeat(4);
@@ -31,6 +32,15 @@ function fixture({robots='',tdm=null,page=()=>html(),onRequest}={}){
 const childPlan=JSON.parse(readFileSync(new URL('../harness/hierarchy-child-corpus.json',import.meta.url),'utf8'));
 const childRows=childPlan.freshCandidates.filter(r=>r.split!=='test');
 const diversityPlan=JSON.parse(readFileSync(new URL('../harness/hierarchy-child-diversity-corpus.json',import.meta.url),'utf8'));
+
+test('comparison DEV captures exactly12 declared hard cases and cannot fetch previous DEV or hierarchy TEST',async()=>{
+ const f=fixture(),capture=createAutomaticTopicComparisonDevelopmentCapture(f.options);
+ for(const p of [...AUTOMATIC_TOPIC_DEVELOPMENT,...AUTOMATIC_TOPIC_ADDITIONAL_DEVELOPMENT,...AUTOMATIC_TOPIC_METADATA_DEVELOPMENT,...childPlan.freshCandidates,...diversityPlan.test])await assert.rejects(capture.capture(p.id));
+ assert.equal(f.calls.length,0);
+ for(const p of AUTOMATIC_TOPIC_COMPARISON_DEVELOPMENT){const r=await capture.capture(p.id);assert.equal(r.status,'available');assert.equal(r.url,p.url);}
+ assert.equal(f.calls.length,28);assert.equal(capture.snapshot().maxRequests,28);
+ assert.deepEqual(f.calls.filter(c=>c.resourceKind==='page').map(c=>c.url),AUTOMATIC_TOPIC_COMPARISON_DEVELOPMENT.map(p=>p.url));
+});
 
 test('metadata DEV observes only the four usable literal pages, without retrying original denied publishers',async()=>{
  const f=fixture(),capture=createAutomaticTopicMetadataDevelopmentCapture(f.options);

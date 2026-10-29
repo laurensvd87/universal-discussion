@@ -16,6 +16,7 @@ import {classifyRootedHierarchyMatcher} from '../src/domain/hierarchy-rooted-mat
 const D='apps/local-service/data/',CAPTURE=D+'automatic-topic-development-capture-20261029',EXTRA_CAPTURE=D+'automatic-topic-development-additional-capture-20261029',FEATURES=D+'automatic-topic-development-features-20261029';
 const SOURCES=Object.freeze([
  'apps/local-service/harness/run-automatic-topic-development.js','apps/local-service/harness/automatic-topic-development-corpus.js',
+ 'apps/local-service/harness/automatic-topic-comparison-corpus.js',
  'apps/local-service/experiments/automatic-topic-discovery-v1/proposals.js','apps/local-service/experiments/automatic-topic-discovery-v1/proposals.test.js',
  'apps/local-service/harness/hierarchy-benchmark-files.js','apps/local-service/harness/hierarchy-public-capture.js',
  'apps/local-service/harness/hierarchy-public-probes.js','apps/local-service/harness/hierarchy-recipe-corpus.js','apps/local-service/harness/hierarchy-gta-corpus.js',
