@@ -261,7 +261,24 @@
         counts.preparedSources>input.counts.learnedSources||counts.preparedSources<counts.currentHeadClassifiedSources+counts.currentHeadAbstainedSources+counts.currentHeadExcludedSources||
         counts.occupiedDisplayGroups>counts.configuredDisplayGroups||counts.configuredDisplayGroups>counts.activeNodes||counts.occupiedDisplayGroups>counts.currentHeadClassifiedSources)
       throw new Error('Ungültige semantische Katalogzahlen.');
-    return {counts:{...counts},legacy:{...legacy}};
+    let assignments=null;
+    if(semantic.assignments!==undefined){
+      const a=semantic.assignments,ids=new Set();let total=0;
+      if(!a||Object.keys(a).sort().join()!=='automaticDiscovery,mode,schema,topics'||a.schema!=='topic-assignment-counts/v1'||
+          a.mode!=='owner-display-policy'||a.automaticDiscovery!=='not-enabled'||!Array.isArray(a.topics)||a.topics.length!==counts.configuredDisplayGroups||a.topics.length>512)
+        throw new Error('Ungültige Themenverteilung.');
+      const topics=a.topics.map(t=>{
+        if(!t||Object.keys(t).sort().join()!=='id,path,sources,title'||typeof t.id!=='string'||!t.id||t.id.length>160||ids.has(t.id)||
+            typeof t.title!=='string'||!t.title.trim()||t.title.length>200||!integer(t.sources)||!Array.isArray(t.path)||!t.path.length||t.path.length>8||
+            t.path.at(-1)!==t.id||t.path.some(id=>typeof id!=='string'||!id||id.length>160)||new Set(t.path).size!==t.path.length)
+          throw new Error('Ungültige Themenverteilung.');
+        ids.add(t.id);total+=t.sources;return {...t,path:[...t.path]};
+      });
+      if(!integer(total)||total!==counts.currentHeadClassifiedSources||topics.filter(t=>t.sources>0).length!==counts.occupiedDisplayGroups)
+        throw new Error('Themenverteilung passt nicht zur Seitenzahl.');
+      assignments={...a,topics};
+    }
+    return {counts:{...counts},legacy:{...legacy},assignments};
   }
   function renderSemantic(){
     const semantic=state.data.semantic;$('semantic-summary').hidden=!semantic;$('catalog-workspace').hidden=Boolean(semantic);
@@ -273,6 +290,13 @@
       ['activeNodes','Semantische Themen'],['configuredDisplayGroups','Anzeigegruppen eingerichtet'],['occupiedDisplayGroups','Anzeigegruppen mit Seiten'],
       ['distinctRoots','Sichtbare Themendiskussionen']])card(metrics,label,semantic.counts[key]);
     for(const [key,label] of [['total','Container gesamt'],['multiMember','Container mit mehreren Seiten'],['singleton','Container mit einer Seite']])card(legacy,label,semantic.legacy[key]);
+    const assigned=semantic.counts.currentHeadClassifiedSources,total=state.data.counts.learnedSources,progress=$('semantic-assignment-progress');
+    progress.max=Math.max(1,total);progress.value=assigned;
+    $('semantic-assignment-note').textContent=`${format.format(assigned)} von ${format.format(total)} Seiten sind einem Thema zugeordnet. Jede Seite zählt einmal im konfigurierten Anzeigethema.`;
+    const rows=$('semantic-topic-counts');rows.replaceChildren();
+    $('semantic-automatic-status').textContent=semantic.assignments?'Die aktuelle Hierarchie ist aktiv. Die neue automatische Themenbildung ist noch nicht aktiviert.':'Die Themenverteilung ist in dieser Momentaufnahme noch nicht enthalten.';
+    for(const topic of semantic.assignments?.topics??[]){const row=document.createElement('tr'),title=document.createElement('th'),count=document.createElement('td');
+      title.scope='row';title.textContent=topic.title;title.title=topic.path.join(' → ');count.textContent=format.format(topic.sources);row.append(title,count);rows.append(row);}
   }
 
   // This file is an untrusted, content-free partition of the exact displayed Source IDs.

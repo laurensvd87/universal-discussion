@@ -53,6 +53,8 @@ test('hierarchy17 summary partitions protected metadata separately from legacy c
   assert.deepEqual(value.semantic.counts,{preparedSources:6,currentHeadClassifiedSources:3,currentHeadAbstainedSources:1,
     currentHeadExcludedSources:1,currentHeadPendingSources:3,distinctRoots:2,activeNodes:3,configuredDisplayGroups:2,occupiedDisplayGroups:1});
   assert.equal(value.semantic.preparedScope,'alive-learned-source-retained-input-any-model-or-version');
+  assert.deepEqual(value.semantic.assignments,{schema:'topic-assignment-counts/v1',mode:'owner-display-policy',automaticDiscovery:'not-enabled',topics:[
+    {id:'games',title:'Games',path:['games'],sources:3},{id:'nature',title:'Nature',path:['nature'],sources:0}]});
   assert.equal(new Set(f.queries.map(q=>q.tx)).size,1);assert.equal(f.queries[0].sql,'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
   assert.equal(f.queries.some(q=>/FROM canonical_v4\.(?:embeddings|semantic_inputs|semantic_observations|semantic_root_edges)|SELECT source\.\*/u.test(q.sql)),false);
   assert.equal(Object.hasOwn(await f.source.readCounts(),'semantic'),false,'strict legacy growth point remains unchanged');
@@ -65,8 +67,17 @@ test('hierarchy17 refresh covers owner cuts, background material and canonical c
   const changed=await f.source.readHierarchySummary();assert.equal(changed.header.revision,7);
   assert.equal(changed.semantic.counts.configuredDisplayGroups,3);assert.equal(changed.semantic.counts.occupiedDisplayGroups,1);
   assert.equal(changed.semantic.counts.distinctRoots,2);
+  assert.deepEqual(changed.semantic.assignments.topics.map(t=>[t.id,t.sources]),[['detail',3],['games',0],['nature',0]]);
   const policy=await f.source.readRevision();f.changeBackground();assert.notEqual(await f.source.readRevision(),policy);
   const background=await f.source.readRevision();f.changeCanonical();assert.notEqual(await f.source.readRevision(),background);
+});
+
+test('hierarchy17 per-topic counts partition classified pages once across owner display groups',async()=>{
+  const f=await hierarchyFixture();f.mutate(a=>{a.counts.currentHeadClassifiedSources=5;a.counts.preparedSources=7;a.counts.currentHeadPendingSources=1;
+    a.paths.push({path:['nature'],sources:2});});
+  const value=await f.source.readHierarchySummary();assert.deepEqual(value.semantic.assignments.topics.map(t=>[t.id,t.sources]),[['games',3],['nature',2]]);
+  assert.equal(value.semantic.assignments.topics.reduce((n,t)=>n+t.sources,0),value.semantic.counts.currentHeadClassifiedSources);
+  assert.equal(new Set(f.queries.map(q=>q.tx)).size,1);assert(!f.queries.some(q=>/values_double|body_vector|title_values/u.test(q.sql)));
 });
 
 test('hierarchy17 refuses incoherent metadata, false partitions, malformed counts and duplicate/unknown paths',async()=>{

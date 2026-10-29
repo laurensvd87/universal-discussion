@@ -139,6 +139,8 @@ async function hierarchyIn(tx,header,point){
   const observed=counts.currentHeadClassifiedSources+counts.currentHeadAbstainedSources+counts.currentHeadExcludedSources;
   if(counts.learnedSources!==point.learnedPages||observed+counts.currentHeadPendingSources!==counts.learnedSources||
       counts.preparedSources<observed||counts.preparedSources>counts.learnedSources)throw unavailable();
+  const directory=projectSemanticTopicDirectory(topology,policy);
+  const assignments=new Map(directory.topics.map(topic=>[topic.id,{...topic,sources:0}]));
   const nodes=new Map(topology.nodes.map(node=>[node.id,node])),paths=new Set(),occupied=new Set();let sources=0;
   const grouping=topology.matcherIdentityHash===null?null:compileSemanticTopicGrouping({nodes:topology.nodes.map(({id,parentId})=>({id,parentId})),
     policy:{...policy,overrides:policy.overrides.filter(rule=>nodes.has(rule.nodeId))}});
@@ -146,14 +148,17 @@ async function hierarchyIn(tx,header,point){
     const row=metadataRecord(item,['path','sources']),path=metadataArray(row.path,8);
     if(!path.length||path.some(id=>typeof id!=='string'||!nodes.has(id))||!isDeepStrictEqual(nodes.get(path.at(-1)).path,path)||!counter(row.sources))throw unavailable();
     const key=JSON.stringify(path);if(paths.has(key)||!grouping)throw unavailable();paths.add(key);sources+=row.sources;
-    const selected=groupSupportedSemanticPath(grouping,path).selectedPath;if(selected.length)occupied.add(selected.at(-1));
+    const selected=groupSupportedSemanticPath(grouping,path).selectedPath;if(selected.length){const id=selected.at(-1),topic=assignments.get(id);if(!topic)throw unavailable();
+      occupied.add(id);topic.sources=counter(topic.sources+row.sources);}
   }
   if(sources!==counts.currentHeadClassifiedSources)throw unavailable();
   const {learnedSources,...semanticCounts}=counts;
   return Object.freeze({revision,policyRevision:policy.revision,protectedMetadataOnly:true,
     preparedScope:'alive-learned-source-retained-input-any-model-or-version',
+    assignments:Object.freeze({schema:'topic-assignment-counts/v1',mode:'owner-display-policy',automaticDiscovery:'not-enabled',
+      topics:Object.freeze([...assignments.values()].sort((a,b)=>b.sources-a.sources||Buffer.compare(Buffer.from(a.id),Buffer.from(b.id))).map(topic=>Object.freeze(topic)))}),
     counts:Object.freeze({...semanticCounts,activeNodes:topology.nodes.length,
-      configuredDisplayGroups:projectSemanticTopicDirectory(topology,policy).topics.length,occupiedDisplayGroups:occupied.size})});
+      configuredDisplayGroups:directory.topics.length,occupiedDisplayGroups:occupied.size})});
 }
 
 function verifyTopic(row, reference) {
