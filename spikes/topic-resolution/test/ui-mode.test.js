@@ -408,5 +408,18 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   shell.render(connected);
   assert.equal(get("#app-navigation").hidden, false);
   assert.equal(get("#discussion-connection-settings").parentElement, get("#app-settings-connection"));
+  const withoutPage = { phase: "choose-topic", serviceConnection: "connected", catalog: null,
+    sourceId: null, topicId: null, draft: { body: "Unsent reply" } };
+  shell.render(withoutPage);
+  assert.equal(get("#app-navigation").hidden, false, "verified service health exposes global navigation without a page catalog");
+  assert.equal(get("#app-welcome").hidden, true);
+  get("#app-tab-discover").click();
+  assert.equal(get("#app-view-discover").hidden, false, "Search Topics is visible on unsupported or not-yet-matched pages");
+  get("#app-tab-private").click();
+  assert.equal(get("#app-view-private").hidden, false);
+  assert.equal(body.value, "Unsent reply");
+  shell.render({ ...withoutPage, serviceConnection: "unavailable" });
+  assert.equal(get("#app-navigation").hidden, true, "no page and unavailable service do not manufacture connectivity");
+  shell.render(connected);
   shell.dispose();
 });

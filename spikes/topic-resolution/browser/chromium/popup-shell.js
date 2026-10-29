@@ -113,7 +113,10 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
     const sourceContext = find("#app-source-context");
     if (sourceContext) sourceContext.hidden = document.body.dataset.uiMode === "user" ||
       view === "settings" || sourceContext.dataset.hasSource !== "true";
-    const connected = Boolean(lastState?.catalog);
+    // Global topics and chats remain usable on an unsupported or unclassified
+    // page. Verified service health does not require a foreground page catalog.
+    const connected = Boolean(lastState?.catalog) ||
+      projectDiscussionShell(lastState ?? {}, messages).connection === "connected";
     move("#discussion-connection-settings", connected || view === "settings"
       ? find("#app-settings-connection") : find("#app-welcome-connection"));
     move("#discussion-status", connected || view === "settings"
@@ -275,7 +278,6 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
     document.body.dataset.topicState = view.topicState;
     if (app.nav && document.body.dataset.uiMode === "user") {
       placeInsightWorkspace("user");
-      const connected = Boolean(state.catalog);
       move("#discussion-advanced", find("#app-settings-connection"));
       move("#discussion-related", app.pageList);
       move("#capture-settings", find("#app-settings-capture"));
