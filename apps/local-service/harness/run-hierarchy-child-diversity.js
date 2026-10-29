@@ -10,7 +10,7 @@ import {readExtendedChildInputs} from './run-hierarchy-child-calibration-extensi
 import {extendReviewedChildDevelopment} from './hierarchy-child-calibration-extension.js';
 import {CHILD_TASKS,parentConditionedChildTrainingArguments} from './retained-hierarchy-child-inputs.js';
 import {trainBinaryHierarchyDetail} from '../src/domain/hierarchy-binary-detail.js';
-import {compileRootedHierarchyMatcher,classifyRootedHierarchyMatcher} from '../src/domain/hierarchy-rooted-matcher.js';
+import {compileRootedHierarchyMatcher,classifyRootedHierarchyMatcher,describeRootedHierarchyMatcher} from '../src/domain/hierarchy-rooted-matcher.js';
 import {summarizeChildMatchRows} from './hierarchy-child-match-metrics.js';
 const D='apps/local-service/data/',DEV=D+'hierarchy-child-diversity-development-20261029',FIT=D+'hierarchy-child-diversity-fit-20261029',
  TEST=D+'hierarchy-child-diversity-test-20261029',EVAL=D+'hierarchy-child-diversity-evaluation-20261029';
@@ -30,6 +30,7 @@ const SOURCES=Object.freeze(['apps/local-service/harness/run-hierarchy-child-div
  'apps/local-service/experiments/topic-encoder/hierarchical-e5-broad-heads-v1/vector-packet.js','spikes/topic-resolution/browser/core/page-content-policy.js',
  'spikes/topic-resolution/browser/embedding/embedding-contract.js','spikes/topic-resolution/browser/embedding/.assets/manifest.json']);
 const flags={liveChanged:false,assignmentAuthority:false,productionValidated:false,independentValidation:false,representativePopulation:false,statisticalIndependenceClaim:false};
+export const CHILD_DIVERSITY_SOURCE_FILES=SOURCES;
 async function load(){
  const {extended,values,ledger}=await readExtendedChildInputs(FEATURES),corpus=await json(CORPUS,CORPUS_PIN,ledger);
  need(corpus.schema==='hierarchy-child-diversity-corpus/v1'&&corpus.development.length===7&&corpus.test.length===11&&corpus.protocol.method==='parent-training-and-calibration');
@@ -55,10 +56,39 @@ async function loadCapture(data,folder,expected,phase){
   need(r.id===p.id&&r.url===p.url&&r.groupId===p.groupId&&r.split===p.split&&JSON.stringify(r.labels)===JSON.stringify(p.labels));rows.push(r);}
  return {result,rows};
 }
-async function loadCandidate(data,expected){
+async function loadDiversityFit(data,expected){
  const result=await json(FIT+'/result.json',{sha256:expected},data.ledger);need(result.status==='completed'&&result.endPinsChecked&&result.encoderClosed&&result.corpusSha256===CORPUS_PIN.sha256);
  const artifacts=[];for(const n of CHILD_TASKS){const pin=result.artifactPins[n];need(pin?.file===n+'-artifact.json');const a=await json(FIT+'/'+pin.file,pin,data.ledger);need(a.nodeId===n);if(a.eligible)artifacts.push(a);}
  need(artifacts.length>0);return {result,matcher:compileRootedHierarchyMatcher({...data.base,detailArtifacts:[data.values.gtaArtifact,...artifacts]})};
+}
+export async function readFittedChildDiversityInputs(expected){
+ const data=await load(),fit=await loadDiversityFit(data,expected),capture=await loadCapture(data,DEV,fit.result.captureSha,'development'),features=[],artifacts={};
+ for(let i=0;i<data.corpus.development.length;i++){
+  const p=data.corpus.development[i],pin=fit.result.casePins.find(x=>x.file===p.id+'.json');need(pin);
+  const f=await json(FIT+'/'+pin.file,pin,data.ledger),r=capture.rows[i];need(f.id===p.id&&f.url===p.url&&f.split===p.split&&
+   (r.status==='unavailable'?f.status==='unavailable'&&f.reason===r.reason:f.status==='encoded'&&f.sourceInputHash===r.sourceInputHash));features.push(f);
+ }
+ for(const n of CHILD_TASKS){const pin=fit.result.artifactPins[n];artifacts[n]=await json(FIT+'/'+pin.file,pin,data.ledger);}
+ const extended=extendReviewedChildDevelopment({projected:data.extended,probes:data.corpus.development,features,inputDefinition:data.values.inputDefinition});
+ return {...data,extended,artifacts,diversityFit:fit.result};
+}
+async function loadCandidate(data,expected){
+ const manifest=await json(D+'hierarchy-child-combined-candidate-20261029/manifest.json',{sha256:expected},data.ledger);
+ need(manifest.schema==='hierarchy-child-frozen-candidate/v1'&&manifest.diversityFitSha256==='ad0d8a210662c8acc4e61e4102d090526941aadb60e674d81bddd66ad8a76341'&&
+  manifest.rootAndGtaUnchanged===true&&manifest.frozenBeforeFreshTest===true&&Array.isArray(manifest.details)&&manifest.details.length>=2&&manifest.details.length<=3);
+ const prior=await loadDiversityFit(data,manifest.diversityFitSha256);
+ let supplement=null;if(manifest.details.some(p=>p.nodeId==='koalas')){
+  need(/^[a-f0-9]{64}$/u.test(manifest.koalaSupplementFitSha256));supplement=await json(D+'hierarchy-koala-supplement-fit-20261029/result.json',{sha256:manifest.koalaSupplementFitSha256},data.ledger);
+  need(supplement.status==='completed'&&supplement.endPinsChecked&&supplement.encoderClosed&&supplement.rootVideoGamesAnimalsGtaUnchanged&&
+   supplement.priorDiversityFitSha256===manifest.diversityFitSha256&&supplement.head.eligible===true);
+ }
+ const files={'video-games':FIT+'/video-games-artifact.json',animals:FIT+'/animals-artifact.json',koalas:D+'hierarchy-koala-supplement-fit-20261029/koalas-artifact.json'},artifacts=[],seen=new Set();
+ for(const p of manifest.details){need(Object.hasOwn(files,p.nodeId)&&p.file===files[p.nodeId]&&!seen.has(p.nodeId));seen.add(p.nodeId);
+  const original=p.nodeId==='koalas'?supplement.artifactPin:prior.result.artifactPins[p.nodeId];need(p.bytes===original.bytes&&p.sha256===original.sha256);
+  const a=await json(p.file,p,data.ledger);need(a.nodeId===p.nodeId&&a.eligible===true);artifacts.push(a);
+ }
+ need(seen.has('video-games')&&seen.has('animals'));
+ return {result:manifest,matcher:compileRootedHierarchyMatcher({...data.base,detailArtifacts:[data.values.gtaArtifact,...artifacts]})};
 }
 async function encode(encoder,p,r){
  if(r.status==='unavailable')return {id:p.id,url:p.url,split:p.split,status:'unavailable',reason:r.reason};
@@ -73,6 +103,10 @@ function classify(data,matcher,p,f){
 }
 let used=false;
 export async function checkChildDiversitySource(){const data=await load();return {sourcePins:await pins(SOURCES),inputPins:data.ledger,developmentIds:data.corpus.development.map(p=>p.id),reservedTestIds:data.corpus.test.map(p=>p.id),encoderOpened:false,networkUsed:false,...flags};}
+export async function checkFrozenChildDiversityCandidate(expected){
+ need(/^[a-f0-9]{64}$/u.test(expected));const data=await load(),candidate=await loadCandidate(data,expected),identity=describeRootedHierarchyMatcher(candidate.matcher);
+ return {sourcePins:await pins(SOURCES),inputPins:data.ledger,candidateSha256:expected,nodes:identity.nodes.length,detailNodes:identity.detailArtifacts.map(a=>a.nodeId),encoderOpened:false,networkUsed:false,...flags};
+}
 export async function captureChildDiversity(phase,fitSha=null){
  need(!used&&['development','test'].includes(phase));used=true;const data=await load(),sources=await pins(SOURCES),folder=phase==='development'?DEV:TEST;
  if(phase==='test'){need(/^[a-f0-9]{64}$/u.test(fitSha));await loadCandidate(data,fitSha);}else need(fitSha===null);
@@ -123,7 +157,7 @@ export async function evaluateChildDiversity(fitSha,testSha){
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const a=process.argv.slice(2);try{let result;
-  if(a.length===1&&a[0]==='--source-check')result=await checkChildDiversitySource();else if(a.length===1&&a[0]==='--capture-development')result=await captureChildDiversity('development');
+  if(a.length===1&&a[0]==='--source-check')result=await checkChildDiversitySource();else if(a.length===2&&a[0]==='--candidate-check')result=await checkFrozenChildDiversityCandidate(a[1]);else if(a.length===1&&a[0]==='--capture-development')result=await captureChildDiversity('development');
   else if(a.length===2&&a[0]==='--fit')result=await fitChildDiversity(a[1]);else if(a.length===2&&a[0]==='--capture-test')result=await captureChildDiversity('test',a[1]);
   else if(a.length===3&&a[0]==='--evaluate')result=await evaluateChildDiversity(a[1],a[2]);else throw new Error();
   process.stdout.write(JSON.stringify(result)+'\n');if(result.status==='failed')process.exitCode=1;

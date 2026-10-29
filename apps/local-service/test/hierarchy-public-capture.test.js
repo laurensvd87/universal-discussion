@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {createHierarchyPublicCapture,createHierarchyChildTrainCalCapture,createHierarchyChildDiagnosisCapture,createHierarchyChildCalibrationRepairCapture,createHierarchyChildEvaluationCapture,createHierarchyChildDiversityCapture} from '../harness/hierarchy-public-capture.js';
+import {createHierarchyPublicCapture,createHierarchyChildTrainCalCapture,createHierarchyChildDiagnosisCapture,createHierarchyChildCalibrationRepairCapture,createHierarchyChildEvaluationCapture,createHierarchyChildDiversityCapture,createHierarchyKoalaTrainingSupplementCapture} from '../harness/hierarchy-public-capture.js';
 import {readFileSync} from 'node:fs';
 import {PUBLIC_HIERARCHY_PROBES as probes} from '../harness/hierarchy-public-probes.js';
 import {RECIPE_CAL_PROBES,RECIPE_TEST_PROBES} from '../harness/hierarchy-recipe-corpus.js';
@@ -28,6 +28,13 @@ function fixture({robots='',tdm=null,page=()=>html(),onRequest}={}){
 const childPlan=JSON.parse(readFileSync(new URL('../harness/hierarchy-child-corpus.json',import.meta.url),'utf8'));
 const childRows=childPlan.freshCandidates.filter(r=>r.split!=='test');
 const diversityPlan=JSON.parse(readFileSync(new URL('../harness/hierarchy-child-diversity-corpus.json',import.meta.url),'utf8'));
+
+test('separate Koala TRAIN supplement cannot fetch any old/new CAL or TEST or replace a failed TRAIN ID',async()=>{
+ const f=fixture(),capture=createHierarchyKoalaTrainingSupplementCapture(f.options);
+ for(const p of [...childPlan.freshCandidates,...diversityPlan.development,...diversityPlan.test])await assert.rejects(capture.capture(p.id));
+ const row=await capture.capture('koala-supplement-train-01');assert.equal(row.status,'available');assert.equal(row.url,'https://www.wildlife.vic.gov.au/our-wildlife/koalas');
+ assert.equal(f.calls.length,3);assert.equal(capture.snapshot().maxRequests,3);assert.equal((await capture.capture(row.id)).reason,'already-attempted');
+});
 
 test('diversity collectors enforce the frozen development/TEST boundary and exact publisher policies',async()=>{
  for(const phase of ['development','test']){

@@ -1,5 +1,21 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct diversity actual:7declared/6available/1unavailable (Zoo TRAIN insufficient
+static text), terminalexit0/endpins. Fit completed4.998s/encoderclosed/endpins/
+terminalexit0,24638B SHA ad0d8a210662c8acc4e61e4102d090526941aadb60e674d81bddd66ad8a76341.
+Fully parent-conditioned Video-games TRAIN11pos/6neg,CAL9pos/3neg,all9accepted.
+Animals TRAIN3pos/6neg,CAL7pos/4neg,all7rawCALaccepted; one independent root abstains
+so6actualrefinements/zero known-negative refinements. Koalas disabled/TRAIN1.
+No TEST/deployment. Frozen Video-games/Animals artifacts will stay unchanged.
+Separate NEW TRAIN-only Victorian Government observation source now reviewed
+Root-only, with explicit species/Victoria publisher correlation and preservation
+of all3 unavailable AKF/Zoo TRAIN observations.33listedsource/66input source-check
+passes;46 guarded tests pass. No source-body/vector/prediction for this new TRAIN
+yet. Its later fit may change ONLY Koalas, not roots/GTA/Video-games/Animals.
+Fresh11 TEST remains reserved until a combined candidate manifest is frozen and
+its artifact hashes joined back to the exact original fit results. No fallback
+or implicit activation. Next exact3-request supplementary capture decision.
+
 29Oct diversity experiment SOURCE ready, not executed: fixed new corpus7
 development observations (5TRAIN:2koala documents/3non-GTA video games;2plantCAL)
 plus11 newly reserved TEST. Existing corpora/roles/results immutable. Primary
