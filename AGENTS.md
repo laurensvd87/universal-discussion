@@ -8,6 +8,49 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct unified global fixed/named/page/legacy search actual SQL ACCEPTED,
+NOT LIVE. Previous goalturnPROGRESS; this turn source+owned160/Root-only progress.
+Productionebb79376: one independent-page public directory/keyset order, fixed labels,
+explicit named/page scopes and unclassified original public canonical conversations;
+legacy- routes retain original Topic/discussion/root and exact receipt/reply fences.
+Public-root-only install seed; foreground append-only events/no hot directory lock;
+existing coordinator optional topicSearch<=8events/turn, <=8fixed edges/root and
+<=8representative candidates/scope; GIN/order/partial feed indexes, current visibility/
+title/classification rechecks and cascading exact original-edge witness. No Source
+catalog/vector/model/per-user preparation. Explicit unifiedTopicSearch opts in;
+ordinary startup unchanged. Reserved subject/page/legacy prefixes and >512 nodes
+refuse. Full fixed+learned authored hierarchy and complete18 still OPEN.
+First ONE runaaa30a42...5a3a0e mape2985dfe...84b3 failedPUBLIC23ERR_ASSERTION after
+6newcases; exact assertion detail UNRETAINED, source found planner-dependent tiny-
+fixture GIN-only check. Corrected88c81b41 normal indexed plan+rollback-isolatedGIN+
+covering feed probe PASS in second ONE run17844e8c...033fd/mapbaef340d...71d31;
+thenPUBLIC25INVALID, fixturelimit100 exceeded unchanged public50. Real facade causal
+no-SQL refusal PASS. Production byteidentical through fixture correctionc3d9f29f.
+Both failures normally smart-stopped/createdDBdrop/emptyJob/handles/stderr0/endpins;
+secondDBunreached, outputs/code/maps immutable/unadopted. Audits6925eec1...872b and
+daea98a3...4c6e. Corrected catalog40f0b15b/mape50564a3258e53e9e08600fa6e43d178
+6465c634aad9b4fb7cd33554172e4525, ONE run78dcba6a5575674591737f27ce5e2a185107d281
+d16e8fcd ACCEPTED all160 (old150+10), actual original-route HTTP/human reply/replay,
+all-kind complete pagination2vs50, held worker clock permits posting/read, signature/
+immediatewithdrawal/Sourceerase preserved public targets. BothDBdrop/exactsmartstop/
+emptyJob/handles/stderr0/emergencyFALSE/all2627pins. Result06d971fe...dcc5/stdout
+b899def6...ee16; Root audit data/unified-topic-search-native-root-audit-20261029.json
+SHAbe0e768bf5bd80c7a91b12a34ce7fca985bcab1ebdf8e3ba12f9a5a514fe7fa6. Guarded667
+Node PASS, pure70controllerPASS; invented titles/vectors and controlled indexprobe,
+NOT representative E5/browser/provider/load/live latency proof. Docs-onlycurrentmap
+d95d8d7f4f6c60cf021bd1b0a9bf2e9201e552ae45ea297f81e0ec66f570ca16 changes exactly
+UNIFIED-TOPIC-SEARCH.md; other2626pins identical. GoalACTIVE, combined authored
+hierarchy/complete18 migration+recovery/startup/real quality+UI+speed/cutover OPEN.
+Live schema17 unchanged; PG18688/worker11880/API38860/dashboard28420 preserved.
+Crawler26784 original20:23:49Z advancing250ingested/stderr0; no second crawler.
+Only verified stopped owner150 cluster transparently compressed: all977logical
+hashes/creation+write times/ACLs retained, saved result/stdout pinned, ~37MB recovered.
+No deletes/host/HBA/settings changes. Full-restore11GiB D floor still UNMET, no waiver.
+Readonly storage candidates: stable>2day codex-sessions2091209056B and VSCodeextensions
+1913346799B, currently uncompressed; NO compression/deletion of these yet. Fresh
+floors mandatory. Latest source work is checkpointed, not an activation/completion.
+
+
 LATEST29Oct crawler6384 independently completed 20:07:16Z/frontier-empty after
 15167 ingested this run; no stop by agent/stderr0. Readonly reconciliation confirms
 zero staged/attempted, SQL pending/leased0, same generation, 1142184 queued; no local

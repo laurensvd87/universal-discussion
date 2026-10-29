@@ -56,6 +56,26 @@ A guarded causal test exercises that real facade and proves refusal before SQL.
 The fixture now requests50 while retaining the immediate withdrawal assertion.
 Again all2627 pins and normal owned cleanup pass; the created scratch database
 drops, the second is not reached, stderr is empty and emergency false. Production
-code and limits remain unchanged. The final corrected160 execution is pending.
+code and limits remain unchanged.
+
+The corrected owned run passes all160 mandatory reports, including all ten new
+global-search cases. Guarded Node tests pass667 and pure controller tests70. Both
+scratch databases drop, exact smart-stop succeeds, the Job is empty, all handles
+close, stderr is empty, emergency is false and all2627 execution pins authenticate.
+The same public HTTP contract opens and replies to original canonical threads;
+page size2 and50 produce the same complete ordered directory without duplicate
+scopes. Actual Source erasure preserves expressly public names/original threads
+while the exact derived-edge foreign keys remove withdrawn activity witnesses.
+
+Production is unchanged from `ebb79376`; corrected fixture source is `c3d9f29f`,
+catalog commit `40f0b15b`, execution map
+`e50564a3258e53e9e08600fa6e43d1786465c634aad9b4fb7cd33554172e4525`.
+Run `run-78dcba6a5575674591737f27ce5e2a185107d281d16e8fcd` has result SHA256
+`06d971fe33e4e21dbfb1679ca533b04929b869a940d2025cb200681cae2cdcc5` and stdout
+SHA256 `b899def685738abb559b02e6de98dbc0c7611222a142c1fbd22b5fd6957bee16`.
+Root audit is retained locally as `unified-topic-search-native-root-audit-20261029.json`.
+The earlier failed runs remain unadopted. This component now has actual SQL proof;
+combined fixed/learned authored scope, complete18 install/startup/recovery and
+representative quality/UI/latency/load/cutover are still required before activation.
 No representative quality, browser/provider, many-user or live speed claim follows
 from invented native fixture titles/coordinates.
