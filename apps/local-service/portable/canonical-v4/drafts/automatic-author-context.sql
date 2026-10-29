@@ -61,31 +61,18 @@ BEGIN
  RETURN result_;
 END $editor$;
 
-CREATE FUNCTION canonical_v4.named_append_root(
- p_actor_id text,p_request_id text,p_request_digest text,p_request_material text,p_generation text,
- p_topic_id text,p_body text,p_source_id text,p_contribution_id text,p_created_at text,p_scope jsonb
+-- Private finalizer, after canonical domain locks and before the watermark.
+-- Neither app nor worker can independently attach context to existing roots.
+CREATE FUNCTION canonical_v4.named_attach_root_context(
+ p_actor_id text,p_request_id text,p_generation text,p_source_id text,p_root text,p_scope jsonb
 )
-RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $append$
-DECLARE prepared_ record;digest_ text;source_ canonical_v4.sources%ROWTYPE;receipt_ canonical_v4.operation_receipts%ROWTYPE;
- stamp_ canonical_v4.runtime_source_stamps%ROWTYPE;head_ canonical_v4.named_subject_heads%ROWTYPE;matcher_ text;
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $attach$
+DECLARE source_ canonical_v4.sources%ROWTYPE;receipt_ canonical_v4.operation_receipts%ROWTYPE;
+ stamp_ canonical_v4.runtime_source_stamps%ROWTYPE;head_ canonical_v4.named_subject_heads%ROWTYPE;matcher_ text;digest_ text;
 BEGIN
- IF canonical_v4.named_valid_editor_scope(p_scope) IS DISTINCT FROM true OR
-    p_scope->>'sourceId' IS DISTINCT FROM p_source_id THEN
+ IF canonical_v4.named_valid_editor_scope(p_scope) IS DISTINCT FROM true OR p_scope->>'sourceId' IS DISTINCT FROM p_source_id THEN
   RAISE EXCEPTION 'Invalid editor scope' USING ERRCODE='P1293';END IF;
  digest_:=encode(sha256(convert_to(p_scope::text,'UTF8')),'hex');
- -- Same actor/receipt/Source/domain order as the existing append boundary.
- IF canonical_v4.runtime_safe_text(p_actor_id,128,false) THEN
-  PERFORM pg_advisory_xact_lock(hashtextextended(p_actor_id,914092006));END IF;
- PERFORM 1 FROM canonical_v4.operation_receipts WHERE source_id=p_source_id FOR SHARE;
- SELECT * INTO prepared_ FROM canonical_v4.runtime_prepare_command(
-  p_actor_id,p_request_id,p_request_digest,p_request_material,p_generation,'create-root',p_topic_id,
-  NULL,NULL,NULL,p_body,p_source_id,p_contribution_id,p_created_at);
- IF prepared_.replayed THEN
-  IF NOT EXISTS(SELECT 1 FROM canonical_v4.named_context_receipts
-    WHERE actor_id=p_actor_id AND request_id=p_request_id AND scope_digest=digest_) THEN
-   RAISE EXCEPTION 'Original editor scope differs' USING ERRCODE='P1291';END IF;
-  RETURN prepared_.response_text;
- END IF;
  -- Private prepare has locked and checked the exact canonical destination.
  -- Additional derived metadata fences follow those domain locks; no head lock
  -- is held while entering a canonical discussion. Same-material renewals are
@@ -118,8 +105,35 @@ BEGIN
       AND m.operation_digest=receipt_.operation_digest AND m.source_stamp=stamp_.stamp) THEN
    RAISE EXCEPTION 'Named scope changed' USING ERRCODE='P1291';END IF;
  END IF;
- INSERT INTO canonical_v4.named_root_contexts VALUES(prepared_.contribution_id,p_generation,p_scope->>'kind',p_scope->>'id',p_scope->>'caption');
+ INSERT INTO canonical_v4.named_root_contexts VALUES(p_root,p_generation,p_scope->>'kind',p_scope->>'id',p_scope->>'caption');
  INSERT INTO canonical_v4.named_context_receipts VALUES(p_actor_id,p_request_id,digest_);
+END $attach$;
+
+CREATE FUNCTION canonical_v4.named_append_root(
+ p_actor_id text,p_request_id text,p_request_digest text,p_request_material text,p_generation text,
+ p_topic_id text,p_body text,p_source_id text,p_contribution_id text,p_created_at text,p_scope jsonb
+)
+RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $append$
+DECLARE prepared_ record;digest_ text;
+BEGIN
+ IF canonical_v4.named_valid_editor_scope(p_scope) IS DISTINCT FROM true OR
+    p_scope->>'sourceId' IS DISTINCT FROM p_source_id THEN
+  RAISE EXCEPTION 'Invalid editor scope' USING ERRCODE='P1293';END IF;
+ digest_:=encode(sha256(convert_to(p_scope::text,'UTF8')),'hex');
+ -- Same actor/receipt/Source/domain order as the existing append boundary.
+ IF canonical_v4.runtime_safe_text(p_actor_id,128,false) THEN
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_actor_id,914092006));END IF;
+ PERFORM 1 FROM canonical_v4.operation_receipts WHERE source_id=p_source_id FOR SHARE;
+ SELECT * INTO prepared_ FROM canonical_v4.runtime_prepare_command(
+  p_actor_id,p_request_id,p_request_digest,p_request_material,p_generation,'create-root',p_topic_id,
+  NULL,NULL,NULL,p_body,p_source_id,p_contribution_id,p_created_at);
+ IF prepared_.replayed THEN
+  IF NOT EXISTS(SELECT 1 FROM canonical_v4.named_context_receipts
+    WHERE actor_id=p_actor_id AND request_id=p_request_id AND scope_digest=digest_) THEN
+   RAISE EXCEPTION 'Original editor scope differs' USING ERRCODE='P1291';END IF;
+  RETURN prepared_.response_text;
+ END IF;
+ PERFORM canonical_v4.named_attach_root_context(p_actor_id,p_request_id,p_generation,p_source_id,prepared_.contribution_id,p_scope);
  RETURN canonical_v4.runtime_complete_command(p_actor_id,p_request_id,p_generation,prepared_.discussion_id,
   prepared_.contribution_id,prepared_.discussion_version);
 END $append$;
@@ -152,14 +166,14 @@ CREATE TRIGGER named_authored_withdrawal AFTER UPDATE OF withdrawn,visibility ON
  FOR EACH ROW EXECUTE FUNCTION canonical_v4.named_erase_authored_context();
 
 REVOKE ALL ON TABLE canonical_v4.named_root_contexts,canonical_v4.named_context_receipts FROM PUBLIC;
-REVOKE ALL ON FUNCTION canonical_v4.named_valid_editor_scope(jsonb),canonical_v4.named_read_editor(text,text),
+REVOKE ALL ON FUNCTION canonical_v4.named_attach_root_context(text,text,text,text,text,jsonb),canonical_v4.named_valid_editor_scope(jsonb),canonical_v4.named_read_editor(text,text),
  canonical_v4.named_append_root(text,text,text,text,text,text,text,text,text,text,jsonb),
  canonical_v4.named_read_root_context(text,text),canonical_v4.named_erase_authored_context() FROM PUBLIC;
 DO $permissions$ DECLARE role_ text;BEGIN
  FOREACH role_ IN ARRAY ARRAY['murmingle_app','murmingle_ingest_worker','murmingle_crawler_submitter'] LOOP
   IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname=role_) THEN
    EXECUTE format('REVOKE ALL ON TABLE canonical_v4.named_root_contexts,canonical_v4.named_context_receipts FROM %I',role_);
-   EXECUTE format('REVOKE ALL ON FUNCTION canonical_v4.named_valid_editor_scope(jsonb),canonical_v4.named_read_editor(text,text),canonical_v4.named_append_root(text,text,text,text,text,text,text,text,text,text,jsonb),canonical_v4.named_read_root_context(text,text),canonical_v4.named_erase_authored_context() FROM %I',role_);
+   EXECUTE format('REVOKE ALL ON FUNCTION canonical_v4.named_attach_root_context(text,text,text,text,text,jsonb),canonical_v4.named_valid_editor_scope(jsonb),canonical_v4.named_read_editor(text,text),canonical_v4.named_append_root(text,text,text,text,text,text,text,text,text,text,jsonb),canonical_v4.named_read_root_context(text,text),canonical_v4.named_erase_authored_context() FROM %I',role_);
   END IF;
  END LOOP;
  IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='murmingle_app') THEN

@@ -229,6 +229,7 @@ class MaintainedDriverTest(unittest.TestCase):
                 'automaticSubjectCases':[{'name':name,'status':'passed'} for name in json.loads((D.REPO/D.AUTOMATIC_SUBJECT_LEDGER).read_bytes())],
                 'automaticRetrievalCases':[{'name':name,'status':'passed'} for name in json.loads((D.REPO/D.AUTOMATIC_RETRIEVAL_LEDGER).read_bytes())],
                 'automaticAuthorContextCases':[{'name':name,'status':'passed'} for name in json.loads((D.REPO/D.AUTOMATIC_AUTHOR_CONTEXT_LEDGER).read_bytes())],
+                'automaticAuthorInsightCases':[{'name':name,'status':'passed'} for name in json.loads((D.REPO/D.AUTOMATIC_AUTHOR_INSIGHT_LEDGER).read_bytes())],
                 'restrictedRoleValidated':True,
                 'concurrencyScope':'head-switch-vs-apply-and-mvcc-read','multiUserLoadValidated':False,
                 'semanticQualityMeasured':False,'lastObservedSqlFailure':None,
@@ -300,6 +301,17 @@ class MaintainedDriverTest(unittest.TestCase):
             elif change=='order':rows[0],rows[1]=rows[1],rows[0]
             elif change=='name':rows[0]['name']=value['proof']['automaticRetrievalCases'][0]['name']
             elif change=='status':rows[7]['status']='skipped'
+            elif change=='extra':rows[0]['extra']=True
+            self.assertFalse(self.complete(value)['accepted'])
+
+    def test_authored_ai_reports_require_all_exact_completed_cases(self):
+        for change in ('missing','partial','order','name','status','extra'):
+            value=self.semantic_result();rows=value['proof']['automaticAuthorInsightCases']
+            if change=='missing':del value['proof']['automaticAuthorInsightCases']
+            elif change=='partial':rows.pop()
+            elif change=='order':rows[0],rows[1]=rows[1],rows[0]
+            elif change=='name':rows[0]['name']=value['proof']['automaticAuthorContextCases'][0]['name']
+            elif change=='status':rows[5]['status']='skipped'
             elif change=='extra':rows[0]['extra']=True
             self.assertFalse(self.complete(value)['accepted'])
 

@@ -8,6 +8,17 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+CURRENT29Oct AI-root scope SOURCE: mechanical016 inverse/fourclosedAUTHORblocks
+new named_share_insight +sharedprivate finalizer BEFOREwatermark. Existing016
+immutable/old18argport unchanged. Common pure lifecycle request/proof builder
+used by ordinary and authored ports; exact18params testsPASS. New7 owned AI
+reports composed/strictNode+Pythonrequired, UNEXECUTED. Full101guardedNode PASS
+494.764ms +66Python PASS. Sourcecurrent catalog STALE until rebuilt. No real
+provider/proofissuance/UI/profile18/startup/live change. Next freshcatalog and
+separateONEownedactual decision, then browser/realAIjob scope binding. Allold
+consumed run outputs/maps immutable. GoalACTIVE; original services preserved.
+
+
 LATEST29Oct author-selected context ACTUALPASS: source15222ccd/catalog73417c7a/
 map0fb68802...9175e/2569files/276888953B. Owned run4e45065d...786789 EXIT0/
 acceptedTRUE: all10new authored +prior25/metadata8/Source10/general12/retrieval10

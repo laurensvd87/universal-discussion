@@ -179,6 +179,22 @@ async function schemaHealth(database, schemaProfile) {
   return Object.freeze({ schemaVersion });
 }
 
+// Shared normalization/proof boundary for ordinary and authored-context SQL
+// ports. Constructing a request performs no IO and never publishes a result.
+export function prepareCanonicalV4LifecycleCommand(expectedValue,commandValue,actor,generatedProof=null,{
+  nextId=(kind)=>`${kind}-${randomUUID()}`,now=()=>new Date().toISOString()}={}) {
+  if(typeof nextId!=='function'||typeof now!=='function')throw new TypeError('Invalid lifecycle request dependencies');
+  const actorId=actorIdFor(actor),expected=readExpectedVersion(expectedValue),command=normalizeCommand(commandValue);
+  const proof=generatedProofFor(generatedProof,actorId,command);
+  const requestMaterial=JSON.stringify({generation:expected.generation,revision:expected.revision,command});
+  const requestDigest=digestText(requestMaterial),requestId=`lifecycle-${digestText(JSON.stringify({actorId,expected,command}))}`;
+  const contributionId=GENERATED_TYPES.has(command.type)?readId(nextId('contribution')):null,timestamp=readText(now(),64);
+  const parameters=[actorId,requestId,requestDigest,requestMaterial,expected.generation,expected.revision,command.type,
+    command.topicId??null,command.discussionId??null,command.rootId??null,command.replyToId??null,command.body??null,
+    command.originSourceId??null,command.operationId??null,command.contributionId??null,contributionId,timestamp,proof===null?null:JSON.stringify(proof)];
+  return Object.freeze({actorId,requestId,expected:Object.freeze(expected),command,parameters:Object.freeze(parameters)});
+}
+
 export function createCanonicalV4LifecycleRepository({ database,
   schemaProfile = 'legacy9',
   nextId = (kind) => `${kind}-${randomUUID()}`,
@@ -192,27 +208,7 @@ export function createCanonicalV4LifecycleRepository({ database,
     health: () => schemaHealth(database, schemaProfile),
 
     async command(expectedValue, commandValue, actor, generatedProof = null) {
-      const actorId = actorIdFor(actor);
-      const expected = readExpectedVersion(expectedValue);
-      const command = normalizeCommand(commandValue);
-      const proof = generatedProofFor(generatedProof, actorId, command);
-      const requestMaterial = JSON.stringify({
-        generation: expected.generation, revision: expected.revision, command,
-      });
-      const requestDigest = digestText(requestMaterial);
-      const requestId = `lifecycle-${digestText(JSON.stringify({ actorId, expected, command }))}`;
-      const generated = GENERATED_TYPES.has(command.type);
-      const contributionId = generated ? readId(nextId('contribution')) : null;
-      const timestamp = readText(now(), 64);
-      const parameters = [
-        actorId, requestId, requestDigest, requestMaterial,
-        expected.generation, expected.revision, command.type,
-        command.topicId ?? null, command.discussionId ?? null,
-        command.rootId ?? null, command.replyToId ?? null,
-        command.body ?? null, command.originSourceId ?? null,
-        command.operationId ?? null, command.contributionId ?? null,
-        contributionId, timestamp, proof === null ? null : JSON.stringify(proof),
-      ];
+      const {parameters}=prepareCanonicalV4LifecycleCommand(expectedValue,commandValue,actor,generatedProof,{nextId,now});
       try {
         const { rows } = await database.query(`SELECT canonical_v4.runtime_lifecycle_command(
           $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18

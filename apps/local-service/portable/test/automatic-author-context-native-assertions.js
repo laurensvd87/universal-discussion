@@ -5,6 +5,7 @@ import {createAutomaticAuthorContextRepository as repository} from '../canonical
 import {createAutomaticNamedSubjectRepository as subjectRepository} from '../canonical-v4/automatic-named-subject-repository.js';
 import {createCanonicalV4RuntimeRepository} from '../canonical-v4/runtime-repository.js';
 import {createCanonicalV4LifecycleRepository} from '../canonical-v4/lifecycle-repository.js';
+import {runAutomaticAuthorInsightNativeAssertions} from './automatic-author-insight-native-assertions.js';
 import names from './automatic-author-context-native-cases.json' with {type:'json'};
 export const AUTOMATIC_AUTHOR_CONTEXT_NATIVE_CASES=Object.freeze([...names]);
 const code=c=>e=>e?.code===c;
@@ -104,9 +105,10 @@ export async function runAutomaticAuthorContextNativeAssertions(scope){
   await withdrawAutomaticAuthorFixtureRoot({database:app,expected:await expected(),rootId:id});
   assert.equal(await readRoot(id),null);assert.equal((await one(owner,'SELECT count(*)::integer n FROM canonical_v4.named_root_contexts WHERE root_id=$1',[id])).n,0);
  });
+ const finishInsight=await runAutomaticAuthorInsightNativeAssertions({...scope,cases:scope.insightCases});
  // Called only after the outer fixture's real, committed Source-forget loop.
  // It must prove authored captions survive without retaining the derived heads.
- return async()=>test(cases,9,async()=>{
+ return async()=>{await finishInsight();return test(cases,9,async()=>{
   assert.equal((await one(owner,'SELECT count(*)::integer n FROM canonical_v4.sources')).n,0);
   const retained=await readRoot(namedResult.result.contributionId);assert(retained);assert.equal(retained.scope.caption,namedRequest.scope.caption);
   assert.equal(retained.topicId,namedRequest.command.topicId);assert.equal(retained.scope.id,namedRequest.scope.id);
@@ -119,8 +121,8 @@ export async function runAutomaticAuthorContextNativeAssertions(scope){
    await tx.query('DELETE FROM canonical_v4.id_registry WHERE id=ANY($1::text[])',[roots]);
   });
   await owner.exec(`DROP TRIGGER named_authored_withdrawal ON canonical_v4.contributions;
-   DROP FUNCTION canonical_v4.named_valid_editor_scope(jsonb),canonical_v4.named_read_editor(text,text),
+   DROP FUNCTION canonical_v4.named_attach_root_context(text,text,text,text,text,jsonb),canonical_v4.named_valid_editor_scope(jsonb),canonical_v4.named_read_editor(text,text),
     canonical_v4.named_append_root(text,text,text,text,text,text,text,text,text,text,jsonb),canonical_v4.named_read_root_context(text,text),canonical_v4.named_erase_authored_context();
    DROP TABLE canonical_v4.named_context_receipts,canonical_v4.named_root_contexts;`);
- });
+ });};
 }

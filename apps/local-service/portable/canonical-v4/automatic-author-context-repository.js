@@ -4,6 +4,7 @@ import {createHash,randomUUID} from 'node:crypto';
 import {isAccountActor} from '../../src/accounts/account-principal.js';
 import {ServiceError} from '../../src/domain/errors.js';
 import {readRecord,readId,readText,readBody,readExpectedVersion,frozenClone} from '../../src/domain/validation.js';
+import {prepareCanonicalV4LifecycleCommand} from './lifecycle-repository.js';
 
 const invalid=()=>{throw new ServiceError('invalid','Invalid authored topic context');};
 const corrupt=()=>{throw new ServiceError('storage-corrupt','Invalid authored topic result');};
@@ -22,6 +23,8 @@ function failure(error){
  if(['P1291','P1001','40001','23505','23503'].includes(error?.code))return new ServiceError('conflict','The selected topic changed; your draft remains available');
  if(['P1293','P1003'].includes(error?.code))return new ServiceError('invalid','Invalid authored topic context');
  if(error?.code==='P1002')return new ServiceError('not-found','Original discussion unavailable');
+ if(error?.code==='P1004')return new ServiceError('storage-corrupt','Invalid original discussion state');
+ if(error?.code==='P1006')return new ServiceError('forbidden','Action unavailable');
  return new ServiceError('storage-failure','Authored topic storage unavailable');
 }
 export function createAutomaticAuthorContextRepository({database,nextId=()=>`contribution-${randomUUID()}`,now=()=>new Date().toISOString()}={}){
@@ -60,6 +63,18 @@ export function createAutomaticAuthorContextRepository({database,nextId=()=>`con
     if(r===null)return null;
     try{const v=readRecord(r,['rootId','discussionId','topicId','scope']);readId(v.discussionId);readId(v.topicId);if(v.rootId!==a.rootId)corrupt();
      return frozenClone({...v,scope:scope(v.scope,{material:false})});
+    }catch{corrupt();}
+   }catch(error){throw failure(error);}
+  },
+  async shareInsight(rawJson){
+   const a=readRecord(parsed(rawJson,131072),['expected','command','actor','proof','scope']),s=scope(a.scope);
+   if(a.command?.type!=='share-insight'||a.command.originSourceId!==s.sourceId)invalid();
+   const request=prepareCanonicalV4LifecycleCommand(a.expected,a.command,a.actor,a.proof,{nextId,now});
+   if(Buffer.byteLength(request.parameters[3])>32768||Buffer.byteLength(request.parameters[17])>65536)invalid();
+   try{const raw=await database.query('SELECT canonical_v4.named_share_insight($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19::jsonb) AS result',
+     [...request.parameters,JSON.stringify(s)]);
+    try{const r=readRecord(JSON.parse(value(raw)),['version','result']),version=readExpectedVersion(r.version),result=readRecord(r.result,['contributionId']);
+     if(version.generation!==request.expected.generation)corrupt();readId(result.contributionId);return frozenClone({version,result});
     }catch{corrupt();}
    }catch(error){throw failure(error);}
   },
