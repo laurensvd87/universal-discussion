@@ -13,6 +13,7 @@ import diversityCorpus from './hierarchy-child-diversity-corpus.json' with {type
 import {ADDITIONAL_CHILD_TEST_PROBES} from './hierarchy-child-additional-test-corpus.js';
 import {AUTOMATIC_TOPIC_DEVELOPMENT,AUTOMATIC_TOPIC_ADDITIONAL_DEVELOPMENT,AUTOMATIC_TOPIC_METADATA_DEVELOPMENT} from './automatic-topic-development-corpus.js';
 import {AUTOMATIC_TOPIC_COMPARISON_DEVELOPMENT} from './automatic-topic-comparison-corpus.js';
+import {GENERAL_WEB_SUBJECT_PROBES} from './general-web-subject-corpus.js';
 
 const ORIGIN='https://en.wikipedia.org',MAX_REQUESTS=34,MAX_DURATION=240000,MIN_DELAY=5000;
 // Closed development TRAIN/CAL batch. TEST IDs/URLs are deliberately absent.
@@ -94,6 +95,7 @@ export function createAutomaticTopicDevelopmentCapture(dependencies={}){return c
 export function createAutomaticTopicAdditionalDevelopmentCapture(dependencies={}){return createCapture(dependencies,true,false,false,false,null,'automatic-development-additional');}
 export function createAutomaticTopicMetadataDevelopmentCapture(dependencies={}){return createCapture(dependencies,true,false,false,false,null,'automatic-development-metadata');}
 export function createAutomaticTopicComparisonDevelopmentCapture(dependencies={}){return createCapture(dependencies,true,false,false,false,null,'automatic-development-comparison');}
+export function createGeneralWebSubjectScreenCapture(dependencies={}){return createCapture(dependencies,true,false,false,false,null,'general-web-subject-screen');}
 function createCapture({fetchPublic=fetchPublicResource,clock=Date.now,sleep=defaultSleep,signal,deadline},child,diagnosis=false,calibrationRepair=false,evaluation=false,diversityPhase=null,koalaSupplement=false){
  if(typeof fetchPublic!=='function'||typeof clock!=='function'||typeof sleep!=='function')throw new TypeError('Invalid fixed public capture dependencies');
  const start=clock();if(!Number.isFinite(start)||start<0)throw new TypeError('Invalid fixed public capture clock');
@@ -107,6 +109,7 @@ function createCapture({fetchPublic=fetchPublicResource,clock=Date.now,sleep=def
   ['automatic-development-additional',{probes:AUTOMATIC_TOPIC_ADDITIONAL_DEVELOPMENT,count:4,requests:12}],
   ['automatic-development-metadata',{probes:AUTOMATIC_TOPIC_METADATA_DEVELOPMENT,count:4,requests:12}],
   ['automatic-development-comparison',{probes:AUTOMATIC_TOPIC_COMPARISON_DEVELOPMENT,count:12,requests:28}],
+  ['general-web-subject-screen',{probes:GENERAL_WEB_SUBJECT_PROBES,count:12,requests:34}],
  ]).get(koalaSupplement):null;
  if(koalaSupplement&&!supplemental)throw new TypeError('Invalid fixed probe source');
  const approved=supplemental?supplemental.probes:diversityPhase?diversityCorpus[diversityPhase]:child?(evaluation?CHILD_TEST:calibrationRepair?CHILD_CAL_REPAIR:diagnosis?CHILD_DIAGNOSIS:CHILD_TRAIN_CAL):[...PUBLIC_HIERARCHY_PROBES,...RECIPE_CAL_PROBES,...RECIPE_TEST_PROBES,...GTA_TRAIN_PROBES,...GTA_CAL_PROBES,...GTA_TEST_PROBES];

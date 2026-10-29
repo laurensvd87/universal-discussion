@@ -11,6 +11,8 @@ import {PublicFetchError} from '../src/crawler/public-fetch.js';
 import {createAutomaticTopicDevelopmentCapture,createAutomaticTopicAdditionalDevelopmentCapture,createAutomaticTopicMetadataDevelopmentCapture,createAutomaticTopicComparisonDevelopmentCapture} from '../harness/hierarchy-public-capture.js';
 import {AUTOMATIC_TOPIC_DEVELOPMENT,AUTOMATIC_TOPIC_ADDITIONAL_DEVELOPMENT,AUTOMATIC_TOPIC_METADATA_DEVELOPMENT} from '../harness/automatic-topic-development-corpus.js';
 import {AUTOMATIC_TOPIC_COMPARISON_DEVELOPMENT} from '../harness/automatic-topic-comparison-corpus.js';
+import {createGeneralWebSubjectScreenCapture} from '../harness/hierarchy-public-capture.js';
+import {GENERAL_WEB_SUBJECT_PROBES} from '../harness/general-web-subject-corpus.js';
 
 const sha=s=>createHash('sha256').update(s).digest('hex');
 const body='A public article about this independently selected subject has enough actual prose to pass the existing minimum text policy. '.repeat(4);
@@ -32,6 +34,16 @@ function fixture({robots='',tdm=null,page=()=>html(),onRequest}={}){
 const childPlan=JSON.parse(readFileSync(new URL('../harness/hierarchy-child-corpus.json',import.meta.url),'utf8'));
 const childRows=childPlan.freshCandidates.filter(r=>r.split!=='test');
 const diversityPlan=JSON.parse(readFileSync(new URL('../harness/hierarchy-child-diversity-corpus.json',import.meta.url),'utf8'));
+
+test('general-web screen admits only its12 public non-Wikipedia pages under unchanged34-request caps',async()=>{
+ const f=fixture(),capture=createGeneralWebSubjectScreenCapture(f.options);
+ for(const p of [...AUTOMATIC_TOPIC_DEVELOPMENT,...AUTOMATIC_TOPIC_COMPARISON_DEVELOPMENT,...childPlan.freshCandidates,...probes])await assert.rejects(capture.capture(p.id));
+ assert.equal(f.calls.length,0);assert.equal(GENERAL_WEB_SUBJECT_PROBES.length,12);
+ for(const p of GENERAL_WEB_SUBJECT_PROBES){assert(!p.url.includes('wikipedia.org'));const r=await capture.capture(p.id);assert.equal(r.status,'available');assert.equal(r.url,p.url);}
+ assert.equal(f.calls.length,26);assert.equal(capture.snapshot().maxRequests,34);assert.equal(capture.snapshot().minimumOriginDelayMs,5000);
+ assert.deepEqual(f.calls.filter(c=>c.resourceKind==='page').map(c=>c.url),GENERAL_WEB_SUBJECT_PROBES.map(p=>p.url));
+ const calls=f.calls.length;assert.equal((await capture.capture(GENERAL_WEB_SUBJECT_PROBES[0].id)).reason,'already-attempted');assert.equal(f.calls.length,calls);
+});
 
 test('comparison DEV captures exactly12 declared hard cases and cannot fetch previous DEV or hierarchy TEST',async()=>{
  const f=fixture(),capture=createAutomaticTopicComparisonDevelopmentCapture(f.options);
