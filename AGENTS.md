@@ -42,7 +42,9 @@ recapturecontinuity, dynamicownerdepth+foregroundcontext, complete18/profile/
 startup/recovery, genuinebrowser/provider/quality/latency/livecutover. Named
 searchaloneMUSTNOTreplacelegacydirectory atactivation. Rootaudit data/automatic-
 topic-public-native-root-audit-20261029.json. Verificationdoc changed AFTER
-acceptedrun; refreshcurrentcatalog docs-only before nextactual invocation.
+acceptedrun. Currentcatalogbf090d78...4004 Rootauthenticated: ONLYpublic
+verificationdoc hash differs from execution71767d59; allprogram/SQL/runtime
+bytes identical. Noadditionalactualphase performed for thisdocs-onlyrefresh.
 
 
 LATEST29Oct namedfeed/globalSearch SOURCE+ownedSQL ACTUALPASS. Source659ea7b2/
