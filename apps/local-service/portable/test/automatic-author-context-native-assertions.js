@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises
 import {createAutomaticAuthorContextRepository as repository} from '../canonical-v4/automatic-author-context-repository.js';
 import {createAutomaticNamedSubjectRepository as subjectRepository} from '../canonical-v4/automatic-named-subject-repository.js';
 import {createCanonicalV4RuntimeRepository} from '../canonical-v4/runtime-repository.js';
+import {createCanonicalV4LifecycleRepository} from '../canonical-v4/lifecycle-repository.js';
 import names from './automatic-author-context-native-cases.json' with {type:'json'};
 export const AUTOMATIC_AUTHOR_CONTEXT_NATIVE_CASES=Object.freeze([...names]);
 const code=c=>e=>e?.code===c;
@@ -11,6 +12,11 @@ const deferred=()=>{let resolve;const promise=new Promise(done=>{resolve=done;})
 async function one(db,sql,args=[]){const r=await db.query(sql,args);assert.equal(r.rows.length,1);return r.rows[0];}
 async function within(work){let timer;try{return await Promise.race([work,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('authored context operation timed out')),1200);})]);}finally{clearTimeout(timer);}}
 async function test(cases,index,body){const r={name:names[index],status:'running'};cases.push(r);try{await body();r.status='passed';}catch(e){r.status='failed';throw e;}}
+
+export function withdrawAutomaticAuthorFixtureRoot({database,expected,rootId}){
+ return createCanonicalV4LifecycleRepository({database}).command(expected,{type:'withdraw',contributionId:rootId},
+  {id:'demo-alex',type:'human',demo:true});
+}
 
 export async function runAutomaticAuthorContextNativeAssertions(scope){
  const {owner,worker,app,observer,generation,sourceIds,publicationInput,prepareFixtureSources,changeFixtureTitle,cases}=scope;
@@ -95,7 +101,7 @@ export async function runAutomaticAuthorContextNativeAssertions(scope){
   for(const role of ['murmingle_ingest_worker','murmingle_crawler_submitter'])
    await assert.rejects(owner.transaction(async tx=>{await tx.exec('SET LOCAL ROLE '+role);await tx.query('SELECT canonical_v4.named_read_editor($1,$2)',[generation,source]);}),code('42501'));
   const r=await post(await request(await editor(source))),id=r.result.contributionId;
-  await owner.query('UPDATE canonical_v4.contributions SET withdrawn=true WHERE id=$1',[id]);
+  await withdrawAutomaticAuthorFixtureRoot({database:app,expected:await expected(),rootId:id});
   assert.equal(await readRoot(id),null);assert.equal((await one(owner,'SELECT count(*)::integer n FROM canonical_v4.named_root_contexts WHERE root_id=$1',[id])).n,0);
  });
  // Called only after the outer fixture's real, committed Source-forget loop.
@@ -107,7 +113,7 @@ export async function runAutomaticAuthorContextNativeAssertions(scope){
   const body=await one(owner,"SELECT payload::jsonb->>'body' body FROM canonical_v4.revisions WHERE contribution_id=$1 AND ordinal=0",[namedResult.result.contributionId]);assert.equal(body.body,namedRequest.command.body);
   assert.deepEqual(await repo.appendRoot(JSON.stringify(namedRequest)),namedResult);
   await owner.transaction(async tx=>{
-   await tx.query('DELETE FROM canonical_v4.command_receipts WHERE actor_id=$1 AND request_id=ANY($2::text[])',['demo-alex',requests]);
+   await tx.query('DELETE FROM canonical_v4.command_receipts WHERE contribution_id=ANY($1::text[])',[roots]);
    await tx.query('DELETE FROM canonical_v4.revisions WHERE contribution_id=ANY($1::text[])',[roots]);
    await tx.query('DELETE FROM canonical_v4.contributions WHERE id=ANY($1::text[])',[roots]);
    await tx.query('DELETE FROM canonical_v4.id_registry WHERE id=ANY($1::text[])',[roots]);

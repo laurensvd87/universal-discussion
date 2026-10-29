@@ -1,5 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';
 import {createAutomaticAuthorContextRepository as repository} from '../canonical-v4/automatic-author-context-repository.js';
+import {withdrawAutomaticAuthorFixtureRoot} from './automatic-author-context-native-assertions.js';
 const generation='invented-generation',sourceId='invented-source',topicId='invented-topic';
 const scope={kind:'named',id:'12345678-1234-4123-8123-123456789abc',caption:'Steam Deck',sourceId,materialDigest:'a'.repeat(64)};
 const request=()=>({actorId:'demo-alex',requestId:'invented-request',expected:{generation,revision:50},
@@ -53,4 +54,11 @@ test('scope conflicts keep a distinct retryable error without revealing database
   const repo=repository({database:{async query(){throw Object.assign(Error('private SQL details'),{code:sqlCode});}}});
   await assert.rejects(repo.appendRoot(JSON.stringify(request())),e=>e.code==='conflict'&&!e.message.includes('SQL details'));
  }
+});
+
+test('the actual native withdrawal fixture uses the normal lifecycle port instead of a partial invalid row update',async()=>{
+ let called=0;const sentinel=Object.assign(Error('stop before owned SQL'),{code:'P1001'});
+ const database={async query(sql,p){called++;assert(sql.includes('runtime_lifecycle_command'));assert.equal(p[0],'demo-alex');
+  assert.equal(p[6],'withdraw');assert.equal(p[14],'original-root');assert.deepEqual(JSON.parse(p[3]).command,{type:'withdraw',contributionId:'original-root'});throw sentinel;}};
+ await assert.rejects(withdrawAutomaticAuthorFixtureRoot({database,expected:{generation,revision:2},rootId:'original-root'}),code('conflict'));assert.equal(called,1);
 });

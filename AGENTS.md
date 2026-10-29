@@ -8,6 +8,15 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct authored-context ONE actual ba5e80d6...18bc3 CLOSED exit1/23514:
+first8 authored cases PASS, ninth invalid fixture directwithdraw violates001
+CHECK(authorNULL/revisions0). Root savedfailure/all2569endpins auditPASS; exact
+owned smartstop/oneusedDBdrop/emptyJob/allhandlesTRUE/emergencyFALSE/stderr0.
+Not accepted/no quality/live proof. Maintained fixture now calls normal app
+lifecycle withdrawal; causal sentinel +joined22purePASS. No productionSQL change.
+New source/catalog/separateactual decision required; old run remains immutable.
+
+
 CURRENT29Oct authored-context SOURCE: new execute-only editor/root ports and
 immutable posted scope/caption; canonical destinations remain unchanged. Page
 drafts survive new named subjects; named drafts bind stableID/title/material,
