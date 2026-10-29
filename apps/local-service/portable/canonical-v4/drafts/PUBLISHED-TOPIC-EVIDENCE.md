@@ -96,9 +96,9 @@ invented encoder coordinates; the separate actual E5 development comparison and
 the live dashboard browser checks have different scopes and are not added to
 its report count. No new automatic matcher was activated by this run.
 
-Next: bind this independent public evidence to current
-Source/candidate/identity revision checks in actual
-publication before reusing an occupied topic ID. Equal labels alone are not
-identity. Static/dynamic aliases, owner depth, foreground context, complete18
+The subsequent [public recovery composition](PUBLISHED-TOPIC-RECOVERY.md) now
+binds this independent evidence to current Source/candidate/identity revision
+checks in actual publication, with a separately accepted130-report owned run.
+Equal labels alone are not identity. Static/dynamic aliases, owner depth, foreground context, complete18
 installation/migration/recovery and representative real UI/provider/quality/
 latency verification remain required before live activation.

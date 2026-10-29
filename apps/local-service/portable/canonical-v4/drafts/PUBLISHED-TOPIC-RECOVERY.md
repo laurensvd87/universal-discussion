@@ -51,9 +51,20 @@ numeric evidence, a new competitor, identity CAS, a held human edit and concurre
 MVCC reads/normal page posting. Each uses invented public text and coordinates;
 the controlled absent-head fixture is rolled back. The pre-existing actual
 Source-erasure report remains separately mandatory. The source parser accepts
-the SQL bodies. Actual updated native execution is pending, and no representative
+the SQL bodies. The new owned run passes all130 reports (the original122 plus
+all8 recovery reports), including both physical concurrency cases. It uses
+source`8c805beb`, catalog commit`58a15dcd` and execution map
+`372575cc6e19117a001d840046468973709b3e1ba4d021c965075fbb427fcfc3`.
+Run `run-eb197ec5857d3db29e27b16c34621eaf6b60bc112cd15451` exits0. Both
+created scratch databases drop, the exact owned PostgreSQL server smart-stops,
+the Job is empty and all handles close. Stderr is empty and emergency false.
+Root reauthenticates all2613 source/runtime pins and the saved strict completion.
+Result SHA-256 `3b2e0a9bb0fe4fcb914ad2f5e52d4f839638540d41d9e914601369d7fc8f4c31`;
+stdout `812b881980a4386e7d3e66c713d2051668ce233086fd1ae69b062bab6b0260ad`.
+Root-only audit: `data/published-topic-recovery-native-root-audit-20261029.json`.
+641 guarded Node and70 pure controller reports also pass. No representative
 semantic quality, genuine provider/browser load or live speed claim follows.
 
-Next: validate this publication composition on owned PostgreSQL, implement the
-remaining lookup/alias/owner/startup/migration/recovery integration, then test
+Next: implement the remaining lookup/alias/owner/startup/migration/recovery
+integration, then test
 representative E5 quality and the actual application before live activation.

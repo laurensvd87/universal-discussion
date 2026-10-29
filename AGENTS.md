@@ -8,6 +8,36 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct actual public identity recovery ACCEPTED, automatic matcher NOT LIVE.
+Progress: source8c805beb /catalog58a15dcd /execution372575cc...7fcfc3; ONE new
+owned run-eb197ec5857d3db29e27b16c34621eaf6b60bc112cd15451 EXIT0/all130 reports
+PASS (original122+8). Both scratchDBs dropped/exact smartstop/emptyJob/allhandles/
+stderr0/emergencyFALSE. Root reauthenticated2613pins and strict saved completion;
+audit fb7aa4ec...833f4 under apps/local-service/data/published-topic-recovery-
+native-root-audit-20261029.json. Result3b2e0a9b...f4c31/stdout812b8819...260ad.
+Actual SQL/publication plus held edit refusing recovery and held recovery allowing
+MVCC discussion reads+normal page post. Root-only/invented public text+coordinates;
+controlled absent-head setup rolls back; actual Source erase separately mandatory.
+NEW optional repository publicEvidence composition restores absent-head opaque IDs
+only with current public digest/rootVersion/identity CAS and complete candidate
+snapshot. SQL computes protected member/public scores, .88 all-members/.03 margin
+including below-floor competitor; same-focus guards+SKIP LOCKED roots/prototypes;
+Sources->sortedIDs->public guards/roots. No merge of active IDs/heads. Ambiguous
+narrow scope falls back to proved parent, then page. Current resolved heads retain
+ordinary path. No Source metadata retained in public index. 641 guarded NodePASS
+2.8227s/70 pure controllerPASS3.417s/parser3files45statements13PLpgSQL. First pure
+controller sandbox ACL failure is NOT actual phase; normal-token repeat passed.
+Execution consumed bytes immutable in commits/maps/output. Docs-only refreshed
+current map b35a21c9...a5921,2613files277897541B, all execution inputs unchanged.
+Source/default startup/crawler remains17, no migration/activation. Next single-page
+lookup+static/dynamic aliases+owner depth/foreground+complete18 install/startup/
+migration/recovery+representative E5/provider/browser/latency/load still OPEN.
+Live PG18688/crawler6384/worker11880/API38860/dashboard28420 original starts
+preserved, crawler14324 advancing/stderr0. No host/HBA/service changes. Read-only
+12 private restore clusters: only ~600MB total, no large headroom recovery there;
+no compression/deletion. Private11GiB D floor still unmet (~5GBfree), NEVER waived.
+GoalACTIVE. Integrate next; do not substitute another variants experiment.
+
 LATEST29Oct public evidence actual SQL ACCEPTED, automatic named matching NOT LIVE.
 Corrected source2b9aa11b/catalogbc84f273/map3c3a932c...76743; fresh owned run
 07106367f52867b7901f37e7bbfcb6fa4d2d13044949bcc4 exits0/all122 reports PASS
