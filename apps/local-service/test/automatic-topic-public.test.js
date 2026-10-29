@@ -17,7 +17,7 @@ function client(service){const handle=createRequestHandler({config,service});ret
 
 test('global named search is an explicit compatible capability and normal public HTTP read without a Source',async()=>{
  let calls=0;const {service}=fixture({search:async a=>{calls++;assert.deepEqual(a,query);return result();}}),api=client(service);
- assert.deepEqual(await api.semanticCapabilities(),{protocol:'semantic-topics/v1',authorContext:'authored-topics/v1',topicSearch:'named-topics/v1'});
+ assert.deepEqual(await api.semanticCapabilities(),{protocol:'semantic-topics/v2',authorContext:'authored-topics/v2',topicSearch:'named-topics/v2'});
  const response=await api.semanticSearch(query);assert.deepEqual(response,result());assert(Object.isFrozen(response.topics[0]));assert.equal(calls,1);
 });
 

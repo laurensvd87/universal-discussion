@@ -162,10 +162,14 @@ export async function openDormantPostgresApplication({ config: input, databasePa
     if (canonicalDatabaseOwned) await settle(() => canonicalDatabase.close?.());
     if (failed) throw primary;
   }
+  const legacySemantic=automaticTopics?createPostgresCanonicalService({reads:createCanonicalV4ReadFacade({database:canonicalDatabase}),runtime:commands,
+    lifecycle:lifecycleBoundary,semanticDiscussions:true,requestSemanticPreparation:preparationRequests?.request??null,
+    resolveAccountActor:id=>accounts?.principalForAccountId(id)??null,readAccountActors:()=>accounts?.publicActors()??[]}):null;
   const service = createPostgresCanonicalService({ reads, urlSelectionReads, runtime: commands,
     ingestion: interactiveIngestion, lifecycle: lifecycleBoundary,
     semanticDiscussions: hierarchicalTopics,
     automaticTopics,
+    allowLegacyAuthorCommands:automaticTopics,legacySemantic,
     authoredTopics:automaticTopics?createAutomaticAuthorContextRepository({database:canonicalDatabase,ownerGrouping:true,combinedHierarchy:true,nextId,now}):null,
     requestSemanticPreparation: preparationRequests?.request ?? null,
     resolveAccountActor: id => accounts?.principalForAccountId(id) ?? null,

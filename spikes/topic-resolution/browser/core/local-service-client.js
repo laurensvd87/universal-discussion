@@ -22,6 +22,7 @@ const confirmedIngestionConflicts = new WeakSet();
 const confirmedIngestionRejections = new WeakSet();
 const confirmedCommandRejections = new WeakSet();
 const missingSemanticCapabilities = new WeakSet();
+const missingSemanticV2Capabilities = new WeakSet();
 // Construction/code properties cannot manufacture evidence of a received response.
 export function isConfirmedIngestionConflict(error) { return confirmedIngestionConflicts.has(error); }
 export function isConfirmedIngestionRejection(error) { return confirmedIngestionRejections.has(error); }
@@ -40,6 +41,7 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
   if (typeof fetchImpl !== "function" || typeof getToken !== "function" || !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 30_000) {
     throw new TypeError("Invalid local service client configuration");
   }
+  let semanticProtocolVersion=1,capabilityEpoch=0;
   async function request(path, body, actorId, project, signal, suppliedToken, beforeDispatch) {
     const url = BASE + path;
     const serialized = body === undefined ? undefined : JSON.stringify(body);
@@ -69,6 +71,7 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
       }
       if (controller.signal.aborted) fail("unavailable");
       const headers = { Authorization: `Bearer ${token}` };
+      if(semanticProtocolVersion===2&&path.startsWith('/semantic/')&&!path.startsWith('/semantic/capabilities'))headers['X-Murmingle-Semantic']='2';
       if (serialized !== undefined) headers["Content-Type"] = "application/json";
       let accountToken;
       if (isAccountActorId(actorId)) {
@@ -89,7 +92,7 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
       if (response.status !== 200) {
         let confirmedRejection = null;
         let commandRejection=path==='/commands'?{400:'invalid-request',401:'unauthorized',403:'forbidden',404:'not-found',409:'conflict'}[response.status]:null;
-        const missingCapabilities=path==='/semantic/capabilities'&&response.status===404;
+        const missingCapabilities=['/semantic/capabilities','/semantic/capabilities/v2'].includes(path)&&response.status===404;
         if ((path === "/sources/ingest" && [409, 413].includes(response.status) || commandRejection || missingCapabilities) &&
             /^application\/json(?:\s*;\s*charset=utf-8)?$/iu.test(response.headers?.get("content-type") ?? "") &&
             response.body && typeof response.body.getReader === "function") {
@@ -136,7 +139,7 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
         const code = { 400: "invalid-request", 401: "unauthorized", 409: "conflict", 413: "capacity" }[response.status] ?? "unavailable";
         if (confirmedRejection && !controller.signal.aborted) {
           const error = new LocalServiceClientError(commandRejection ?? code);
-          if(missingCapabilities)missingSemanticCapabilities.add(error);
+          if(missingCapabilities)(path==='/semantic/capabilities/v2'?missingSemanticV2Capabilities:missingSemanticCapabilities).add(error);
           else if(commandRejection)confirmedCommandRejections.add(error);
           else {confirmedIngestionRejections.add(error);
             if (confirmedRejection === 409) confirmedIngestionConflicts.add(error);}
@@ -184,8 +187,12 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
     }
   }
   return Object.freeze({
-    semanticCapabilities({ signal, beforeDispatch } = {}) {
-      return request("/semantic/capabilities", {}, undefined, readSemanticCapabilities, signal, undefined, beforeDispatch);
+    async semanticCapabilities({ signal, beforeDispatch } = {}) {
+      const epoch=++capabilityEpoch;let value;
+      try{value=await request('/semantic/capabilities/v2',{},undefined,readSemanticCapabilities,signal,undefined,beforeDispatch);}
+      catch(error){if(!missingSemanticV2Capabilities.has(error))throw error;value=await request('/semantic/capabilities',{},undefined,readSemanticCapabilities,signal,undefined,beforeDispatch);}
+      if(epoch!==capabilityEpoch||signal?.aborted)fail('unavailable');
+      semanticProtocolVersion=value.protocol==='semantic-topics/v2'?2:1;return value;
     },
     semanticTopics(value = {}, { signal, beforeDispatch } = {}) {
       const body = input(() => readSemanticTopicsRequest(value));

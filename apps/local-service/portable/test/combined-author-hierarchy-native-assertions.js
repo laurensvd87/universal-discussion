@@ -126,10 +126,10 @@ export async function runCombinedAuthorHierarchyNativeAssertions(scope){
   await set(3);assert.equal(await editor.scopeCurrent(JSON.stringify({generation,topicId:broad.topicId,scope:broad.scope})),true,'captured broad draft remains valid');
  });
  await check(4,async()=>{
-  service=createPostgresCanonicalService({reads,runtime,lifecycle:life,authoredTopics:editor,semanticDiscussions:true,automaticTopics:true});
+  service=createPostgresCanonicalService({reads,runtime,lifecycle:life,authoredTopics:editor,semanticDiscussions:true,automaticTopics:true,allowLegacyAuthorCommands:schemaProfile==='hierarchy18'});
   config={hostHeader:'127.0.0.1:4174',origin:'chrome-extension://'+'a'.repeat(32),capability:'invented-combined-topic-capability'};handler=createRequestHandler({config,service});
   const fetchImpl=async(url,options)=>{const u=new URL(url),r=await handler({method:options.method,url:u.pathname,headers:{...options.headers,host:config.hostHeader,origin:config.origin},body:options.body});return new Response(r.body,{status:r.status,headers:r.headers});};
-  client=createLocalServiceClient({fetchImpl,getToken:()=>config.capability});await set(1);assert.equal((await client.authorContext({sourceId:source})).context.scope.kind,'semantic');
+  client=createLocalServiceClient({fetchImpl,getToken:()=>config.capability});assert.equal((await client.semanticCapabilities()).protocol,'semantic-topics/v2');await set(1);assert.equal((await client.authorContext({sourceId:source})).context.scope.kind,'semantic');
   await set(3);semanticRoot=await post(broad);assert(await has('games',semanticRoot));assert.equal(await has('invented-game-branch',semanticRoot),false,'a deliberately broad root cannot inherit the more specific Source path');
   const view=await client.semanticThread({nodeId:'games',rootId:semanticRoot,limit:20,cursor:null});assert.deepEqual(view.scope,{kind:'semantic',id:'games',caption:'Games'});assert.equal(view.topic.id,TOPIC);
  });
@@ -156,6 +156,15 @@ export async function runCombinedAuthorHierarchyNativeAssertions(scope){
    const result=await aiClient.result(operationId,actor.id);assert.equal(result.state,'completed');assert.deepEqual(result.authorScope,selected.scope);assert.equal(calls,1);
    const posted=await client.command(bundle.version,{type:'share-insight',topicId:TOPIC,body:result.result.body,operationId,originSourceId:source,authorScope:selected.scope},actor.id);roots.push(posted.result.contributionId);
    assert(await has('games',posted.result.contributionId));assert.equal((await editor.root(JSON.stringify({generation,rootId:posted.result.contributionId}))).scope.kind,'semantic');
+   if(schemaProfile==='hierarchy18'){
+    const legacyBundle=await service.insightBundle({sourceId:source,topicId:TOPIC,includeDiscussion:false,includeRelatedSources:false,destinationTopicId:TOPIC}),legacyContext=authoredFixtureInsightContext(legacyBundle,source,TOPIC),legacyOperation='combined-native-legacy-ai-root';
+    await aiClient.start({operationId:legacyOperation,model:'synthetic',context:legacyContext,articleText:'A legacy public article question with no named-topic intent.',allowWebResearch:false,includeRelatedSources:false,expected:legacyBundle.version},actor.id);
+    const deadline=performance.now()+3000;let result;
+    do{result=await aiClient.result(legacyOperation,actor.id);if(result.state==='completed'||result.state==='failed')break;await new Promise(done=>setTimeout(done,5));}while(performance.now()<deadline);
+    assert.equal(result.state,'completed');assert.equal(result.authorScope,undefined);assert.equal(calls,2);
+    const saved=await client.command(legacyBundle.version,{type:'share-insight',topicId:TOPIC,body:result.result.body,operationId:legacyOperation,originSourceId:source},actor.id);roots.push(saved.result.contributionId);
+    assert.equal((await one(owner,'SELECT count(*)::integer n FROM canonical_v4.named_root_contexts WHERE root_id=$1',[saved.result.contributionId])).n,0,'legacy generated roots retain their original canonical destination without claiming a selected subject');
+   }
   }finally{ai.dispose();await Promise.allSettled([...inflight]);handler=createRequestHandler({config,service});}
  });
  await check(8,async()=>{

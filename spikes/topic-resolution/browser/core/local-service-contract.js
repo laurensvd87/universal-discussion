@@ -198,9 +198,10 @@ export function readHealth(value) {
 }
 export function readSemanticCapabilities(value) {
   const item = record(value, ["protocol",...(Object.hasOwn(value??{},'authorContext')?['authorContext']:[]),...(Object.hasOwn(value??{},'topicSearch')?['topicSearch']:[])]);
-  oneOf(item.protocol, ["semantic-topics/v1"]);
-  if(Object.hasOwn(item,'authorContext'))oneOf(item.authorContext,['authored-topics/v1']);
-  if(Object.hasOwn(item,'topicSearch'))oneOf(item.topicSearch,['named-topics/v1']);
+  oneOf(item.protocol, ["semantic-topics/v1","semantic-topics/v2"]);
+  const version=item.protocol==='semantic-topics/v2'?2:1;
+  if(Object.hasOwn(item,'authorContext'))oneOf(item.authorContext,[`authored-topics/v${version}`]);
+  if(Object.hasOwn(item,'topicSearch'))oneOf(item.topicSearch,[`named-topics/v${version}`]);
   return Object.freeze(item);
 }
 export function readAuthoredTopicScope(value){

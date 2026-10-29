@@ -8,7 +8,7 @@ import { isAccountActor } from "../accounts/account-principal.js";
 import { inspectPageNavigationUrl } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
 
 export const MAX_BODY_BYTES = 65_536;
-const ALLOWED_PREFLIGHT_HEADERS = new Set(["authorization", "content-type", "x-demo-actor"]);
+const ALLOWED_PREFLIGHT_HEADERS = new Set(["authorization", "content-type", "x-demo-actor", "x-murmingle-semantic"]);
 const ACCOUNT_SESSION_READS = new Set(["/v1/account/me", "/v1/account/data", "/v1/account/private-data",
   "/v1/account/public-chats/list", "/v1/account/public-chats/read"]);
 
@@ -172,6 +172,10 @@ function preflight(request, config, accountsEnabled = false, accountWrites = fal
 
 async function route(request, service, ai, durablePairing, accounts = null, origin = null, transportContext = null, revalidateCapability = () => {}, topicSpaces = null) {
   const path = request.url.pathname;
+  const semanticRequest=path.startsWith('/v1/semantic/'),modernCapability=path==='/v1/semantic/capabilities/v2';
+  const semanticHeader=request.headers['x-murmingle-semantic'];
+  if(semanticRequest&&semanticHeader!==undefined&&!['1','2'].includes(semanticHeader))fail('invalid','Invalid semantic representation');
+  const readService=semanticRequest&&service.semanticProtocolVersion===2&&semanticHeader!=='2'&&!modernCapability?service.legacySemantic??null:service;
   function publicReadCurrent() {
     if (transportContext?.signal?.aborted || transportContext?.isCurrent && !transportContext.isCurrent()) return false;
     revalidateCapability();
@@ -179,24 +183,25 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
     return true;
   }
   async function publicRead(method, input = null) {
+    if(!readService||semanticRequest&&semanticHeader==='2'&&service.semanticProtocolVersion!==2)fail('not-found','Object unavailable');
     // PostgreSQL read facades own one repeatable-read snapshot (and any
     // cross-call version agreement) internally. Sampling the global revision
     // around them would reject a coherent page whenever the crawler commits.
-    const expected = service.coherentSnapshotReads === true ? null :
-      typeof service.version === "function" ? await service.version() : null;
+    const expected = readService.coherentSnapshotReads === true ? null :
+      typeof readService.version === "function" ? await readService.version() : null;
     const isCurrent = publicReadCurrent;
     if (!isCurrent()) fail("unavailable", "Read unavailable");
     if (expected !== null) {
-      const current = await service.version();
+      const current = await readService.version();
       if (current.generation !== expected.generation || current.revision !== expected.revision) fail("conflict", "State changed");
     }
-    const value = typeof service.readPublic === "function" && method !== "discover"
-      ? await service.readPublic(method, input, { signal: transportContext?.signal, isCurrent })
-      : await (method === "related" ? service.related(input.sourceId, input.limit) :
-        method === "discover" ? service.discover.search(input) : service[method](input));
+    const value = typeof readService.readPublic === "function" && method !== "discover"
+      ? await readService.readPublic(method, input, { signal: transportContext?.signal, isCurrent })
+      : await (method === "related" ? readService.related(input.sourceId, input.limit) :
+        method === "discover" ? readService.discover.search(input) : readService[method](input));
     if (!isCurrent()) fail("unavailable", "Read unavailable");
     if (expected !== null) {
-      const current = await service.version();
+      const current = await readService.version();
       if (current.generation !== expected.generation || current.revision !== expected.revision) fail("conflict", "State changed");
     }
     return { status: 200, value, publicRead: true, isCurrent };
@@ -312,25 +317,27 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
   if (request.method === "POST" && path === "/v1/catalog/source-urls" && typeof service.sourceUrlPage === "function")
     return publicRead("sourceUrlPage", parseJsonBody(request));
   if (request.method === "POST" && path === "/v1/discussions/page") return publicRead("discussionPage", parseJsonBody(request));
-  if (request.method === "POST" && path === "/v1/semantic/feed" && typeof service.semanticFeed === "function")
+  if (request.method === "POST" && path === "/v1/semantic/feed" && typeof readService?.semanticFeed === "function")
     return publicRead("semanticFeed", parseJsonBody(request));
-  if (request.method === "POST" && path === "/v1/semantic/capabilities" && typeof service.semanticTopics === "function") {
+  if (request.method === "POST" && (path === "/v1/semantic/capabilities"||modernCapability) && typeof service.semanticTopics === "function") {
     // A display capability only: no database, current model or posting grant.
     readRecord(parseJsonBody(request), []);
     if (!publicReadCurrent()) fail("unavailable", "Read unavailable");
-    return { status: 200, value: { protocol: "semantic-topics/v1",...(typeof service.authorContext==='function'?{authorContext:'authored-topics/v1'}:{}),...(typeof service.semanticSearch==='function'?{topicSearch:'named-topics/v1'}:{}) }, isCurrent: publicReadCurrent };
+    const advertised=modernCapability?service:service.semanticProtocolVersion===2?service.legacySemantic:service;if(!advertised)fail('not-found','Object unavailable');
+    const version=modernCapability&&service.semanticProtocolVersion===2?2:1;
+    return { status: 200, value: { protocol: `semantic-topics/v${version}`,...(typeof advertised.authorContext==='function'?{authorContext:`authored-topics/v${version}`}:{}) ,...(typeof advertised.semanticSearch==='function'?{topicSearch:`named-topics/v${version}`}:{}) }, isCurrent: publicReadCurrent };
   }
-  if (request.method === "POST" && path === "/v1/semantic/thread" && typeof service.semanticThread === "function")
+  if (request.method === "POST" && path === "/v1/semantic/thread" && typeof readService?.semanticThread === "function")
     return publicRead("semanticThread", parseJsonBody(request));
-  if (request.method === "POST" && path === "/v1/semantic/target" && typeof service.semanticTarget === "function")
+  if (request.method === "POST" && path === "/v1/semantic/target" && typeof readService?.semanticTarget === "function")
     return publicRead("semanticTarget", parseJsonBody(request));
-  if (request.method === "POST" && path === "/v1/semantic/topics" && typeof service.semanticTopics === "function")
+  if (request.method === "POST" && path === "/v1/semantic/topics" && typeof readService?.semanticTopics === "function")
     return publicRead("semanticTopics", parseJsonBody(request));
-  if(request.method==='POST'&&path==='/v1/semantic/search'&&typeof service.semanticSearch==='function')
+  if(request.method==='POST'&&path==='/v1/semantic/search'&&typeof readService?.semanticSearch==='function')
     return publicRead('semanticSearch',parseJsonBody(request));
-  if (request.method === "POST" && path === "/v1/semantic/context" && typeof service.semanticContext === "function")
+  if (request.method === "POST" && path === "/v1/semantic/context" && typeof readService?.semanticContext === "function")
     return publicRead("semanticContext", parseJsonBody(request));
-  if(request.method==='POST'&&path==='/v1/semantic/editor'&&typeof service.authorContext==='function')
+  if(request.method==='POST'&&path==='/v1/semantic/editor'&&typeof readService?.authorContext==='function')
     return publicRead('authorContext',parseJsonBody(request));
   if (request.method === "POST" && path === "/v1/discover/search" && service.discover) {
     return publicRead("discover", parseJsonBody(request));

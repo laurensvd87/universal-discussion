@@ -55,7 +55,7 @@ export async function runAutomaticTopicPublicNativeAssertions(scope){
   assert.deepEqual(await state(),before);assert.deepEqual((await owner.query('SELECT * FROM canonical_v4.schema_migrations ORDER BY version')).rows,migrations);
  });
  await test(cases,1,async()=>{
-  assert.equal((await client.semanticCapabilities()).topicSearch,'named-topics/v1');selected=(await client.authorContext({sourceId:sourceIds[1]})).context;assert.equal(selected.scope.kind,'named');
+  assert.equal((await client.semanticCapabilities()).topicSearch,'named-topics/v2');selected=(await client.authorContext({sourceId:sourceIds[1]})).context;assert.equal(selected.scope.kind,'named');
   parent=(await one(owner,'SELECT parent_id::text id FROM canonical_v4.named_subject_heads WHERE subject_id=$1',[selected.scope.id])).id;assert(parent);
   root=await postRoot();const immediate=await client.semanticFeed({nodeId:node(),limit:20,cursor:null});assert(immediate.roots.some(v=>v.root.id===root&&v.scope.caption===selected.scope.caption));
   await drain();const search=await client.semanticSearch({query:'Orion',limit:20,cursor:null});assert(search.topics.some(v=>v.nodeId===node()));

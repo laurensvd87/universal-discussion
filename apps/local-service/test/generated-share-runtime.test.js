@@ -29,6 +29,28 @@ function insightInput(service, sourceId, topicId, operationId, followupQuestionI
 }
 
 const topicScope=()=>({kind:'named',id:'12345678-1234-4123-8123-123456789abc',caption:'New general-web subject',sourceId:'reserved-example-com',materialDigest:'a'.repeat(64)});
+
+test('explicit server legacy mode keeps old AI roots unscoped and cannot publish their result with a new scope',async t=>{
+ const base=demoService();let calls=0,issued;
+ const service={...base,legacyAuthorCommandsEnabled:true,authorScopeCurrent:()=>assert.fail('A legacy job cannot infer a selected topic')};
+ const ai=createChatGPTRuntime({service,connectionAdapter:{status:()=>({connected:true,planEnabled:true,pending:false}),dispose(){}},
+  insightsAdapter:{async createInsight(){calls++;return {body:'Legacy generated answer',citations:[],model:'synthetic'};},cancel(){},dispose(){}}});t.after(()=>ai.dispose());
+ const input=insightInput(service,'reserved-example-com','reserved-domain-demo','legacy-topic-job');await ai.create(input,'demo-alex');await Promise.resolve();await Promise.resolve();
+ const result=await ai.result({operationId:input.operationId},'demo-alex');assert.equal(result.state,'completed');assert.equal(result.authorScope,undefined);assert.equal(calls,1);
+ const command={type:'share-insight',topicId:'reserved-domain-demo',originSourceId:'reserved-example-com',operationId:input.operationId,body:result.result.body};
+ assert.throws(()=>ai.share({expected:service.catalog().version,command:{...command,authorScope:topicScope()}},'demo-alex',()=>assert.fail('Scope changed')),{code:'conflict'});
+ await ai.share({expected:service.catalog().version,command},'demo-alex',proof=>{issued=proof;return {accepted:true};});assert(!Object.hasOwn(issued,'authorScope'));
+});
+
+test('a request cannot enable legacy AI mode and a malformed supplied scope never takes the legacy path',async t=>{
+ for(const enabled of [false,true]){
+  const base=demoService();let calls=0;const service={...base,authorScopeCurrent:()=>true,...(enabled?{legacyAuthorCommandsEnabled:true}:{})};
+  const ai=createChatGPTRuntime({service,connectionAdapter:{status:()=>({connected:true,planEnabled:true,pending:false}),dispose(){}},insightsAdapter:{async createInsight(){calls++;return {body:'Unused',citations:[],model:'synthetic'};},cancel(){},dispose(){}}});t.after(()=>ai.dispose());
+  const input=insightInput(service,'reserved-example-com','reserved-domain-demo','cannot-downgrade-'+enabled);
+  assert.throws(()=>ai.create({...input,legacyAuthorCommandsEnabled:true},'demo-alex'),{code:'invalid'});
+  for(const authorScope of [null,undefined,{...topicScope(),kind:'unknown'}])assert.throws(()=>ai.create({...input,authorScope},'demo-alex'),{code:'invalid'});assert.equal(calls,0);
+ }
+});
 test('real AI job captures selected scope before async authorization and issues only that scope in its completed proof',async t=>{
  const base=demoService();let release,providerCalls=0,acceptedScope;
  const held=new Promise(resolve=>{release=resolve;}),original=topicScope();

@@ -60,7 +60,7 @@ export async function runUnifiedTopicSearchNativeAssertions(scope){
   const service=createPostgresCanonicalService({reads,runtime,lifecycle:life,authoredTopics:createAutomaticAuthorContextRepository({database:app}),semanticDiscussions:true,automaticTopics:true});
   const config={hostHeader:'127.0.0.1:4174',origin:'chrome-extension://'+'a'.repeat(32),capability:'invented-unified-search-capability'},handler=createRequestHandler({config,service});
   client=createLocalServiceClient({fetchImpl:async(url,options)=>{const u=new URL(url),r=await handler({method:options.method,url:u.pathname,headers:{...options.headers,host:config.hostHeader,origin:config.origin},body:options.body});return new Response(r.body,{status:r.status,headers:r.headers});},getToken:()=>config.capability});
-  assert((await client.semanticSearch({query:'Games',limit:20,cursor:null})).topics.some(t=>t.nodeId==='games'));
+  assert.equal((await client.semanticCapabilities()).protocol,'semantic-topics/v2');assert((await client.semanticSearch({query:'Games',limit:20,cursor:null})).topics.some(t=>t.nodeId==='games'));
   const view=await client.semanticTarget({nodeId:legacy,rootId:first,targetId:first}),packet={actorId:actor.id,requestId:'unified-native-exact-reply',expected:await expected(),command:replyCommand(view,'Reply through the original saved discussion route.')};
   const saved=await runtime.command(packet);replies.push(saved.result.contributionId);assert.deepEqual(await runtime.command(packet),saved);
   const thread=await client.semanticThread({nodeId:legacy,rootId:first,limit:20,cursor:null});assert(thread.root.replies.some(v=>v.id===saved.result.contributionId));

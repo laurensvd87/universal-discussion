@@ -135,3 +135,46 @@ the same result/stdout hashes as the preceding190 runs; this separate source/map
 invocation audit identifies execution of the additional checks. These fixtures do
 not prove real E5, production load, real-data recovery or live readiness. The sealed
 live database/API/worker/crawler/dashboard remain on17 until the reviewed cutover.
+
+The next compatibility revision gives automatic topics an explicit
+`semantic-topics/v2` capability, with matching `authored-topics/v2` and
+`named-topics/v2` feature values. Extension0.13.77 probes the new fixed
+`/v1/semantic/capabilities/v2` endpoint first. Only its authenticated exact404
+permits a single old-capability probe; generic errors and malformed404 bodies do
+not authorize fallback. Only a final confirmed old-endpoint absence permits the
+existing canonical-only UI fallback. Concurrent older probes cannot replace a
+newer negotiated version, and cancellation/navigation fences cover both probes.
+
+After negotiation, the client sends `X-Murmingle-Semantic: 2` only on semantic
+reads. This header selects a public representation; it grants no actor, pairing,
+provider, canonical-write or SQL authority. Ordinary automatic18 startup supplies
+a separate fixed-hierarchy v1 read facade over the same app pool. Old capability
+requests advertise only that v1 surface, and old semantic reads retain their
+original DTO shapes. The new view uses the existing combined/unified facade.
+The two views have separate coherent read caches and share the existing pools;
+no additional model, database connection pool or actor namespace is created.
+
+Ordinary startup also explicitly enables legacy author commands. With that
+trusted compatibility option, a structurally old command with no authorScope
+keeps its original canonical destination. It does not receive an inferred topic
+caption. A present invalid/null/undefined scope is still refused, and a scoped
+generated proof cannot be downgraded through the legacy route. The AI runtime
+accepts unscoped old root jobs only when the server service exposes this explicit
+option; a request cannot enable it. Their completed proof stays unscoped and
+cannot later be shared with a new scope. Default/manual authored-topic composition
+still requires the captured scope. Human and AI replies keep their original
+canonical target checks.
+
+Guarded746 component/contract tests and12 extension inventory/pairing tests pass;
+the source secret scan reports0 findings across2007 files. The native fixture
+retains all190 required reports and negotiates v2 for its modern clients, while
+its ordinary-startup case also checks old capabilities/fixed reads, an unscoped
+human root/reply and original canonical thread reads. The joined18 AI case adds
+a real issuer/provider-stub legacy root and requires no named context to be
+claimed. This compatibility-native proof is pending. Live runtime and installed
+browser have not been switched or reloaded. Mixed fixed/named breadcrumbs and
+the remaining full-data, quality, genuine browser/provider/load and cutover
+requirements remain open.
+Expected version strings in the affected capability checks change explicitly from
+v1 to v2; prior destination, material, role, issuer, refusal and cleanup assertions
+remain in place. The additional legacy requests test the preserved v1 projection.

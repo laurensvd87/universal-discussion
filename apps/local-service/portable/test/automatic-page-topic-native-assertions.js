@@ -43,6 +43,7 @@ export async function runAutomaticPageTopicNativeAssertions(scope){
   (SELECT count(*)::integer FROM canonical_v4.named_page_root_material) material,(SELECT revision::text FROM canonical_v4.runtime_state WHERE singleton) revision`);
  const a=sourceIds[1],b=sourceIds[2],c=sourceIds[3],d=sourceIds[4];
  await check(cases,0,async()=>{
+  assert.equal((await client.semanticCapabilities()).protocol,'semantic-topics/v2');
   const existing=await editor(c);assert.equal(existing.scope.kind,'named');oldNamed=existing.scope.id;legacyRoot=await pagePost(existing);
   const before=await expected(),contexts=(await owner.query('SELECT * FROM canonical_v4.named_root_contexts ORDER BY root_id')).rows;
   await owner.exec(await readFile(new URL('../canonical-v4/drafts/automatic-page-topic-membership.sql',import.meta.url),'utf8'));

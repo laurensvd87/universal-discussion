@@ -29,6 +29,13 @@ test('author context loads independently of slow classification and late respons
  assert.equal(late.options.signal.aborted,true);late.resolve(dto);await turn();assert.equal(ui.authorContexts.length,1);ui.workspace.dispose();
 });
 
+test('explicit v2 capabilities enable the same fenced author workflow for a semantic scope',async()=>{
+ const ui=harness();ui.start();await ui.answer('semanticCapabilities',{protocol:'semantic-topics/v2',authorContext:'authored-topics/v2'});
+ assert.equal(ui.authorModes.at(-1),true);assert(ui.pending('authorContext'));assert(ui.pending('semanticContext'));
+ const pageScope={kind:'page',id:'source-b',sourceId:'source-b',caption:'Current page',materialDigest:'a'.repeat(64)},scope={...pageScope,kind:'semantic',id:'games',caption:'Games'};
+ await ui.answer('authorContext',{version,sourceId:'source-b',context:{topicId:'canonical-b',pageScope,scope}});assert.deepEqual(ui.authorContexts.at(-1).context.scope,scope);ui.workspace.dispose();
+});
+
 function harness({selectSemanticTarget,refreshSavedThreads}={}){
   const created=[],calls=[],selections=[],navigation=[],availability=[],modes=[],routing=[],authorModes=[],authorContexts=[];
   const document={createElement(tag){const item={tag,children:[],attributes:{},listeners:new Map(),style:{},hidden:false,textContent:'',value:'',

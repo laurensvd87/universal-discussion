@@ -37,13 +37,50 @@ test('only an exact fixed-endpoint 404 supplies old-backend fallback evidence',a
   ['{"error":"not-found","error":"not-found"}',404,false],['not json',404,false],
   ['{"error":"forbidden"}',403,false],['{"error":"unauthorized"}',401,false],['{"error":"internal"}',500,false],
  ]){
-  let accountLookups=0;
+  let accountLookups=0;const paths=[];
   const client=createLocalServiceClient({getToken:()=>config.capability,getAccountToken:()=>{accountLookups++;return null;},
-   fetchImpl:async(url,options)=>{assert.equal(url,'http://127.0.0.1:4174/v1/semantic/capabilities');assert.equal(options.body,'{}');return json(body,status);}});
+   fetchImpl:async(url,options)=>{paths.push(new URL(url).pathname);assert.equal(options.body,'{}');return json(body,status);}});
   const error=await client.semanticCapabilities().catch(error=>error);assert.ok(error instanceof LocalServiceClientError);
   assert.equal(isMissingSemanticCapabilities(error),missing);assert.equal(accountLookups,0);
+  assert.deepEqual(paths,missing?['/v1/semantic/capabilities/v2','/v1/semantic/capabilities']:['/v1/semantic/capabilities/v2']);
  }
  assert.equal(isMissingSemanticCapabilities(new LocalServiceClientError('unavailable')),false);
+});
+
+test('v2 negotiation keeps original v1 projections separate and the header grants no posting or pairing authority',async()=>{
+ const version={generation:'generation',revision:1},directory=title=>({version,policyRevision:0,topics:[{id:'games',title,path:['games']}]});let modern=0,legacy=0;
+ const old={coherentSnapshotReads:true,semanticTopics:async()=>{legacy++;return directory('Original Games');}};
+ const handle=createRequestHandler({config,service:{coherentSnapshotReads:true,semanticProtocolVersion:2,legacySemantic:old,
+  semanticTopics:async()=>{modern++;return directory('Current Games');},authorContext:()=>assert.fail('No editor query'),semanticSearch:()=>assert.fail('No search query')}});
+ const oldCaps=await handle(request());assert.deepEqual(JSON.parse(oldCaps.body),{protocol:'semantic-topics/v1'});
+ const client=createLocalServiceClient({getToken:()=>config.capability,fetchImpl:async(url,o)=>{
+  const r=await handle({method:o.method,url:new URL(url).pathname,headers:{...o.headers,host:config.hostHeader,origin:config.origin},body:o.body});return new Response(r.body,{status:r.status,headers:r.headers});}});
+ assert.deepEqual(await client.semanticCapabilities(),{protocol:'semantic-topics/v2',authorContext:'authored-topics/v2',topicSearch:'named-topics/v2'});assert.equal(modern+legacy,0);
+ assert.equal((await client.semanticTopics()).topics[0].title,'Current Games');
+ const oldRead=await handle(request({url:'/v1/semantic/topics'}));assert.equal(JSON.parse(oldRead.body).topics[0].title,'Original Games');assert.equal(modern,1);assert.equal(legacy,1);
+ assert.equal((await handle(request({url:'/v1/semantic/topics',headers:{...headers,'x-murmingle-semantic':'3'}}))).status,400);
+ assert.equal((await handle(request({url:'/v1/semantic/topics',headers:{...headers,'x-murmingle-semantic':'2',authorization:'Bearer wrong'}}))).status,401);assert.equal(modern+legacy,2);
+ const preflight=await handle({method:'OPTIONS',url:'/v1/semantic/topics',body:null,headers:{host:config.hostHeader,origin:config.origin,'access-control-request-method':'POST','access-control-request-headers':'authorization,content-type,x-murmingle-semantic'}});
+ assert.equal(preflight.status,204);assert(preflight.headers['access-control-allow-headers'].includes('x-murmingle-semantic'));
+ for(const value of [{protocol:'semantic-topics/v1',authorContext:'authored-topics/v2'},{protocol:'semantic-topics/v2',topicSearch:'named-topics/v1'}])assert.throws(()=>readSemanticCapabilities(value),TypeError);
+});
+
+test('only confirmed missing v2 negotiation probes v1 and a cancelled fallback dispatches no second request',async()=>{
+ let current=true;const paths=[];const client=createLocalServiceClient({getToken:()=>config.capability,fetchImpl:async(url,o)=>{
+  paths.push(new URL(url).pathname);assert.equal(o.headers['X-Murmingle-Semantic'],undefined);return paths.length===1?json('{"error":"not-found"}',404):json({protocol:'semantic-topics/v1'});}});
+ assert.deepEqual(await client.semanticCapabilities(),{protocol:'semantic-topics/v1'});assert.deepEqual(paths,['/v1/semantic/capabilities/v2','/v1/semantic/capabilities']);
+ let calls=0;const cancelled=createLocalServiceClient({getToken:()=>config.capability,fetchImpl:async()=>{calls++;current=false;return json('{"error":"not-found"}',404);}});
+ await assert.rejects(cancelled.semanticCapabilities({beforeDispatch:()=>current}),{code:'conflict'});assert.equal(calls,1);
+});
+
+test('a late older capability response cannot replace the negotiated protocol of a newer probe',async()=>{
+ let release,calls=0,header;const delayed=new Promise(done=>{release=done;});
+ const client=createLocalServiceClient({getToken:()=>config.capability,fetchImpl:async(url,o)=>{
+  if(url.endsWith('/capabilities/v2')){calls++;return calls===1?delayed:json({protocol:'semantic-topics/v2'});}
+  header=o.headers['X-Murmingle-Semantic'];return json({version:{generation:'generation',revision:1},policyRevision:0,topics:[]});
+ }});
+ const first=client.semanticCapabilities(),observed=assert.rejects(first,{code:'unavailable'});while(calls===0)await Promise.resolve();
+ await client.semanticCapabilities();release(json({protocol:'semantic-topics/v1'}));await observed;await client.semanticTopics();assert.equal(header,'2');
 });
 
 test('capability dispatch checks delayed credentials and validates the response without retry',async()=>{

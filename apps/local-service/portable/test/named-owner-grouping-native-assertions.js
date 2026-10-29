@@ -96,7 +96,7 @@ export async function runNamedOwnerGroupingNativeAssertions(scope){
   await set(1);reads=createCanonicalV4ReadFacade({database:app,automaticTopics:true});
   const service=createPostgresCanonicalService({reads,runtime:createCanonicalV4RuntimeRepository({database:app}),lifecycle:lifecycle({database:app}),authoredTopics:grouped,semanticDiscussions:true,automaticTopics:true}),config={hostHeader:'127.0.0.1:4174',origin:'chrome-extension://'+'a'.repeat(32),capability:'invented-owner-grouping-capability'},handle=createRequestHandler({config,service});
   const client=createLocalServiceClient({fetchImpl:async(url,options)=>{const u=new URL(url),r=await handle({method:options.method,url:u.pathname,headers:{...options.headers,host:config.hostHeader,origin:config.origin},body:options.body});return new Response(r.body,{status:r.status,headers:r.headers});},getToken:()=>config.capability});
-  assert.equal((await client.authorContext({sourceId:source})).context.scope.id,parent);
+  assert.equal((await client.semanticCapabilities()).protocol,'semantic-topics/v2');assert.equal((await client.authorContext({sourceId:source})).context.scope.id,parent);
   await set(2);assert.equal((await client.authorContext({sourceId:source})).context.scope.id,leaf.id,'the same HTTP client observes the changed owner default');
   await set(1);assert.equal((await client.authorContext({sourceId:source})).context.scope.id,parent);
   const topics=await client.semanticSearch({query:'Orion Console Pro',limit:20,cursor:null});assert(topics.topics.some(t=>t.nodeId===leafRoute),'specific existing conversations remain explicitly searchable');

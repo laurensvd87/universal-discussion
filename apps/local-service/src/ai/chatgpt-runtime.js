@@ -427,7 +427,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       if(witness&&!hasFollowup)fail('invalid','Invalid semantic followup');
       const selectedScope=Object.hasOwn(value,'authorScope')?authoredScope(value.authorScope):null;
       if(selectedScope&&(hasFollowup||typeof service.authorScopeCurrent!=='function'))fail('invalid','Selected topic unavailable');
-      if(!hasFollowup&&typeof service.authorScopeCurrent==='function'&&!selectedScope)fail('invalid','Selected topic required');
+      if(!hasFollowup&&typeof service.authorScopeCurrent==='function'&&!selectedScope&&service.legacyAuthorCommandsEnabled!==true)fail('invalid','Selected topic required');
       // Snapshot provider primitives before any asynchronous snapshot/dispatch
       // validation. The transient article is not retained in the job record.
       const captured=witness||selectedScope?Object.freeze({model:value.model,articleText:value.articleText,allowWebResearch:value.allowWebResearch}):null;

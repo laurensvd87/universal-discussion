@@ -112,7 +112,7 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
     const ownService=serviceEpoch;capability='loading';emit('loading');activatePanels();
     const current=()=>!disposed&&connected&&serviceEpoch===ownService&&capabilityAbort===abort&&!abort.signal.aborted;
     try{const value=await client.semanticCapabilities({signal:abort.signal,beforeDispatch:current});if(!current())return;const flags=readSemanticCapabilities(value);
-      discover.setSearchAvailable(flags.topicSearch==='named-topics/v1');authorAvailable=flags.authorContext==='authored-topics/v1';controller.setAuthorContextAvailable?.(authorAvailable);
+      discover.setSearchAvailable(['named-topics/v1','named-topics/v2'].includes(flags.topicSearch));authorAvailable=['authored-topics/v1','authored-topics/v2'].includes(flags.authorContext);controller.setAuthorContextAvailable?.(authorAvailable);
       capability='available';routing(true);emit('available');activatePanels();void loadAuthorContext();void loadContext();
     }catch(error){if(current()){capability=isMissingSemanticCapabilities(error)?'legacy':'error';routing(false);emit(capability);activatePanels();}}
     finally{if(capabilityAbort===abort)capabilityAbort=null;}

@@ -116,7 +116,7 @@ function chatTitle(root, topic) {
 export function createPostgresCanonicalService({ reads, urlSelectionReads = reads, runtime, ingestion = null, lifecycle = null,
   model = Object.freeze({ id: "hand-authored-demo-vectors/1", status: "fixture-only" }),
   resolveAccountActor = null, readAccountActors = () => [], accountCursorSecret, semanticDiscussions = false,
-  requestSemanticPreparation = null,authoredTopics=null,automaticTopics=false } = {}) {
+  requestSemanticPreparation = null,authoredTopics=null,automaticTopics=false,allowLegacyAuthorCommands=false,legacySemantic=null } = {}) {
   if (!reads || typeof reads.version !== "function" || typeof reads.catalogContext !== "function" ||
       typeof reads.catalogPage !== "function" || typeof reads.discussionPage !== "function" ||
       typeof reads.exactSource !== "function" || !runtime || typeof runtime.command !== "function" ||
@@ -131,6 +131,9 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
     throw new TypeError('Invalid authored topic dependencies');
   if(typeof automaticTopics!=='boolean'||automaticTopics&&(!semanticDiscussions||!authoredTopics||reads.automaticTopicsEnabled!==true||typeof reads.semanticSearch!=='function'))
     throw new TypeError('Invalid automatic topic service dependencies');
+  if(typeof allowLegacyAuthorCommands!=='boolean'||allowLegacyAuthorCommands&&!authoredTopics||legacySemantic!==null&&
+    (!automaticTopics||legacySemantic.coherentSnapshotReads!==true||['readPublic','version','semanticTopics','semanticContext','semanticFeed','semanticThread','semanticTarget'].some(name=>typeof legacySemantic[name]!=='function')))
+    throw new TypeError('Invalid legacy semantic dependencies');
   const cursorKey = accountCursorKey(accountCursorSecret);
   const publicFlights = createPostgresPublicReadFlights();
   const urlFlights = createPostgresPublicReadFlights({ maxTasks: 8 });
@@ -539,6 +542,9 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
 
   const service = {
     coherentSnapshotReads: true,
+    ...(semanticDiscussions?{semanticProtocolVersion:automaticTopics?2:1}:{}),
+    ...(legacySemantic?{legacySemantic}:{}),
+    ...(allowLegacyAuthorCommands?{legacyAuthorCommandsEnabled:true}:{}),
     ...(automaticTopics?{semanticSearch:input=>readPublic('semanticSearch',input)}:{}),
     ...(authoredTopics?{
       authorContext:input=>readPublic('authorContext',input),
@@ -599,7 +605,10 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
       if (!typeDescriptor?.enumerable || !Object.hasOwn(typeDescriptor, "value")) fail("invalid", "Invalid request");
       const type = typeDescriptor.value;
       if (isAccountPrincipal(actor) && !ACCOUNT_COMMANDS.has(type)) fail("forbidden", "Action unavailable");
-      if(authoredTopics&&['create-root','share-insight'].includes(type)){
+      const authorCommand=authoredTopics&&['create-root','share-insight'].includes(type),hasAuthorScope=Object.hasOwn(command,'authorScope');
+      if(authorCommand&&!hasAuthorScope&&!allowLegacyAuthorCommands)fail('invalid','Invalid selected topic');
+      if(authorCommand&&!hasAuthorScope&&type==='share-insight'&&generatedProof&&Object.hasOwn(generatedProof,'authorScope'))fail('forbidden','Completed result topic changed');
+      if(authorCommand&&hasAuthorScope){
         const c=readRecord(command,['type','topicId','body','originSourceId','authorScope',...(type==='share-insight'?['operationId']:[])]);
         let scope;try{scope=readAuthoredTopicScope(c.authorScope);}catch{fail('invalid','Invalid selected topic');}
         if(scope.sourceId!==c.originSourceId)fail('invalid','Invalid selected topic');
