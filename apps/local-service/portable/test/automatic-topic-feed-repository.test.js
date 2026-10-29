@@ -1,5 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
 import {createAutomaticTopicFeedRepository as create} from '../canonical-v4/automatic-topic-feed-repository.js';
+import {automaticFeedAncestryCompileProbe as probe,automaticFeedNativeFailure as nativeFailure} from './automatic-topic-feed-native-assertions.js';
 const generation='invented-generation',subject='12345678-1234-4123-8123-123456789abc',nodeId='subject-'+subject;
 const code=c=>e=>e?.code===c;
 const card=(id=subject,overrides={})=>({scope_kind:'named',scope_id:id,caption:'Kapsalon',path:['subject-'+id],human:true,occupied:true,root_ordinal:'9',...overrides});
@@ -77,4 +78,20 @@ test('the new SQL execute grants and revokes reference exact declared signatures
   m[2].split(',').filter(Boolean).every(v=>['text','text[]','jsonb','integer','bigint','uuid'].includes(v)));
  for(const m of refs)assert.deepEqual(m[2].split(',').filter(Boolean),declarations.get(m[1]),m[1]);
  assert(refs.length>=declarations.size*2);assert(sql.includes('named_topic_directory_order'));assert(sql.includes('USING gin(search)'));
+});
+
+test('the native paired syntax probe uses exactly the protected installed ancestry condition',async()=>{
+ const sql=await readFile(new URL('../canonical-v4/drafts/automatic-topic-feeds.sql',import.meta.url),'utf8');
+ const fixed=probe(sql),broken=probe(sql,true);
+ assert(fixed.includes('IS DISTINCT FROM (CASE WHEN'));assert(broken.includes('IS DISTINCT FROM CASE WHEN'));
+ assert.equal(fixed.replace('IS DISTINCT FROM (CASE','IS DISTINCT FROM CASE').replace('NULL::uuid END)','NULL::uuid END'),broken);
+ assert.throws(()=>probe(sql.replace('IS DISTINCT FROM (CASE','IS DISTINCT FROM CASE')),TypeError);
+});
+
+test('native diagnostics retain only the finite case code and bounded SQL positions without reading private text or hooks',()=>{
+ const e=Object.assign(Error('private article and credential'),{code:'42601',position:'123',internalPosition:'42'});
+ const observed=nativeFailure(e,0);assert.equal(observed.code,'FEED_0_42601_P123_I42');assert(!observed.message.includes('private'));assert(!Object.hasOwn(observed,'cause'));
+ const hooked=Object.defineProperty({},'code',{get(){assert.fail('unknown getter');}});assert.equal(nativeFailure(hooked,2).code,'FEED_2_UNKNOWN_P0_I0');
+ assert.equal(nativeFailure(new Proxy(e,{getOwnPropertyDescriptor(){assert.fail('proxy hook');}}),3).code,'FEED_3_UNKNOWN_P0_I0');
+ assert.equal(nativeFailure({code:'private title',position:'1000000',internalPosition:'0001'},4).code,'FEED_4_UNKNOWN_P0_I0');
 });

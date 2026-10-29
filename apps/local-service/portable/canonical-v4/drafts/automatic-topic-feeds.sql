@@ -148,7 +148,7 @@ BEGIN
  IF locked_<>cardinality(ids_) THEN RETURN NULL;END IF;
  FOR n_ IN 1..cardinality(ids_) LOOP
   SELECT parent_id INTO parent_ FROM canonical_v4.named_subject_heads WHERE subject_id=ids_[n_] AND generation=p_generation;
-  IF NOT FOUND OR parent_ IS DISTINCT FROM CASE WHEN n_<cardinality(ids_) THEN ids_[n_+1] ELSE NULL::uuid END THEN RETURN NULL;END IF;
+  IF NOT FOUND OR parent_ IS DISTINCT FROM (CASE WHEN n_<cardinality(ids_) THEN ids_[n_+1] ELSE NULL::uuid END) THEN RETURN NULL;END IF;
  END LOOP;
  RETURN ids_;
 END $path$;

@@ -1,6 +1,7 @@
 // Additional real owned PostgreSQL assertions over general-web fixtures. No
 // live connection, crawler, public capture, inference or provider requests.
 import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
+import {types} from 'node:util';
 import {createAutomaticTopicFeedRepository as feedRepository} from '../canonical-v4/automatic-topic-feed-repository.js';
 import {createAutomaticAuthorContextRepository as authorRepository} from '../canonical-v4/automatic-author-context-repository.js';
 import {createCanonicalV4LifecycleRepository as lifecycle} from '../canonical-v4/lifecycle-repository.js';
@@ -9,9 +10,29 @@ export const AUTOMATIC_TOPIC_FEED_NATIVE_CASES=Object.freeze([...names]);
 const code=c=>e=>e?.code===c;
 const deferred=()=>{let resolve;const promise=new Promise(done=>{resolve=done;});return {promise,resolve};};
 async function one(db,sql,args=[]){const r=await db.query(sql,args);assert.equal(r.rows.length,1);return r.rows[0];}
-async function test(cases,i,body){const row={name:names[i],status:'running'};cases.push(row);try{await body();row.status='passed';}catch(e){row.status='failed';throw e;}}
+export function automaticFeedNativeFailure(error,index){
+ if(!Number.isInteger(index)||index<0||index>8)throw new TypeError('Invalid feed case');
+ const own=key=>{if(!error||types.isProxy(error)||typeof error!=='object')return null;const d=Object.getOwnPropertyDescriptor(error,key);return d&&Object.hasOwn(d,'value')?d.value:null;};
+ const raw=own('code'),allowed=['ERR_ASSERTION','42601','42702','42883','23503','23505','42501','P1301','P1303','P1304','conflict','storage-failure','storage-corrupt','invalid'];
+ const code=allowed.includes(raw)?raw.toUpperCase().replaceAll('-','_'):'UNKNOWN';
+ const position=key=>{const value=own(key);return typeof value==='string'&&/^[1-9][0-9]{0,5}$/u.test(value)?value:'0';};
+ return Object.assign(Error('Owned topic feed check did not complete'),{code:`FEED_${index}_${code}_P${position('position')}_I${position('internalPosition')}`});
+}
+async function test(cases,i,body){const row={name:names[i],status:'running'};cases.push(row);try{await body();row.status='passed';}catch(e){row.status='failed';throw automaticFeedNativeFailure(e,i);}}
 async function within(promise){let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Owned topic feed did not complete')),1200);})]);}finally{clearTimeout(timer);}}
 function uses(plan,name){return plan&&typeof plan==='object'&&(plan['Index Name']===name||Object.values(plan).some(v=>v&&typeof v==='object'&&(Array.isArray(v)?v.some(p=>uses(p,name)):uses(v,name))));}
+
+// PostgreSQL17's IF scanner stops at an unparenthesized inner THEN. Derive the
+// paired compile probe from the actual protected condition, rather than a
+// separate corrected expression that could diverge from installed SQL.
+export function automaticFeedAncestryCompileProbe(sql,broken=false){
+ if(typeof sql!=='string'||typeof broken!=='boolean')throw new TypeError('Invalid feed syntax probe');
+ const conditions=[...sql.matchAll(/IF NOT FOUND OR parent_ IS DISTINCT FROM (.+) THEN RETURN NULL;END IF;/gu)];
+ if(conditions.length!==1||!conditions[0][1].startsWith('(CASE ')||!conditions[0][1].endsWith(' END)'))throw new TypeError('Invalid feed syntax probe');
+ const condition=broken?conditions[0][1].slice(1,-1):conditions[0][1];
+ return `DO $probe$ DECLARE ids_ uuid[]:=ARRAY['12345678-1234-4123-8123-123456789abc'::uuid];parent_ uuid;n_ integer:=1;
+ BEGIN PERFORM 1;IF NOT FOUND OR parent_ IS DISTINCT FROM ${condition} THEN RAISE EXCEPTION 'Invalid ancestry probe' USING ERRCODE='P1304';END IF;END $probe$;`;
+}
 
 export async function runAutomaticTopicFeedNativeAssertions({owner,worker,app,observer,generation,sourceIds,cases}){
  const feeds=feedRepository({database:app}),maintenance=feedRepository({database:worker}),roots=[];let serial=0,leaf=null,parent=null,page=null,first=null;
@@ -28,7 +49,9 @@ export async function runAutomaticTopicFeedNativeAssertions({owner,worker,app,ob
   for(const eventId of tasks)assert.notEqual(await maintenance.process(JSON.stringify({generation,eventId})),'busy');}assert.fail('Owned bounded feed cohort did not drain');}
  await test(cases,0,async()=>{
   const before=await expected(),original=(await owner.query('SELECT id,discussion_id,root_id,ordinal FROM canonical_v4.contributions ORDER BY ordinal')).rows;
-  await owner.exec(await readFile(new URL('../canonical-v4/drafts/automatic-topic-feeds.sql',import.meta.url),'utf8'));
+  const sql=await readFile(new URL('../canonical-v4/drafts/automatic-topic-feeds.sql',import.meta.url),'utf8');
+  await assert.rejects(owner.transaction(tx=>tx.exec(automaticFeedAncestryCompileProbe(sql,true))),code('42601'));
+  await owner.exec(automaticFeedAncestryCompileProbe(sql));await owner.exec(sql);
   assert.deepEqual(await expected(),before);assert.deepEqual((await owner.query('SELECT id,discussion_id,root_id,ordinal FROM canonical_v4.contributions ORDER BY ordinal')).rows,original);
   const counts=await one(owner,'SELECT (SELECT count(*)::integer FROM canonical_v4.named_root_contexts) authored,(SELECT count(*)::integer FROM canonical_v4.named_feed_roots) indexed');assert.equal(counts.authored,counts.indexed);
  });
