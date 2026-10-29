@@ -23,6 +23,13 @@ import {authoredFixtureInsightContext} from './automatic-author-insight-native-a
 const actor={id:'demo-alex',type:'human',demo:true},code=c=>e=>e?.code===c,MODEL='e5-small-q8-browser-main-prefix-v1',TOPIC='topic-semantic-manual';
 async function one(db,sql,args=[]){const r=await db.query(sql,args);assert.equal(r.rows.length,1);return r.rows[0];}
 function sourceFunction(sql,name){const m=sql.match(new RegExp('CREATE(?: OR REPLACE)? FUNCTION canonical_v4\\.'+name+'\\([\\s\\S]*?\\$(\\w+)\\$[\\s\\S]*?\\$\\1\\$;','u'));assert(m);return m[0].replace('CREATE FUNCTION','CREATE OR REPLACE FUNCTION');}
+export function combinedGenerationCollisionProbe(sql,broken=false){
+ if(typeof sql!=='string'||typeof broken!=='boolean')throw new TypeError('Invalid combined generation probe');
+ const body=sourceFunction(sql,'combined_read_fixed_feed'),query=body.match(/IF NOT EXISTS\((SELECT 1 FROM canonical_v4\.runtime_state r WHERE r\.singleton AND r\.generation=p_generation)\)/u)?.[1];
+ if(!query)throw new TypeError('Invalid combined generation predicate');
+ const selected=broken?query.replace('runtime_state r WHERE r.singleton AND r.generation','runtime_state WHERE singleton AND generation'):query;
+ return `DO $probe$ DECLARE generation text;p_generation text;BEGIN IF NOT EXISTS(${selected}) THEN NULL;END IF;END $probe$;`;
+}
 export async function runCombinedAuthorHierarchyNativeAssertions(scope){
  const {owner,worker,app,generation,matcher,check}=scope,fixtures=combinedHierarchyFixtureRows(),ids=fixtures.map(v=>v.id),source=ids[0],roots=[],replies=[];
  const identity=describeRootedHierarchyMatcher(matcher),matcherHash=createHash('sha256').update(JSON.stringify(identity)).digest('hex');
@@ -38,7 +45,8 @@ export async function runCombinedAuthorHierarchyNativeAssertions(scope){
  const has=async(nodeId,id)=>(await reads.semanticFeed({nodeId,limit:50,cursor:null})).roots.some(v=>v.root.id===id);
  await check(0,async()=>{
   const before=await expected(),manifest=(await owner.query('SELECT * FROM canonical_v4.schema_migrations ORDER BY version')).rows;
-  await owner.exec(await readFile(new URL('../canonical-v4/drafts/combined-author-hierarchy.sql',import.meta.url),'utf8'));
+  const sql=await readFile(new URL('../canonical-v4/drafts/combined-author-hierarchy.sql',import.meta.url),'utf8');await owner.exec(sql);
+  await assert.rejects(owner.query(combinedGenerationCollisionProbe(sql,true)),code('42702'));await owner.exec(combinedGenerationCollisionProbe(sql));
   assert.deepEqual(await expected(),before);assert.deepEqual((await owner.query('SELECT * FROM canonical_v4.schema_migrations ORDER BY version')).rows,manifest);
  });
  await check(1,async()=>{

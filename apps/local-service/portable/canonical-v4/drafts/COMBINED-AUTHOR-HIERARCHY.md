@@ -57,5 +57,15 @@ of four invented non-Wikipedia Sources, the combined owner cut, topic overrides,
 captured broad posting, fixed/named HTTP threads and replies, genuine AI root proof
 with only its provider stubbed, role/forgery refusals and actual Source erasure.
 They restore all predecessor functions/constraints and preserve the original160
-reports. Native execution is pending; no representative E5/browser/load/live speed
-or activation claim follows from these invented numeric fixtures.
+reports. The first owned run passes the first four new cases, including genuine
+protected four-Source preparation/publication and both fixed/named owner cuts.
+The HTTP/post/feed case then fails with storage failure and observed SQL42702;
+the exact internal function diagnostic was not retained. Source review finds an
+unqualified generation column in the new feed's function with a generation OUT
+variable. The correction qualifies only that predicate, retaining all limits and
+assertions, with a source-derived paired SQL ambiguity probe required in the next
+fresh run. All2632 pins and normal smart-stop/empty Job/closed handles pass, the
+created scratch database drops, stderr is empty and emergency false; the second
+database is not reached. Consumed source/map/output remain immutable/unadopted.
+Corrected native execution is pending; no representative E5/browser/load/live
+speed or activation claim follows from these invented numeric fixtures.

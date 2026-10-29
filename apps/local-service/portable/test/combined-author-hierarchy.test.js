@@ -10,6 +10,7 @@ import {combinedHierarchyFixtureRows} from './combined-author-hierarchy-fixture.
 import {describeRootedHierarchyMatcher} from '../../src/domain/hierarchy-rooted-matcher.js';
 import {planAutomaticNamedSubjectsV2,GENERAL_SUBJECT_POLICY_V2_HASH} from '../../src/application/automatic-named-subject-plan.js';
 import {createHash} from 'node:crypto';
+import {combinedGenerationCollisionProbe} from './combined-author-hierarchy-native-assertions.js';
 const generation='invented-generation',sourceId='invented-source',topicId='invented-topic';
 const scope={kind:'semantic',id:'games',caption:'Games',sourceId,materialDigest:'a'.repeat(64)};
 const code=c=>e=>e?.code===c;
@@ -57,4 +58,9 @@ test('combined search changes only the proved fixed-activity lookup',async()=>{
  const extract=s=>s.match(/CREATE(?: OR REPLACE)? FUNCTION canonical_v4\.unified_search_topics\([\s\S]*?\$search\$;/u)[0].replace('CREATE OR REPLACE FUNCTION','CREATE FUNCTION').replaceAll('\r\n','\n');
  const before=extract(old),after=extract(all),replacement='   LEFT JOIN LATERAL canonical_v4.combined_fixed_activity(p_generation,n.node_id)a ON true';
  const original=before.match(/   LEFT JOIN LATERAL\(SELECT d\.human[\s\S]*?\)a ON true/u)[0];assert.equal(after.replace(replacement,original),before);
+});
+test('the collision probe uses exactly the actual fixed feed generation predicate',async()=>{
+ const sql=await readFile(new URL('../canonical-v4/drafts/combined-author-hierarchy.sql',import.meta.url),'utf8'),fixed=combinedGenerationCollisionProbe(sql),broken=combinedGenerationCollisionProbe(sql,true);
+ assert(fixed.includes('DECLARE generation text'));assert.equal(fixed.replace('runtime_state r WHERE r.singleton AND r.generation','runtime_state WHERE singleton AND generation'),broken);
+ assert.throws(()=>combinedGenerationCollisionProbe(sql.replace('runtime_state r WHERE r.singleton AND r.generation','runtime_state WHERE singleton AND generation')),TypeError);
 });

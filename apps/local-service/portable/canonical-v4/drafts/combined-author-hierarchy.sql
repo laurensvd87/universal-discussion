@@ -167,7 +167,7 @@ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $feed$
 BEGIN
  IF p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 100 OR p_before<0 OR NOT EXISTS(SELECT 1 FROM canonical_v4.semantic_nodes WHERE node_id=p_node) THEN
   RAISE EXCEPTION 'Invalid combined feed' USING ERRCODE='P1223';END IF;
- IF NOT EXISTS(SELECT 1 FROM canonical_v4.runtime_state WHERE singleton AND generation=p_generation) THEN RAISE EXCEPTION 'Feed generation changed' USING ERRCODE='P1221';END IF;
+ IF NOT EXISTS(SELECT 1 FROM canonical_v4.runtime_state r WHERE r.singleton AND r.generation=p_generation) THEN RAISE EXCEPTION 'Feed generation changed' USING ERRCODE='P1221';END IF;
  RETURN QUERY WITH old_ AS (SELECT * FROM canonical_v4.semantic_read_feed(p_generation,p_node,p_before,p_limit)),
  new_ AS(SELECT c.id root_id,c.discussion_id,d.topic_id,c.ordinal::text root_ordinal,e.generation FROM canonical_v4.combined_fixed_edges e
   JOIN canonical_v4.contributions c ON c.id=e.root_id JOIN canonical_v4.discussions d ON d.id=c.discussion_id
