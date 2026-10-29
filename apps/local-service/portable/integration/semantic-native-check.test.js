@@ -15,7 +15,7 @@ import {AUTOMATIC_PAGE_TOPIC_NATIVE_CASES} from '../test/automatic-page-topic-na
 import {PUBLISHED_TOPIC_EVIDENCE_NATIVE_CASES} from '../test/published-topic-evidence-native-assertions.js';
 
 test('public evidence reports are mandatory independently of page material membership',()=>{
- for(const length of [0,1,11]){const input=lifecycle();input.checks.publishedTopicEvidenceCases.length=length;assert.equal(projectSemanticNativeResult(input).accepted,false);}
+ for(const length of [0,1,11,19]){const input=lifecycle();input.checks.publishedTopicEvidenceCases.length=length;assert.equal(projectSemanticNativeResult(input).accepted,false);}
  for(const status of ['running','failed']){const input=lifecycle();input.checks.publishedTopicEvidenceCases[4].status=status;assert.equal(projectSemanticNativeResult(input).accepted,false);}
  const wrong=lifecycle();wrong.checks.publishedTopicEvidenceCases[0].name=AUTOMATIC_PAGE_TOPIC_NATIVE_CASES[0];assert.throws(()=>projectSemanticNativeResult(wrong),TypeError);
  const absent=lifecycle();delete absent.checks.publishedTopicEvidenceCases;assert.throws(()=>projectSemanticNativeResult(absent),TypeError);

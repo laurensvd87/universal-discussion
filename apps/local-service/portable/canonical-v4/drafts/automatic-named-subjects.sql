@@ -119,11 +119,13 @@ DECLARE generation_ text;matcher_ text;representation_ text;w_ jsonb;u_ jsonb;c_
  label_source_ canonical_v4.sources%ROWTYPE;keys_ text[];lock_ integer;subject_ uuid;parent_ uuid;seen_ uuid[];
  current_ bigint;expected_ bigint;depth_ integer;prototype_ double precision[];path_ text[];input_hash_ text;
  actual_ jsonb;expected_candidates_ jsonb;result_ jsonb:='[]'::jsonb;selections_ jsonb:='[]'::jsonb;old_parent_ uuid;
+ recovered_ uuid[]:=ARRAY[]::uuid[];head_exists_ boolean;
 BEGIN
  IF current_setting('transaction_isolation')<>'read committed' OR jsonb_typeof(p) IS DISTINCT FROM 'object' OR octet_length(p::text)>4194304 THEN
   RAISE EXCEPTION 'Invalid named subject publication' USING ERRCODE='P1283';END IF;
  SELECT array_agg(key ORDER BY key COLLATE "C") INTO keys_ FROM jsonb_object_keys(p) key;
- IF keys_ IS DISTINCT FROM ARRAY['candidates','generation','matcherHash','policyHash','representationHash','selections','updates','witnesses']::text[] OR
+ IF (keys_ IS DISTINCT FROM ARRAY['candidates','generation','matcherHash','policyHash','representationHash','selections','updates','witnesses']::text[] AND
+     keys_ IS DISTINCT FROM ARRAY['candidates','generation','matcherHash','policyHash','publicRecovery','representationHash','selections','updates','witnesses']::text[]) OR
     jsonb_typeof(p->'updates') IS DISTINCT FROM 'array' OR jsonb_typeof(p->'selections') IS DISTINCT FROM 'array' OR
     jsonb_typeof(p->'witnesses') IS DISTINCT FROM 'array' OR jsonb_typeof(p->'candidates') IS DISTINCT FROM 'array' OR
     p->>'policyHash' IS DISTINCT FROM 'cd4f0786245a561499253c33cf53a0dc45e0d75e0471707e3a3f8606fb7c4217' OR
@@ -134,6 +136,13 @@ BEGIN
     jsonb_array_length(p->'selections')<>jsonb_array_length(p->'witnesses') OR jsonb_array_length(p->'candidates')>64 THEN
   RAISE EXCEPTION 'Named subject capacity' USING ERRCODE='P1283';END IF;
  generation_:=p->>'generation';matcher_:=p->>'matcherHash';representation_:=p->>'representationHash';
+ IF p ? 'publicRecovery' AND (jsonb_typeof(p->'publicRecovery') IS DISTINCT FROM 'object' OR
+  jsonb_typeof(p->'publicRecovery'->'candidates') IS DISTINCT FROM 'array' OR
+  jsonb_typeof(p->'publicRecovery'->'proofs') IS DISTINCT FROM 'array' OR
+  jsonb_typeof(p->'publicRecovery'->'focusKeys') IS DISTINCT FROM 'array' OR
+  jsonb_array_length(p->'publicRecovery'->'candidates')>64 OR jsonb_array_length(p->'publicRecovery'->'proofs')>64 OR
+  jsonb_array_length(p->'publicRecovery'->'focusKeys') NOT BETWEEN 1 AND 128) THEN
+  RAISE EXCEPTION 'Public recovery capacity or shape' USING ERRCODE='P1283';END IF;
  PERFORM 1 FROM canonical_v4.runtime_state WHERE singleton AND generation=generation_ FOR KEY SHARE;
  IF NOT FOUND THEN RAISE EXCEPTION 'Named subject generation changed' USING ERRCODE='P1281';END IF;
  PERFORM 1 FROM canonical_v4.semantic_installation WHERE singleton AND matcher_hash=matcher_ FOR SHARE;
@@ -192,7 +201,13 @@ BEGIN
  END LOOP;
  -- Lock identity rows in one order, after all Source locks. This also fences
  -- update/erase triggers and overlapping parent/child publication batches.
- PERFORM 1 FROM canonical_v4.named_subject_ids WHERE id IN(SELECT (value->>'subjectId')::uuid FROM jsonb_array_elements(p->'updates')) ORDER BY id FOR UPDATE;
+ PERFORM 1 FROM canonical_v4.named_subject_ids WHERE id IN(
+  SELECT (value->>'subjectId')::uuid FROM jsonb_array_elements(p->'updates') UNION
+  SELECT (value->>'topicId')::uuid FROM jsonb_array_elements(coalesce(p->'publicRecovery'->'candidates','[]'::jsonb))) ORDER BY id FOR UPDATE;
+ -- Optional composition only: independent public evidence cannot reserve or
+ -- restore an identity without the separately installed atomic verifier. All
+ -- protected Source and identity locks precede public-root/prototype locks.
+ IF p ? 'publicRecovery' THEN recovered_:=canonical_v4.named_lock_public_recovery(p);END IF;
  FOR u_ IN SELECT value FROM jsonb_array_elements(p->'updates') ORDER BY value->>'subjectId' LOOP
   IF jsonb_typeof(u_) IS DISTINCT FROM 'object' OR (SELECT count(*) FROM jsonb_object_keys(u_))<>12 OR
      NOT u_ ?& ARRAY['subjectId','expectedRevision','kind','focusKey','contextRootId','label','labelWitness','parentId','acceptedAncestorPath','prototypeValues','minimumPairSimilarity','members'] OR
@@ -239,9 +254,12 @@ BEGIN
   ELSE
    expected_:=(u_->>'expectedRevision')::bigint;
    SELECT parent_id INTO old_parent_ FROM canonical_v4.named_subject_heads WHERE subject_id=subject_;
-   IF NOT FOUND OR current_ IS DISTINCT FROM expected_ OR (old_parent_ IS NOT NULL AND old_parent_ IS DISTINCT FROM parent_) THEN
+   head_exists_:=FOUND;
+   IF current_ IS DISTINCT FROM expected_ OR
+     (NOT head_exists_ AND NOT subject_=ANY(recovered_)) OR (head_exists_ AND subject_=ANY(recovered_)) OR
+     (old_parent_ IS NOT NULL AND old_parent_ IS DISTINCT FROM parent_) THEN
     RAISE EXCEPTION 'Named revision or parent changed' USING ERRCODE='P1281';END IF;
-   IF old_parent_ IS NULL AND parent_ IS NOT NULL AND NOT EXISTS(
+   IF head_exists_ AND old_parent_ IS NULL AND parent_ IS NOT NULL AND NOT EXISTS(
      SELECT 1 FROM jsonb_array_elements(p->'updates') parent_update
      WHERE parent_update->>'subjectId'=parent_::text AND NOT EXISTS(
       SELECT 1 FROM jsonb_array_elements(u_->'members') child_member WHERE NOT EXISTS(

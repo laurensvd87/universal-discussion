@@ -8,6 +8,7 @@ import {createAutomaticAuthorContextRepository} from '../canonical-v4/automatic-
 import {createCanonicalV4LifecycleRepository} from '../canonical-v4/lifecycle-repository.js';
 import {describeRootedHierarchyMatcher} from '../../src/domain/hierarchy-rooted-matcher.js';
 import {createHash} from 'node:crypto';
+import {runPublishedTopicRecoveryNativeAssertions} from './published-topic-recovery-native-assertions.js';
 import names from './published-topic-evidence-native-cases.json' with {type:'json'};
 export const PUBLISHED_TOPIC_EVIDENCE_NATIVE_CASES=Object.freeze([...names]);
 const code=c=>e=>e?.code===c,unit=[1,...Array(383).fill(0)],prepared={bodyValues:unit,titleValues:unit,exclusion:null},actor={id:'demo-alex',type:'human',demo:true};
@@ -123,7 +124,8 @@ export async function runPublishedTopicEvidenceNativeAssertions(scope){
   const focus=(await current()).focusKey;const plan=await owner.transaction(async tx=>{await tx.exec('SET LOCAL enable_seqscan=off');return tx.query("EXPLAIN (FORMAT JSON) SELECT * FROM canonical_v4.named_public_prototypes WHERE generation=$1 AND representation_hash=$2 AND focus_key=$3 ORDER BY focus_key,scope_id LIMIT 65",[generation,identity.representationHash,focus]);});
   assert(JSON.stringify(plan.rows).includes('named_public_prototype_focus'));assert(!JSON.stringify(await current()).includes(context.scope.materialDigest));
  });
- return async()=>check(cases,11,async()=>{
+ await runPublishedTopicRecoveryNativeAssertions({...scope,context,publicRootId:r3,check:(i,body)=>check(cases,i,body)});
+ return async()=>check(cases,19,async()=>{
   assert.equal((await one(owner,'SELECT count(*)::integer n FROM canonical_v4.sources')).n,0);assert.equal((await one(owner,'SELECT count(*)::integer n FROM canonical_v4.named_subject_heads')).n,0);
   const before=encoded.length,publicBefore=await current();await drain();const c=await current();assert.equal(c.rootId,r3);assert(c.body.includes('weather sealing'));
   assert.equal(c.publicDigest,publicBefore.publicDigest);assert.deepEqual(c.vector,publicBefore.vector);assert(!encoded.slice(before).includes(publicBefore.body));
@@ -131,7 +133,9 @@ export async function runPublishedTopicEvidenceNativeAssertions(scope){
   await upkeep.close();for(const root of roots)await life.command(await expected(),{type:'withdraw',contributionId:root},actor);
   await owner.transaction(async tx=>{for(const table of ['command_receipts','revisions'])await tx.query('DELETE FROM canonical_v4.'+table+' WHERE contribution_id=ANY($1::text[])',[roots]);
    await tx.query('DELETE FROM canonical_v4.contributions WHERE id=ANY($1::text[])',[roots]);await tx.query('DELETE FROM canonical_v4.id_registry WHERE id=ANY($1::text[])',[roots]);});
-  await owner.exec(`DROP TRIGGER named_public_new_context ON canonical_v4.named_root_contexts;DROP TRIGGER named_public_changed_body ON canonical_v4.contributions;
+  await owner.exec(`DROP TRIGGER named_public_focus_guard ON canonical_v4.named_public_prototypes;
+   DROP FUNCTION canonical_v4.named_guard_public_focus(),canonical_v4.named_current_public_recovery_vector(text,text),canonical_v4.named_lock_public_recovery(jsonb);
+   DROP TRIGGER named_public_new_context ON canonical_v4.named_root_contexts;DROP TRIGGER named_public_changed_body ON canonical_v4.contributions;
    DROP TRIGGER named_public_removed_prototype ON canonical_v4.named_public_prototypes;
    DROP FUNCTION canonical_v4.named_schedule_public_evidence(),canonical_v4.named_public_tasks(text,text),canonical_v4.named_repair_public_scope(text,text,bigint),
     canonical_v4.named_store_public_evidence(text,text,bigint,jsonb,text,double precision[],double precision[],text,text),canonical_v4.named_public_candidates(text,text,jsonb),canonical_v4.named_defer_public_evidence(text,bigint);

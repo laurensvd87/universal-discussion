@@ -59,10 +59,10 @@ export function createPublishedTopicEvidenceRepository({database}={}){
    const keys=list(a.focusKeys,128);if(!keys.length||keys.some(k=>!hash(k))||new Set(keys).size!==keys.length)bad();
    try{const rows=await database.query('SELECT canonical_v4.named_public_candidates($1,$2,$3::jsonb) AS result',[a.generation,a.representationHash,JSON.stringify(keys)]);
     return output(()=>{const seen=new Set();return freeze(list(scalar(rows),64).map(v=>{
-     const r=fields(v,['rootId','topicId','caption','body','rootVersion','publicDigest','representationHash','focusKey','inputHash','vector','identityRevision']);
+     const r=fields(v,['rootId','topicId','caption','body','rootVersion','publicDigest','representationHash','focusKey','inputHash','vector','identityRevision','headPresent']);
      const {input}=witness(Object.fromEntries(['rootId','topicId','caption','body','rootVersion','publicDigest'].map(k=>[k,r[k]])));
      if(r.representationHash!==a.representationHash||r.inputHash!==PUBLISHED_TOPIC_INPUT_HASH||r.focusKey!==input.focusKey||!keys.includes(r.focusKey)||
-       !count(r.identityRevision)||r.identityRevision==='0'||seen.has(r.topicId))bad();seen.add(r.topicId);r.vector=vector(r.vector);return r;
+       !count(r.identityRevision)||r.identityRevision==='0'||typeof r.headPresent!=='boolean'||seen.has(r.topicId))bad();seen.add(r.topicId);r.vector=vector(r.vector);return r;
     }));});
    }catch(e){throw storage(e);}},
  });

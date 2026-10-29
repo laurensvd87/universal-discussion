@@ -10,5 +10,13 @@
  "published-evidence: held authored edit makes indexing busy without waiting",
  "published-evidence: raw representative capacity refuses incomplete lookup",
  "published-evidence: execute-only roles cannot export or mutate underlying rows",
+ "published-recovery: explicit verifier installation preserves execute-only roles",
+ "published-recovery: current public meaning restores a withdrawn ID without canonical changes",
+ "published-recovery: changed current public revision refuses stale publication",
+ "published-recovery: protected numeric evidence refuses forged worker agreement",
+ "published-recovery: newly indexed competitor refuses an incomplete publication snapshot",
+ "published-recovery: opaque identity revision change refuses stale recovery",
+ "published-recovery: held human edit refuses background recovery without waiting",
+ "published-recovery: held recovery allows MVCC discussion reads and a normal page post",
  "published-evidence: independent public text survives actual Source erasure"
 ]

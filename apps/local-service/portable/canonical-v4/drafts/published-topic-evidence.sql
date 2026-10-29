@@ -204,7 +204,8 @@ BEGIN
    WHERE p.generation=p_generation AND p.representation_hash=p_representation AND p.input_hash='4524c3fe89d89ea3de525f014aa73a1bd5f9845582fa3b9e87a41c23ef4b1389' AND p.focus_key=ANY(keys_) ORDER BY p.focus_key,p.scope_id LIMIT 65)
  SELECT (SELECT count(*)::integer FROM raw_),coalesce(jsonb_agg(jsonb_build_object('rootId',q.root_id,'topicId',q.scope_id,'caption',q.caption,'body',q.body,
   'rootVersion',q.write_version::text,'publicDigest',q.public_digest,'representationHash',q.representation_hash,
-  'focusKey',q.focus_key,'inputHash',q.input_hash,'vector',q.values_double,'identityRevision',q.revision::text) ORDER BY q.scope_id),'[]'::jsonb) INTO raw_count_,result_
+  'focusKey',q.focus_key,'inputHash',q.input_hash,'vector',q.values_double,'identityRevision',q.revision::text,
+  'headPresent',EXISTS(SELECT 1 FROM canonical_v4.named_subject_heads h WHERE h.subject_id=q.scope_id::uuid)) ORDER BY q.scope_id),'[]'::jsonb) INTO raw_count_,result_
  FROM (SELECT r.*,p.representation_hash,p.focus_key,p.input_hash,p.values_double,i.revision FROM raw_ p
   JOIN canonical_v4.named_public_roots r ON r.root_id=p.root_id AND r.generation=p.generation AND r.scope_id=p.scope_id AND r.public_digest=p.public_digest
   JOIN canonical_v4.named_subject_ids i ON i.id=p.scope_id::uuid) q;

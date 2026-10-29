@@ -39,7 +39,7 @@ test('store binds only public current text, shared numeric inputs and the exact 
  await assert.rejects(r.store(storeRaw(task,{...prepared,bodyValues:[1]})),TypeError);
 });
 test('public candidate decoding requires current text, correct representation contract and unique occupied identities',async()=>{
- const candidate={...witness,representationHash:hash,focusKey:publicInput.focusKey,inputHash:contract,vector:unit,identityRevision:'2'};
+ const candidate={...witness,representationHash:hash,focusKey:publicInput.focusKey,inputHash:contract,vector:unit,identityRevision:'2',headPresent:true};
  let value=[candidate];const r=repository({database:{query:async()=>result(value)}}),query=JSON.stringify({generation:scope.generation,representationHash:hash,focusKeys:[publicInput.focusKey]});
  assert.deepEqual(await r.candidates(query),[candidate]);
  for(const v of [{...candidate,inputHash:'b'.repeat(64)},{...candidate,identityRevision:'0'},{...candidate,body:body+' changed'},{...candidate,focusKey:hash}]){

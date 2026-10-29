@@ -191,6 +191,11 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/portable/canonical-v4/drafts/AUTOMATIC-TOPIC-FEEDS.md',
     'apps/local-service/portable/canonical-v4/drafts/AUTOMATIC-TOPIC-PUBLIC.md',
     'apps/local-service/src/application/published-topic-evidence.js',
+    'apps/local-service/src/application/published-topic-recovery-plan.js',
+    'apps/local-service/test/published-topic-recovery-plan.test.js',
+    'apps/local-service/portable/test/published-topic-recovery-native-assertions.js',
+    'apps/local-service/portable/canonical-v4/drafts/published-topic-recovery.sql',
+    'apps/local-service/portable/canonical-v4/drafts/PUBLISHED-TOPIC-RECOVERY.md',
     'apps/local-service/src/application/published-topic-maintenance.js',
     'apps/local-service/portable/canonical-v4/published-topic-evidence-repository.js',
     'apps/local-service/portable/canonical-v4/drafts/published-topic-evidence.sql',
@@ -678,9 +683,9 @@ def semantic_completion(stdout, stderr, exit_code):
             return refused('json-published-topic-evidence-cases')
         names = parse(raw)
         observed = proof['publishedTopicEvidenceCases']
-        if (type(names) is not list or len(names) != 12 or len(set(names)) != 12
+        if (type(names) is not list or len(names) != 20 or len(set(names)) != 20
                 or any(type(name) is not str for name in names)
-                or type(observed) is not list or len(observed) != 12
+                or type(observed) is not list or len(observed) != 20
                 or observed != [{'name':name,'status':'passed'} for name in names]
                 or any(not shape(row,'name status') for row in observed)):
             return refused('json-published-topic-evidence-cases')
