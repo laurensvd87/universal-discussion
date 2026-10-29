@@ -11,6 +11,32 @@ import {
 const PAGE = "https://news.alpha.org/world/story";
 const prose = (label, repetitions = 24) => Array.from({ length: repetitions }, (_, index) => `${label} sentence ${index}.`).join(" ");
 
+test('raw script and style comparisons cannot consume later article markup or become policy tags',()=>{
+ const text=prose('Public animal article');
+ const document=`<title>Public topic</title><script>if (count < maximum) { const fragment = '<meta name="robots" content="noindex">'; const unfinished = "<not-a-tag; }</script><style>.x::after { content: '<meta name="tdm-reservation" content="1">'; }</style><main>${text}</main>`;
+ const result=captureStaticHtml(document,PAGE);assert.equal(result.text,text);assert.equal(result.title,'Public topic');assert.equal(result.eligible,true);assert.equal(result.directives.noindex,false);assert.equal(result.directives.tdmReservation,null);
+ const restricted=captureStaticHtml(document+'<meta name="robots" content="noindex">',PAGE);assert.equal(restricted.directives.noindex,true);
+});
+
+test('HTML raw-text tags do not acknowledge a self-closing slash or expose fake body and links',()=>{
+ const text=prose('Visible recipe');
+ const result=captureStaticHtml(`<title>Recipe</title><script/>const x = '<main>SECRET ARTICLE</main><a href="https://example.org/secret">secret</a>';</script><main>${text}</main>`,PAGE);
+ assert.equal(result.text,text);assert(!result.links.some(l=>l.href.includes('secret')));
+});
+
+test('unfinished raw script content stays inert and cannot invent a policy directive',()=>{
+ const text=prose('Visible article');const result=captureStaticHtml(`<main>${text}</main><script>const unfinished = '<meta name="robots" content="noindex">`,PAGE);
+ assert.equal(result.text,text);assert.equal(result.directives.noindex,false);
+});
+
+test('unsupported double-escaped script data and unusual raw end tags refuse before exposing later markup',()=>{
+ for(const document of [`<script><!--<script></script><main>SECRET</main>--></script>`,
+  `<script>const x=1;</script unexpected="attribute"><main>SECRET</main>`]){
+  const result=diagnoseStaticHtml(document+`<main>${prose('Public article')}</main>`,PAGE);
+  assert.equal(result.status,'document-invalid');assert(['script-escape-unsupported','raw-end-tag-unsupported'].includes(result.failure));assert(!JSON.stringify(result).includes('SECRET'));
+ }
+});
+
 test("finite diagnostics reuse extraction without exposing content, URLs, directives or attributes", () => {
   const text = "Public prose ".repeat(20).trim(), html = `<title>Secret title</title><nav>Secret navigation</nav><script>Secret script</script>
     <article data-secret="Secret attribute"><div hidden>Secret hidden</div>${text}<a href="/secret-url">Public link</a></article>`;

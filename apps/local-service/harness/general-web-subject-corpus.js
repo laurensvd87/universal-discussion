@@ -24,3 +24,11 @@ export const GENERAL_WEB_SUBJECT_PROTOCOL=Object.freeze({
  maximumRequests:34,maximumCaptureMs:240000,minimumRequestSpacingMs:5000,
  captureExecuted:false,liveApproved:false,
 });
+
+// New observations only for internal extraction/pacing failures in the saved
+// first screen. The Steam publisher's policy failure is deliberately absent.
+// The original twelve results are retained; these are not replacement outcomes.
+const REPAIR_IDS=new Set(['general-steam-oled-02','general-steam-lcd-01','general-switch-2-01',
+ 'general-switch-2-02','general-switch-oled-01','general-switch-oled-02']);
+export const GENERAL_WEB_CAPTURE_REPAIR_PROBES=Object.freeze(GENERAL_WEB_SUBJECT_PROBES.filter(p=>REPAIR_IDS.has(p.id))
+ .map(p=>Object.freeze({...p,id:p.id+'-repair',priorObservationId:p.id})));

@@ -11,8 +11,8 @@ import {PublicFetchError} from '../src/crawler/public-fetch.js';
 import {createAutomaticTopicDevelopmentCapture,createAutomaticTopicAdditionalDevelopmentCapture,createAutomaticTopicMetadataDevelopmentCapture,createAutomaticTopicComparisonDevelopmentCapture} from '../harness/hierarchy-public-capture.js';
 import {AUTOMATIC_TOPIC_DEVELOPMENT,AUTOMATIC_TOPIC_ADDITIONAL_DEVELOPMENT,AUTOMATIC_TOPIC_METADATA_DEVELOPMENT} from '../harness/automatic-topic-development-corpus.js';
 import {AUTOMATIC_TOPIC_COMPARISON_DEVELOPMENT} from '../harness/automatic-topic-comparison-corpus.js';
-import {createGeneralWebSubjectScreenCapture} from '../harness/hierarchy-public-capture.js';
-import {GENERAL_WEB_SUBJECT_PROBES} from '../harness/general-web-subject-corpus.js';
+import {createGeneralWebSubjectScreenCapture,createGeneralWebSubjectRepairCapture} from '../harness/hierarchy-public-capture.js';
+import {GENERAL_WEB_SUBJECT_PROBES,GENERAL_WEB_CAPTURE_REPAIR_PROBES} from '../harness/general-web-subject-corpus.js';
 
 const sha=s=>createHash('sha256').update(s).digest('hex');
 const body='A public article about this independently selected subject has enough actual prose to pass the existing minimum text policy. '.repeat(4);
@@ -43,6 +43,26 @@ test('general-web screen admits only its12 public non-Wikipedia pages under unch
  assert.equal(f.calls.length,26);assert.equal(capture.snapshot().maxRequests,34);assert.equal(capture.snapshot().minimumOriginDelayMs,5000);
  assert.deepEqual(f.calls.filter(c=>c.resourceKind==='page').map(c=>c.url),GENERAL_WEB_SUBJECT_PROBES.map(p=>p.url));
  const calls=f.calls.length;assert.equal((await capture.capture(GENERAL_WEB_SUBJECT_PROBES[0].id)).reason,'already-attempted');assert.equal(f.calls.length,calls);
+});
+
+test('a slightly early timer waits the remaining interval without failing or dispatching HTTP early',async()=>{
+ const f=fixture();let waits=0;
+ const capture=createHierarchyPublicCapture({...f.options,sleep:async ms=>{waits++;f.advance(Math.max(0,ms-1));}});
+ const row=await capture.capture(probes[0].id);assert.equal(row.status,'available');assert.equal(f.calls.length,3);
+ for(let i=1;i<f.calls.length;i++)assert(f.calls[i].time-f.calls[i-1].time>=5000);
+ assert(waits<=6,'clock retries must stay finite and inside the original request deadline');
+});
+
+test('a nonadvancing injected timer still fails after three waits without dispatching another request',async()=>{
+ const f=fixture();let waits=0;const capture=createHierarchyPublicCapture({...f.options,sleep:async()=>{waits++;}});
+ const row=await capture.capture(probes[0].id);assert.equal(row.status,'unavailable');assert.equal(waits,3);assert.equal(f.calls.length,1);
+});
+
+test('general extraction repair admits only six internal failures, never the policy-failed Steam publisher',async()=>{
+ const f=fixture(),capture=createGeneralWebSubjectRepairCapture(f.options);
+ for(const p of GENERAL_WEB_SUBJECT_PROBES)await assert.rejects(capture.capture(p.id));assert.equal(f.calls.length,0);
+ for(const p of GENERAL_WEB_CAPTURE_REPAIR_PROBES){assert(!p.url.includes('steamdeck.com'));assert.equal((await capture.capture(p.id)).status,'available');}
+ assert.equal(f.calls.length,10);assert.equal(capture.snapshot().maxRequests,10);assert.equal(GENERAL_WEB_CAPTURE_REPAIR_PROBES.length,6);
 });
 
 test('comparison DEV captures exactly12 declared hard cases and cannot fetch previous DEV or hierarchy TEST',async()=>{

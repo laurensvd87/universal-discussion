@@ -13,7 +13,7 @@ import diversityCorpus from './hierarchy-child-diversity-corpus.json' with {type
 import {ADDITIONAL_CHILD_TEST_PROBES} from './hierarchy-child-additional-test-corpus.js';
 import {AUTOMATIC_TOPIC_DEVELOPMENT,AUTOMATIC_TOPIC_ADDITIONAL_DEVELOPMENT,AUTOMATIC_TOPIC_METADATA_DEVELOPMENT} from './automatic-topic-development-corpus.js';
 import {AUTOMATIC_TOPIC_COMPARISON_DEVELOPMENT} from './automatic-topic-comparison-corpus.js';
-import {GENERAL_WEB_SUBJECT_PROBES} from './general-web-subject-corpus.js';
+import {GENERAL_WEB_SUBJECT_PROBES,GENERAL_WEB_CAPTURE_REPAIR_PROBES} from './general-web-subject-corpus.js';
 
 const ORIGIN='https://en.wikipedia.org',MAX_REQUESTS=34,MAX_DURATION=240000,MIN_DELAY=5000;
 // Closed development TRAIN/CAL batch. TEST IDs/URLs are deliberately absent.
@@ -96,6 +96,7 @@ export function createAutomaticTopicAdditionalDevelopmentCapture(dependencies={}
 export function createAutomaticTopicMetadataDevelopmentCapture(dependencies={}){return createCapture(dependencies,true,false,false,false,null,'automatic-development-metadata');}
 export function createAutomaticTopicComparisonDevelopmentCapture(dependencies={}){return createCapture(dependencies,true,false,false,false,null,'automatic-development-comparison');}
 export function createGeneralWebSubjectScreenCapture(dependencies={}){return createCapture(dependencies,true,false,false,false,null,'general-web-subject-screen');}
+export function createGeneralWebSubjectRepairCapture(dependencies={}){return createCapture(dependencies,true,false,false,false,null,'general-web-capture-repair');}
 function createCapture({fetchPublic=fetchPublicResource,clock=Date.now,sleep=defaultSleep,signal,deadline},child,diagnosis=false,calibrationRepair=false,evaluation=false,diversityPhase=null,koalaSupplement=false){
  if(typeof fetchPublic!=='function'||typeof clock!=='function'||typeof sleep!=='function')throw new TypeError('Invalid fixed public capture dependencies');
  const start=clock();if(!Number.isFinite(start)||start<0)throw new TypeError('Invalid fixed public capture clock');
@@ -110,6 +111,7 @@ function createCapture({fetchPublic=fetchPublicResource,clock=Date.now,sleep=def
   ['automatic-development-metadata',{probes:AUTOMATIC_TOPIC_METADATA_DEVELOPMENT,count:4,requests:12}],
   ['automatic-development-comparison',{probes:AUTOMATIC_TOPIC_COMPARISON_DEVELOPMENT,count:12,requests:28}],
   ['general-web-subject-screen',{probes:GENERAL_WEB_SUBJECT_PROBES,count:12,requests:34}],
+  ['general-web-capture-repair',{probes:GENERAL_WEB_CAPTURE_REPAIR_PROBES,count:6,requests:10}],
  ]).get(koalaSupplement):null;
  if(koalaSupplement&&!supplemental)throw new TypeError('Invalid fixed probe source');
  const approved=supplemental?supplemental.probes:diversityPhase?diversityCorpus[diversityPhase]:child?(evaluation?CHILD_TEST:calibrationRepair?CHILD_CAL_REPAIR:diagnosis?CHILD_DIAGNOSIS:CHILD_TRAIN_CAL):[...PUBLIC_HIERARCHY_PROBES,...RECIPE_CAL_PROBES,...RECIPE_TEST_PROBES,...GTA_TRAIN_PROBES,...GTA_CAL_PROBES,...GTA_TEST_PROBES];
@@ -128,7 +130,13 @@ function createCapture({fetchPublic=fetchPublicResource,clock=Date.now,sleep=def
   if(!origins.has(new URL(url).origin))fail('response-invalid');
   let now=check();const earliest=lastRequest===null?now:lastRequest+Math.max(MIN_DELAY,delay),wait=Math.max(0,earliest-now);
   if(now+wait>=deadline)fail('deadline');
-  if(wait){try{await sleep(wait,signal);}catch{check();fail('pace-unavailable');}now=check();if(now<earliest)fail('pace-unavailable');}
+  if(wait){
+   for(let waits=0;now<earliest&&waits<3;waits++){
+    const remaining=earliest-now+(waits?1:0);if(now+remaining>=deadline)fail('deadline');
+    try{await sleep(remaining,signal);}catch{check();fail('pace-unavailable');}now=check();
+   }
+   if(now<earliest)fail('pace-unavailable');
+  }
   if(deadline-now<1)fail('deadline');if(requests>=maxRequests)fail('request-limit');requests++;lastRequest=now;
   let response;
   try{response=await fetchPublic(url,{resourceKind,signal,timeoutMs:Math.min(15000,Math.floor(deadline-now))});check();return response;}

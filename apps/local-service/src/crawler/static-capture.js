@@ -8,6 +8,7 @@ const MIN_TEXT = 160;
 const SKIP = new Set(["script", "style", "noscript", "template", "svg", "canvas", "iframe", "object", "embed"]);
 const CHROME = new Set(["nav", "header", "footer", "aside", "form"]);
 const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
+const RAW_TEXT = new Set(["script", "style"]);
 const ENTITY = new Map([["amp", "&"], ["lt", "<"], ["gt", ">"], ["quot", "\""], ["apos", "'"], ["nbsp", " "]]);
 // These are the ONLY attributes consumed below. Names are bounded before
 // slicing; all other values stay in the original input and are never decoded.
@@ -128,8 +129,38 @@ function* htmlTokens(html, diagnostic) {
       else if (character === ">") break;
     }
     if (end >= html.length || quote !== null) throw new StaticCaptureError("unterminated-tag", diagnostic);
-    yield { start: offset, end: end + 1, kind: "tag" };
+    const start = offset;
+    yield { start, end: end + 1, kind: "tag" };
     offset = end + 1;
+    // HTML script/style data is not a sequence of ordinary HTML tags. In
+    // particular '<' comparisons and quoted HTML fragments cannot swallow the
+    // later real article or invent robots/TDM metadata. No script is executed.
+    const raw = [...RAW_TEXT].find(name => html.slice(start, start + name.length + 1).toLowerCase() === "<" + name &&
+      /[\t\n\f\r />]/u.test(html[start + name.length + 1] ?? ""));
+    if (raw) {
+      const closing = new RegExp("</" + raw + "(?=[\\t\\n\\f\\r />])", "giu");
+      closing.lastIndex = offset;
+      const found = closing.exec(html), bodyEnd = found?.index ?? html.length;
+      // This bounded extractor does not implement HTML's double-escaped script
+      // states. Refuse those forms instead of treating a nested end tag as real.
+      if (raw === "script") {
+        const escapes = /<!--|-->|<script(?=[\t\n\f\r />])/giu;escapes.lastIndex = offset;
+        let escaped = false, marker;
+        while ((marker = escapes.exec(html)) && marker.index < bodyEnd) {
+          if (marker[0] === "<!--") escaped = true;
+          else if (marker[0] === "-->") escaped = false;
+          else if (escaped) throw new StaticCaptureError("script-escape-unsupported", diagnostic);
+        }
+      }
+      if (bodyEnd > offset) yield { start: offset, end: bodyEnd, kind: "text" };
+      if (!found) { offset = html.length;continue; }
+      const endTag = new RegExp("</" + raw + "[\\t\\n\\f\\r ]*/?[\\t\\n\\f\\r ]*>", "iyu");
+      endTag.lastIndex = found.index;
+      const endMatch = endTag.exec(html);
+      if (!endMatch) throw new StaticCaptureError("raw-end-tag-unsupported", diagnostic);
+      yield { start: found.index, end: endTag.lastIndex, kind: "tag" };
+      offset = endTag.lastIndex;
+    }
   }
 }
 
@@ -172,7 +203,7 @@ function capture(html, pageUrl, diagnostic) {
     diagnostic.tags++;
     let tail = token.end - 2;
     while (tail >= tagStart.lastIndex && /\s/u.test(html[tail])) tail--;
-    const closing = Boolean(match[1]), name = match[2].toLowerCase(), selfClosing = html[tail] === "/";
+    const closing = Boolean(match[1]), name = match[2].toLowerCase(), selfClosing = html[tail] === "/" && !RAW_TEXT.has(name);
     if (closing) {
       if (name === "a" && activeAnchor) { if (links.length < MAX_LINKS) links.push(activeAnchor); activeAnchor = null; }
       if (name === "loc" && locDepth) {
