@@ -9,6 +9,14 @@ import {AUTOMATIC_SUBJECT_NATIVE_CASES} from '../test/automatic-subject-native-a
 import {AUTOMATIC_RETRIEVAL_NATIVE_CASES} from '../test/automatic-retrieval-native-assertions.js';
 import {AUTOMATIC_AUTHOR_CONTEXT_NATIVE_CASES} from '../test/automatic-author-context-native-assertions.js';
 import {AUTOMATIC_AUTHOR_INSIGHT_NATIVE_CASES} from '../test/automatic-author-insight-native-assertions.js';
+import {AUTOMATIC_TOPIC_FEED_NATIVE_CASES} from '../test/automatic-topic-feed-native-assertions.js';
+
+test('named feed and global search evidence cannot be omitted or borrowed from author-scope cases',()=>{
+ for(const length of [0,1,8]){const input=lifecycle();input.checks.automaticTopicFeedCases.length=length;assert.equal(projectSemanticNativeResult(input).accepted,false);}
+ for(const status of ['running','failed']){const input=lifecycle();input.checks.automaticTopicFeedCases[5].status=status;assert.equal(projectSemanticNativeResult(input).accepted,false);}
+ const wrong=lifecycle();wrong.checks.automaticTopicFeedCases[0].name=AUTOMATIC_AUTHOR_CONTEXT_NATIVE_CASES[0];assert.throws(()=>projectSemanticNativeResult(wrong),TypeError);
+ const absent=lifecycle();delete absent.checks.automaticTopicFeedCases;assert.throws(()=>projectSemanticNativeResult(absent),TypeError);
+});
 
 test('authored AI lifecycle reports cannot be omitted or substituted by human context reports',()=>{
  for(const length of [0,1,6]){const input=lifecycle();input.checks.automaticAuthorInsightCases.length=length;assert.equal(projectSemanticNativeResult(input).accepted,false);}
@@ -35,6 +43,7 @@ function lifecycle(){return {
   automaticRetrievalCases:AUTOMATIC_RETRIEVAL_NATIVE_CASES.map(name=>({name,status:'passed'})),
   automaticAuthorContextCases:AUTOMATIC_AUTHOR_CONTEXT_NATIVE_CASES.map(name=>({name,status:'passed'})),
   automaticAuthorInsightCases:AUTOMATIC_AUTHOR_INSIGHT_NATIVE_CASES.map(name=>({name,status:'passed'})),
+  automaticTopicFeedCases:AUTOMATIC_TOPIC_FEED_NATIVE_CASES.map(name=>({name,status:'passed'})),
   concurrencyScope:'head-switch-vs-apply-and-mvcc-read',multiUserLoadValidated:false,semanticQualityMeasured:false,lastObservedSqlFailure:null,
   cleanup:{status:'passed',used:2,finished:true,adminClosed:true,failures:[],databases:names.map((name,i)=>({name,oid:String(17001+i),created:true,closed:true,dropped:true,pending:0,sessionCleanupFailures:[]}))}},
 };}

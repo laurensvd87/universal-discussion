@@ -45,3 +45,30 @@ test('a replaced cache seed is not reported as completed even if publication com
  const s=setup();s.options.retrieval.complete=async()=>false;const loop=create(s.options,{wait:s.pause}).start();await s.waiting.promise;
  assert.equal(loop.describe().counts.published,1);assert.equal(loop.describe().counts.discoveries,0);assert.equal(loop.describe().lastOutcome,'published-seed-replaced');await loop.close();
 });
+
+test('feed work is bounded and precedes independent discovery in the existing coordinator',async()=>{
+ const s=setup();s.options.feeds={tasks:async()=>['1','2','3','4'],process:async raw=>{const a=JSON.parse(raw);assert.equal(a.generation,s.a.generation);
+  s.events.push('feed-'+a.eventId);return ['completed','advanced','busy','retired'][Number(a.eventId)-1];}};
+ const loop=create(s.options,{wait:s.pause}).start();await s.waiting.promise;
+ assert.deepEqual(s.events.slice(0,4),['feed-1','feed-2','feed-3','feed-4']);assert(s.events.includes('publish'));
+ const d=loop.describe();assert.equal(d.limits.feedTasks,8);for(const k of ['feedCompleted','feedAdvanced','feedBusy','feedRetired'])assert.equal(d.counts[k],1);await loop.close();
+});
+
+test('a contended or failing feed does not starve Source indexing and discovery',async()=>{
+ const s=setup();s.options.feeds={tasks:async()=>['1','2'],process:async raw=>{if(JSON.parse(raw).eventId==='1')return 'busy';throw Object.assign(Error('unavailable feed'),{code:'conflict'});}};
+ const loop=create(s.options,{wait:s.pause}).start();assert.equal(await s.waiting.promise,1000);assert(s.events.includes('complete'));
+ assert.equal(loop.describe().counts.feedBusy,1);assert.equal(loop.describe().counts.conflicts,1);assert.equal(loop.describe().counts.discoveries,1);await loop.close();
+});
+
+test('closing waits for physical feed SQL and dispatches no later work',async()=>{
+ const s=setup(),entered=defer(),sql=defer();s.options.feeds={tasks:async()=>['1'],process:async()=>{entered.resolve();return sql.promise;}};
+ const loop=create(s.options,{wait:s.pause}).start();await entered.promise;let done=false;const closing=loop.close().then(()=>{done=true;});await Promise.resolve();assert.equal(done,false);
+ sql.resolve('completed');await closing;assert.deepEqual(s.events,[]);assert.equal(loop.describe().phase,'closed');
+});
+
+test('invalid feed lists dispatch no event while independent discovery can proceed',async()=>{
+ for(const tasks of [Array.from({length:9},(_,i)=>String(i+1)),['1','1'],['0'],['9223372036854775808']]){
+  const s=setup();s.options.feeds={tasks:async()=>tasks,process:async()=>assert.fail('invalid task dispatch')};
+  const loop=create(s.options,{wait:s.pause}).start();await s.waiting.promise;assert.equal(loop.describe().counts.failures,1);assert.equal(loop.describe().counts.discoveries,1);await loop.close();
+ }
+});

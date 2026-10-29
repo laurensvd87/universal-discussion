@@ -14,21 +14,34 @@ const validId=v=>typeof v==='string'&&/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u.tes
 function wait(ms,signal){if(signal.aborted)return Promise.resolve();return new Promise(resolve=>{const timer=setTimeout(done,ms);timer.unref?.();
  function done(){clearTimeout(timer);signal.removeEventListener('abort',done);resolve();}signal.addEventListener('abort',done,{once:true});});}
 function create(options,pause,testComposition){
- const {retrieval,subjects,readGeneration,descriptorJson}=fields(options,['retrieval','subjects','readGeneration','descriptorJson']);
+ if(!options||types.isProxy(options))bad();const hasFeeds=Object.hasOwn(options,'feeds');
+ const {retrieval,subjects,readGeneration,descriptorJson,feeds=null}=fields(options,['retrieval','subjects','readGeneration','descriptorJson',...(hasFeeds?['feeds']:[])]);
  if(typeof readGeneration!=='function'||typeof descriptorJson!=='string'||Buffer.byteLength(descriptorJson)>2048)bad();let descriptor;
  try{descriptor=fields(JSON.parse(descriptorJson),['matcherHash','representationHash','inputDefinition']);}catch{bad();}
  if(typeof descriptor.matcherHash!=='string'||typeof descriptor.representationHash!=='string'||!/^[a-f0-9]{64}$/u.test(descriptor.matcherHash)||!/^[a-f0-9]{64}$/u.test(descriptor.representationHash)||
    describePairedE5Input(compilePairedE5Input(descriptor.inputDefinition)).representationHash!==descriptor.representationHash)bad();
  for(const name of ['indexTasks','index','discoveryTasks','neighbours','complete'])if(typeof retrieval?.[name]!=='function')bad();
  for(const name of ['candidates','publish'])if(typeof subjects?.[name]!=='function')bad();
+ if(hasFeeds&&(!feeds||typeof feeds.tasks!=='function'||typeof feeds.process!=='function'))bad();
  let started=false,closed=false,running=null,closing=null,generation=null,phase='idle',lastOutcome='not-started';const abort=new AbortController();
- const counts={turns:0,indexed:0,indexRetired:0,discoveries:0,published:0,retained:0,capacity:0,conflicts:0,failures:0,generationChanges:0};
+ const counts={turns:0,indexed:0,indexRetired:0,discoveries:0,published:0,retained:0,capacity:0,conflicts:0,failures:0,generationChanges:0,
+  feedCompleted:0,feedAdvanced:0,feedBusy:0,feedRetired:0};
  const bump=key=>{counts[key]=Math.min(MAX,counts[key]+1);};
  function failure(error){bump(error?.code==='conflict'?'conflicts':'failures');lastOutcome=phase+'-unavailable';}
  async function turn(){
   bump('turns');phase='generation';const next=await readGeneration();if(closed)return false;if(!validId(next))bad();
   if(generation!==next){if(generation!==null)bump('generationChanges');generation=next;}
   const scope={generation,matcherHash:descriptor.matcherHash},rawScope=JSON.stringify(scope);let work=false;
+  if(feeds){phase='feed-tasks';try{
+   const tasks=await feeds.tasks(JSON.stringify({generation}));if(closed)return work;
+   if(!Array.isArray(tasks)||tasks.length>8||new Set(tasks).size!==tasks.length||tasks.some(t=>typeof t!=='string'||!/^[1-9][0-9]{0,18}$/u.test(t)||BigInt(t)>9223372036854775807n))bad();
+   for(const eventId of tasks){if(closed)return work;phase='feed';try{
+    const status=await feeds.process(JSON.stringify({generation,eventId}));if(closed)return work;
+    if(!['completed','advanced','busy','retired'].includes(status))bad();
+    const key={completed:'feedCompleted',advanced:'feedAdvanced',busy:'feedBusy',retired:'feedRetired'}[status];bump(key);
+    if(status!=='busy')work=true;
+   }catch(error){failure(error);}}
+  }catch(error){failure(error);}}
   phase='index-tasks';const tasks=await retrieval.indexTasks(rawScope);if(closed)return false;
   if(!Array.isArray(tasks)||tasks.length>8)bad();
   for(const task of tasks){if(closed)return work;work=true;phase='index';try{
@@ -60,7 +73,7 @@ function create(options,pause,testComposition){
   }phase='closed';}
  const api=Object.freeze({start(){if(started||closed)throw unavailable();started=true;running=run();return api;},
   describe:()=>Object.freeze({schema:'automatic-topic-coordinator/v1',phase,lastOutcome,counts:Object.freeze({...counts}),testComposition,
-   limits:Object.freeze({indexTasks:8,discoveryTasks:4,rawNeighbours:128,cohort:64}),assignmentAuthority:false,nativeObservation:false}),
+   limits:Object.freeze({indexTasks:8,discoveryTasks:4,feedTasks:feeds?8:0,rawNeighbours:128,cohort:64}),assignmentAuthority:false,nativeObservation:false}),
   close(){if(!closing){closed=true;abort.abort();closing=(async()=>{if(running)await running;phase='closed';})();}return closing;}
  });return api;
 }

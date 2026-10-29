@@ -9,6 +9,7 @@ import {AUTOMATIC_SUBJECT_NATIVE_CASES} from '../test/automatic-subject-native-a
 import {AUTOMATIC_RETRIEVAL_NATIVE_CASES} from '../test/automatic-retrieval-native-assertions.js';
 import {AUTOMATIC_AUTHOR_CONTEXT_NATIVE_CASES} from '../test/automatic-author-context-native-assertions.js';
 import {AUTOMATIC_AUTHOR_INSIGHT_NATIVE_CASES} from '../test/automatic-author-insight-native-assertions.js';
+import {AUTOMATIC_TOPIC_FEED_NATIVE_CASES} from '../test/automatic-topic-feed-native-assertions.js';
 
 const fail=()=>{throw new TypeError('Invalid semantic native result');};
 function field(value,key){if(!value||typeof value!=='object'||types.isProxy(value)||Object.getPrototypeOf(value)!==Object.prototype)fail();
@@ -50,6 +51,10 @@ export function projectSemanticNativeResult(lifecycle){
   if(field(row,'name')!==AUTOMATIC_AUTHOR_INSIGHT_NATIVE_CASES[i])fail();
   return {name:AUTOMATIC_AUTHOR_INSIGHT_NATIVE_CASES[i],status:member(field(row,'status'),['passed','failed','running'])};
  });
+ const automaticTopicFeedCases=list(field(proof,'automaticTopicFeedCases'),AUTOMATIC_TOPIC_FEED_NATIVE_CASES.length).map((row,i)=>{
+  if(field(row,'name')!==AUTOMATIC_TOPIC_FEED_NATIVE_CASES[i])fail();
+  return {name:AUTOMATIC_TOPIC_FEED_NATIVE_CASES[i],status:member(field(row,'status'),['passed','failed','running'])};
+ });
  const cases=list(field(proof,'cases'),25).map((row,i)=>{
   if(field(row,'name')!==SEMANTIC_CASES[i].name||field(row,'depth')!==SEMANTIC_CASES[i].depth)fail();
   return {name:SEMANTIC_CASES[i].name,depth:SEMANTIC_CASES[i].depth,status:member(field(row,'status'),['passed','failed','running'])};
@@ -68,7 +73,7 @@ export function projectSemanticNativeResult(lifecycle){
   cleanup:{reason:member(field(cleanup,'reason'),['verified-own-server-smart-stopped','verified-smart-stop-refused-or-timed-out-no-kill','unknown-work-client-or-ownership-no-stop','own-server-still-running','own-server-exited','not-started']),
    ...Object.fromEntries(['stopped','childExited','clientsClosed','physicalSettled','directoryRetained'].map(key=>[key,bool(field(cleanup,key))]))},
   proof:{schema:member(field(proof,'schema'),['canonical-semantic-postgres-proof/v1']),status:member(field(proof,'status'),['passed','failed']),
-   nativeExecuted:bool(field(proof,'nativeExecuted')),pendingAssertions:uint(field(proof,'pendingAssertions'),64),cases,publicSubjectCases,publicSourceBindingCases,automaticSubjectCases,automaticRetrievalCases,automaticAuthorContextCases,automaticAuthorInsightCases,
+   nativeExecuted:bool(field(proof,'nativeExecuted')),pendingAssertions:uint(field(proof,'pendingAssertions'),64),cases,publicSubjectCases,publicSourceBindingCases,automaticSubjectCases,automaticRetrievalCases,automaticAuthorContextCases,automaticAuthorInsightCases,automaticTopicFeedCases,
    restrictedRoleValidated:bool(field(proof,'restrictedRoleValidated')),
    concurrencyScope:member(field(proof,'concurrencyScope'),['head-switch-vs-apply-and-mvcc-read']),
    multiUserLoadValidated:bool(field(proof,'multiUserLoadValidated')),semanticQualityMeasured:bool(field(proof,'semanticQualityMeasured')),
@@ -84,6 +89,7 @@ export function projectSemanticNativeResult(lifecycle){
   automaticRetrievalCases.length===AUTOMATIC_RETRIEVAL_NATIVE_CASES.length&&automaticRetrievalCases.every(row=>row.status==='passed')&&
   automaticAuthorContextCases.length===AUTOMATIC_AUTHOR_CONTEXT_NATIVE_CASES.length&&automaticAuthorContextCases.every(row=>row.status==='passed')&&
   automaticAuthorInsightCases.length===AUTOMATIC_AUTHOR_INSIGHT_NATIVE_CASES.length&&automaticAuthorInsightCases.every(row=>row.status==='passed')&&
+  automaticTopicFeedCases.length===AUTOMATIC_TOPIC_FEED_NATIVE_CASES.length&&automaticTopicFeedCases.every(row=>row.status==='passed')&&
   result.proof.restrictedRoleValidated&&result.proof.multiUserLoadValidated===false&&result.proof.semanticQualityMeasured===false&&diagnostic===null&&
   result.proof.cleanup.status==='passed'&&result.proof.cleanup.used===2&&result.proof.cleanup.finished&&result.proof.cleanup.adminClosed&&result.proof.cleanup.failureCount===0&&
   databases.length===2&&databases[0].oid!==databases[1].oid&&databases.every(row=>row.oid!==null&&row.created&&row.closed&&row.dropped&&row.pending===0&&row.cleanupFailures===0);

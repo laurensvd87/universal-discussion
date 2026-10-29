@@ -6,6 +6,7 @@ import {createAutomaticNamedSubjectRepository as subjectRepository} from '../can
 import {createCanonicalV4RuntimeRepository} from '../canonical-v4/runtime-repository.js';
 import {createCanonicalV4LifecycleRepository} from '../canonical-v4/lifecycle-repository.js';
 import {runAutomaticAuthorInsightNativeAssertions} from './automatic-author-insight-native-assertions.js';
+import {runAutomaticTopicFeedNativeAssertions} from './automatic-topic-feed-native-assertions.js';
 import names from './automatic-author-context-native-cases.json' with {type:'json'};
 export const AUTOMATIC_AUTHOR_CONTEXT_NATIVE_CASES=Object.freeze([...names]);
 const code=c=>e=>e?.code===c;
@@ -109,9 +110,10 @@ export async function runAutomaticAuthorContextNativeAssertions(scope){
   assert.equal(await readRoot(id),null);assert.equal((await one(owner,'SELECT count(*)::integer n FROM canonical_v4.named_root_contexts WHERE root_id=$1',[id])).n,0);
  });
  const finishInsight=await runAutomaticAuthorInsightNativeAssertions({...scope,cases:scope.insightCases});
+ const finishFeeds=await runAutomaticTopicFeedNativeAssertions({...scope,cases:scope.feedCases});
  // Called only after the outer fixture's real, committed Source-forget loop.
  // It must prove authored captions survive without retaining the derived heads.
- return async()=>{await finishInsight();return test(cases,9,async()=>{
+ return async()=>{await finishFeeds();await finishInsight();return test(cases,9,async()=>{
   assert.equal((await one(owner,'SELECT count(*)::integer n FROM canonical_v4.sources')).n,0);
   const retained=await readRoot(namedResult.result.contributionId);assert(retained);assert.equal(retained.scope.caption,namedRequest.scope.caption);
   assert.equal(retained.topicId,namedRequest.command.topicId);assert.equal(retained.scope.id,namedRequest.scope.id);
