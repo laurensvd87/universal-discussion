@@ -1,5 +1,13 @@
 # Author-selected context for general websites
 
+Current bridge acceptance supersedes the earlier component-only proof below:
+all82 reports pass on actual owned PostgreSQL through normal HTTP clients,
+application reads/writes and the real AI job/result issuer with a stub provider.
+Source `50822a35`, catalog `7dcce43f`; details and limits in
+[the AI/context bridge record](AUTOMATIC-AUTHOR-INSIGHT.md). All2579 pins and
+exact owned cleanup are Root-verified. Joined517 guarded Node/66 Python checks
+pass. No schema18 startup/live activation or real Chromium/latency claim.
+
 Unregistered component for the complete future hierarchy18 profile. Importing its
 repository has no effects. No migration, startup, UI or live installation is
 implied. Schema1–17 and existing canonical topic/discussion/contribution IDs are
@@ -9,8 +17,13 @@ unchanged. Wikipedia/provider identity is not used.
 postable, even without a semantic preparation or shared subject. When current
 protected membership supports a named subject, it returns that subject instead.
 This read uses MVCC and performs no model request, discovery or queue write.
-The editor must freeze the returned scope when typing/research begins; this
-component does not yet connect that browser behavior.
+The response now includes separate precise `pageScope` and preferred `scope`.
+The browser freezes scope on first typing/research click. If typing starts
+before the optional editor read finishes, it binds page scope when that read
+arrives. A read failure retains editable text and exposes an explicit retry.
+The execute-only MVCC `named_check_editor_scope` also validates an earlier
+supported broad/page selection for the actual AI job, without requiring it to
+remain the current preferred leaf.
 
 `named_append_root` keeps the original canonical destination. It runs private
 prepare, protects and validates the selected context, inserts its author-owned
@@ -64,7 +77,7 @@ Both runs' source/cleanup audits remain local ignored receipts under
 `apps/local-service/data/automatic-author-context-native-*-root-audit-20261029.json`.
 The final joined90 guarded Node checks and65 pure Python controller checks pass.
 
-Still required for shipping: AI new-thread publication in the same original
-captured scope, fixed-node scope/alias reuse, immutable browser draft binding,
-named feeds/global occupied-topic search, account lifecycle integration checks,
-the complete profile18 installer/readiness/recovery and verified live cutover.
+Still required for shipping: fixed-node scope/alias reuse and model continuity,
+named feeds/global occupied-topic search, remaining account lifecycle checks,
+the complete profile18 installer/readiness/recovery, actual browser/provider and
+live latency/concurrency verification, and verified cutover.

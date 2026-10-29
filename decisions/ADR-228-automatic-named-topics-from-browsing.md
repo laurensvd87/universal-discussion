@@ -4,7 +4,19 @@ Date:2026-10-29
 
 ## Current priority: general websites, without a Wikipedia dependency
 
-Author-selected context now passes actual owned PostgreSQL checks:10 new cases
+The opt-in author-context browser/HTTP/job bridge now passes the complete owned
+PostgreSQL check:82 required reports, including ordinary HTTP clients, actual
+application/read facade and real AI job/result-proof issuance with only the
+external provider stubbed. Source `50822a35`, catalog `7dcce43f`; all2579 pins and
+exact two-database/child cleanup are Root-verified. Browser state/render tests
+freeze first-key/click scope, retain drafts, fence late documents and offer
+explicit retries. Joined517 guarded Node and66 Python tests pass. Existing17
+startup does not enable the new capability. Real Chromium/provider execution,
+representative quality/latency, named feeds/search, fixed scopes/aliases/model
+continuity and complete18/readiness/recovery/live cutover remain open. See
+[the bridge evidence](../apps/local-service/portable/canonical-v4/drafts/AUTOMATIC-AUTHOR-INSIGHT.md).
+
+The earlier author-context component proof passed10 new PostgreSQL cases
 plus all prior65 required reports. Atomic root publication retains the exact
 page/named caption and original canonical destination. Evidence revisions,
 identical-material renewals and a new preferred leaf do not change a draft's
@@ -12,8 +24,9 @@ meaning. A page draft can finish as page context after discovery; Source erase
 preserves expressly posted captions while human root withdrawal erases them.
 Exact retries retain historical responses and cannot retrospectively label old
 receipts. See [author-context proof and remaining shipping work](../apps/local-service/portable/canonical-v4/drafts/AUTOMATIC-AUTHOR-CONTEXT.md).
-This is an unregistered component, not live UI integration or semantic-quality
-proof. AI-root scope, browser freezing, feeds/search and complete18 still follow.
+This remains an unregistered component without live activation or semantic-quality
+proof. AI-root scope and browser freezing now have the bridge evidence above;
+feeds/search and complete18 still follow.
 
 Bounded indexed discovery now also passes actual owned PostgreSQL checks:10 new
 retrieval cases plus all prior25+8+10+12 reports. A normal production coordinator
@@ -27,9 +40,10 @@ parentless subject while retaining its ID. See
 Representative recall, multilingual/model-specific precision and real UI latency
 are still unproven. The component remains unregistered and is not running live.
 
-The next shipping bridge is author context, public feeds/search and the complete
-profile18. A new root should retain its existing canonical Source-container
-destination and acquire an immutable logical scope/caption in the same physical
+The author-context bridge is implemented; the next shipping work is public
+feeds/search, fixed scopes/model continuity and the complete profile18. A new root
+retains its existing canonical Source-container destination and acquires an
+immutable logical scope/caption in the same physical
 transaction. Reuse the private runtime prepare/complete primitives behind a new
 execute-only wrapper, preserving the actor gate and receipt-before-Source order.
 Take new metadata fences after canonical domain locks and before completion;

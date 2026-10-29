@@ -1,5 +1,33 @@
 # Implementation handoff: local-service discussion MVP
 
+LATEST29Oct normal browser/HTTP/app/realAIjob bridge ACTUALPASS: source50822a35/
+catalog7dcce43f/mapae22ca88...11b56/2579files/277477561B. Ownedrun156db538...
+61aa59 EXIT0/acceptedTRUE/all82reportsPASS (25inclwrappers+8metadata+10Source+
+12general+10retrieval+10humanContext+7AI). Normal clients/read facade/application
+and ACTUAL job/result-proof issuer executed; externalproviderONLYstubbed. Root
+all2579endpins/2freshDBdrops/exactownsmartstop/emptyJob/allhandlesTRUE, stderr0/
+emergencyFALSE. Result38103eed...fdae9f/stdout552438e1...e76f61. Root-only/invented
+material, NOChromium/provider/representativequality/manyuser/live latency proof.
+Final517joinedguardedNodePASS2439.852ms +66PythonPASS. Capability authored-topics/v1
+onlywith explicitrepository; existing17startup unchanged. Fasteditor independent
+of classification returns page+preferred scope. Firstkey freezes; pre-read text
+stayspage. AIclick freezes BEFOREarticleawait; realserver checks/captures scope
+and retains it in result/resume/proof/share. App proofscope==commandscope before
+atomicSQL. Readfailure keeps text/editing+explicitretry; nolegacyfallthrough.
+NormalScopeMVCC/earlierbroad/realmaterial/Sourceerase/operatorwithdraw checksPASS.
+Priorfailedruns immutable/audited: REVOKE oneextra type corrected+causalcheck;
+then raw5peer fixture vsactualUI1peer request corrected WITHOUTrelaxing server.
+Finite diagnostics retain no privateerror text/getters. Rootreceipt data/
+authored-topic-bridge-native-root-audit-20261029.json; drafts/AUTOMATIC-AUTHOR-
+INSIGHT.md has limits. Next namedfeeds/globaloccupied SearchTopics, static/fixed
+scopes+aliases and same-representationmodel continuity, complete18/profile/
+startup/readiness/recovery, realbrowser/provider/quality/latency/livecutover.
+Full private rehearsal still needs original11GiB D floor; last~4.45GB beforelast
+run, no waiver/cleanup/compression done. Original5 services preserved; crawler
+6384 advancing11149/stderr0. GoalACTIVE; previous turn substantialcode+actual
+HTTP/job/SQL evidence progress, NOT completion.
+
+
 LATEST29Oct author-selected context ACTUALPASS: source15222ccd/catalog73417c7a/
 map0fb68802...9175e/2569files/276888953B. Owned run4e45065d...786789 EXIT0/
 acceptedTRUE: all10new authored +prior25/metadata8/Source10/general12/retrieval10
