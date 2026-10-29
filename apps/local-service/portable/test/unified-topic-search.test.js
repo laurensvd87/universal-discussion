@@ -50,6 +50,11 @@ test('unified read composition requires automatic topics and remains inert',()=>
  assert.equal(createCanonicalV4ReadFacade({database,automaticTopics:true,unifiedTopicSearch:true}).automaticTopicsEnabled,true);
  assert.throws(()=>repository({database,unifiedSearch:'yes'}),TypeError);
 });
+test('the real public feed rejects the former fixture limit100 before SQL because its existing maximum is50',async()=>{
+ const database={query(){assert.fail('Invalid page size must not execute SQL');},transaction(){assert.fail('Invalid page size must not open a transaction');}};
+ const reads=createCanonicalV4ReadFacade({database,automaticTopics:true,unifiedTopicSearch:true});
+ await assert.rejects(reads.semanticFeed({nodeId:'legacy-original-topic',limit:100,cursor:null}),code('invalid'));
+});
 test('a normal tiny-fixture B-tree plan is indexed while separate GIN eligibility remains mandatory',()=>{
  const plan=[{'QUERY PLAN':[{Plan:{'Node Type':'Index Scan','Index Name':'unified_search_directory_order'}}]}];
  assert(!unifiedSearchPlanUses(plan,['unified_search_directory_terms']),'the former GIN-only check rejects a valid small-fixture plan');

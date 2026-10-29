@@ -106,7 +106,7 @@ export async function runUnifiedTopicSearchNativeAssertions(scope){
  await check(26,async()=>{
   const stamp=await reads.semanticStamp();await post();assert.notEqual((await reads.semanticStamp()).revision,stamp.revision);await drain();
   const indexed=await reads.semanticStamp();await life.command(await expected(),{type:'withdraw',contributionId:roots.at(-1)},actor);
-  assert(!(await reads.semanticFeed({nodeId:legacy,limit:100,cursor:null})).roots.some(v=>v.root.id===roots.at(-1)),'withdrawal is immediate before maintenance');await drain();
+  assert(!(await reads.semanticFeed({nodeId:legacy,limit:50,cursor:null})).roots.some(v=>v.root.id===roots.at(-1)),'withdrawal is immediate before maintenance');await drain();
   assert.notEqual((await reads.semanticStamp()).revision,indexed.revision);
  });
  return async()=>check(27,async()=>{

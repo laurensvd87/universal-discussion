@@ -49,5 +49,13 @@ rollback, then verifies their restoration. This is index availability evidence,
 not a normal production query latency measurement. Production SQL/read/worker
 code and original resource limits are unchanged. Updated execution is pending;
 the consumed first source/catalog/output remain immutable and are not adopted.
+The next run passes the index case, including isolated GIN and the covering feed
+probe, plus posting/search during a held worker clock. It then refuses the fixture's
+limit100 in the withdrawal read: the real public facade's unchanged maximum is50.
+A guarded causal test exercises that real facade and proves refusal before SQL.
+The fixture now requests50 while retaining the immediate withdrawal assertion.
+Again all2627 pins and normal owned cleanup pass; the created scratch database
+drops, the second is not reached, stderr is empty and emergency false. Production
+code and limits remain unchanged. The final corrected160 execution is pending.
 No representative quality, browser/provider, many-user or live speed claim follows
 from invented native fixture titles/coordinates.
