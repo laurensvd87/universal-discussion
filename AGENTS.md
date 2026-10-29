@@ -8,6 +8,43 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct capturedPAGE->laterTopic ACTUALPASS. Sourcedc6f810a/executionmap
+5e519701...0866e/2599files277770107B; runa9aef2af...6ebbd625 EXIT0/all110reports
+PASS(original100+10page). Rootall2599endpins/strictNode+Pythoncompletion/2DBdrops/
+exactownsmartstop/emptyJob/allhandlesTRUE, stderr0/emergencyFALSE. Resultc596dd65
+...99b0/stdoutac9e5e03...dda3e. Root-only/inventedgeneralweb, NOrepresentative
+semanticquality/manyuser/genuinebrowser/provider/live-latencyclaim. Existing100
+includeactualnormalHTTP/app/SQL+realAIissuer(providerstub); NEWpageAIrootcapture
+usesinventedcompletedproof atSQLadapter, notadditionalrealissuer/provider.
+Futurepage-root INSERTtrigger privatelycaptures EXACTprotectedSourceopDigest
+underexistingfinalizerSource/domainlocks; nohead/discovery/clocklock ormodel.
+NOlegacycapturebackfill. Latercontext events repairbounded page cohort, compare
+originaldigest +currentSource/member/stamp/model/identity fences; indexactual
+namedpath<=8 withsharedSKIPLOCKED. Rootscope/caption/body/destinationunchanged.
+Source materialchangeREFUSES oldroot->newsubject even sameURL/closevector;
+same-materialrenewalPASS. FIRSTparentattach aggregatespriorpageroots. Derived
+activityseparatefromauthor-captionwitness; FKedge activity +ONUPDATECASCADE dir
+pointer, humanpriority, Sourceerase/withdrawalclearsderivedoccupationimmediately.
+DELTAedgeupserts preservewitnesses/quiescence; no self-repairloop. ScopeCore exact
+predecessor except actualfeedmemberenumeration(old16bounds); contextwrapperuses
+samecore. Searchonlyactivity+matchedhistoricalaliasdelta(oldvalidation/GIN/cursor
+inversePASS): oldtitle search neverdisplaysunrelatednewerpagecaption.
+603guardedNodePASS2511.2521ms/69PythonPASS. No initialactualfailurethiscomponent.
+Original5servicespreserved/crawler6384 advancing12749/stderr0. LatestC7247986688B/
+D5265145856B; freshchecksmandatory/private11GiB DfloorstillUNMET. No newstorage/
+Host/HBA/service/crawler actions. Allconsumedruns/maps/sourcecommitsretained.
+GoalACTIVE/thisturnconcretecode+actualdelayedadoption/contentchange/locks/roles/
+erasureevidence. NEXT durablePUBLISHED topicidentity/staticaliases/unifiedlegacy
+search; compatiblemodel/recapturecontinuity, ownerdepth/foregroundcontext,
+complete18/profile/startup/recovery, genuinebrowser/provider/quality/latency/live.
+AssociationofpageRootstillSource-derived; doNOTretainthrougherasure without
+separatepublicevidence/explicitpublishedscope. Named-rootauthorcaptionsalready
+publicbutIDs needpublicdefinition/recoverybridge; no currentSource-basedguess.
+LocalRootaudit data/automatic-page-topic-native-root-audit-20261029.json.
+Verificationdoc updatedAFTERacceptedrun; refreshcurrentcatalogdocs-only before
+anyfutureactualinvocation; executedprogram/SQL/runtimebytesunchanged.
+
+
 LATEST29Oct publicnamedfeed/search/reply bridge ACTUALPASS. Sourcef23b0870/
 ee396e78; executionmap71767d59...4772e/2594files277710973B; runee43e54e...
 9ea657f EXIT0/all100reportsPASS(original91+9public). Rootall2594endpins/

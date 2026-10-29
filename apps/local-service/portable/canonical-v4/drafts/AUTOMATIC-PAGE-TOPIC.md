@@ -49,8 +49,28 @@ in addition to all original100. They cover no-backfill, human/AI capture,
 delayed subject publication, same-material renewal, first-parent aggregation,
 different-material refusal, physical lock contention, activity withdrawal,
 quiescent reindexing, roles and erasure. Pure source tests do not prove these
-SQL assertions have executed. Current stage is source/pure checks only; the
-component has not yet executed on PostgreSQL.
+SQL assertions have executed.
+
+## Verification
+
+Owned run `run-a9aef2afc7820ea2ff9a1471f6edca74b10812fd6ebbd625` passed
+all 110 required reports on PostgreSQL 17.11 with source `dc6f810a`, catalog
+commit `4d8aae83` and execution map
+`5e5197016a74b9d58c1c6893194b56aff73ad32f27e09414f3aa9b985840866e`.
+Root independently re-read the saved strict completion and reauthenticated
+all 2599 source/runtime end pins. Both scratch databases dropped, the exact
+owned server smart-stopped, the Job was empty and all handles closed. Stderr
+was empty and emergency cleanup was false. This was Root-only review, with
+invented general-web material; it does not measure semantic quality, many-user
+load, genuine browser/provider behavior or live latency.
+
+603 guarded Node and 69 pure Python controller tests also passed. The joined
+predecessor reports include normal HTTP/application/canonical SQL and real AI
+job/result-proof issuance with only the provider stubbed. The new page-scoped
+AI root capture uses an invented completed proof at the SQL adapter boundary.
+Local ignored audit: `apps/local-service/data/automatic-page-topic-native-root-audit-20261029.json`.
+
+## Remaining activation requirements
 
 Still required before live activation: durable published topic identities and
 static/dynamic aliases, unified legacy search, compatible-model/recapture
