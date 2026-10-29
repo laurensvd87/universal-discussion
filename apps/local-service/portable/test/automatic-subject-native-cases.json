@@ -1,0 +1,14 @@
+[
+ "General subject schema and exact UTF16 title witnesses",
+ "Prepared non-Wikipedia Sources retain readable page context",
+ "Automatic names and nested scopes publish without canonical rerouting",
+ "Bounded indexed candidates preserve stable IDs and existing assignments",
+ "Changed Source witnesses and incomplete candidate snapshots roll back",
+ "Readers and ordinary revisions progress while publication holds Source locks",
+ "Source version changes withdraw derived data and allow fresh preparation",
+ "Source erasure removes derived names but preserves human discussions and identity",
+ "Application and crawler roles cannot publish or export prototypes",
+ "SQL refuses cyclic ancestry without partially reserving identities",
+ "New concurrent scope publication conflicts instead of duplicating identity",
+ "Synthetic general subject fixtures retire before original semantic assertions"
+]

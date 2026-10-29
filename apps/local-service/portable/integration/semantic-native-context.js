@@ -9,6 +9,7 @@ import {migrateCanonicalV4,initializeCanonicalV4Runtime} from '../canonical-v4/i
 import {SEMANTIC_CASES,runSemanticAssertions} from '../test/semantic-native-assertions.js';
 import {PUBLIC_SUBJECT_NATIVE_CASES,runPublicSubjectNativeAssertions} from '../test/public-subject-native-assertions.js';
 import {PUBLIC_SOURCE_NATIVE_CASES,runPublicSourceNativeAssertions} from '../test/public-subject-source-native-assertions.js';
+import {AUTOMATIC_SUBJECT_NATIVE_CASES,runAutomaticSubjectNativeAssertions} from '../test/automatic-subject-native-assertions.js';
 
 const fail=code=>Object.assign(new Error('Owned semantic SQL check failed'),{code});
 const sha=x=>createHash('sha256').update(x).digest('hex');
@@ -95,7 +96,7 @@ export async function runSemanticNativeProof(){
  const dashboardRaw=await readFile(new URL('../canonical-v4/migrations/017-semantic-dashboard-counts.sql',import.meta.url));
  if(dashboardRaw.length!==6859||sha(dashboardRaw)!==DASHBOARD_SQL_SHA)throw fail('SEMANTIC_DASHBOARD_SCHEMA_PIN');
  return runWithOwnedScopedPostgres(async connectFixedRole=>{
-  let open=true,primary=null;const publicSubjectCases=[],publicSourceBindingCases=[];
+  let open=true,primary=null;const publicSubjectCases=[],publicSourceBindingCases=[],automaticSubjectCases=[];
   const guard=()=>{if(!open)throw fail('SEMANTIC_SCOPE_RETIRED');};
   const controller=createFixtureController({connectFixedRole,getOwnedIdentity,guard}),fixtures=[],checks=ledger(),sqlFailures=[];
   function observed(database,role){
@@ -138,7 +139,8 @@ export async function runSemanticNativeProof(){
    if(index===0)await runPublicSubjectNativeAssertions({database,cases:publicSubjectCases});return fixture;
   }
   let rows=null,cleanup;
-  try{await runSemanticAssertions(checks.test,{acquireFixture,beforeSemanticCases:scope=>runPublicSourceNativeAssertions({...scope,cases:publicSourceBindingCases})});rows=checks.finish();}
+  try{await runSemanticAssertions(checks.test,{acquireFixture,beforeSemanticCases:scope=>runPublicSourceNativeAssertions({...scope,cases:publicSourceBindingCases}),
+   afterSemanticSetup:scope=>runAutomaticSubjectNativeAssertions({...scope,cases:automaticSubjectCases})});rows=checks.finish();}
   catch(error){primary=code(error);}
   finally{
    for(const fixture of fixtures)try{await fixture.close();}catch(error){primary??=code(error);}
@@ -146,10 +148,10 @@ export async function runSemanticNativeProof(){
   }
   const state=checks.snapshot();
   const failedCase=state.rows.findLastIndex(row=>row.status==='failed'&&row.depth===1);
-  return {schema:'canonical-semantic-postgres-proof/v1',status:primary===null&&rows?.length===25&&publicSubjectCases.length===PUBLIC_SUBJECT_NATIVE_CASES.length&&publicSubjectCases.every(row=>row.status==='passed')&&publicSourceBindingCases.length===PUBLIC_SOURCE_NATIVE_CASES.length&&publicSourceBindingCases.every(row=>row.status==='passed')&&cleanup.status==='passed'&&state.pending===0?'passed':'failed',
-   primary,cases:rows??state.rows,publicSubjectCases,publicSourceBindingCases,pendingAssertions:state.pending,cleanup,nativeExecuted:true,
+  return {schema:'canonical-semantic-postgres-proof/v1',status:primary===null&&rows?.length===25&&publicSubjectCases.length===PUBLIC_SUBJECT_NATIVE_CASES.length&&publicSubjectCases.every(row=>row.status==='passed')&&publicSourceBindingCases.length===PUBLIC_SOURCE_NATIVE_CASES.length&&publicSourceBindingCases.every(row=>row.status==='passed')&&automaticSubjectCases.length===AUTOMATIC_SUBJECT_NATIVE_CASES.length&&automaticSubjectCases.every(row=>row.status==='passed')&&cleanup.status==='passed'&&state.pending===0?'passed':'failed',
+   primary,cases:rows??state.rows,publicSubjectCases,publicSourceBindingCases,automaticSubjectCases,pendingAssertions:state.pending,cleanup,nativeExecuted:true,
    restrictedRoleValidated:primary===null&&rows?.length===25,concurrencyScope:'head-switch-vs-apply-and-mvcc-read',
    multiUserLoadValidated:false,semanticQualityMeasured:false,
-   lastObservedSqlFailure:primary===null?null:sqlFailures.findLast(row=>row.caseIndex===failedCase)??null};
+   lastObservedSqlFailure:primary===null?null:failedCase<0?sqlFailures.at(-1)??null:sqlFailures.findLast(row=>row.caseIndex===failedCase)??null};
  });
 }

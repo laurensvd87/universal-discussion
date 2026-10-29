@@ -5,6 +5,7 @@ import {types} from 'node:util';
 import {SEMANTIC_CASES} from '../test/semantic-native-assertions.js';
 import {PUBLIC_SUBJECT_NATIVE_CASES} from '../test/public-subject-native-assertions.js';
 import {PUBLIC_SOURCE_NATIVE_CASES} from '../test/public-subject-source-native-assertions.js';
+import {AUTOMATIC_SUBJECT_NATIVE_CASES} from '../test/automatic-subject-native-assertions.js';
 
 const fail=()=>{throw new TypeError('Invalid semantic native result');};
 function field(value,key){if(!value||typeof value!=='object'||types.isProxy(value)||Object.getPrototypeOf(value)!==Object.prototype)fail();
@@ -30,6 +31,10 @@ export function projectSemanticNativeResult(lifecycle){
   if(field(row,'name')!==PUBLIC_SOURCE_NATIVE_CASES[i])fail();
   return {name:PUBLIC_SOURCE_NATIVE_CASES[i],status:member(field(row,'status'),['passed','failed','running'])};
  });
+ const automaticSubjectCases=list(field(proof,'automaticSubjectCases'),AUTOMATIC_SUBJECT_NATIVE_CASES.length).map((row,i)=>{
+  if(field(row,'name')!==AUTOMATIC_SUBJECT_NATIVE_CASES[i])fail();
+  return {name:AUTOMATIC_SUBJECT_NATIVE_CASES[i],status:member(field(row,'status'),['passed','failed','running'])};
+ });
  const cases=list(field(proof,'cases'),25).map((row,i)=>{
   if(field(row,'name')!==SEMANTIC_CASES[i].name||field(row,'depth')!==SEMANTIC_CASES[i].depth)fail();
   return {name:SEMANTIC_CASES[i].name,depth:SEMANTIC_CASES[i].depth,status:member(field(row,'status'),['passed','failed','running'])};
@@ -48,7 +53,7 @@ export function projectSemanticNativeResult(lifecycle){
   cleanup:{reason:member(field(cleanup,'reason'),['verified-own-server-smart-stopped','verified-smart-stop-refused-or-timed-out-no-kill','unknown-work-client-or-ownership-no-stop','own-server-still-running','own-server-exited','not-started']),
    ...Object.fromEntries(['stopped','childExited','clientsClosed','physicalSettled','directoryRetained'].map(key=>[key,bool(field(cleanup,key))]))},
   proof:{schema:member(field(proof,'schema'),['canonical-semantic-postgres-proof/v1']),status:member(field(proof,'status'),['passed','failed']),
-   nativeExecuted:bool(field(proof,'nativeExecuted')),pendingAssertions:uint(field(proof,'pendingAssertions'),64),cases,publicSubjectCases,publicSourceBindingCases,
+   nativeExecuted:bool(field(proof,'nativeExecuted')),pendingAssertions:uint(field(proof,'pendingAssertions'),64),cases,publicSubjectCases,publicSourceBindingCases,automaticSubjectCases,
    restrictedRoleValidated:bool(field(proof,'restrictedRoleValidated')),
    concurrencyScope:member(field(proof,'concurrencyScope'),['head-switch-vs-apply-and-mvcc-read']),
    multiUserLoadValidated:bool(field(proof,'multiUserLoadValidated')),semanticQualityMeasured:bool(field(proof,'semanticQualityMeasured')),
@@ -60,6 +65,7 @@ export function projectSemanticNativeResult(lifecycle){
   result.proof.status==='passed'&&result.proof.nativeExecuted&&result.proof.pendingAssertions===0&&cases.length===25&&cases.every(row=>row.status==='passed')&&
   publicSubjectCases.length===PUBLIC_SUBJECT_NATIVE_CASES.length&&publicSubjectCases.every(row=>row.status==='passed')&&
   publicSourceBindingCases.length===PUBLIC_SOURCE_NATIVE_CASES.length&&publicSourceBindingCases.every(row=>row.status==='passed')&&
+  automaticSubjectCases.length===AUTOMATIC_SUBJECT_NATIVE_CASES.length&&automaticSubjectCases.every(row=>row.status==='passed')&&
   result.proof.restrictedRoleValidated&&result.proof.multiUserLoadValidated===false&&result.proof.semanticQualityMeasured===false&&diagnostic===null&&
   result.proof.cleanup.status==='passed'&&result.proof.cleanup.used===2&&result.proof.cleanup.finished&&result.proof.cleanup.adminClosed&&result.proof.cleanup.failureCount===0&&
   databases.length===2&&databases[0].oid!==databases[1].oid&&databases.every(row=>row.oid!==null&&row.created&&row.closed&&row.dropped&&row.pending===0&&row.cleanupFailures===0);

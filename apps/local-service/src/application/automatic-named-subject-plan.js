@@ -101,7 +101,9 @@ function plan(rawJson,propose,v2){
  const usedSources=new Set(updates.flatMap(u=>u.members.map(m=>m.sourceId)));
  return freeze({schema:v2?'general-named-subject-publication-plan/v2':'general-named-subject-publication-plan/v1',generation:input.generation,policyHash:input.policyHash,
   representationHash:input.representationHash,matcherHash:input.matcherHash,updates,selections,decisions,
-  commitWitnesses:[...witnessMap.values()].filter(w=>usedSources.has(w.sourceId)).sort((a,b)=>a.sourceId.localeCompare(b.sourceId)),
+  // A v2 publication also clears page-only selections. Their Source fences
+  // must be checked even when they support no new shared subject.
+  commitWitnesses:[...witnessMap.values()].filter(w=>v2||usedSources.has(w.sourceId)).sort((a,b)=>a.sourceId.localeCompare(b.sourceId)),
   proposalStatus:proposal.status,work:proposal.work,wikipediaRequired:false,providerUsed:false,registryChanged:false,
   assignmentAuthority:false,canonicalRoutesChanged:false,eventIdentityAsserted:false});
 }

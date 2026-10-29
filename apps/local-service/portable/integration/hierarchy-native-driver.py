@@ -24,6 +24,7 @@ ENTRY = OWN + 'semantic-native-check.js'
 SEMANTIC_LEDGER = 'apps/local-service/portable/test/semantic-native-cases.json'
 PUBLIC_SUBJECT_LEDGER = 'apps/local-service/portable/test/public-subject-native-cases.json'
 PUBLIC_SOURCE_LEDGER = 'apps/local-service/portable/test/public-subject-source-native-cases.json'
+AUTOMATIC_SUBJECT_LEDGER = 'apps/local-service/portable/test/automatic-subject-native-cases.json'
 RUNS_ROOT = REPO / 'apps/local-service/portable/data/hierarchy-native-runs'
 PRIVATE_ENTRY = OWN + 'owner-restore-native-check.js'
 HTTP_ENTRY = OWN + 'owner-http-native-check.js'
@@ -87,6 +88,7 @@ HTTP_CASES = ('hierarchy17-http-health','independent-semantic-directory','saved-
 MAP_KEY = OWN + 'hierarchy-native-reviewed-sources.json'
 NORMAL_SCOPE_ABSENCES = frozenset([
     'apps/local-service/experiments/automatic-topic-discovery-v1/package.json',
+    'apps/local-service/experiments/automatic-topic-discovery-v2/package.json',
     'apps/local-service/src/http/package.json',
     'apps/local-service/test/package.json',
     'apps/local-service/src/ai/package.json',
@@ -169,6 +171,16 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/portable/test/public-subject-source-repository.test.js',
     'apps/local-service/portable/canonical-v4/public-subject-source-repository.js',
     'apps/local-service/portable/canonical-v4/drafts/public-subject-source-bindings.sql',
+    'apps/local-service/portable/test/automatic-subject-native-cases.json',
+    'apps/local-service/portable/test/automatic-subject-native-assertions.js',
+    'apps/local-service/portable/test/automatic-named-subject-repository.test.js',
+    'apps/local-service/portable/canonical-v4/automatic-named-subject-repository.js',
+    'apps/local-service/portable/canonical-v4/drafts/automatic-named-subjects.sql',
+    'apps/local-service/src/application/automatic-named-subject-plan.js',
+    'apps/local-service/test/automatic-named-subject-plan-v2.test.js',
+    'apps/local-service/test/automatic-named-subject-plan.test.js',
+    'apps/local-service/experiments/automatic-topic-discovery-v1/focus-subjects.js',
+    'apps/local-service/experiments/automatic-topic-discovery-v2/focus-subjects.js',
     'apps/local-service/portable/test/public-subject-native-assertions.js',
     'apps/local-service/portable/test/public-subject-registry.test.js',
     'apps/local-service/portable/canonical-v4/public-subject-registry.js',
@@ -439,7 +451,7 @@ def semantic_completion(stdout, stderr, exit_code):
             or not all(cleanup[key] is True for key in cleanup if key != 'reason')):
         return refused('json-cleanup')
     proof = value['proof']
-    if not shape(proof, 'schema status nativeExecuted pendingAssertions cases publicSubjectCases publicSourceBindingCases restrictedRoleValidated concurrencyScope multiUserLoadValidated semanticQualityMeasured lastObservedSqlFailure cleanup'):
+    if not shape(proof, 'schema status nativeExecuted pendingAssertions cases publicSubjectCases publicSourceBindingCases automaticSubjectCases restrictedRoleValidated concurrencyScope multiUserLoadValidated semanticQualityMeasured lastObservedSqlFailure cleanup'):
         return refused('json-shape')
     if (proof['schema'] != 'canonical-semantic-postgres-proof/v1' or proof['status'] != 'passed'
             or proof['nativeExecuted'] is not True or not integer(proof['pendingAssertions'],0)
@@ -500,7 +512,21 @@ def semantic_completion(stdout, stderr, exit_code):
             return refused('json-public-source-cases')
     except (OSError, ValueError, TypeError, UnicodeError, RecursionError):
         return refused('json-public-source-cases')
-    # Preserve the frozen transport's25/3 counters. The eight additional actual
+    try:
+        raw = (REPO/AUTOMATIC_SUBJECT_LEDGER).read_bytes()
+        if not 0 < len(raw) <= 4096:
+            return refused('json-automatic-subject-cases')
+        names = parse(raw)
+        observed = proof['automaticSubjectCases']
+        if (type(names) is not list or len(names) != 12 or len(set(names)) != 12
+                or any(type(name) is not str for name in names)
+                or type(observed) is not list or len(observed) != 12
+                or observed != [{'name':name,'status':'passed'} for name in names]
+                or any(not shape(row,'name status') for row in observed)):
+            return refused('json-automatic-subject-cases')
+    except (OSError, ValueError, TypeError, UnicodeError, RecursionError):
+        return refused('json-automatic-subject-cases')
+    # Preserve the frozen transport's25/3 counters. The additional actual
     # registry checks are separately required above and retained in child JSON.
     result.update(testPoints=25, outerTests=3)
     dbs = proof['cleanup']
