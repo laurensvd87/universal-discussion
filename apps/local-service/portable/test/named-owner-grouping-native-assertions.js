@@ -63,9 +63,12 @@ export async function runNamedOwnerGroupingNativeAssertions(scope){
   });}catch(e){if(e!==marker)throw e;rolledBack=true;}assert(rolledBack);
  });
  await check(12,async()=>{
-  const p=await policy.ownerPolicy();for(const overrides of [[{nodeId:leafRoute,maxDepth:1}],[{nodeId:leafRoute,maxDepth:2},{nodeId:leafRoute,maxDepth:2}],
+  const p=await policy.ownerPolicy();for(const overrides of [[{nodeId:leafRoute,maxDepth:1}],
    [{nodeId:'subject-00000000-0000-4000-8000-000000000099',maxDepth:2}]])
    await assert.rejects(policy.setOwnerPolicy({expectedRevision:p.revision,defaultMaxDepth:1,overrides}),code('invalid'));
+  const duplicate=[{nodeId:leafRoute,maxDepth:2},{nodeId:leafRoute,maxDepth:2}];
+  await assert.rejects(policy.setOwnerPolicy({expectedRevision:p.revision,defaultMaxDepth:1,overrides:duplicate}),TypeError);
+  await assert.rejects(owner.query('SELECT canonical_v4.semantic_set_owner_policy($1,$2,$3::jsonb)',[p.revision,1,JSON.stringify(duplicate)]),code('P1223'));
   await assert.rejects(policy.setOwnerPolicy({expectedRevision:p.revision-1,defaultMaxDepth:1,overrides:[]}),code('conflict'));assert.deepEqual(await policy.ownerPolicy(),p);
  });
  await check(13,async()=>{
@@ -94,6 +97,8 @@ export async function runNamedOwnerGroupingNativeAssertions(scope){
   const service=createPostgresCanonicalService({reads,runtime:createCanonicalV4RuntimeRepository({database:app}),lifecycle:lifecycle({database:app}),authoredTopics:grouped,semanticDiscussions:true,automaticTopics:true}),config={hostHeader:'127.0.0.1:4174',origin:'chrome-extension://'+'a'.repeat(32),capability:'invented-owner-grouping-capability'},handle=createRequestHandler({config,service});
   const client=createLocalServiceClient({fetchImpl:async(url,options)=>{const u=new URL(url),r=await handle({method:options.method,url:u.pathname,headers:{...options.headers,host:config.hostHeader,origin:config.origin},body:options.body});return new Response(r.body,{status:r.status,headers:r.headers});},getToken:()=>config.capability});
   assert.equal((await client.authorContext({sourceId:source})).context.scope.id,parent);
+  await set(2);assert.equal((await client.authorContext({sourceId:source})).context.scope.id,leaf.id,'the same HTTP client observes the changed owner default');
+  await set(1);assert.equal((await client.authorContext({sourceId:source})).context.scope.id,parent);
   const topics=await client.semanticSearch({query:'Orion Console Pro',limit:20,cursor:null});assert(topics.topics.some(t=>t.nodeId===leafRoute),'specific existing conversations remain explicitly searchable');
   assert.deepEqual(await material(),beforeMaterial);
  });

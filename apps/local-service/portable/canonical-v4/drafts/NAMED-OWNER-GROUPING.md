@@ -67,6 +67,13 @@ inside a rollback. That control is not a classification/issuer/posting proof.
 Production SQL/repository code, assertions for both rule directions and all limits
 are retained. The consumed first source/catalog/output remain immutable; corrected
 execution needs a new reviewed catalog and separate decision.
+The next owned run passes that corrected case and fails the following malformed
+policy assertion. Its exact assertion detail is not retained; normal owned cleanup
+and all2622 pins again pass. Source review and a guarded causal test show that
+duplicate rules are rejected locally with TypeError before SQL, whereas the case
+expected the SQL adapter's invalid error for every malformed input. The new case
+requires both the actual local TypeError and the raw SQL duplicate refusal, with
+unchanged policy state. Production code and all original limits remain unchanged.
 The native fixture uses invented Source titles/coordinates and no genuine browser
 or provider. Updated SQL execution is pending. Complete18 composition, unified
 search, migration/recovery and representative real quality/UI/latency/load tests

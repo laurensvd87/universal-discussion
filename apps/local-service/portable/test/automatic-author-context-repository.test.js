@@ -2,6 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';import {cre
 import {createAutomaticAuthorContextRepository as repository} from '../canonical-v4/automatic-author-context-repository.js';
 import {numericMatcher} from './semantic-native-assertions.js';
 import {classifyRootedHierarchyMatcher} from '../../src/domain/hierarchy-rooted-matcher.js';
+import {createCanonicalV4SemanticDiscussionRepository} from '../canonical-v4/semantic-discussion-repository.js';
 import {withdrawAutomaticAuthorFixtureRoot} from './automatic-author-context-native-assertions.js';
 const generation='invented-generation',sourceId='invented-source',topicId='invented-topic';
 const scope={kind:'named',id:'12345678-1234-4123-8123-123456789abc',caption:'Steam Deck',sourceId,materialDigest:'a'.repeat(64)};
@@ -41,6 +42,11 @@ test('owner-wide grouping is an explicit editor composition and preserves the ex
 test('the general-web native vectors intentionally have no confident fixed taxonomy ancestor',()=>{
  const values=Array.from({length:384},(_,i)=>i===0?.97:i===5?Math.sqrt(1-.97**2):0),matcher=numericMatcher('one');
  assert.deepEqual(classifyRootedHierarchyMatcher(matcher,{sourceId:'invented-owner-control',sourceVersion:'invented-owner-v1',bodyVector:values,titleVector:values}).semanticPath,[]);
+});
+test('duplicate owner scopes are a local TypeError before any SQL refusal can occur',async()=>{
+ let calls=0;const policy=createCanonicalV4SemanticDiscussionRepository({database:{query:async()=>{calls++;assert.fail('duplicate scopes reached SQL');}}});
+ await assert.rejects(policy.setOwnerPolicy({expectedRevision:1,defaultMaxDepth:1,overrides:[{nodeId:'subject-'+scope.id,maxDepth:2},{nodeId:'subject-'+scope.id,maxDepth:2}]}),TypeError);
+ assert.equal(calls,0);
 });
 
 test('a response for a different Source or generation is never installed as editor context',async()=>{
