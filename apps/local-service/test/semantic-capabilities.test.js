@@ -18,6 +18,15 @@ test('paired semantic display capability is explicit and does not read a databas
  for(const value of [null,{},[],{protocol:'other'},{protocol:'semantic-topics/v1',authority:true}])assert.throws(()=>readSemanticCapabilities(value),TypeError);
 });
 
+test('the canonical GET fixture must normalize an omitted Fetch body like the real HTTP listener',async()=>{
+ let calls=0;const value={version:{generation:'generation',revision:1},topic:{id:'topic-legacy',title:'Original discussion',kind:'general'},discussionId:'discussion-legacy',roots:[]};
+ const handle=createRequestHandler({config,service:{coherentSnapshotReads:true,discussion:async topicId=>{calls++;assert.equal(topicId,'topic-legacy');return value;}}});
+ const client=normalized=>createLocalServiceClient({getToken:()=>config.capability,fetchImpl:async(url,o)=>{
+  const r=await handle({method:o.method,url:new URL(url).pathname,headers:{...o.headers,host:config.hostHeader,origin:config.origin},body:normalized?o.body??null:o.body});return new Response(r.body,{status:r.status,headers:r.headers});}});
+ await assert.rejects(client(false).discussion('topic-legacy'),{code:'invalid-request'});assert.equal(calls,0);
+ assert.deepEqual(await client(true).discussion('topic-legacy'),value);assert.equal(calls,1);
+});
+
 test('capability retains strict pairing, Origin, Host, JSON and transport delivery guards',async()=>{
  const handle=createRequestHandler({config,service:{semanticTopics:()=>assert.fail('No query')}});
  assert.equal((await handle(request({headers:{...headers,authorization:'Bearer wrong'}}))).status,401);

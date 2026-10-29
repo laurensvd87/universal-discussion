@@ -77,25 +77,27 @@ export function createAutomaticTopicsMigrationNativeAssertions({check}){
     await assert.rejects(owner.transaction(async tx=>{await tx.exec('SET LOCAL ROLE '+role);await tx.query(sql);}),code('42501'));
    await assert.rejects(owner.transaction(async tx=>{await tx.exec('SET LOCAL ROLE murmingle_app');return upgradeAutomaticTopics({database:transactionPort(tx),expectedHeadRevision:expectedHead.revision,expectedPolicyRevision:expectedPolicy.revision});}),code('forbidden'));
   });
-  await check(46,async()=>{
+  await check(46,async at=>{
+   at('BUNDLE');
    const maintenance=createUnifiedTopicSearchMaintenance({database:worker});for(let i=0;i<8;i++){const tasks=await maintenance.tasks(JSON.stringify({generation}));if(!tasks.length)break;for(const eventId of tasks)await maintenance.process(JSON.stringify({generation,eventId}));}
    const config={host:'127.0.0.1',port:4174,origin:'chrome-extension://'+'a'.repeat(32),capability:AUTOMATIC_TOPICS_NATIVE_CAPABILITY};let serial=0;
    const application=await openDormantPostgresApplication({config,canonicalDatabase:app,hierarchicalTopics:true,automaticTopics:true,
     databasePath:fileURLToPath(new URL('../data/automatic18-unused.sqlite',import.meta.url)),nextId:kind=>'automatic18-http-'+kind+'-'+(++serial),now:()=> '2026-10-29T00:00:00.000Z',ai:{dispose(){},restore:async()=>false}});
    try{
    const handle=application.handle;
-   const client=createLocalServiceClient({fetchImpl:async(url,o)=>{const u=new URL(url),r=await handle({method:o.method,url:u.pathname,headers:{...o.headers,host:'127.0.0.1:4174',origin:config.origin},body:o.body});return new Response(r.body,{status:r.status,headers:r.headers});},getToken:()=>config.capability});
+   const client=createLocalServiceClient({fetchImpl:async(url,o)=>{const u=new URL(url),r=await handle({method:o.method,url:u.pathname,headers:{...o.headers,host:'127.0.0.1:4174',origin:config.origin},body:o.body??null});return new Response(r.body,{status:r.status,headers:r.headers});},getToken:()=>config.capability});
    const oldRequest=(path,body)=>handle({method:'POST',url:path,headers:{host:'127.0.0.1:4174',origin:config.origin,authorization:'Bearer '+config.capability,'content-type':'application/json'},body:JSON.stringify(body)});
    const oldCaps=await oldRequest('/v1/semantic/capabilities',{});assert.equal(oldCaps.status,200);assert.deepEqual(JSON.parse(oldCaps.body),{protocol:'semantic-topics/v1'});
    const oldTopics=await oldRequest('/v1/semantic/topics',{});assert.equal(oldTopics.status,200);assert(JSON.parse(oldTopics.body).topics.length>0);
-   assert.equal((await client.semanticCapabilities()).protocol,'semantic-topics/v2');
+   at('START');assert.equal((await client.semanticCapabilities()).protocol,'semantic-topics/v2');
+   at('PUBLISH');
    const legacyRoot=await client.command(await header(),{type:'create-root',topicId:'topic-semantic-manual',body:'An older client can still start its canonical discussion.',originSourceId:null},actor.id);
    const legacyId=legacyRoot.result.contributionId;assert.equal((await one(owner,'SELECT count(*)::integer n FROM canonical_v4.named_root_contexts WHERE root_id=$1',[legacyId])).n,0);
-   const oldReply=await client.command(await header(),{type:'reply',discussionId:'discussion-semantic-manual',rootId:legacyId,replyToId:legacyId,body:'Reply from an older client.',originSourceId:null},actor.id);
+   at('RESULT');const oldReply=await client.command(await header(),{type:'reply',discussionId:'discussion-semantic-manual',rootId:legacyId,replyToId:legacyId,body:'Reply from an older client.',originSourceId:null},actor.id);
    assert.equal((await one(owner,'SELECT root_id FROM canonical_v4.contributions WHERE id=$1',[oldReply.result.contributionId])).root_id,legacyId);
-   const originalView=await client.discussion('topic-semantic-manual');assert(originalView.roots.some(r=>r.id===legacyResult.result.contributionId));
+   at('THREAD');const originalView=await client.discussion('topic-semantic-manual');assert(originalView.roots.some(r=>r.id===legacyResult.result.contributionId));
    assert(originalView.roots.find(r=>r.id===legacyId).replies.some(r=>r.id===oldReply.result.contributionId));
-   const rootId=legacyResult.result.contributionId,nodeId='legacy-topic-semantic-manual';assert((await client.semanticSearch({query:'Invented',limit:20,cursor:null})).topics.some(t=>t.nodeId===nodeId));
+   at('CONTEXT');const rootId=legacyResult.result.contributionId,nodeId='legacy-topic-semantic-manual';assert((await client.semanticSearch({query:'Invented',limit:20,cursor:null})).topics.some(t=>t.nodeId===nodeId));
    const v=await client.semanticTarget({nodeId,rootId,targetId:rootId});assert.equal(v.topic.id,'topic-semantic-manual');
    const reply=await client.command(await header(),{type:'reply',discussionId:v.discussionId,rootId,replyToId:rootId,originSourceId:null,body:'The original conversation stays open after the upgrade.',semanticTarget:{nodeId,topicId:v.topic.id,rootRevision:v.rootRevision,targetRevision:v.targetRevision}},actor.id);
    assert((await client.semanticThread({nodeId,rootId,limit:20,cursor:null})).root.replies.some(r=>r.id===reply.result.contributionId));

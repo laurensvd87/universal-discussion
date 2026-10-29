@@ -165,7 +165,7 @@ cannot later be shared with a new scope. Default/manual authored-topic compositi
 still requires the captured scope. Human and AI replies keep their original
 canonical target checks.
 
-Guarded746 component/contract tests and12 extension inventory/pairing tests pass;
+Guarded747 component/contract tests and12 extension inventory/pairing tests pass;
 the source secret scan reports0 findings across2007 files. The native fixture
 retains all190 required reports and negotiates v2 for its modern clients, while
 its ordinary-startup case also checks old capabilities/fixed reads, an unscoped
@@ -178,3 +178,16 @@ requirements remain open.
 Expected version strings in the affected capability checks change explicitly from
 v1 to v2; prior destination, material, role, issuer, refusal and cleanup assertions
 remain in place. The additional legacy requests test the preserved v1 projection.
+
+The first compatibility invocation closed with PUBLIC46 CALL INVALID_REQUEST;
+all2650 consumed pins, both database drops and normal owned-server shutdown were
+audited. Its exact failed call was not retained. Source review found that the new
+canonical GET test bridge forwarded Fetch's omitted body as undefined, while the
+real listener normalizes empty bodies to null. A paired real-client/handler test
+proves the old bridge receives400 before service dispatch and the normalized bridge
+returns the original discussion. Only the fixture transport, a regression test and
+bounded existing stage labels are corrected; production behavior is unchanged.
+The new stage-tagged native invocation is pending. Failed run
+`run-36e472042a1d79297d97205733c4144d3ab18f20d51474dc` remains unadopted;
+root failure audit SHA256
+`b29eee9754f9f4a5e521a8e0e7fd52b29149f324e7923ac936e3ef115090d832`.
