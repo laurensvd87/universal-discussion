@@ -8,6 +8,29 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct public evidence actual SQL ACCEPTED, automatic named matching NOT LIVE.
+Corrected source2b9aa11b/catalogbc84f273/map3c3a932c...76743; fresh owned run
+07106367f52867b7901f37e7bbfcb6fa4d2d13044949bcc4 exits0/all122 reports PASS
+(original110+12), both scratch DBs dropped/exact smartstop/emptyJob/allhandles/
+stderr0/emergencyFALSE; all2608 pins Root reauthenticated. Root-only, invented
+public text/encoder coordinates, NOT representative E5/provider/browser/load.
+631 guarded Node+70 pure controller PASS. First failed capacity run retained;
+fixture-only missing revision correction, production SQL/limits unchanged.
+Root audit apps/local-service/data/published-topic-evidence-native-root-audit-
+20261029.json. User-requested dashboard assigned/total+per-topic counts LIVE:
+sourcef9e34b85, 4metadata+5realbrowser PASS, actual live browser33397/72781,
+20rows exactsum. Existing active hierarchy17, automatic discovery NOTenabled.
+Only olddashboard23660 replaced by28420 start2026-10-29T18:02:41.2135674Z;
+PG18688/crawler6384/worker11880/API38860 original identities preserved.
+One exact exclusive-console Ctrl+C; old PID absent, exitcode NOTretained due
+postexit image-query helper error; no second signal/kill. New read-only2pool
+watcher apps/topic-dashboard/src/local-postgres-watch.mjs --watch, same report
+path; MUST close/replace at complete18 cutover, no parallel dashboard. Crawler
+advancing. GoalACTIVE: publication identity reuse/static+dynamic aliases/owner
+policy+foreground/composition+migration/recovery/realquality+UI+latency+load
+still OPEN; no reliable live date. Prioritize integration over more variants.
+All consumed sources/maps/outputs immutable; docs-only catalog refresh next.
+
 LATEST29Oct publicDISCUSSION identity-recovery DEV measured, NOTactivated.
 Prior goalturnPROGRESS: captured-page docs/catalog committed/pushed63e069d1;
 currentheldnativecatalog7842a06e...ca105 unchanged, noSQL/program/runtime delta.

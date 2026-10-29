@@ -60,7 +60,8 @@ current Unicode digest, actual authored roots, current revision edits, stale
 proof refusal, repeated-inference avoidance, representative replacement,
 per-event deferral, physical MVCC/write concurrency, contended root skip,
 raw-cohort capacity, execute-only roles and actual Source erasure. Those SQL
-reports are not yet all proven. The first owned run completed the first nine
+reports now pass in the corrected owned run described below. The first owned
+run completed the first nine
 new reports, then failed the capacity assertion. Its exact assertion detail was
 not retained. Root reauthenticated all2608 source/runtime end pins; the one
 created scratch database dropped and the exact owned server smart-stopped, with
@@ -71,13 +72,32 @@ those revision rows. The corrected fixture now copies revisions, requires65
 actual prototype rows and adds an old-missing/new-present public-body control.
 Production SQL, bounds, thresholds, supervision and resource limits are unchanged.
 The consumed first source/catalog/output remain retained. A new catalog and
-separate actual decision are required; no failed run is adopted. The reports
+separate actual decision were used; no failed run was adopted. The reports
 use invented encoder coordinates and
 public content; they cannot prove semantic quality, genuine provider/browser
 behavior, many-user load or end-to-end latency.
 
-Next: prove the entire updated owned SQL fixture, then bind this independent
-public evidence to current Source/candidate/identity revision checks in actual
+## Verified owned run
+
+Run `run-07106367f52867b7901f37e7bbfcb6fa4d2d13044949bcc4` exits0 and
+passes all122 required reports: the original110 and all12 public-evidence
+reports. Source`2b9aa11b`, catalog commit`bc84f273`, execution map
+`3c3a932cbf53b8afca2a7a8b30111750187ad0d8fd9638e327e27caa67c76743`.
+Root separately reauthenticated all2608 source/runtime pins and the saved strict
+completion. Both fresh scratch databases dropped; the exact owned server
+smart-stopped, the Job was empty and all handles closed. Stderr was empty,
+emergency false. The missing-revision/present-revision capacity control passes
+without changing production SQL or any original bound. Result SHA-256
+`9440631737f3de2c9c8017886636b2429962a7df8b7eec64bc1e6a85d66f7355`;
+stdout `ad0409ca2deea163975c96af50319bec1ef9d24e5fef5ba69022200867289dee`.
+Root-only audit: `data/published-topic-evidence-native-root-audit-20261029.json`.
+631 guarded Node and70 pure controller tests also pass. This SQL fixture uses
+invented encoder coordinates; the separate actual E5 development comparison and
+the live dashboard browser checks have different scopes and are not added to
+its report count. No new automatic matcher was activated by this run.
+
+Next: bind this independent public evidence to current
+Source/candidate/identity revision checks in actual
 publication before reusing an occupied topic ID. Equal labels alone are not
 identity. Static/dynamic aliases, owner depth, foreground context, complete18
 installation/migration/recovery and representative real UI/provider/quality/

@@ -124,3 +124,36 @@ source-page links and nearest-neighbor scores stay attached to their original
 Sources. Ridge1 can still group unrelated pages; the owner-approved default
 accepts the measured trade-off, not a quality or publication clearance. See
 [ADR-073](../../decisions/ADR-073-default-ridge-topic-view-with-legacy-e5.md).
+## Assigned pages per topic
+
+The hierarchy dashboard shows the total assigned/pending page counts, a progress
+bar and page counts for each configured display topic. Each classified page is
+counted once after the owner grouping policy; ancestor rows do not double count
+it. All rows come from the same protected PostgreSQL metadata snapshot as the
+total. The current hierarchy17 view explicitly states that automatic discovery
+of new named subjects is not yet enabled. It must not present those groups as
+already activated.
+
+The owner-local read-only watcher is:
+
+```powershell
+node .\apps\topic-dashboard\src\local-postgres-watch.mjs --watch
+```
+
+It uses the existing Windows-protected app credential, a two-connection
+read-only PostgreSQL pool, and the existing dashboard report path. Reload the
+already open dashboard once after updating its HTML; data then refreshes
+automatically. `--once` instead writes a preview under
+`apps/local-service/data/dashboard-topic-counts-preview/` and exits.
+Only one dashboard watcher should run. The maintained hierarchy18 cutover must
+close this temporary hierarchy17 watcher and replace it with the corresponding
+complete release. It does not install migrations or alter the app, crawler or
+worker. An owner-created `apps/local-service/data/dashboard-topic-counts.stop`
+marker asks this watcher to drain its current work and close; the marker remains
+present and must be removed before a deliberate new start.
+
+Validation: four protected-metadata unit checks, five real headless-browser
+scenarios (including automatic refresh and preserving the last valid counts),
+and a browser check of the actual live PostgreSQL-backed report. These checks
+do not establish representative matching accuracy or activate named-topic
+discovery.
