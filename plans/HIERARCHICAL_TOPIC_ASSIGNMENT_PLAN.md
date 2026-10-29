@@ -1,5 +1,11 @@
 # Hierarchical topic assignment and discussion plan
 
+29Oct current: live18-node hierarchy remains unchanged. A frozen20-node candidate
+adds separate Video-games, Animals and Koalas heads using broader declared TRAIN
+and calibration only within their parent branches. It now needs the newly reserved
+11-page held-out check, currently collecting. Existing roots/GTA/discussions and
+owner policy are preserved. No candidate deployment or independent-review claim.
+
 29Oct held-out check REJECTS the two new CAL candidates: Animals has one plant
 false refinement; Video-games misses both available new games. They remain
 inactive. Live fast root/GTA hierarchy is preserved. Next investigate conditional

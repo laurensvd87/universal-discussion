@@ -1,5 +1,27 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct current01:02UTC: new11-page TEST capture RUNNING execsession92229; monitor
+only this session, no duplicate/retry. Candidate manifest
+data/hierarchy-child-combined-candidate-20261029/manifest.json SHA
+51910413dfc66f93e802502483aa1597744cdf29a28adaa54f8a5098596fe54b,
+purecandidate-check PASSED20nodes/4details (Animals/GTA/Koalas/Video-games),
+no encoder/network. Live18-node model/head1/policy3 unchanged; crawler6384 running.
+Additional TRAIN actual3declared/1available (Leipzig German)/2unavailable (ADW
+url-restricted before request, AustraliaZoo policy-unavailable),4requests16.409s/
+endpins/terminalexit0. Result22866B SHA a737115bca2a4e5c7d2c0778f6c04a4583591b452d65e089221073f0465014de.
+Koalas-only fit completed2.001s/encoderclosed/endpins/terminalexit0,26237B SHA
+5d71cf4ee9d35b4c5a3be47adecd2fb9d49a6b23394ec519449a76768c9eaec3.
+TRAIN2pos/2neg,CAL3pos/4neg,all3rawpositive/zero negative; root gate admits2/3,
+so actualcombinedKoalaCAL2/3 with no root rescue. VideoGames/Animals/GTA/root
+artifacts unchanged. Six unavailable Koala TRAIN observations retained across
+AKF2/Zoo/VIC/ADW/AustraliaZoo; no minimum waiver or failed-row relabel.
+Root-only audit hierarchy-child-combined-candidate-root-audit-20261029.json.
+11TEST reserved before fitting, candidate frozen before capture; acceptance
+minimums/zero-false-child requirement recorded in manifest before observations.
+Next terminal capture audit then separate offline E5 evaluate with both manifest
+and capture hashes; no fitting/retuning/automatic deployment. Currentall reviews
+Root-only, explicitly not independent reviewer/statistical/population acceptance.
+
 29Oct single Victorian TRAIN actual completed/exit0, unavailable policy-unavailable;
 result19110B SHA e60d97bc88b0659a0e52bb95723286f5b5a3a88f7512c244377dd8b6561c963f.
 No model/fit followed that unsupported observation. Separate3-document additional

@@ -1,5 +1,16 @@
 # E5 matching across broad and specific topics
 
+29Oct current: a broader TRAIN cohort plus fully parent-conditioned fitting now
+provides provisional Video-games, Animals and Koalas candidates. Existing roots
+and GTA are unchanged. Separate English/German Koala TRAIN documents support the
+new Koalas cut; unavailable/restricted captures remain counted. CAL accepts9video,
+7animal,3koala positives with zero respective parent negatives; the independent
+root gate still abstains on one animal-care page. Combined20-node candidate is
+frozen; newly reserved11-page TEST collection is running, no activation yet.
+Earlier failed held-out candidates below remain rejected; no retuning on their
+consumed TEST. Current subject/implementation reviews are Root-only, no population
+or statistical-independence claim. Exact pins and live status are in the handoff.
+
 29Oct held-out counterexample: the eligible CAL candidates do NOT generalize
 well enough. Animals falsely refines a Wollemi pine; Video-games accepts neither
 available new game. Both remain inactive. Frozen TEST12/14 available, root11right/
