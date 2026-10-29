@@ -60,7 +60,19 @@ current Unicode digest, actual authored roots, current revision edits, stale
 proof refusal, repeated-inference avoidance, representative replacement,
 per-event deferral, physical MVCC/write concurrency, contended root skip,
 raw-cohort capacity, execute-only roles and actual Source erasure. Those SQL
-reports have not yet been executed. They use invented encoder coordinates and
+reports are not yet all proven. The first owned run completed the first nine
+new reports, then failed the capacity assertion. Its exact assertion detail was
+not retained. Root reauthenticated all2608 source/runtime end pins; the one
+created scratch database dropped and the exact owned server smart-stopped, with
+empty Job/all handles closed, empty stderr and no emergency. The second database
+and remaining reports were not reached. The source finding is an incomplete
+capacity fixture: normal roots store body in revisions, but the clones omitted
+those revision rows. The corrected fixture now copies revisions, requires65
+actual prototype rows and adds an old-missing/new-present public-body control.
+Production SQL, bounds, thresholds, supervision and resource limits are unchanged.
+The consumed first source/catalog/output remain retained. A new catalog and
+separate actual decision are required; no failed run is adopted. The reports
+use invented encoder coordinates and
 public content; they cannot prove semantic quality, genuine provider/browser
 behavior, many-user load or end-to-end latency.
 

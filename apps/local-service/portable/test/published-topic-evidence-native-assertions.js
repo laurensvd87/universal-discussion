@@ -106,8 +106,12 @@ export async function runPublishedTopicEvidenceNativeAssertions(scope){
     await tx.query(`INSERT INTO canonical_v4.contributions SELECT $1,discussion_id,root_id,reply_to_id,author_id,operator_id,origin_source_id,anchor_source_id,
      actor_type,visibility,withdrawn,created_at,revision_count,nextval('canonical_v4.contribution_ordinal_sequence'),payload,write_version FROM canonical_v4.contributions WHERE id=$2`,[id,r4]);
     await tx.query("INSERT INTO canonical_v4.named_root_contexts VALUES($1,$2,'named',$3,$4)",[id,generation,topic,c.caption]);
-    await tx.query('INSERT INTO canonical_v4.named_public_prototypes SELECT generation,$2,scope_id,root_id,public_digest,$3,$4::double precision[],human,$5 FROM canonical_v4.named_public_roots WHERE root_id=$1',[id,identity.representationHash,c.focusKey,unit,PUBLISHED_TOPIC_INPUT_HASH]);
+    if(i===0)assert.equal((await one(tx,'SELECT count(*)::integer n FROM canonical_v4.named_public_roots WHERE root_id=$1',[id])).n,0,'old incomplete clone has no current public body');
+    await tx.query('INSERT INTO canonical_v4.revisions(contribution_id,ordinal,payload) SELECT $1,ordinal,payload FROM canonical_v4.revisions WHERE contribution_id=$2',[id,r4]);
+    if(i===0)assert.equal((await one(tx,'SELECT count(*)::integer n FROM canonical_v4.named_public_roots WHERE root_id=$1',[id])).n,1,'copying the revision restores the exact public body');
+    const inserted=await tx.query('INSERT INTO canonical_v4.named_public_prototypes SELECT generation,$2,scope_id,root_id,public_digest,$3,$4::double precision[],human,$5 FROM canonical_v4.named_public_roots WHERE root_id=$1',[id,identity.representationHash,c.focusKey,unit,PUBLISHED_TOPIC_INPUT_HASH]);assert.equal(inserted.rowCount,1);
    }
+   assert.equal((await one(tx,"SELECT count(*)::integer n FROM canonical_v4.named_public_prototypes WHERE root_id LIKE 'public-evidence-capacity-%'")).n,65);
    await repository({database:tx}).candidates(JSON.stringify({generation,representationHash:identity.representationHash,focusKeys:[c.focusKey]}));
   }),code('invalid'));
   assert.equal((await current()).rootId,r3);
