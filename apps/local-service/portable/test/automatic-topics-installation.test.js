@@ -3,7 +3,16 @@ import {buildAutomaticTopicsMigrationSource,AUTOMATIC_TOPICS_COMPONENTS} from '.
 import {readCanonicalV4MigrationManifest,canonicalV4SchemaVersion} from '../canonical-v4/index.js';
 import {upgradeAutomaticTopics,installAutomaticTopics} from '../canonical-v4/automatic-topics-installation.js';
 import {loadInstalledHierarchyMatcher} from '../../src/application/installed-hierarchy-matcher.js';
+import {AUTOMATIC_TOPICS_NATIVE_CAPABILITY} from './automatic-topics-migration-native-assertions.js';
+import {createLocalServiceClient} from '../../../../spikes/topic-resolution/browser/core/local-service-client.js';
 const code=c=>e=>e?.code===c;
+
+test('the short invented fixture token fails before dispatch while its corrected token reaches transport',async()=>{
+ let calls=0;const client=token=>createLocalServiceClient({getToken:()=>token,fetchImpl:async()=>{calls++;throw Error('Invented unavailable transport');}});
+ const query={query:'Invented',limit:20,cursor:null};
+ await assert.rejects(client('invented-automatic18-capability').semanticSearch(query),code('unauthorized'));assert.equal(calls,0);
+ await assert.rejects(client(AUTOMATIC_TOPICS_NATIVE_CAPABILITY).semanticSearch(query),code('unavailable'));assert.equal(calls,1);
+});
 test('registered18 contains the exact reviewed component bytes in a fixed order',async()=>{
  const actual=await readFile(new URL('../canonical-v4/migrations/018-automatic-topics.sql',import.meta.url)),built=await buildAutomaticTopicsMigrationSource();assert.deepEqual(actual,built);
  assert.equal(AUTOMATIC_TOPICS_COMPONENTS.length,14);assert(Object.isFrozen(AUTOMATIC_TOPICS_COMPONENTS));await assert.rejects(buildAutomaticTopicsMigrationSource('arbitrary.sql'),TypeError);

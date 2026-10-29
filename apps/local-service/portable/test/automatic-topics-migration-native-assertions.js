@@ -19,6 +19,7 @@ import {runCombinedAuthorHierarchyNativeAssertions} from './combined-author-hier
 import {automaticTopicsFixtureInput} from './automatic-topics-fixture-input.js';
 import {numericMatcher} from './semantic-native-assertions.js';
 const code=c=>e=>e?.code===c,actor={id:'demo-alex',type:'human',demo:true};
+export const AUTOMATIC_TOPICS_NATIVE_CAPABILITY='invented-automatic18-pairing-capability';
 const tables=['meta','id_registry','topics','discussions','sources','embeddings','source_links','topic_memberships','fixed_references','contributions','revisions','operation_receipts','import_ledger','runtime_state','command_receipts','runtime_source_stamps','ingestion_jobs'];
 async function one(db,sql,args=[]){const r=await db.query(sql,args);assert.equal(r.rows.length,1);return r.rows[0];}
 const transactionPort=tx=>({query:(...args)=>tx.query(...args),transaction:work=>work(tx)});
@@ -79,7 +80,7 @@ export function createAutomaticTopicsMigrationNativeAssertions({check}){
   await check(46,async()=>{
    const maintenance=createUnifiedTopicSearchMaintenance({database:worker});for(let i=0;i<8;i++){const tasks=await maintenance.tasks(JSON.stringify({generation}));if(!tasks.length)break;for(const eventId of tasks)await maintenance.process(JSON.stringify({generation,eventId}));}
    const reads=createCanonicalV4ReadFacade({database:app,automaticTopics:true,unifiedTopicSearch:true,combinedHierarchy:true}),service=createPostgresCanonicalService({reads,runtime:runtime({database:app,schemaProfile:'hierarchy18'}),lifecycle:createCanonicalV4LifecycleRepository({database:app,schemaProfile:'hierarchy18'}),authoredTopics:createAutomaticAuthorContextRepository({database:app,ownerGrouping:true,combinedHierarchy:true}),semanticDiscussions:true,automaticTopics:true});
-   const config={hostHeader:'127.0.0.1:4174',origin:'chrome-extension://'+'a'.repeat(32),capability:'invented-automatic18-capability'},handle=createRequestHandler({config,service});
+   const config={hostHeader:'127.0.0.1:4174',origin:'chrome-extension://'+'a'.repeat(32),capability:AUTOMATIC_TOPICS_NATIVE_CAPABILITY},handle=createRequestHandler({config,service});
    const client=createLocalServiceClient({fetchImpl:async(url,o)=>{const u=new URL(url),r=await handle({method:o.method,url:u.pathname,headers:{...o.headers,host:config.hostHeader,origin:config.origin},body:o.body});return new Response(r.body,{status:r.status,headers:r.headers});},getToken:()=>config.capability});
    const rootId=legacyResult.result.contributionId,nodeId='legacy-topic-semantic-manual';assert((await client.semanticSearch({query:'Invented',limit:20,cursor:null})).topics.some(t=>t.nodeId===nodeId));
    const v=await client.semanticTarget({nodeId,rootId,targetId:rootId});assert.equal(v.topic.id,'topic-semantic-manual');
