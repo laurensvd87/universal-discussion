@@ -190,7 +190,9 @@
   function normalize(input) {
     if (!input || ![1, 2].includes(input.schemaVersion) || !Array.isArray(input.topics) || !Array.isArray(input.pages) || !Array.isArray(input.edges) || !input.counts) throw new Error('Unbekanntes Dashboard-Format.');
     if (input.pages.length > 10000 || input.topics.length > 10000 || input.edges.length > 30000) throw new Error('Dashboard-Datei ist zu groß.');
-    const hierarchy=input.schemaProfile==='hierarchy17',semantic=hierarchy?normalizeSemantic(input):null;
+    const hierarchy=['hierarchy17','hierarchy18'].includes(input.schemaProfile);
+    if(input.graphMode==='semantic-aggregates'&&!hierarchy)throw new Error('Unbekanntes Dashboard-Schema.');
+    const semantic=hierarchy?normalizeSemantic(input):null;
     const topics = [], topicIds = new Set();
     for (const row of input.topics) {
       if (!row || typeof row.id !== 'string' || !row.id || topicIds.has(row.id) || !coordinate(row.x) || !coordinate(row.y)) continue;
@@ -244,6 +246,29 @@
     };
   }
 
+  function normalizeAutomaticTopics(value,learnedSources){
+    const exact=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).sort().join()===keys.split(',').sort().join();
+    const integer=v=>Number.isSafeInteger(v)&&v>=0;
+    const id=v=>typeof v==='string'&&/^subject-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(v);
+    const title=v=>typeof v==='string'&&v.trim().length>0&&v.length<=200&&!/[\u0000-\u001f\u007f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u.test(v);
+    const bad=()=>{throw new Error('Ungültige automatische Themenzahlen.');};
+    if(!exact(value,'schema,activeSubjects,occupiedSubjects,matchedSources,truncated,topics')||value.schema!=='automatic-topic-assignment-counts/v1'||
+      !['activeSubjects','occupiedSubjects','matchedSources'].every(k=>integer(value[k]))||value.occupiedSubjects>value.activeSubjects||value.matchedSources>learnedSources||
+      typeof value.truncated!=='boolean'||value.truncated!==(value.activeSubjects>200)||(value.matchedSources===0)!==(value.occupiedSubjects===0)||
+      !Array.isArray(value.topics)||value.topics.length!==Math.min(value.activeSubjects,200))bad();
+    const ids=new Set(),labels=new Map();let direct=0;
+    const topics=value.topics.map(t=>{
+      if(!exact(t,'id,parentId,title,directSources,sources,path')||!id(t.id)||ids.has(t.id)||t.parentId!==null&&!id(t.parentId)||!title(t.title)||
+        !integer(t.directSources)||!integer(t.sources)||t.directSources>t.sources||t.sources>value.matchedSources||!Array.isArray(t.path)||!t.path.length||t.path.length>8)bad();
+      ids.add(t.id);direct+=t.directSources;const pathIds=new Set(),path=t.path.map(p=>{
+        if(!exact(p,'id,title')||!id(p.id)||!title(p.title)||pathIds.has(p.id)||labels.has(p.id)&&labels.get(p.id)!==p.title)bad();
+        pathIds.add(p.id);labels.set(p.id,p.title);return {...p};
+      });
+      if(path.at(-1).id!==t.id||path.at(-1).title!==t.title||(path.length===1?null:path.at(-2).id)!==t.parentId)bad();return {...t,path};
+    });
+    if(!integer(direct)||direct>value.matchedSources||!value.truncated&&direct!==value.matchedSources||topics.filter(t=>t.sources>0).length!==Math.min(value.occupiedSubjects,200))bad();
+    return {...value,topics};
+  }
   function normalizeSemantic(input){
     const semantic=input.semantic,counts=semantic?.counts,legacy=input.counts.legacyContainers;
     const keys=['preparedSources','currentHeadClassifiedSources','currentHeadAbstainedSources','currentHeadExcludedSources','currentHeadPendingSources',
@@ -261,11 +286,13 @@
         counts.preparedSources>input.counts.learnedSources||counts.preparedSources<counts.currentHeadClassifiedSources+counts.currentHeadAbstainedSources+counts.currentHeadExcludedSources||
         counts.occupiedDisplayGroups>counts.configuredDisplayGroups||counts.configuredDisplayGroups>counts.activeNodes||counts.occupiedDisplayGroups>counts.currentHeadClassifiedSources)
       throw new Error('Ungültige semantische Katalogzahlen.');
+    const automatic=input.schemaProfile==='hierarchy18'?normalizeAutomaticTopics(semantic.automatic,input.counts.learnedSources):null;
+    if(!automatic&&semantic.automatic!==undefined)throw new Error('Automatische Themenzahlen passen nicht zum Schema.');
     let assignments=null;
     if(semantic.assignments!==undefined){
       const a=semantic.assignments,ids=new Set();let total=0;
       if(!a||Object.keys(a).sort().join()!=='automaticDiscovery,mode,schema,topics'||a.schema!=='topic-assignment-counts/v1'||
-          a.mode!=='owner-display-policy'||a.automaticDiscovery!=='not-enabled'||!Array.isArray(a.topics)||a.topics.length!==counts.configuredDisplayGroups||a.topics.length>512)
+          a.mode!==(automatic?'fixed-owner-policy':'owner-display-policy')||a.automaticDiscovery!==(automatic?'enabled':'not-enabled')||!Array.isArray(a.topics)||a.topics.length!==counts.configuredDisplayGroups||a.topics.length>512)
         throw new Error('Ungültige Themenverteilung.');
       const topics=a.topics.map(t=>{
         if(!t||Object.keys(t).sort().join()!=='id,path,sources,title'||typeof t.id!=='string'||!t.id||t.id.length>160||ids.has(t.id)||
@@ -278,7 +305,8 @@
         throw new Error('Themenverteilung passt nicht zur Seitenzahl.');
       assignments={...a,topics};
     }
-    return {counts:{...counts},legacy:{...legacy},assignments};
+    if(automatic&&!assignments)throw new Error('Grundzuordnung fehlt.');
+    return {counts:{...counts},legacy:{...legacy},assignments,automatic};
   }
   function renderSemantic(){
     const semantic=state.data.semantic;$('semantic-summary').hidden=!semantic;$('catalog-workspace').hidden=Boolean(semantic);
@@ -288,15 +316,24 @@
     for(const [key,label] of [['currentHeadClassifiedSources','Zugeordnet'],['currentHeadPendingSources','Ausstehend'],
       ['currentHeadAbstainedSources','Ohne Zuordnung'],['currentHeadExcludedSources','Ausgeschlossen'],['preparedSources','Bereits vorbereitet'],
       ['activeNodes','Semantische Themen'],['configuredDisplayGroups','Anzeigegruppen eingerichtet'],['occupiedDisplayGroups','Anzeigegruppen mit Seiten'],
-      ['distinctRoots','Sichtbare Themendiskussionen']])card(metrics,label,semantic.counts[key]);
+      ['distinctRoots','Sichtbare Themendiskussionen']])card(metrics,semantic.automatic?({currentHeadClassifiedSources:'Grundzuordnung',activeNodes:'Grundthemen',configuredDisplayGroups:'Grundgruppen eingerichtet',occupiedDisplayGroups:'Grundgruppen mit Seiten'}[key]??label):label,semantic.counts[key]);
     for(const [key,label] of [['total','Container gesamt'],['multiMember','Container mit mehreren Seiten'],['singleton','Container mit einer Seite']])card(legacy,label,semantic.legacy[key]);
     const assigned=semantic.counts.currentHeadClassifiedSources,total=state.data.counts.learnedSources,progress=$('semantic-assignment-progress');
     progress.max=Math.max(1,total);progress.value=assigned;
-    $('semantic-assignment-note').textContent=`${format.format(assigned)} von ${format.format(total)} Seiten sind einem Thema zugeordnet. Jede Seite zählt einmal im konfigurierten Anzeigethema.`;
+    $('semantic-assignment-note').textContent=semantic.automatic?`${format.format(assigned)} von ${format.format(total)} Seiten haben eine feste Grundzuordnung. Automatisch gebildete Themen werden darunter separat gezählt.`:`${format.format(assigned)} von ${format.format(total)} Seiten sind einem Thema zugeordnet. Jede Seite zählt einmal im konfigurierten Anzeigethema.`;
+    $('semantic-fixed-heading').textContent=semantic.automatic?'Feste Grundthemen':'Seiten je Thema';
     const rows=$('semantic-topic-counts');rows.replaceChildren();
-    $('semantic-automatic-status').textContent=semantic.assignments?'Die aktuelle Hierarchie ist aktiv. Die neue automatische Themenbildung ist noch nicht aktiviert.':'Die Themenverteilung ist in dieser Momentaufnahme noch nicht enthalten.';
+    $('semantic-automatic-status').textContent=semantic.automatic?'Automatisch gebildete Themen werden unten mit ihren aktuellen Seitenzahlen angezeigt.':semantic.assignments?'Die aktuelle Hierarchie ist aktiv. Die neue automatische Themenbildung ist noch nicht aktiviert.':'Die Themenverteilung ist in dieser Momentaufnahme noch nicht enthalten.';
     for(const topic of semantic.assignments?.topics??[]){const row=document.createElement('tr'),title=document.createElement('th'),count=document.createElement('td');
       title.scope='row';title.textContent=topic.title;title.title=topic.path.join(' → ');count.textContent=format.format(topic.sources);row.append(title,count);rows.append(row);}
+    const automatic=semantic.automatic,automaticMetrics=$('automatic-topic-metrics'),automaticRows=$('automatic-topic-counts');
+    $('automatic-topic-summary').hidden=!automatic;automaticMetrics.replaceChildren();automaticRows.replaceChildren();
+    if(automatic){
+      for(const [key,label] of [['matchedSources','Seiten mit automatisch gebildetem Thema'],['activeSubjects','Automatisch gebildete Themen'],['occupiedSubjects','Davon mit passenden Seiten']])card(automaticMetrics,label,automatic[key]);
+      $('automatic-topic-note').textContent=automatic.truncated?`Die 200 Themen mit den meisten Seiten werden angezeigt. Insgesamt ${format.format(automatic.activeSubjects)} aktuelle Themen.`:'Aktuelle, bestätigte Seitenzuordnungen. Der Titel zeigt den Weg durch die Themenhierarchie.';
+      for(const topic of automatic.topics){const row=document.createElement('tr'),title=document.createElement('th'),direct=document.createElement('td'),count=document.createElement('td');
+        title.scope='row';title.textContent=topic.title;title.title=topic.path.map(t=>t.title).join(' → ');direct.textContent=format.format(topic.directSources);count.textContent=format.format(topic.sources);row.append(title,direct,count);automaticRows.append(row);}
+    }
   }
 
   // This file is an untrusted, content-free partition of the exact displayed Source IDs.

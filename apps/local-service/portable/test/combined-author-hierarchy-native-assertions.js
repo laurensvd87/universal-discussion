@@ -19,6 +19,7 @@ import {describeRootedHierarchyMatcher} from '../../src/domain/hierarchy-rooted-
 import {createHash} from 'node:crypto';
 import {createLocalServiceClient} from '../../../../spikes/topic-resolution/browser/core/local-service-client.js';
 import {createLocalAiClient} from '../../../../spikes/topic-resolution/browser/core/local-ai-client.js';
+import {createPostgresDashboardSource} from '../../../topic-dashboard/src/data/postgres-catalog.js';
 import {authoredFixtureInsightContext} from './automatic-author-insight-native-assertions.js';
 const actor={id:'demo-alex',type:'human',demo:true},code=c=>e=>e?.code===c,MODEL='e5-small-q8-browser-main-prefix-v1',TOPIC='topic-semantic-manual';
 async function one(db,sql,args=[]){const r=await db.query(sql,args);assert.equal(r.rows.length,1);return r.rows[0];}
@@ -36,6 +37,7 @@ export async function runCombinedAuthorHierarchyNativeAssertions(scope){
  const policy=policies({database:owner}),prior=await policy.ownerPolicy();let serial=0,broad,leaf,parent,semanticRoot,namedRoot,client,handler,service,config;
  const editor=authors({database:app,ownerGrouping:true,combinedHierarchy:true,nextId:()=> 'combined-native-root-'+(++serial)});
  const schemaProfile=scope.schemaProfile??'legacy9';
+ const dashboard=schemaProfile==='hierarchy18'?createPostgresDashboardSource({database:app,schemaProfile}):null;
  const reads=createCanonicalV4ReadFacade({database:app,automaticTopics:true,unifiedTopicSearch:true,combinedHierarchy:true}),runtime=createCanonicalV4RuntimeRepository({database:app,schemaProfile}),life=createCanonicalV4LifecycleRepository({database:app,schemaProfile});
  const expected=()=>one(app,'SELECT generation,revision::integer revision FROM canonical_v4.runtime_state WHERE singleton');
  const context=()=>editor.editor(JSON.stringify({generation,sourceId:source}));
@@ -74,6 +76,30 @@ export async function runCombinedAuthorHierarchyNativeAssertions(scope){
   leaf=(await authors({database:app}).editor(JSON.stringify({generation,sourceId:source}))).scope.id;
   parent=(await one(owner,'SELECT parent_id::text parent FROM canonical_v4.named_subject_heads WHERE subject_id=$1',[leaf])).parent;assert(parent);
   assert.deepEqual((await one(owner,'SELECT canonical_v4.combined_named_prefix($1,$2) path',[generation,leaf])).path,['games']);
+  if(dashboard){
+   const summary=await dashboard.readHierarchySummary();assert.equal(summary.semantic.automatic.matchedSources,4);assert.equal(summary.semantic.assignments.automaticDiscovery,'enabled');
+   const counts=summary.semantic.automatic,leafRow=counts.topics.find(t=>t.id==='subject-'+leaf),parentRow=counts.topics.find(t=>t.id==='subject-'+parent);
+   assert(leafRow.directSources>0);assert(parentRow.sources>=leafRow.sources);assert.equal(counts.topics.reduce((n,t)=>n+t.directSources,0),4);
+   const revision=await dashboard.readRevision(),before=await expected(),selected=await one(owner,'DELETE FROM canonical_v4.named_subject_selections WHERE source_id=$1 RETURNING subject_id::text subject_id',[source]);
+   assert.notEqual(await dashboard.readRevision(),revision,'derived assignment changes refresh without a canonical rewrite');assert.deepEqual(await expected(),before);
+   assert.equal((await dashboard.readHierarchySummary()).semantic.automatic.matchedSources,3);
+   await owner.query('INSERT INTO canonical_v4.named_subject_selections VALUES($1,$2)',[source,selected.subject_id]);
+   assert.equal((await dashboard.readHierarchySummary()).semantic.automatic.matchedSources,4);
+   // A rolled-back table-layout control, not a classifier-quality case: prove
+   // the real app SQL response is capped while its aggregate totals stay exact.
+   const marker=Error('Rollback dashboard bound control');let rolled=false;
+   try{await owner.transaction(async tx=>{
+    const ids=Array.from({length:1000},(_,i)=>'f0000000-0000-4000-8000-'+String(i).padStart(12,'0'));
+    await tx.query('INSERT INTO canonical_v4.named_subject_ids SELECT id,1 FROM unnest($1::uuid[]) id',[ids]);
+    await tx.query(`INSERT INTO canonical_v4.named_subject_heads(subject_id,revision,generation,policy_hash,matcher_hash,representation_hash,focus_key,context_root_id,label,label_source_id,parent_id,ancestor_path,prototype_values)
+     SELECT id_,1,h.generation,h.policy_hash,h.matcher_hash,h.representation_hash,h.focus_key,h.context_root_id,'Dashboard bound '||n_,h.label_source_id,NULL,h.ancestor_path,h.prototype_values
+      FROM canonical_v4.named_subject_heads h CROSS JOIN unnest($1::uuid[]) WITH ORDINALITY ids_(id_,n_) WHERE h.subject_id=$2`,[ids,leaf]);
+    await tx.exec('SET LOCAL ROLE murmingle_app');const row=await one(tx,'SELECT canonical_v4.named_read_dashboard_counts($1) AS metadata',[generation]);
+    assert.equal(row.metadata.activeSubjects,counts.activeSubjects+1000);assert.equal(row.metadata.topics.length,200);assert.equal(row.metadata.truncated,true);assert.equal(row.metadata.matchedSources,4);throw marker;
+   });}catch(error){if(error!==marker)throw error;rolled=true;}assert(rolled);
+   assert.equal((await dashboard.readHierarchySummary()).semantic.automatic.activeSubjects,counts.activeSubjects);
+   for(const role of ['murmingle_ingest_worker','murmingle_crawler_submitter'])await assert.rejects(owner.transaction(async tx=>{await tx.exec('SET LOCAL ROLE '+role);await tx.query('SELECT canonical_v4.named_read_dashboard_counts($1)',[generation]);}),code('42501'));
+  }
  });
  await check(2,async()=>{
   await set(1);broad=await context();assert.equal(broad.scope.kind,'semantic');assert.equal(broad.scope.id,'games');
@@ -143,6 +169,7 @@ export async function runCombinedAuthorHierarchyNativeAssertions(scope){
   await set(prior.defaultMaxDepth,prior.overrides);for(const id of ids)await owner.query('SELECT canonical_v4.ingest_forget_source($1,$2)',[generation,id]);await drain();
   assert(await has('games',semanticRoot));assert.equal(await has('games',namedRoot),false,'Source-derived fixed membership disappears');assert(await has('subject-'+leaf,namedRoot));
   const saved=await editor.root(JSON.stringify({generation,rootId:semanticRoot}));assert.deepEqual(saved.scope,{kind:'semantic',id:'games',caption:'Games'});
+  if(dashboard){const counts=(await dashboard.readHierarchySummary()).semantic.automatic;assert.equal(counts.matchedSources,0);assert.equal(counts.occupiedSubjects,0);assert(counts.topics.every(t=>t.sources===0));}
   for(const root of roots)await life.command(await expected(),{type:'withdraw',contributionId:root},actor);
   const all=[...roots,...replies];await owner.transaction(async tx=>{for(const table of ['command_receipts','revisions'])await tx.query('DELETE FROM canonical_v4.'+table+' WHERE contribution_id=ANY($1::text[])',[all]);
    await tx.query('DELETE FROM canonical_v4.contributions WHERE id=ANY($1::text[])',[all]);await tx.query('DELETE FROM canonical_v4.id_registry WHERE id=ANY($1::text[])',[[...all,...ids]]);});

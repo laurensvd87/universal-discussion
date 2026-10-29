@@ -8,7 +8,8 @@ import {createPostgresDashboardSource} from './data/postgres-catalog.js';
 import {generatePostgresDashboard,generatePostgresDashboardSnapshot,readPostgresDashboardRefreshKey,startPostgresDashboardGrowthSampler,DEFAULT_REPORT_PATH} from './cli.js';
 const data=fileURLToPath(new URL('../../local-service/data/',import.meta.url)),growthPath=path.join(data,'topic-growth-v2.sqlite');
 const lockPath=path.join(data,'dashboard-topic-counts-watcher.json'),stopPath=path.join(data,'dashboard-topic-counts.stop');
-const mode=process.argv[2];if(process.argv.length!==3||!['--once','--watch'].includes(mode))throw Error('Use --once or --watch');
+const mode=process.argv[2],automatic=process.argv[3]==='--automatic-topics';
+if(!['--once','--watch'].includes(mode)||process.argv.length!==(automatic?4:3))throw Error('Use --once or --watch, optionally --automatic-topics');
 let database=null,sampler=null,lock=null,timer=null,stopping=false,inFlight=Promise.resolve(),shutdown=null;
 const nonce=randomUUID();
 function releaseLock(){if(lock!==null){closeSync(lock);lock=null;const value=JSON.parse(readFileSync(lockPath,'utf8'));if(value.nonce===nonce)unlinkSync(lockPath);}}
@@ -21,10 +22,10 @@ try{
  const password=createWindowsDpapiPasswordProvider({role:'murmingle_app'});
  database=await createPgDatabase({config:{host:'127.0.0.1',port:55432,database:'murmingle_canonical',user:'murmingle_app',password,max:mode==='--once'?1:2,
   connectionTimeoutMillis:3000,idleTimeoutMillis:5000,application_name:'murmingle-dashboard',options:'-c default_transaction_read_only=on -c statement_timeout=5000 -c lock_timeout=1000'}});
- const source=createPostgresDashboardSource({database,schemaProfile:'hierarchy17'}),outputPath=mode==='--once'?path.join(data,'dashboard-topic-counts-preview','dashboard.html'):DEFAULT_REPORT_PATH;
+ const source=createPostgresDashboardSource({database,schemaProfile:automatic?'hierarchy18':'hierarchy17'}),outputPath=mode==='--once'?path.join(data,'dashboard-topic-counts-preview','dashboard.html'):DEFAULT_REPORT_PATH;
  const options={source,growthPath,outputPath};let revision=await readPostgresDashboardRefreshKey(source,{growthPath});
  const result=await generatePostgresDashboard(options);
- console.log(JSON.stringify({status:'ready',pid:process.pid,outputPath,classified:result.counts.semantic.currentHeadClassifiedSources,pending:result.counts.semantic.currentHeadPendingSources,automaticDiscovery:'not-enabled'}));
+ console.log(JSON.stringify({status:'ready',pid:process.pid,outputPath,classified:result.counts.semantic.currentHeadClassifiedSources,pending:result.counts.semantic.currentHeadPendingSources,automaticDiscovery:automatic?'enabled':'not-enabled'}));
  if(mode==='--once')await close();
  else{
   sampler=startPostgresDashboardGrowthSampler({source,growthPath,onOutcome:value=>{if(value.outcome==='failed')console.error('Dashboard growth sampling delayed.');}});

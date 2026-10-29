@@ -118,12 +118,12 @@ async function readPostgresDashboardBundle(source, growthPath, now, adapter, bod
     } else growth = readCatalogGrowthHistoryV2(growthPath, { now });
   } catch { /* Derived history failure never disables the canonical dashboard. */ }
   finally { try { store?.close(); } catch {} }
-  if(source.schemaProfile==='hierarchy17'){
+  if(['hierarchy17','hierarchy18'].includes(source.schemaProfile)){
     if(!current.semantic||!current.legacyContainers||current.state!==null)throw new Error('PostgreSQL dashboard unavailable');
     // This is a present-tense metadata view. V2 history remains the legacy
     // container series; no semantic values are written into that strict format.
     const base=buildStatsOnlyDashboardSnapshotV2(current.point);
-    return {snapshot:{...base,graphLimited:false,graphMode:'semantic-aggregates',schemaProfile:'hierarchy17',
+    return {snapshot:{...base,graphLimited:false,graphMode:'semantic-aggregates',schemaProfile:source.schemaProfile,
       catalogRevision:createHash('sha256').update(JSON.stringify([current.point.seriesId,current.header.catalogVersion,
         current.header.revision,current.semantic.revision])).digest('hex'),semantic:current.semantic,
       counts:{...base.counts,legacyContainers:current.legacyContainers,semantic:current.semantic.counts}},preview:null,growth};
@@ -169,7 +169,7 @@ export async function readPostgresDashboardRefreshKey(source, {
   bodyPath = LOCAL_BODY_METRIC_PATH,
   growthPath = path.join(path.dirname(APP_DATABASE_PATH), CATALOG_GROWTH_V2_FILENAME) } = {}) {
   if (!source || typeof source.readRevision !== "function") throw new TypeError("Invalid PostgreSQL dashboard source");
-  if(source.schemaProfile==='hierarchy17')return JSON.stringify([await source.readRevision(),...dashboardArtifactKeys([growthPath])]);
+  if(['hierarchy17','hierarchy18'].includes(source.schemaProfile))return JSON.stringify([await source.readRevision(),...dashboardArtifactKeys([growthPath])]);
   return JSON.stringify([await source.readRevision(), ...dashboardArtifactKeys([ridgePath, adapterPath, bodyPath, growthPath])]);
 }
 
@@ -240,7 +240,7 @@ export function generateDashboardSnapshot({ databasePath = APP_DATABASE_PATH, ou
 export async function generatePostgresDashboard({ source, outputPath = DEFAULT_REPORT_PATH,
   growthPath = path.join(path.dirname(APP_DATABASE_PATH), CATALOG_GROWTH_V2_FILENAME),
   now = () => new Date(), adapter, bodyMetric, ridgeAdapter } = {}) {
-  const hierarchy=source?.schemaProfile==='hierarchy17';
+  const hierarchy=['hierarchy17','hierarchy18'].includes(source?.schemaProfile);
   const installed = !hierarchy && adapter === undefined && bodyMetric === undefined && ridgeAdapter === undefined ? readInstalledOwnerTopicConfiguration() : {};
   const { snapshot, preview, growth } = await readPostgresDashboardBundle(source, growthPath, now,
     hierarchy?null:adapter ?? installed.alternateAdapter ?? null, hierarchy?null:bodyMetric ?? installed.alternateBodyMetric ?? null,
@@ -259,7 +259,7 @@ export async function generatePostgresDashboard({ source, outputPath = DEFAULT_R
 export async function generatePostgresDashboardSnapshot({ source, outputPath = DEFAULT_REPORT_PATH,
   growthPath = path.join(path.dirname(APP_DATABASE_PATH), CATALOG_GROWTH_V2_FILENAME),
   now = () => new Date(), adapter, bodyMetric, ridgeAdapter } = {}) {
-  const hierarchy=source?.schemaProfile==='hierarchy17';
+  const hierarchy=['hierarchy17','hierarchy18'].includes(source?.schemaProfile);
   const installed = !hierarchy && adapter === undefined && bodyMetric === undefined && ridgeAdapter === undefined ? readInstalledOwnerTopicConfiguration() : {};
   const { snapshot, preview, growth } = await readPostgresDashboardBundle(source, growthPath, now,
     hierarchy?null:adapter ?? installed.alternateAdapter ?? null, hierarchy?null:bodyMetric ?? installed.alternateBodyMetric ?? null,
@@ -357,7 +357,7 @@ export async function runPostgresDashboardCli({ source, args = process.argv.slic
   const initialRevision = oneShot ? undefined : await revision();
   const result = await generatePostgresDashboard({ source, growthPath });
   if (!oneShot) await openReport(result.outputPath);
-  if(source.schemaProfile==='hierarchy17'){
+  if(['hierarchy17','hierarchy18'].includes(source.schemaProfile)){
     const counts=result.counts.semantic,legacy=result.counts.legacyContainers;
     process.stdout.write(`Semantic dashboard ready: ${counts.currentHeadClassifiedSources} classified Sources; ${counts.currentHeadPendingSources} pending; ${counts.configuredDisplayGroups} configured display groups; ${counts.distinctRoots} distinct visible semantic roots. Legacy containers: ${legacy.multiMember} multi-member, ${legacy.singleton} singleton.\n${result.outputPath}\n`);
   }else{

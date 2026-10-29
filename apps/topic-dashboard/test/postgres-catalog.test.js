@@ -21,9 +21,14 @@ const START = "2026-10-13T12:00:00.000Z";
 const unit = angle => [Math.cos(angle), Math.sin(angle), ...Array(382).fill(0)];
 
 // Pure SQL-response ports. These tests do not acquire a database or execute SQL.
-async function hierarchyFixture(){
-  const manifest=await readCanonicalV4MigrationManifest('hierarchy17'),queries=[];let stamp='b'.repeat(64),policyRevision=0,depth=1;
+async function hierarchyFixture(profile='hierarchy17'){
+  const manifest=await readCanonicalV4MigrationManifest(profile),queries=[];let stamp='b'.repeat(64),automaticStamp='e'.repeat(64),policyRevision=0,depth=1;
   const generation='hierarchy-dashboard',matcher='a'.repeat(64);
+  const parent={id:'subject-11111111-1111-4111-8111-111111111111',title:'GTA'},leaf={id:'subject-22222222-2222-4222-8222-222222222222',title:'GTA VI'},other={id:'subject-33333333-3333-4333-8333-333333333333',title:'Other game'};
+  let automatic={schema:'automatic-topic-assignment-counts/v1',generation,matcherIdentityHash:matcher,activeSubjects:3,occupiedSubjects:3,matchedSources:3,truncated:false,
+    topics:[{...parent,parentId:null,directSources:0,sources:3,path:[parent]},
+      {...leaf,parentId:parent.id,directSources:2,sources:2,path:[parent,leaf]},
+      {...other,parentId:parent.id,directSources:1,sources:1,path:[parent,other]}]};
   let aggregate={generation,matcherIdentityHash:matcher,counts:{learnedSources:8,preparedSources:6,
     currentHeadClassifiedSources:3,currentHeadAbstainedSources:1,currentHeadExcludedSources:1,currentHeadPendingSources:3,distinctRoots:2},
     paths:[{path:['games','detail'],sources:3}]};
@@ -35,6 +40,8 @@ async function hierarchyFixture(){
       revision:version,catalog_version:2,matching_version:2}]};
     if(sql.startsWith('WITH learned AS'))return {rows:[{total_sources:10,learned_pages:8,active_topics:2,total_topics:3,multi_member_topics:1,singleton_topics:1}]};
     if(sql==='SELECT * FROM canonical_v4.semantic_read_revision()')return {rows:[{generation,revision:stamp}]};
+    if(sql==='SELECT * FROM canonical_v4.unified_read_revision()')return {rows:[{generation,revision:createHash('sha256').update(stamp+automaticStamp).digest('hex')}]};
+    if(sql==='SELECT canonical_v4.named_read_dashboard_counts($1) AS metadata')return {rows:[{metadata:automatic}]};
     if(sql==='SELECT canonical_v4.semantic_read_topic_nodes($1) AS metadata')return {rows:[{metadata:{generation,matcherIdentityHash:matcher,nodes:[
       {id:'detail',parentId:'games',path:['games','detail']},{id:'games',parentId:null,path:['games']},{id:'nature',parentId:null,path:['nature']}]}}]};
     if(sql==='SELECT * FROM canonical_v4.semantic_read_owner_policy()')return {rows:[{revision:String(policyRevision),default_max_depth:depth,overrides:[]}]};
@@ -42,10 +49,47 @@ async function hierarchyFixture(){
     assert.fail('No state, vectors or other SQL: '+sql);
   }};
   const database={query:()=>assert.fail('Every read belongs to the same physical RR'),transaction:work=>work(tx)};
-  return {queries,source:createPostgresDashboardSource({database,schemaProfile:'hierarchy17'}),database,
+  return {queries,source:createPostgresDashboardSource({database,schemaProfile:profile}),database,
     changePolicy(){policyRevision++;depth=2;stamp='c'.repeat(64);},changeBackground(){stamp='d'.repeat(64);},changeCanonical(){version++;},
-    mutate:fn=>fn(aggregate),drift:()=>{drift=true;}};
+    mutate:fn=>fn(aggregate),mutateAutomatic:fn=>fn(automatic),changeAutomatic:()=>{automaticStamp='f'.repeat(64);},drift:()=>{drift=true;}};
 }
+
+test('hierarchy18 keeps fixed and learned counts separate in one metadata-only read-only snapshot',async()=>{
+  const f=await hierarchyFixture('hierarchy18'),value=await f.source.readHierarchySummary();
+  assert.equal(value.semantic.assignments.mode,'fixed-owner-policy');assert.equal(value.semantic.assignments.automaticDiscovery,'enabled');
+  const a=value.semantic.automatic;assert.equal(a.matchedSources,3);assert.equal(a.activeSubjects,3);assert.equal(a.occupiedSubjects,3);
+  assert.equal(a.topics[0].directSources,0);assert.equal(a.topics[0].sources,3);assert.equal(a.topics.reduce((n,t)=>n+t.directSources,0),a.matchedSources);
+  assert.equal(Object.hasOwn(a,'generation'),false);assert.equal(Object.hasOwn(a,'matcherIdentityHash'),false);
+  assert.equal(new Set(f.queries.map(q=>q.tx)).size,1);assert(!f.queries.some(q=>/values_double|body_vector|title_values|SELECT source\.\*/u.test(q.sql)));
+  assert.equal((await f.source.readSnapshot()).state,null);await assert.rejects(f.source.loadState(),TypeError);
+});
+
+test('hierarchy18 observes a derived assignment change without altering fixed or canonical counts',async()=>{
+  const f=await hierarchyFixture('hierarchy18'),before=await f.source.readHierarchySummary(),revision=await f.source.readRevision();
+  f.mutateAutomatic(a=>{a.matchedSources=4;a.topics[0].sources=4;a.topics[1].directSources=3;a.topics[1].sources=3;});f.changeAutomatic();
+  const after=await f.source.readHierarchySummary();assert.notEqual(await f.source.readRevision(),revision);assert.equal(after.header.revision,before.header.revision);
+  assert.deepEqual(after.semantic.counts,before.semantic.counts);assert.equal(after.semantic.automatic.matchedSources,4);
+});
+
+test('hierarchy18 refuses mixed schema profiles and malformed or incoherent learned counters',async()=>{
+  for(const mutate of [a=>a.matchedSources=9,a=>a.activeSubjects=201,a=>a.truncated=true,a=>a.generation='other',a=>a.matcherIdentityHash='f'.repeat(64),
+    a=>a.topics.push(a.topics[0]),a=>a.topics[1].directSources=4,a=>a.topics[1].parentId=null,
+    a=>a.topics[1].path.push(a.topics[1].path[0]),a=>a.privateBody='unexpected',a=>a.occupiedSubjects=1]){
+    const f=await hierarchyFixture('hierarchy18');f.mutateAutomatic(mutate);await assert.rejects(f.source.readHierarchySummary(),{code:'dashboard-unavailable'});
+  }
+  for(const [databaseProfile,readerProfile] of [['hierarchy17','hierarchy18'],['hierarchy18','hierarchy17']]){
+    const f=await hierarchyFixture(databaseProfile);await assert.rejects(createPostgresDashboardSource({database:f.database,schemaProfile:readerProfile}).readHierarchySummary(),{code:'dashboard-unavailable'});
+  }
+});
+
+test('hierarchy18 dashboard generation preserves learned rows and avoids legacy graph/model loading',async t=>{
+  const directory=mkdtempSync(path.join(tmpdir(),'murmingle-automatic-dashboard-'));
+  t.after(()=>{assert(path.resolve(directory).startsWith(path.resolve(tmpdir())+path.sep));rmSync(directory,{recursive:true,force:true});});
+  const f=await hierarchyFixture('hierarchy18'),outputPath=path.join(directory,'dashboard.html');
+  await generatePostgresDashboard({source:f.source,outputPath,growthPath:path.join(directory,'growth.sqlite')});
+  const html=readFileSync(outputPath,'utf8');assert(html.includes('automatic-topic-assignment-counts/v1'));assert(html.includes('GTA VI'));assert(html.includes('hierarchy18'));
+  assert(!f.queries.some(q=>/SELECT source\.\*|values_double/u.test(q.sql)));assert(existsSync(path.join(directory,'snapshot.js')));
+});
 
 test('hierarchy17 summary partitions protected metadata separately from legacy containers in one RR without vectors',async()=>{
   const f=await hierarchyFixture(),value=await f.source.readHierarchySummary({now:()=>new Date(START)});

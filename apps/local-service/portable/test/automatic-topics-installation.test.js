@@ -15,7 +15,7 @@ test('the short invented fixture token fails before dispatch while its corrected
 });
 test('registered18 contains the exact reviewed component bytes in a fixed order',async()=>{
  const actual=await readFile(new URL('../canonical-v4/migrations/018-automatic-topics.sql',import.meta.url)),built=await buildAutomaticTopicsMigrationSource();assert.deepEqual(actual,built);
- assert.equal(AUTOMATIC_TOPICS_COMPONENTS.length,14);assert(Object.isFrozen(AUTOMATIC_TOPICS_COMPONENTS));await assert.rejects(buildAutomaticTopicsMigrationSource('arbitrary.sql'),TypeError);
+ assert.equal(AUTOMATIC_TOPICS_COMPONENTS.length,15);assert(Object.isFrozen(AUTOMATIC_TOPICS_COMPONENTS));await assert.rejects(buildAutomaticTopicsMigrationSource('arbitrary.sql'),TypeError);
 });
 test('schema18 appends one migration without changing any existing migration or default profile',async()=>{
  const old=await readCanonicalV4MigrationManifest('hierarchy17'),now=await readCanonicalV4MigrationManifest('hierarchy18');assert.equal(canonicalV4SchemaVersion(),9);assert.equal(canonicalV4SchemaVersion('hierarchy18'),18);

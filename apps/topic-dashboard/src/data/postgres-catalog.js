@@ -121,13 +121,42 @@ function metadataArray(value,max){
   return Array.from({length},(_,index)=>{const d=Object.getOwnPropertyDescriptor(value,String(index));if(!d?.enumerable||!Object.hasOwn(d,'value'))throw unavailable();return d.value;});
 }
 function counter(value){if(typeof value!=='number'||!Number.isSafeInteger(value)||value<0)throw unavailable();return value;}
-async function semanticRevisionIn(tx,header){
-  const {rows}=await tx.query('SELECT * FROM canonical_v4.semantic_read_revision()');
+async function semanticRevisionIn(tx,header,automatic=false){
+  const {rows}=await tx.query(automatic?'SELECT * FROM canonical_v4.unified_read_revision()':'SELECT * FROM canonical_v4.semantic_read_revision()');
   if(rows.length!==1)throw unavailable();const row=metadataRecord(rows[0],['generation','revision']);
   if(row.generation!==header.generation||typeof row.revision!=='string'||!/^[a-f0-9]{64}$/u.test(row.revision))throw unavailable();return row.revision;
 }
-async function hierarchyIn(tx,header,point){
-  const revision=await semanticRevisionIn(tx,header);
+async function automaticCountsIn(tx,header,topology,point){
+  const {rows}=await tx.query('SELECT canonical_v4.named_read_dashboard_counts($1) AS metadata',[header.generation]);
+  if(rows.length!==1)throw unavailable();
+  const a=metadataRecord(rows[0].metadata,['schema','generation','matcherIdentityHash','activeSubjects','occupiedSubjects','matchedSources','truncated','topics']);
+  if(a.schema!=='automatic-topic-assignment-counts/v1'||a.generation!==header.generation||a.matcherIdentityHash!==topology.matcherIdentityHash||
+    typeof a.truncated!=='boolean')throw unavailable();
+  for(const key of ['activeSubjects','occupiedSubjects','matchedSources'])counter(a[key]);
+  if(a.occupiedSubjects>a.activeSubjects||a.matchedSources>point.learnedPages||a.truncated!==(a.activeSubjects>200)||
+    (a.matchedSources===0)!==(a.occupiedSubjects===0))throw unavailable();
+  const id=value=>typeof value==='string'&&/^subject-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(value);
+  const title=value=>typeof value==='string'&&value.trim().length>0&&value.length<=200&&!/[\u0000-\u001f\u007f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u.test(value);
+  const ids=new Set(),labels=new Map();let direct=0,previous=null;
+  const topics=metadataArray(a.topics,200).map(value=>{
+    const row=metadataRecord(value,['id','parentId','title','directSources','sources','path']);
+    if(!id(row.id)||ids.has(row.id)||row.parentId!==null&&!id(row.parentId)||!title(row.title))throw unavailable();ids.add(row.id);
+    counter(row.directSources);counter(row.sources);if(row.directSources>row.sources||row.sources>a.matchedSources)throw unavailable();direct+=row.directSources;
+    const pathIds=new Set(),path=metadataArray(row.path,8).map(value=>{
+      const node=metadataRecord(value,['id','title']);if(!id(node.id)||!title(node.title)||pathIds.has(node.id)||labels.has(node.id)&&labels.get(node.id)!==node.title)throw unavailable();
+      pathIds.add(node.id);labels.set(node.id,node.title);return Object.freeze(node);
+    });
+    if(!path.length||path.at(-1).id!==row.id||path.at(-1).title!==row.title||(path.length===1?null:path.at(-2).id)!==row.parentId)throw unavailable();
+    if(previous&&(previous.sources<row.sources||previous.sources===row.sources&&
+      (Buffer.compare(Buffer.from(previous.title),Buffer.from(row.title))>0||previous.title===row.title&&previous.id>row.id)))throw unavailable();previous=row;
+    return Object.freeze({...row,path:Object.freeze(path)});
+  });
+  if(topics.length!==Math.min(a.activeSubjects,200)||!Number.isSafeInteger(direct)||direct>a.matchedSources||!a.truncated&&direct!==a.matchedSources||
+    topics.filter(t=>t.sources>0).length!==Math.min(a.occupiedSubjects,200))throw unavailable();
+  return Object.freeze({schema:a.schema,activeSubjects:a.activeSubjects,occupiedSubjects:a.occupiedSubjects,matchedSources:a.matchedSources,truncated:a.truncated,topics:Object.freeze(topics)});
+}
+async function hierarchyIn(tx,header,point,automatic=false){
+  const revision=await semanticRevisionIn(tx,header,automatic);
   const topology=await createCanonicalV4SemanticMetadataRepository({database:tx}).topics({generation:header.generation});
   const policy=await createCanonicalV4SemanticDiscussionRepository({database:tx}).ownerPolicy();
   const {rows}=await tx.query('SELECT canonical_v4.semantic_read_dashboard_counts($1) AS metadata',[header.generation]);
@@ -155,10 +184,11 @@ async function hierarchyIn(tx,header,point){
   const {learnedSources,...semanticCounts}=counts;
   return Object.freeze({revision,policyRevision:policy.revision,protectedMetadataOnly:true,
     preparedScope:'alive-learned-source-retained-input-any-model-or-version',
-    assignments:Object.freeze({schema:'topic-assignment-counts/v1',mode:'owner-display-policy',automaticDiscovery:'not-enabled',
+    assignments:Object.freeze({schema:'topic-assignment-counts/v1',mode:automatic?'fixed-owner-policy':'owner-display-policy',automaticDiscovery:automatic?'enabled':'not-enabled',
       topics:Object.freeze([...assignments.values()].sort((a,b)=>b.sources-a.sources||Buffer.compare(Buffer.from(a.id),Buffer.from(b.id))).map(topic=>Object.freeze(topic)))}),
     counts:Object.freeze({...semanticCounts,activeNodes:topology.nodes.length,
-      configuredDisplayGroups:directory.topics.length,occupiedDisplayGroups:occupied.size})});
+      configuredDisplayGroups:directory.topics.length,occupiedDisplayGroups:occupied.size}),
+    ...(automatic?{automatic:await automaticCountsIn(tx,header,topology,point)}:{})});
 }
 
 function verifyTopic(row, reference) {
@@ -298,7 +328,8 @@ async function snapshot(database, work) {
 export function createPostgresDashboardSource({ database, schemaProfile='legacy9' } = {}) {
   if (!database || typeof database.query !== "function" || typeof database.transaction !== "function")
     throw new TypeError("Invalid PostgreSQL dashboard dependencies");
-  if(!['legacy9','hierarchy17'].includes(schemaProfile))throw new TypeError('Invalid dashboard schema profile');
+  if(!['legacy9','hierarchy17','hierarchy18'].includes(schemaProfile))throw new TypeError('Invalid dashboard schema profile');
+  const hierarchy=schemaProfile!=='legacy9',automatic=schemaProfile==='hierarchy18';
   let manifest=null;
   async function health(tx){
     manifest??=await readCanonicalV4MigrationManifest(schemaProfile);
@@ -306,7 +337,7 @@ export function createPostgresDashboardSource({ database, schemaProfile='legacy9
     if(rows.length!==manifest.length||rows.some((row,index)=>Number(row.version)!==manifest[index].version||row.hash!==manifest[index].hash))throw unavailable();
   }
   async function summaryIn(tx,now){
-    await health(tx);const header=await headerIn(tx),point=await countsIn(tx,header,now),semantic=await hierarchyIn(tx,header,point);
+    await health(tx);const header=await headerIn(tx),point=await countsIn(tx,header,now),semantic=await hierarchyIn(tx,header,point,automatic);
     return Object.freeze({header:Object.freeze({...header,semanticRevision:semantic.revision}),point,
       legacyContainers:Object.freeze({active:point.activeTopics,total:point.totalTopics,multiMember:point.multiMemberTopics,singleton:point.singletonTopics}),semantic});
   }
@@ -316,7 +347,7 @@ export function createPostgresDashboardSource({ database, schemaProfile='legacy9
       return snapshot(database, async tx => {
         await health(tx);
         const header = await headerIn(tx);
-        if(schemaProfile==='hierarchy17')return JSON.stringify([header.generation,header.catalogVersion,header.revision,await semanticRevisionIn(tx,header)]);
+        if(hierarchy)return JSON.stringify([header.generation,header.catalogVersion,header.revision,await semanticRevisionIn(tx,header,automatic)]);
         return JSON.stringify([header.generation, header.catalogVersion]);
       });
     },
@@ -326,12 +357,12 @@ export function createPostgresDashboardSource({ database, schemaProfile='legacy9
     },
 
     async readHierarchySummary({now=()=>new Date()}={}){
-      if(schemaProfile!=='hierarchy17')throw new TypeError('Hierarchy dashboard profile required');
+      if(!hierarchy)throw new TypeError('Hierarchy dashboard profile required');
       return snapshot(database,tx=>summaryIn(tx,now));
     },
 
     async loadState() {
-      if(schemaProfile==='hierarchy17')throw new TypeError('Hierarchy dashboard is aggregate only');
+      if(hierarchy)throw new TypeError('Hierarchy dashboard is aggregate only');
       return snapshot(database, async tx => {
         await health(tx);
         const header = await headerIn(tx);
@@ -343,7 +374,7 @@ export function createPostgresDashboardSource({ database, schemaProfile='legacy9
       if (!Number.isSafeInteger(graphLimit) || graphLimit < 0 || graphLimit > 100_000)
         throw new TypeError("Invalid PostgreSQL dashboard graph limit");
       return snapshot(database, async tx => {
-        if(schemaProfile==='hierarchy17')return Object.freeze({...await summaryIn(tx,now),state:null});
+        if(hierarchy)return Object.freeze({...await summaryIn(tx,now),state:null});
         await health(tx);
         const header = await headerIn(tx), point = await countsIn(tx, header, now);
         const state = point.learnedPages > graphLimit ? null : await stateIn(tx, header);

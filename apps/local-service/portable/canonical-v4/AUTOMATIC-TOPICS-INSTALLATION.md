@@ -1,7 +1,7 @@
 # Registered automatic topic schema18
 
 `hierarchy18` appends one checked-in migration to the unchanged registered1..17
-manifest. Migration018 contains the exact bytes of fourteen reviewed component
+manifest. Migration018 contains the exact bytes of fifteen reviewed component
 SQL files in a fixed dependency order. The build-time helper only returns those
 bytes; it never writes or installs them. Ordinary migration manifests read the
 checked-in file. After live activation both this migration and its incorporated
@@ -95,3 +95,33 @@ Its closed report names/statuses and outcome hashes equal the earlier accepted19
 run; the distinct invocation/source catalog and audited run identify this new
 execution. A FIFO fixture proves wiring and drains, not production pool concurrency,
 real E5 quality or live readiness. The live sealed release still uses schema17.
+
+Before activation, a fifteenth aggregate-only dashboard component is appended to
+018; the earlier accepted14-component versions remain immutable in their commits
+and do not establish acceptance of these later bytes. It counts current protected
+leaf selections once, then rolls those counts through complete active named paths
+of at most8 nodes. The read returns exact totals and at most200 topic rows, with
+explicit truncation. It reads no vector or Source payload and returns no Source
+identifier, URL or body. Only the app role can execute this aggregate; private
+tables and its trigger remain unavailable to app/worker/crawler/adapter roles.
+
+A real selection change appends at most2 existing bounded scope events. It adds
+no shared writer counter, head FK wait or child-tree fanout. Thus the existing
+unified revision changes even when matching to an existing topic needs no new
+canonical Source revision. Dashboard18 uses that revision and one read-only RR
+snapshot. Its original fixed hierarchy is explicitly labeled as ground topics;
+learned topics show direct and subtree page counts separately. The total counts
+each page once and the display explains ancestor overlap. The new watcher flag
+`--automatic-topics` requires exact18; default17 behavior is preserved. The live
+watcher has not been switched.
+
+Nine real headless Chrome checks pass on synthetic metadata, including narrow
+layout, automatic refresh independent of fixed counts, retaining the last good
+view after bad metadata, refusing missing18 counts and literal caption rendering.
+An initial actual browser failure exposed a remaining17-only UI dispatch; the
+strict17/18 branch fixes it and refuses unknown semantic snapshot profiles. Eight
+pure dashboard reader tests and24 CLI/refresh tests pass. The native fixture now
+adds real app-role Source counts, selection-only revision change, a rolled-back
+1000-head response-bound control and Source erasure to its existing joined cases.
+That new15-component SQL proof is pending; these fixtures do not prove real E5,
+production load, real-data recovery or live readiness.
