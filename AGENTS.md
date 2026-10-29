@@ -8,6 +8,18 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct crawler6384 independently completed 20:07:16Z/frontier-empty after
+15167 ingested this run; no stop by agent/stderr0. Readonly reconciliation confirms
+zero staged/attempted, SQL pending/leased0, same generation, 1142184 queued; no local
+or canonical writes/disposition. Current sealed hierarchy17 preflight PASS1204files
+163203647B/be901259...3d83f. Separately decided ONE unchanged normal resume26784
+2026-10-29T20:23:49.5534078Z; startup catalog progressing/stderr0. Preserve this
+crawler, no duplicate/reset/reseal. Audit data/crawler-normal-resume-audit-20261029.json;
+start/logs postgres-crawler-normal-resume-20261029.*. Original PostgreSQL18688,
+worker11880/API38860/dashboard28420 preserved. Source goalACTIVE, owner150 checkpoint
+below pushed ebeaa5d4; complete18/unified hierarchy+search/recovery/UI/quality OPEN.
+
+
 LATEST29Oct owner-wide/per-topic learned grouping actual SQL ACCEPTED, NOT LIVE.
 Previous goalturnPROGRESS; Root-only/source+owned150 proof, goalACTIVE. Production
 888e4c89 remains byteidentical; fixed Source deepest match retained, one existing
