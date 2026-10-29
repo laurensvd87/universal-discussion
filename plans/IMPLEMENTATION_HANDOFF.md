@@ -1,5 +1,34 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct public registry metadata ACTUAL PASSED. Source4653efe2, catalogba7fb0f8,
+SHAf0b39c332ca0ced4126d5f2aa21b7656a2314e3bb12582d52b6e3aed6837d360,
+2538files/276601238B. Maintained owned native run
+run-b47368558c2bbde803d763ac117efe1ea9a41159d3acffe6 EXIT0/acceptedTRUE:
+8new metadata assertions and original25 semantic assertions pass. Native child
+JSON retains8new cases separately; frozen supervisor counters remain25/3.
+Root audit checks exact ledgers/result/stdout/stderr/catalog hashes, two fresh
+DBdrops, exact owned-server smart-stop, all handles closed/emptyJob/endpinsTRUE,
+emergencyFALSE. Root-only; no metadata-concurrency/semantic-quality/load claim.
+Result e0c404c70daa5ad6821fbbe1d5aaaf297bd34630c5252afb9b63c7030de7ecde;
+stdout895d0bbd2fdb9fdf9b598285813ce6f98d3ace32a3b0d43135891db49350e4dc;
+stderr0. Read data/public-subject-registry-native-root-audit-20261029.json.
+
+Two failed historical runs retained/audited: first5newpass, sixth fixture duplicated
+an incoming sitelink and failed beforeSQL; exact correctionb96b2afe removes that
+existing entity from the incoming batch. Second8newpass, original final installer
+case failed against retired18-node expectations; current source already uses
+verified20-node model4e9b...45524. Exact hash/count expectations updated4653efe2;
+all original25 case identities, transaction, rollback and role checks retained.
+Third complete run passes. No caps raised or production data/settings changed.
+The draft SQL and adapter are still unregistered metadata-only building blocks:
+not complete18, Source membership, ancestry, discussion assignment or UI. See
+portable/canonical-v4/drafts/README.md. NEXT exactSource/version/receipt binding,
+erasure, actual author-selected context, indexed pagination and completeprofile/
+role-race/recovery/UI checks before rollout. Fixed focus candidate remains frozen.
+Original PG/API/worker/dashboard/crawler starts verified; crawler6384 advances7674,
+stderr0; isolated55433 listener absent. Goal active.
+
+
 29Oct exact public entity route now implemented and measured. A read-only count
 found65,744 Wikipedia Sources among66,148 total, without exporting owner URLs or
 content. Public pilot94ad6f98 uses8 independently declared public QIDs/24 exact

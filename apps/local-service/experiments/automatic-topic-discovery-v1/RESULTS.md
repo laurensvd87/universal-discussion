@@ -206,3 +206,29 @@ this pilot does not authorize sending a personal browsing inventory externally.
 Official references: [Wikidata data access](https://www.wikidata.org/wiki/Wikidata:Data_access),
 [Wikibase API](https://www.mediawiki.org/wiki/Wikibase/API),
 [structured-data CC0 licensing](https://www.wikidata.org/wiki/Wikidata:Licensing).
+
+## Persistent metadata registry: actual PostgreSQL result
+
+The unregistered public-subject-registry draft now passes eight real PostgreSQL
+checks alongside the existing25 semantic regression cases. The eight cover an
+empty owned registry, multilingual/same-name separation, idempotency across
+response batches, stable IDs with immutable older labels, stale/conflicting
+revision refusal, atomic rollback of an earlier batch item on sitelink collision,
+app/worker/crawler permissions and invalid metadata/own-object retirement.
+
+Two earlier failed outputs remain: a bad collision fixture was rejected before
+SQL (five new cases passed), then all eight passed while an existing regression
+still expected the retired18-node artifact. The corrected current20-node hash/
+counts retain all original transaction, rollback and role checks. Final source
+4653efe2/catalogba7fb0f8 is accepted; original25 and new8 pass. The fixed transport
+still reports25/3, and separately validates the new8-case array without aliasing.
+
+Final result e0c404c70daa5ad6821fbbe1d5aaaf297bd34630c5252afb9b63c7030de7ecde;
+stdout895d0bbd2fdb9fdf9b598285813ce6f98d3ace32a3b0d43135891db49350e4dc;
+stderr0. Root audit rechecks exact cases/hashes/catalog and normal owned cleanup:
+both scratch databases dropped, own server smart-stopped, empty Job/all handles/
+end pins true, no emergency. The original five live process starts remain and
+crawler6384 advances. This is Root-only SQL behavior, not an independent review,
+metadata concurrency load test, Source assignment, ontology, topic quality or UI
+integration. Complete canonical18 registration, Source/privacy/context/search
+boundaries and rollout remain required. No live DDL or topic was activated.

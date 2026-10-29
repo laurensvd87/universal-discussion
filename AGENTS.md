@@ -8,6 +8,23 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct registrymetadata SQL ACTUALPASS: source4653efe2/catalogba7fb0f8,
+mapf0b39c33...7d360/2538files/276601238B. Ownednative run-b47368558c2bbde803d763ac117efe1ea9a41159d3acffe6 EXIT0:
+8newpublicmetadata cases+original25 PASS; transport25/3 retained, extra8required
+separately. Rootaudit result e0c404c7...7ecde/stdout895d0bbd...e4dc/stderr0;
+endpins/allhandles/emptyJob/2DBdrops/ownsmartstop TRUE/emergencyFALSE.
+Root-only/noactualmetadata-concurrency/quality/multiuser claim. Firstfailure
+5newPASS/sixthbadfixturepre-SQLduplicate; exactfixturefixb96b2afe. Second8PASS,
+oldfinalcase expectedretired18nodehash; exactcurrent20hash/counts fixed4653efe2,
+all25identities/transaction/role/rollback assertions retained. Bothfailuresandmaps
+preserved/audited. SQLdraft/adapter nowverified but UNREGISTERED/no liveDDL18.
+NoSourcebinding/erasure/postingcontext/search/ancestry/UI integrated yet.
+NEXT completeSource/version/receipt fence+erase and visibleauthorcontext before
+schema18/profile/index/roles-races/recovery/UI/cutover. Frozenfocus unchanged.
+CIM5original starts confirmed; crawler6384 advancing7674/stderr0; port55433absent.
+GOALACTIVE, actualprogress/componentcomplete notoverallsolutioncomplete.
+
+
 LATEST29Oct publicentityroute: readonly aggregate66148Sources/65744Wikipedia,
 noownercontentexport. NEW94ad6f98 exactsitelinkresolver +ONEpublic8QIDpilot:
 24declaredEN/DE/NL URLs/24correct/0unresolved/0wrong; cached24lookupmedian0.0593ms,

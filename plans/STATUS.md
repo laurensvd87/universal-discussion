@@ -1,5 +1,16 @@
 # Project status
 
+29October PostgreSQL named-subject metadata storage now passes its actual owned
+fixture:8new cases plus all25 semantic regression cases. Stable UUIDs survive
+label updates; multilingual and equal-name entities stay distinct; stale/conflict
+imports roll back atomically; app/worker/crawler write boundaries pass. Exact
+owned-server cleanup/twoDBdrops/endpins pass, no emergency. Root-only, no matching
+quality or many-user throughput claim. The complete result and two earlier test
+failures are retained/audited. Draft SQL remains unregistered: complete18/Source
+membership/erasure/author context/search/UI/cutover still open. Crawler6384 and all
+original service starts preserved. No live database change; goal remains active.
+
+
 29October public identity and persistent registry progress: read-only aggregate
 counts show99.39% of66,148 saved Sources are Wikipedia. A new exact public
 sitelink resolver correctly joins24 predeclared URLs/8 entities across EN-DE-NL,

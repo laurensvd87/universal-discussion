@@ -95,8 +95,10 @@ outside page reads; do not send personal browsing inventories by default.
 An unregistered SQL building block and adapter now implement public entity
 metadata storage and stable UUID/version behavior. Eight separate native checks
 are composed in the maintained owned fixture, with original semantic25 unchanged.
-Until actual proof and the complete schema18 Source/context/search integration,
-this is no live topic registry or assignment authority. Provider identity is not
+Actual owned PostgreSQL checks now pass eight metadata cases plus the original25
+semantic regression cases, with exact normal cleanup and no live change. Until
+the complete schema18 Source/context/search integration, this is no live topic
+registry or assignment authority. Provider identity is not
 general-page linking or discussion ancestry; importing P31/P279/taxon relations
 as one undifferentiated parent relation remains prohibited by the design.
 
