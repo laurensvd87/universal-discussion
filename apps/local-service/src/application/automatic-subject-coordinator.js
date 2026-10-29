@@ -16,7 +16,8 @@ function wait(ms,signal){if(signal.aborted)return Promise.resolve();return new P
 function create(options,pause,testComposition){
  if(!options||types.isProxy(options))bad();const hasFeeds=Object.hasOwn(options,'feeds');
  const hasPublic=Object.hasOwn(options,'publicEvidence');
- const {retrieval,subjects,readGeneration,descriptorJson,feeds=null,publicEvidence=null}=fields(options,['retrieval','subjects','readGeneration','descriptorJson',...(hasFeeds?['feeds']:[]),...(hasPublic?['publicEvidence']:[])]);
+ const hasSingle=Object.hasOwn(options,'singleSourceTopics');
+ const {retrieval,subjects,readGeneration,descriptorJson,feeds=null,publicEvidence=null,singleSourceTopics=null}=fields(options,['retrieval','subjects','readGeneration','descriptorJson',...(hasFeeds?['feeds']:[]),...(hasPublic?['publicEvidence']:[]),...(hasSingle?['singleSourceTopics']:[])]);
  if(typeof readGeneration!=='function'||typeof descriptorJson!=='string'||Buffer.byteLength(descriptorJson)>2048)bad();let descriptor;
  try{descriptor=fields(JSON.parse(descriptorJson),['matcherHash','representationHash','inputDefinition']);}catch{bad();}
  if(typeof descriptor.matcherHash!=='string'||typeof descriptor.representationHash!=='string'||!/^[a-f0-9]{64}$/u.test(descriptor.matcherHash)||!/^[a-f0-9]{64}$/u.test(descriptor.representationHash)||
@@ -25,12 +26,21 @@ function create(options,pause,testComposition){
  for(const name of ['candidates','publish'])if(typeof subjects?.[name]!=='function')bad();
  if(hasFeeds&&(!feeds||typeof feeds.tasks!=='function'||typeof feeds.process!=='function'))bad();
  if(hasPublic&&(!publicEvidence||typeof publicEvidence.turn!=='function'))bad();
+ if(hasSingle&&(!singleSourceTopics||typeof singleSourceTopics.match!=='function'))bad();
  let started=false,closed=false,running=null,closing=null,generation=null,phase='idle',lastOutcome='not-started';const abort=new AbortController();
  const counts={turns:0,indexed:0,indexRetired:0,discoveries:0,published:0,retained:0,capacity:0,conflicts:0,failures:0,generationChanges:0,
   feedCompleted:0,feedAdvanced:0,feedBusy:0,feedRetired:0};
  if(hasPublic)Object.assign(counts,{publicEvidenceCompleted:0,publicEvidenceDeferred:0});
+ if(hasSingle)Object.assign(counts,{singleMatched:0,singleRetained:0,singleUnresolved:0,singleCapacity:0,singleBusy:0,singleRetired:0});
  const bump=key=>{counts[key]=Math.min(MAX,counts[key]+1);};
  function failure(error){bump(error?.code==='conflict'?'conflicts':'failures');lastOutcome=phase+'-unavailable';}
+ async function matchSingle(scope,sourceId){
+  phase='single-source';const r=await singleSourceTopics.match(JSON.stringify({...scope,sourceId}));if(closed)return null;
+  const s=fields(r,['status','subjectId','candidates']);if(!['matched','retained','unresolved','capacity','busy','retired'].includes(s.status)||
+   !Number.isSafeInteger(s.candidates)||s.candidates<0||s.candidates>65||(['matched','retained'].includes(s.status)?
+    typeof s.subjectId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(s.subjectId):s.subjectId!==null))bad();
+  bump({matched:'singleMatched',retained:'singleRetained',unresolved:'singleUnresolved',capacity:'singleCapacity',busy:'singleBusy',retired:'singleRetired'}[s.status]);return s.status;
+ }
  async function turn(){
   bump('turns');phase='generation';const next=await readGeneration();if(closed)return false;if(!validId(next))bad();
   if(generation!==next){if(generation!==null)bump('generationChanges');generation=next;}
@@ -54,7 +64,8 @@ function create(options,pause,testComposition){
   if(!Array.isArray(tasks)||tasks.length>8)bad();
   for(const task of tasks){if(closed)return work;work=true;phase='index';try{
    const status=await retrieval.index(JSON.stringify({...scope,task}));if(closed)return work;
-   if(status==='indexed')bump('indexed');else if(['retired','obsolete','zero-paired-norm'].includes(status))bump('indexRetired');else bad();
+   if(status==='indexed'){bump('indexed');if(singleSourceTopics)await matchSingle(scope,task.sourceId);}
+   else if(['retired','obsolete','zero-paired-norm'].includes(status))bump('indexRetired');else bad();
   }catch(error){failure(error);}}
   if(closed)return work;phase='discovery-tasks';const seeds=await retrieval.discoveryTasks(rawScope);if(closed)return work;
   if(!Array.isArray(seeds)||seeds.length>4)bad();
@@ -71,6 +82,11 @@ function create(options,pause,testComposition){
     phase='publishing';const result=await subjects.publish(JSON.stringify({...input,candidates}));if(closed)return work;
     if(result?.status!=='published')throw unavailable();bump('published');for(const s of result.selections)if(s.reason==='retained-supported-subject')bump('retained');
    }else{phase='publishing';const result=await subjects.publish(JSON.stringify(input));if(closed)return work;if(result?.status!=='published')throw unavailable();bump('published');}
+   // Initial index matching makes an existing topic available before the more
+   // expensive neighbourhood work. Recheck afterwards so a broad cohort cannot
+   // leave this page below a still-confident existing leaf.
+   if(singleSourceTopics){const matched=await matchSingle(scope,seed.sourceId);if(closed)return work;
+    if(matched==='busy')throw Object.assign(unavailable(),{code:'conflict'});}
    phase='complete';const completed=await retrieval.complete(request);if(closed)return work;
    if(completed===true){bump('discoveries');lastOutcome='published';}else lastOutcome='published-seed-replaced';
   }catch(error){failure(error);}}
@@ -81,7 +97,7 @@ function create(options,pause,testComposition){
   }phase='closed';}
  const api=Object.freeze({start(){if(started||closed)throw unavailable();started=true;running=run();return api;},
   describe:()=>Object.freeze({schema:'automatic-topic-coordinator/v1',phase,lastOutcome,counts:Object.freeze({...counts}),testComposition,
-   limits:Object.freeze({indexTasks:8,discoveryTasks:4,feedTasks:feeds?8:0,...(hasPublic?{publicEvidenceTasks:2}:{}),rawNeighbours:128,cohort:64}),assignmentAuthority:false,nativeObservation:false}),
+   limits:Object.freeze({indexTasks:8,discoveryTasks:4,feedTasks:feeds?8:0,...(hasPublic?{publicEvidenceTasks:2}:{}),...(hasSingle?{singleSourceMatches:12}:{}),rawNeighbours:128,cohort:64}),assignmentAuthority:false,nativeObservation:false}),
   close(){if(!closing){closed=true;abort.abort();closing=(async()=>{if(running)await running;phase='closed';})();}return closing;}
  });return api;
 }

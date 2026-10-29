@@ -139,7 +139,7 @@ test('generic subject persistence and erasure cases are mandatory independently 
 });
 
 test('indexed retrieval, coordinator, first-parent attachment and retention cases cannot be borrowed from registry cases',()=>{
- for(const length of [0,1,9]){const input=lifecycle();input.checks.automaticRetrievalCases.length=length;assert.equal(projectSemanticNativeResult(input).accepted,false);}
+ for(const length of [0,1,9,19]){const input=lifecycle();input.checks.automaticRetrievalCases.length=length;assert.equal(projectSemanticNativeResult(input).accepted,false);}
  for(const status of ['running','failed']){const input=lifecycle();input.checks.automaticRetrievalCases[7].status=status;assert.equal(projectSemanticNativeResult(input).accepted,false);}
  const wrong=lifecycle();wrong.checks.automaticRetrievalCases[0].name=AUTOMATIC_SUBJECT_NATIVE_CASES[0];assert.throws(()=>projectSemanticNativeResult(wrong),TypeError);
  const absent=lifecycle();delete absent.checks.automaticRetrievalCases;assert.throws(()=>projectSemanticNativeResult(absent),TypeError);

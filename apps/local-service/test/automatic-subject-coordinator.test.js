@@ -37,6 +37,21 @@ test('index tasks precede discovery and do not start another encoder or ingestio
  const s=setup();s.options.retrieval.indexTasks=async()=>[{sourceId:'source-a',queueOrdinal:'1',snapshot:null}];
  const loop=create(s.options,{wait:s.pause}).start();await s.waiting.promise;assert.equal(s.events[0],'index');assert.equal(loop.describe().counts.indexed,1);await loop.close();
 });
+test('existing topic matching runs immediately after indexing and again after broader discovery',async()=>{
+ const s=setup();s.options.retrieval.indexTasks=async()=>[{sourceId:s.a.seedSourceId,queueOrdinal:'1',snapshot:null}];
+ s.options.singleSourceTopics={match:async raw=>{assert.equal(JSON.parse(raw).sourceId,s.a.seedSourceId);s.events.push('single');return {status:'matched',subjectId:'a0000000-0000-4000-8000-000000000001',candidates:2};}};
+ const loop=create(s.options,{wait:s.pause}).start();await s.waiting.promise;assert.deepEqual(s.events,['index','single','candidates','publish','single','complete']);
+ assert.equal(loop.describe().counts.singleMatched,2);assert.equal(loop.describe().limits.singleSourceMatches,12);await loop.close();
+});
+test('a busy final single-page lookup leaves the durable discovery request unacknowledged',async()=>{
+ const s=setup();s.options.singleSourceTopics={match:async()=>({status:'busy',subjectId:null,candidates:1})};
+ const loop=create(s.options,{wait:s.pause}).start();assert.equal(await s.waiting.promise,1000);assert(!s.events.includes('complete'));assert.equal(loop.describe().counts.singleBusy,1);await loop.close();
+});
+test('close joins physical single-page work without dispatching later discovery or completion',async()=>{
+ const s=setup(),entered=defer(),release=defer();s.options.singleSourceTopics={match:async()=>{entered.resolve();return release.promise;}};
+ const loop=create(s.options,{wait:s.pause}).start();await entered.promise;let closed=false;const closing=loop.close().then(()=>{closed=true;});await Promise.resolve();assert.equal(closed,false);
+ release.resolve({status:'unresolved',subjectId:null,candidates:0});await closing;assert(!s.events.includes('complete'));
+});
 test('an uncertain publication is not acknowledged; its durable request can be retried after backoff',async()=>{
  const s=setup();s.options.subjects={candidates:async()=>[],publish:async()=>{throw Object.assign(Error('stale Source'),{code:'conflict'});}};
  const loop=create(s.options,{wait:s.pause}).start();assert.equal(await s.waiting.promise,1000);

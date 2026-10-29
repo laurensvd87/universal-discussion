@@ -6,6 +6,7 @@ import {createAutomaticNamedSubjectRepository as subjectRepo} from '../canonical
 import {buildAutomaticSubjectCohort} from '../../src/application/automatic-subject-cohort.js';
 import {createAutomaticSubjectCoordinator} from '../../src/application/automatic-subject-coordinator.js';
 import {describeRootedHierarchyMatcher} from '../../src/domain/hierarchy-rooted-matcher.js';
+import {runSingleSourceTopicNativeAssertions} from './single-source-topic-native-assertions.js';
 import names from './automatic-retrieval-native-cases.json' with {type:'json'};
 export const AUTOMATIC_RETRIEVAL_NATIVE_CASES=Object.freeze([...names]);
 const code=c=>e=>e?.code===c,sha=v=>createHash('sha256').update(v).digest('hex');
@@ -97,10 +98,11 @@ export async function runAutomaticRetrievalNativeAssertions(scope){
   for(const role of ['murmingle_app','murmingle_crawler_submitter'])for(const sql of ["SELECT canonical_v4.named_neighbours('g','h','s',1)","SELECT canonical_v4.named_index_tasks('g','h')"])
    await assert.rejects(owner.transaction(async tx=>{await tx.exec('SET LOCAL ROLE '+role);await tx.query(sql);}),code('42501'));
  });
+ await runSingleSourceTopicNativeAssertions({...scope,matcherHash,descriptor,subjects,retrieval,page,check:(index,body)=>test(cases,index,body)});
 }
 
 export async function retireAutomaticRetrievalNativeAssertions({owner,cases}){
- await test(cases,9,async()=>{
+ await test(cases,19,async()=>{
   for(const table of ['named_retrieval_inputs','named_retrieval_terms','named_index_requests','named_discovery_requests'])assert.equal((await one(owner,'SELECT count(*)::integer n FROM canonical_v4.'+table)).n,0);
   await owner.exec(`DROP TRIGGER named_prepared_index_request ON canonical_v4.semantic_observations;
    DROP TRIGGER named_retrieval_source ON canonical_v4.sources;DROP TRIGGER named_retrieval_receipt ON canonical_v4.operation_receipts;
@@ -108,6 +110,7 @@ export async function retireAutomaticRetrievalNativeAssertions({owner,cases}){
    DROP FUNCTION canonical_v4.named_prepared_index_request(),canonical_v4.named_invalidate_retrieval(),canonical_v4.named_enqueue_index(text),
     canonical_v4.named_index_tasks(text,text),canonical_v4.named_index_source(text,text,text,bigint,jsonb,jsonb),canonical_v4.named_discovery_tasks(text,text),
     canonical_v4.named_neighbours(text,text,text,bigint),canonical_v4.named_complete_discovery(text,text,text,bigint),canonical_v4.named_request_priority(text,text);
+   DROP FUNCTION canonical_v4.named_read_single_source(text,text,text),canonical_v4.named_match_single_source(text,text,jsonb,jsonb,text);
    DROP VIEW canonical_v4.named_indexable_sources;
    DROP TABLE canonical_v4.named_discovery_requests,canonical_v4.named_index_requests,canonical_v4.named_retrieval_terms,canonical_v4.named_retrieval_inputs;`);
  });

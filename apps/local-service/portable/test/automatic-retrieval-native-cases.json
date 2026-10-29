@@ -8,5 +8,15 @@
  "Production coordinator publishes through real retrieval and retains established singleton scopes",
  "A newly supported broader parent attaches with revision CAS and preserves the child ID",
  "Retrieval role boundaries exclude app and crawler vector access",
+ "Single-page lookup is additive and excludes app/crawler internal matching access",
+ "One current page joins an existing leaf and its ancestors without changing identity or routes",
+ "Repeated current single-page lookup retains assignments without row churn",
+ "Single-page hierarchy chooses a confident leaf or falls back across close sibling scores",
+ "Changed protected Source material refuses a stale single-page witness",
+ "Raw single-page candidate capacity refuses an incomplete cohort",
+ "Held head and Source writers return busy without waiting or partial assignment",
+ "Held page assignment permits MVCC reads, a normal post and another Source matcher",
+ "Production coordinator exposes an existing topic before a delayed neighbourhood result",
+ "Actual Source change withdraws single-page membership before fixture restoration",
  "Committed fixture erasure removes all derived retrieval state before schema retirement"
 ]
