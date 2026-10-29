@@ -37,6 +37,17 @@ body revisions, receipts, stale-target guards and AI proof boundaries remain.
 `topicSearch` adds the execute-only maintenance port to the existing automatic
 coordinator. Neither option is enabled by ordinary startup. This component does
 not implement combined fixed/learned authored scope, complete18 schema/recovery or
-the final UI/cutover. Its native cases and guarded tests are pending execution.
+the final UI/cutover. Guarded tests pass665 and controller tests70. The first owned
+SQL run passes the first six new cases, then fails an assertion in the role/index
+case. The exact assertion detail is not retained. All2627 pins authenticate,
+the created scratch database drops, exact smart-stop/empty Job/closed handles
+succeed, stderr is empty and emergency false; the second database is not reached.
+Source review identifies a planner-dependent GIN-only assertion on a tiny table.
+The corrected fixture requires a normal indexed plan and separately proves GIN
+eligibility with only the new directory's competing indexes removed inside a
+rollback, then verifies their restoration. This is index availability evidence,
+not a normal production query latency measurement. Production SQL/read/worker
+code and original resource limits are unchanged. Updated execution is pending;
+the consumed first source/catalog/output remain immutable and are not adopted.
 No representative quality, browser/provider, many-user or live speed claim follows
 from invented native fixture titles/coordinates.

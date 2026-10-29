@@ -2,6 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';
 import {createAutomaticTopicFeedRepository as repository,isLegacyTopicRoute} from '../canonical-v4/automatic-topic-feed-repository.js';
 import {createUnifiedTopicSearchMaintenance as maintenance} from '../canonical-v4/unified-topic-search-maintenance.js';
 import {createCanonicalV4ReadFacade} from '../canonical-v4/read-facade.js';
+import {unifiedSearchPlanUses} from './unified-topic-search-native-assertions.js';
 const generation='invented-generation',subject='12345678-1234-4123-8123-123456789abc';
 const code=c=>e=>e?.code===c;
 const raw=(query='',limit=20,cursor=null)=>JSON.stringify({generation,query,limit,cursor});
@@ -48,4 +49,11 @@ test('unified read composition requires automatic topics and remains inert',()=>
  assert.throws(()=>createCanonicalV4ReadFacade({database,unifiedTopicSearch:true}),TypeError);
  assert.equal(createCanonicalV4ReadFacade({database,automaticTopics:true,unifiedTopicSearch:true}).automaticTopicsEnabled,true);
  assert.throws(()=>repository({database,unifiedSearch:'yes'}),TypeError);
+});
+test('a normal tiny-fixture B-tree plan is indexed while separate GIN eligibility remains mandatory',()=>{
+ const plan=[{'QUERY PLAN':[{Plan:{'Node Type':'Index Scan','Index Name':'unified_search_directory_order'}}]}];
+ assert(!unifiedSearchPlanUses(plan,['unified_search_directory_terms']),'the former GIN-only check rejects a valid small-fixture plan');
+ assert(unifiedSearchPlanUses(plan,['unified_search_directory_terms','unified_search_directory_order','unified_search_directory_pkey']));
+ const isolated=[{'QUERY PLAN':[{Plan:{'Node Type':'Bitmap Heap Scan',Plans:[{'Index Name':'unified_search_directory_terms'}]}}]}];
+ assert(unifiedSearchPlanUses(isolated,['unified_search_directory_terms']));assert(!unifiedSearchPlanUses([{'QUERY PLAN':[{Plan:{'Node Type':'Seq Scan'}}]}],['unified_search_directory_terms']));
 });

@@ -15,6 +15,8 @@ const code=c=>e=>e?.code===c,actor={id:'demo-alex',type:'human',demo:true};
 const defer=()=>{let resolve;const promise=new Promise(done=>{resolve=done;});return {promise,resolve};};
 async function one(db,sql,args=[]){const r=await db.query(sql,args);assert.equal(r.rows.length,1);return r.rows[0];}
 async function bounded(p){let timer;try{return await Promise.race([p,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Owned search operation timed out')),1200);})]);}finally{clearTimeout(timer);}}
+export function unifiedSearchPlanUses(plan,names){return !!plan&&typeof plan==='object'&&(names.includes(plan['Index Name'])||Object.values(plan).some(child=>child&&typeof child==='object'&&(Array.isArray(child)?child.some(v=>unifiedSearchPlanUses(v,names)):unifiedSearchPlanUses(child,names))));}
+function requireIndex(plan,names,code){if(!unifiedSearchPlanUses(plan,names))throw Object.assign(Error('Owned public index path unavailable'),{code});}
 export async function runUnifiedTopicSearchNativeAssertions(scope){
  const {owner,app,worker,observer,generation,sourceIds,check}=scope,roots=[],replies=[];let serial=0,topicId,legacy,first,client,selected;
  const runtime=createCanonicalV4RuntimeRepository({database:app}),life=createCanonicalV4LifecycleRepository({database:app}),maintenance=createUnifiedTopicSearchMaintenance({database:worker});
@@ -76,12 +78,22 @@ export async function runUnifiedTopicSearchNativeAssertions(scope){
   await assert.rejects(app.query('SELECT canonical_v4.unified_search_tasks($1)',[generation]),code('42501'));
   await assert.rejects(worker.query('SELECT * FROM canonical_v4.unified_search_topics($1,ARRAY[]::text[],NULL,20)',[generation]),code('42501'));
   await assert.rejects(app.query('SELECT * FROM canonical_v4.unified_search_topics($1,ARRAY[NULL]::text[],NULL,20)',[generation]),code('P1303'));
-  const uses=(v,name)=>!!v&&typeof v==='object'&&(v['Index Name']===name||Object.values(v).some(child=>child&&typeof child==='object'&&(Array.isArray(child)?child.some(x=>uses(x,name)):uses(child,name))));
+  const searchSql="SELECT * FROM canonical_v4.unified_search_directory WHERE scope_kind='legacy' AND search@@to_tsquery('simple','manual:*')";
+  const feedSql="SELECT * FROM canonical_v4.contributions WHERE discussion_id='discussion-semantic-manual' AND root_id IS NULL AND NOT withdrawn AND visibility='local-public' ORDER BY ordinal DESC LIMIT 2";
   await owner.transaction(async tx=>{await tx.exec('SET LOCAL enable_seqscan=off');
-   for(const [sql,index]of [["SELECT * FROM canonical_v4.unified_search_directory WHERE scope_kind='legacy' AND search@@to_tsquery('simple','manual:*')",'unified_search_directory_terms'],
-    ["SELECT * FROM canonical_v4.contributions WHERE discussion_id='discussion-semantic-manual' AND root_id IS NULL AND NOT withdrawn AND visibility='local-public' ORDER BY ordinal DESC LIMIT 2",'unified_legacy_feed_order']]){
-    const plan=(await tx.query('EXPLAIN (FORMAT JSON) '+sql)).rows;assert(uses(plan,index));}
+   requireIndex((await tx.query('EXPLAIN (FORMAT JSON) '+searchSql)).rows,['unified_search_directory_terms','unified_search_directory_order','unified_search_directory_pkey'],'UNIFIED_SEARCH_INDEX');
+   requireIndex((await tx.query('EXPLAIN (FORMAT JSON) '+feedSql)).rows,['unified_legacy_feed_order','contributions_discussion','contributions_ordinal_key'],'UNIFIED_FEED_INDEX');
+   requireIndex((await tx.query('EXPLAIN (FORMAT JSON) '+feedSql.replace('SELECT *','SELECT discussion_id,ordinal'))).rows,['unified_legacy_feed_order'],'UNIFIED_FEED_PROBE');
   });
+  // On the tiny fixture the planner may prefer a narrow B-tree. Independently
+  // prove GIN eligibility with only the NEW directory's competing indexes
+  // removed in a rollback. No production schema, query or planner default changes.
+  const rollback=Error('Rollback private index isolation');let restored=false;
+  try{await owner.transaction(async tx=>{await tx.exec(`SET LOCAL enable_seqscan=off;DROP INDEX canonical_v4.unified_search_directory_order;
+    ALTER TABLE canonical_v4.unified_search_directory DROP CONSTRAINT unified_search_directory_pkey;`);
+   requireIndex((await tx.query('EXPLAIN (FORMAT JSON) '+searchSql)).rows,['unified_search_directory_terms'],'UNIFIED_GIN_INDEX');throw rollback;
+  });}catch(e){if(e!==rollback)throw e;restored=true;}assert(restored);
+  const restoredIndexes=await one(owner,"SELECT to_regclass('canonical_v4.unified_search_directory_order') IS NOT NULL AND to_regclass('canonical_v4.unified_search_directory_pkey') IS NOT NULL ok");assert(restoredIndexes.ok);
  });
  await check(25,async()=>{
   const ready=defer(),release=defer(),held=observer.transaction(async tx=>{await tx.query('UPDATE canonical_v4.unified_search_clock SET revision=revision WHERE singleton');ready.resolve();await release.promise;});held.catch(e=>ready.resolve({error:e}));
