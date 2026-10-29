@@ -1,5 +1,19 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct single Victorian TRAIN actual completed/exit0, unavailable policy-unavailable;
+result19110B SHA e60d97bc88b0659a0e52bb95723286f5b5a3a88f7512c244377dd8b6561c963f.
+No model/fit followed that unsupported observation. Separate3-document additional
+TRAIN declaration now Source-reviewed Root-only: Michigan ADW biology, Leipzig
+German animal profile, Australia Zoo species page. Guarded test caught ADW's
+/accounts/ path blocked by existing privacy policy BEFORE any actual collection.
+Keep ADW as declared url-restricted outcome with zero request; do not weaken
+privacy rules. Only Leipzig/AustraliaZoo enter fixed collector, max6requests.
+First47-test pass46/fail1 (source refused before request), then corrected47/47
+pass351.46ms. All4 earlier unavailable TRAIN outcomes preserved. New source-check
+33listedfiles/3declared additional, no encoder/network. Additional actual still next.
+Later unconsumed Koalas-only fit requires BOTH original and new capture hashes;
+Video-games/Animals artifacts from ad0d8a... remain exact.11freshTEST still reserved.
+
 29Oct diversity actual:7declared/6available/1unavailable (Zoo TRAIN insufficient
 static text), terminalexit0/endpins. Fit completed4.998s/encoderclosed/endpins/
 terminalexit0,24638B SHA ad0d8a210662c8acc4e61e4102d090526941aadb60e674d81bddd66ad8a76341.

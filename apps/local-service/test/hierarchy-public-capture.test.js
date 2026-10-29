@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {createHierarchyPublicCapture,createHierarchyChildTrainCalCapture,createHierarchyChildDiagnosisCapture,createHierarchyChildCalibrationRepairCapture,createHierarchyChildEvaluationCapture,createHierarchyChildDiversityCapture,createHierarchyKoalaTrainingSupplementCapture} from '../harness/hierarchy-public-capture.js';
+import {createHierarchyPublicCapture,createHierarchyChildTrainCalCapture,createHierarchyChildDiagnosisCapture,createHierarchyChildCalibrationRepairCapture,createHierarchyChildEvaluationCapture,createHierarchyChildDiversityCapture,createHierarchyKoalaTrainingSupplementCapture,createHierarchyKoalaAdditionalTrainingCapture} from '../harness/hierarchy-public-capture.js';
 import {readFileSync} from 'node:fs';
 import {PUBLIC_HIERARCHY_PROBES as probes} from '../harness/hierarchy-public-probes.js';
 import {RECIPE_CAL_PROBES,RECIPE_TEST_PROBES} from '../harness/hierarchy-recipe-corpus.js';
@@ -34,6 +34,13 @@ test('separate Koala TRAIN supplement cannot fetch any old/new CAL or TEST or re
  for(const p of [...childPlan.freshCandidates,...diversityPlan.development,...diversityPlan.test])await assert.rejects(capture.capture(p.id));
  const row=await capture.capture('koala-supplement-train-01');assert.equal(row.status,'available');assert.equal(row.url,'https://www.wildlife.vic.gov.au/our-wildlife/koalas');
  assert.equal(f.calls.length,3);assert.equal(capture.snapshot().maxRequests,3);assert.equal((await capture.capture(row.id)).reason,'already-attempted');
+});
+test('additional Koala TRAIN permits two exact documents and refuses the account-path candidate without network',async()=>{
+ const f=fixture(),capture=createHierarchyKoalaAdditionalTrainingCapture(f.options);
+ for(const p of [...childPlan.freshCandidates,...diversityPlan.development,...diversityPlan.test,{id:'koala-supplement-train-01'},{id:'koala-additional-train-01'}])await assert.rejects(capture.capture(p.id));
+ const urls=['https://www.zoo-leipzig.de/tier/koala/','https://australiazoo.com.au/wildlife/our-animals/koalas/'];
+ for(let i=0;i<2;i++){const r=await capture.capture('koala-additional-train-0'+(i+2));assert.equal(r.status,'available');assert.equal(r.url,urls[i]);}
+ assert.equal(f.calls.length,6);assert.equal(capture.snapshot().maxRequests,6);
 });
 
 test('diversity collectors enforce the frozen development/TEST boundary and exact publisher policies',async()=>{
