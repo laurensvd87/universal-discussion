@@ -68,6 +68,20 @@ async function generatedHarness(options = {}) {
   return { ...app, cancelled };
 }
 
+test('an Insight click freezes its topic before article reading and a newer preferred child cannot redirect the completed review',async t=>{
+ let releaseArticle,started,shared;const app=await harness({readArticle:()=>new Promise(resolve=>{releaseArticle=resolve;}),attestArticle:async()=>true,randomId:()=> 'scoped-insight',semanticShare:review=>{shared=review;return true;},
+  aiClient:{status:async()=>({connected:true,planEnabled:true,pending:false,account:null}),models:async()=>[{slug:'model-a'}],
+   start:async value=>{started=value;return {operationId:value.operationId,state:'running'};},result:async operationId=>({operationId,state:'completed',authorScope:started.authorScope,result:{body:'Exact answer',model:'model-a',citations:[]}}),cancel:async()=>true}});
+ t.after(()=>{app.insight.dispose();app.discussion.dispose();});await app.insight.checkConnection();await app.insight.loadModels();
+ const state=app.discussion.currentState(),page=state.catalog.sources.find(s=>s.id===state.sourceId),pageScope={kind:'page',id:page.id,sourceId:page.id,caption:page.title,materialDigest:'a'.repeat(64)};
+ const scope={...pageScope,kind:'named',id:'12345678-1234-4123-8123-123456789abc',caption:'Steam Deck'};
+ app.discussion.setAuthorContextAvailable(true);app.discussion.setAuthorContext({version:state.catalog.version,sourceId:page.id,context:{topicId:state.topicId,pageScope,scope}});
+ const work=app.insight.createInsights({automatic:true});await new Promise(resolve=>setImmediate(resolve));assert(releaseArticle);
+ app.discussion.setAuthorContext({version:state.catalog.version,sourceId:page.id,context:{topicId:state.topicId,pageScope,scope:{...scope,id:'22345678-1234-4123-8123-123456789abc',caption:'Steam Deck OLED'}}});
+ releaseArticle({url:'https://example.com/',documentId:'doc-a',text:'Public article'});assert.equal(await work,true);assert.deepEqual(started.authorScope,scope);
+ assert.equal(app.insight.preview(),true);assert.equal(app.insight.currentState().preview.topicTitle,'Steam Deck');assert.equal(await app.insight.share(),true);assert.deepEqual(shared.authorScope,scope);
+});
+
 test("preference hydration cannot overwrite an edit and settings never start research or clear a draft", async () => {
   let resolveLoad;
   const writes = [], requests = [];

@@ -8,6 +8,23 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+CURRENT29Oct browser+realAIjob bridge SOURCE: optional explicit authored-topics/v1
+capability, bounded indexed editor MVCC read+earlier-scope check. Human firstkey
+freezes scope; pre-read typing stays PAGE; realmaterial change detaches with body
+retained, explicit retry available. AI CLICKscope before article awaits; server
+job snapshots/validates exactscope before provider, result/resume/proof/share
+retain it. App requires proofscope==commandscope and calls atomic SQL port.
+No silent legacy fallback. Existing17 has no new capability/startup change.
+514 joined guardedNode PASS2367.7575ms +66Python PASS. New owned82 includes normal
+HTTP clients+real read facade/app/AIjob proof with stub provider, UNEXECUTED;
+editor pageScope/readonly scope SQL delta alsoUNEXECUTED/current catalogSTALE.
+Prior35088a4b/3c8ec954 actual70c04f01...7c924c passed82/rootall2573endpins/
+2DBdrops/smartstop/emptyJob/emergencyFALSE, but NOT currentbridge acceptance.
+Next commit/catalog/freshONEdecision/ownedcheck. Then namedfeeds/search, fixed
+aliases/static scopes/modelcontinuity, complete18/recovery/realbrowser/live.
+No services/host/crawler stopped. GoalACTIVE; concrete code+test progress.
+
+
 CURRENT29Oct AI-root scope SOURCE: mechanical016 inverse/fourclosedAUTHORblocks
 new named_share_insight +sharedprivate finalizer BEFOREwatermark. Existing016
 immutable/old18argport unchanged. Common pure lifecycle request/proof builder

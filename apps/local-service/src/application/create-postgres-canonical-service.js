@@ -8,6 +8,7 @@ import { REFERENCE_TOPIC_POLICY_VERSION } from "../domain/reference-topic-member
 import { RIDGE_TOPIC_SCHEMA } from "../domain/ridge-topic-adapter.js";
 import { createPostgresPublicReadFlights } from "./postgres-public-read-flights.js";
 import { inspectPageNavigationUrl } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
+import {readAuthoredTopicScope} from '../../../../spikes/topic-resolution/browser/core/local-service-contract.js';
 
 const PAGE_LIMIT = 100;
 const PAGE_BYTES = MAX_RESPONSE_BYTES - 4096;
@@ -115,7 +116,7 @@ function chatTitle(root, topic) {
 export function createPostgresCanonicalService({ reads, urlSelectionReads = reads, runtime, ingestion = null, lifecycle = null,
   model = Object.freeze({ id: "hand-authored-demo-vectors/1", status: "fixture-only" }),
   resolveAccountActor = null, readAccountActors = () => [], accountCursorSecret, semanticDiscussions = false,
-  requestSemanticPreparation = null } = {}) {
+  requestSemanticPreparation = null,authoredTopics=null } = {}) {
   if (!reads || typeof reads.version !== "function" || typeof reads.catalogContext !== "function" ||
       typeof reads.catalogPage !== "function" || typeof reads.discussionPage !== "function" ||
       typeof reads.exactSource !== "function" || !runtime || typeof runtime.command !== "function" ||
@@ -126,6 +127,8 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
       (["semanticFeed", "semanticThread", "semanticTarget", "semanticTopics", "semanticContext", "semanticStamp"].some(name => typeof reads[name] !== "function")))
     throw new TypeError("Invalid PostgreSQL semantic discussion dependencies");
   if(requestSemanticPreparation!==null&&typeof requestSemanticPreparation!=='function')throw new TypeError('Invalid preparation request dependency');
+  if(authoredTopics!==null&&['editor','appendRoot','shareInsight','scopeCurrent'].some(name=>typeof authoredTopics[name]!=='function'))
+    throw new TypeError('Invalid authored topic dependencies');
   const cursorKey = accountCursorKey(accountCursorSecret);
   const publicFlights = createPostgresPublicReadFlights();
   const urlFlights = createPostgresPublicReadFlights({ maxTasks: 8 });
@@ -446,6 +449,12 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
     if (semanticDiscussions && method === "semanticTarget") return semanticDto(await reads.semanticTarget(input));
     if (semanticDiscussions && method === "semanticTopics") return reads.semanticTopics(input);
     if (semanticDiscussions && method === "semanticContext") return reads.semanticContext(input);
+    if(authoredTopics&&method==='authorContext'){
+      const a=readRecord(input,['sourceId']);readId(a.sourceId);const version=await reads.version();
+      const context=await authoredTopics.editor(JSON.stringify({generation:version.generation,sourceId:a.sourceId}));
+      if(context!==null&&context.generation!==version.generation)fail('conflict','Topic generation changed');
+      return frozenClone({version,sourceId:a.sourceId,context:context===null?null:{topicId:context.topicId,pageScope:context.pageScope,scope:context.scope}});
+    }
     fail("unavailable", "Read unavailable");
   }
 
@@ -527,6 +536,10 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
 
   const service = {
     coherentSnapshotReads: true,
+    ...(authoredTopics?{
+      authorContext:input=>readPublic('authorContext',input),
+      authorScopeCurrent:input=>authoredTopics.scopeCurrent(JSON.stringify(readRecord(input,['generation','topicId','scope']))),
+    }:{}),
     // Startup enables this only after the semantic schema/model are installed.
     ...(semanticDiscussions ? {
       semanticFeed: input => readPublic("semanticFeed", input),
@@ -582,6 +595,23 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
       if (!typeDescriptor?.enumerable || !Object.hasOwn(typeDescriptor, "value")) fail("invalid", "Invalid request");
       const type = typeDescriptor.value;
       if (isAccountPrincipal(actor) && !ACCOUNT_COMMANDS.has(type)) fail("forbidden", "Action unavailable");
+      if(authoredTopics&&['create-root','share-insight'].includes(type)){
+        const c=readRecord(command,['type','topicId','body','originSourceId','authorScope',...(type==='share-insight'?['operationId']:[])]);
+        let scope;try{scope=readAuthoredTopicScope(c.authorScope);}catch{fail('invalid','Invalid selected topic');}
+        if(scope.sourceId!==c.originSourceId)fail('invalid','Invalid selected topic');
+        const {authorScope:ignored,...canonicalCommand}=c;
+        if(type==='create-root'){
+          if(generatedProof!==null)fail('invalid','Invalid request');
+          const result=await authoredTopics.appendRoot(JSON.stringify({actorId,requestId:commandRequestId(actorId,expected,command),expected,command:canonicalCommand,scope}));
+          return frozenClone({version:result.version,result:result.result});
+        }
+        let p;try{p=readRecord(generatedProof,['kind','operationId','actorId','topicId','originSourceId','body','rootId','replyToId','discussionId','authorScope']);}
+        catch{fail('forbidden','Completed result unavailable');}
+        let proofScope;try{proofScope=readAuthoredTopicScope(p.authorScope);}catch{fail('forbidden','Completed result unavailable');}
+        if(JSON.stringify(proofScope)!==JSON.stringify(scope))fail('forbidden','Completed result topic changed');
+        const {authorScope:ignoredProof,...proof}=p;
+        return authoredTopics.shareInsight(JSON.stringify({expected,command:canonicalCommand,actor,proof,scope}));
+      }
       if (!["create-root", "reply"].includes(type)) {
         if (!lifecycle || typeof lifecycle.command !== "function") fail("unavailable", "Action unavailable");
         return lifecycle.command(expected, command, actor, generatedProof);

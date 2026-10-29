@@ -28,6 +28,33 @@ function insightInput(service, sourceId, topicId, operationId, followupQuestionI
     ...(followupQuestionId ? { followupQuestionId } : {}) };
 }
 
+const topicScope=()=>({kind:'named',id:'12345678-1234-4123-8123-123456789abc',caption:'New general-web subject',sourceId:'reserved-example-com',materialDigest:'a'.repeat(64)});
+test('real AI job captures selected scope before async authorization and issues only that scope in its completed proof',async t=>{
+ const base=demoService();let release,providerCalls=0,acceptedScope;
+ const held=new Promise(resolve=>{release=resolve;}),original=topicScope();
+ const service={...base,async authorScopeCurrent(value){acceptedScope=value.scope;await held;return true;}};
+ const ai=createChatGPTRuntime({service,connectionAdapter:{status:()=>({connected:true,planEnabled:true,pending:false}),dispose(){}},
+  insightsAdapter:{async createInsight(){providerCalls++;return {body:'Exact scoped answer',citations:[],model:'synthetic'};},cancel(){},dispose(){}}});t.after(()=>ai.dispose());
+ const input=insightInput(service,original.sourceId,'reserved-domain-demo','captured-topic');input.authorScope=structuredClone(original);
+ const started=ai.create(input,'demo-alex');input.authorScope.caption='Changed while awaiting authorization';release();await started;
+ await Promise.resolve();await Promise.resolve();const outcome=await ai.result({operationId:input.operationId},'demo-alex');
+ assert.equal(providerCalls,1);assert.deepEqual(acceptedScope,original);assert.deepEqual(outcome.authorScope,original);
+ const command={type:'share-insight',topicId:'reserved-domain-demo',originSourceId:original.sourceId,operationId:input.operationId,body:outcome.result.body,authorScope:{...original,caption:'Different topic'}};
+ assert.throws(()=>ai.share({expected:service.catalog().version,command},'demo-alex',()=>assert.fail('forged scope published')),{code:'conflict'});
+ command.authorScope=original;let issued;
+ await ai.share({expected:service.catalog().version,command},'demo-alex',(proof)=>{issued=proof;return {accepted:true};});assert.deepEqual(issued.authorScope,original);
+});
+
+test('invalid or missing selected scope is rejected before provider dispatch and stale scope cannot return a usable completed result',async t=>{
+ const base=demoService();let current=true,calls=0;
+ const service={...base,authorScopeCurrent:async()=>current};
+ const ai=createChatGPTRuntime({service,connectionAdapter:{status:()=>({connected:true,planEnabled:true,pending:false}),dispose(){}},
+  insightsAdapter:{async createInsight(){calls++;return {body:'Exact answer',citations:[],model:'synthetic'};},cancel(){},dispose(){}}});t.after(()=>ai.dispose());
+ const input=insightInput(service,'reserved-example-com','reserved-domain-demo','missing-topic');assert.throws(()=>ai.create(input,'demo-alex'),{code:'invalid'});assert.equal(calls,0);
+ const valid={...input,operationId:'valid-scoped-result',authorScope:topicScope()};await ai.create(valid,'demo-alex');await Promise.resolve();await Promise.resolve();
+ current=false;const result=await ai.result({operationId:valid.operationId},'demo-alex');assert.equal(result.state,'failed');assert.equal(result.error,'stale-context');assert.equal(calls,1);
+});
+
 test("failed publication retains the completed receipt; successful share consumes it once", async () => {
   const service = demoService();
   const catalog = service.catalog();

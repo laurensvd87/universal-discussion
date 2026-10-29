@@ -141,13 +141,18 @@ export function readCommand(value) {
       item = record(value, ["type", "title", "kind"]);
       return { type: item.type, title: text(item.title, 200), kind: oneOf(item.kind, KINDS) };
     case "create-root":
-      item = record(value, ["type", "topicId", "body", ...(Object.hasOwn(value, "originSourceId") ? ["originSourceId"] : [])]);
+      item = record(value, ["type", "topicId", "body", ...(Object.hasOwn(value, "originSourceId") ? ["originSourceId"] : []),
+        ...(Object.hasOwn(value,'authorScope')?['authorScope']:[])]);
+      const rootScope=Object.hasOwn(item,'authorScope')?readAuthoredTopicScope(item.authorScope):null;
+      if(rootScope&&rootScope.sourceId!==item.originSourceId)invalid();
       return { type: item.type, topicId: readId(item.topicId), body: text(item.body, 8000, true),
-        ...(Object.hasOwn(item, "originSourceId") ? { originSourceId: nullableId(item.originSourceId) } : {}) };
+        ...(Object.hasOwn(item, "originSourceId") ? { originSourceId: nullableId(item.originSourceId) } : {}),...(rootScope?{authorScope:rootScope}:{}) };
     case "share-insight":
-      item = record(value, ["type", "topicId", "body", "operationId", "originSourceId"]);
+      item = record(value, ["type", "topicId", "body", "operationId", "originSourceId",...(Object.hasOwn(value,'authorScope')?['authorScope']:[])]);
+      const insightScope=Object.hasOwn(item,'authorScope')?readAuthoredTopicScope(item.authorScope):null;
+      if(insightScope&&insightScope.sourceId!==item.originSourceId)invalid();
       return { type: item.type, topicId: readId(item.topicId), body: text(item.body, 8000, true),
-        operationId: readId(item.operationId), originSourceId: nullableId(item.originSourceId) };
+        operationId: readId(item.operationId), originSourceId: nullableId(item.originSourceId),...(insightScope?{authorScope:insightScope}:{}) };
     case "share-insight-reply":
       item = record(value, ["type", "topicId", "discussionId", "rootId", "replyToId", "body", "operationId", "originSourceId",
         ...(Object.hasOwn(value,'semanticPublication')?['semanticPublication']:[])]);
@@ -192,9 +197,25 @@ export function readHealth(value) {
   return item;
 }
 export function readSemanticCapabilities(value) {
-  const item = record(value, ["protocol"]);
+  const item = record(value, ["protocol",...(Object.hasOwn(value??{},'authorContext')?['authorContext']:[])]);
   oneOf(item.protocol, ["semantic-topics/v1"]);
+  if(Object.hasOwn(item,'authorContext'))oneOf(item.authorContext,['authored-topics/v1']);
   return Object.freeze(item);
+}
+export function readAuthoredTopicScope(value){
+ const s=record(value,['kind','id','caption','sourceId','materialDigest']);oneOf(s.kind,['page','named']);readId(s.id);readId(s.sourceId);text(s.caption,200);
+ if(s.kind==='page'&&s.id!==s.sourceId||s.kind==='named'&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(s.id)||
+   typeof s.materialDigest!=='string'||!/^[a-f0-9]{64}$/u.test(s.materialDigest))invalid();
+ return Object.freeze({kind:s.kind,id:s.id,caption:s.caption,sourceId:s.sourceId,materialDigest:s.materialDigest});
+}
+export function readAuthorContextRequest(value){const a=record(value,['sourceId']);return Object.freeze({sourceId:readId(a.sourceId)});}
+export function readAuthorContext(value,expected=null){
+ const r=record(value,['version','sourceId','context']),version=readVersion(r.version),sourceId=readId(r.sourceId);
+ if(expected&&sourceId!==expected.sourceId)invalid();let context=null;
+ if(r.context!==null){const c=record(r.context,['topicId','pageScope','scope']),pageScope=readAuthoredTopicScope(c.pageScope),scope=readAuthoredTopicScope(c.scope);
+  if(pageScope.kind!=='page'||pageScope.sourceId!==sourceId||scope.sourceId!==sourceId||pageScope.materialDigest!==scope.materialDigest)invalid();
+  context={topicId:readId(c.topicId),pageScope,scope};
+ }return freeze({version,sourceId,context});
 }
 export function readCatalog(value) {
   const item = record(value, ["version", "model", "actors", "topics", "sources"]);

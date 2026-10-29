@@ -18,6 +18,37 @@ const deferred = () => {
 };
 const turn = () => new Promise((resolve) => setImmediate(resolve));
 
+function authoredEditor(ui,{id='12345678-1234-4123-8123-123456789abc',caption='Steam Deck',material='a'.repeat(64)}={}){
+ const s=ui.controller.currentState(),page=s.catalog.sources.find(p=>p.id===s.sourceId);
+ const pageScope={kind:'page',id:s.sourceId,sourceId:s.sourceId,caption:page.title,materialDigest:material};
+ return {version:s.catalog.version,sourceId:s.sourceId,context:{topicId:s.topicId,pageScope,scope:{...pageScope,kind:'named',id,caption}}};
+}
+
+test('an author-selected named scope survives a new preferred leaf and is sent with its original canonical destination',async t=>{
+ let wire;const ui=harness({client:{async command(expected,value,actor){wire=value;const {authorScope,...command}=value;return ui.service.command(expected,command,actor);}}});t.after(()=>ui.controller.dispose());
+ await ui.controller.open();ui.controller.setAuthorContextAvailable(true);const original=authoredEditor(ui);assert(ui.controller.setAuthorContext(original));
+ ui.controller.setDraft('Keep this in Steam Deck');
+ ui.controller.setAuthorContext(authoredEditor(ui,{id:'22345678-1234-4123-8123-123456789abc',caption:'Steam Deck OLED'}));
+ assert.equal(ui.controller.currentState().draft.authorScope.id,original.context.scope.id);assert.equal(ui.controller.currentState().draft.detached,false);
+ assert.equal(await ui.controller.submitDraft(),true);assert.deepEqual(wire.authorScope,original.context.scope);assert.equal(wire.topicId,original.context.topicId);
+});
+
+test('typing before optional context arrives freezes page scope and a real material change preserves a detached draft',async t=>{
+ const ui=harness();t.after(()=>ui.controller.dispose());await ui.controller.open();ui.controller.setAuthorContextAvailable(true);
+ ui.controller.setDraft('Written before classification');assert.equal(ui.controller.currentState().draft.authorPendingPage,true);
+ const first=authoredEditor(ui);ui.controller.setAuthorContext(first);assert.deepEqual(ui.controller.currentState().draft.authorScope,first.context.pageScope);
+ ui.controller.setAuthorContext(authoredEditor(ui,{material:'b'.repeat(64)}));const changed=ui.controller.currentState();
+ assert.equal(changed.draft.detached,true);assert.equal(changed.draft.body,'Written before classification');assert.deepEqual(changed.draft.authorScope,first.context.pageScope);
+ ui.controller.reattachDraft();assert.equal(ui.controller.currentState().draft.authorScope.materialDigest,'b'.repeat(64));assert.equal(ui.controller.currentState().draft.detached,false);
+});
+
+test('optional scope absence never silently sends a scoped draft through the legacy port',async t=>{
+ const ui=harness();t.after(()=>ui.controller.dispose());await ui.controller.open();ui.controller.setAuthorContextAvailable(true);ui.controller.setDraft('Keep pending body');
+ assert.equal(await ui.controller.submitDraft(),false);assert.equal(ui.requests.filter(r=>r[0]==='command').length,0);
+ const current=authoredEditor(ui);ui.controller.setAuthorContext(current);ui.controller.setAuthorContextAvailable(false);
+ assert.equal(ui.controller.currentState().draft.detached,true);assert.equal(await ui.controller.submitDraft(),false);
+});
+
 function explicitHistoryFixture({ held = null, stale = false, changedTopic = false, controllerOptions = {}, clientExtras = {} } = {}) {
   let ui;
   const calls = [];

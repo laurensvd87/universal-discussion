@@ -19,23 +19,34 @@ const target=request=>{const value=thread(request.nodeId);delete value.nextCurso
   root:{...value.root,replies:request.targetId==='root-a'?[]:value.root.replies}};};
 const directory=()=>({version,policyRevision:2,topics:[{id:'music',title:'Music',path:['music']},{id:'games',title:'Games',path:['games']}]});
 
+test('author context loads independently of slow classification and late responses are fenced by document navigation',async()=>{
+ const ui=harness();ui.start();await ui.answer('semanticCapabilities',{protocol:'semantic-topics/v1',authorContext:'authored-topics/v1'});
+ assert.equal(ui.authorModes.at(-1),true);assert(ui.pending('semanticContext'));assert(ui.pending('authorContext'));
+ const pageScope={kind:'page',id:'source-b',sourceId:'source-b',caption:'Current page',materialDigest:'a'.repeat(64)};
+ const dto={version,sourceId:'source-b',context:{topicId:'canonical-b',pageScope,scope:pageScope}};
+ await ui.answer('authorContext',dto);assert.deepEqual(ui.authorContexts,[dto]);assert(ui.pending('semanticContext'));
+ ui.workspace.refresh();const late=ui.pending('authorContext');assert(late);ui.observe({...page(),resolution:{...page().resolution,documentId:'new-document'}});
+ assert.equal(late.options.signal.aborted,true);late.resolve(dto);await turn();assert.equal(ui.authorContexts.length,1);ui.workspace.dispose();
+});
+
 function harness({selectSemanticTarget,refreshSavedThreads}={}){
-  const created=[],calls=[],selections=[],navigation=[],availability=[],modes=[],routing=[];
+  const created=[],calls=[],selections=[],navigation=[],availability=[],modes=[],routing=[],authorModes=[],authorContexts=[];
   const document={createElement(tag){const item={tag,children:[],attributes:{},listeners:new Map(),style:{},hidden:false,textContent:'',value:'',
     append(...items){this.children.push(...items);},replaceChildren(...items){this.children=items;},setAttribute(k,v){this.attributes[k]=v;},
     addEventListener(event,fn){this.listeners.set(event,fn);},removeEventListener(event,fn){if(this.listeners.get(event)===fn)this.listeners.delete(event);},focus(){this.focused=true;}};created.push(item);return item;},
     querySelector(selector){return selector==='#discussion-body'?composer:null;}};
   const discoverRoot=document.createElement('section'),discussionRoot=document.createElement('section'),composer=document.createElement('textarea'),client={};
-  for(const method of ['semanticCapabilities','semanticContext','semanticTopics','semanticFeed','semanticThread','semanticTarget'])client[method]=(args,options)=>{
+  for(const method of ['semanticCapabilities','semanticContext','semanticTopics','semanticFeed','semanticThread','semanticTarget','authorContext'])client[method]=(args,options)=>{
     const wait=deferred(),call={method,args,options,done:false,resolve(value){call.done=true;wait.resolve(value);},reject(error){call.done=true;wait.reject(error);}};calls.push(call);return wait.promise;};
   const historyReads=[];
   let current=page();const controller={currentState:()=>current,setSemanticTopicsAvailable(value){routing.push(value);},
+    setAuthorContextAvailable(value){authorModes.push(value);},setAuthorContext(value){authorContexts.push(value);},
     async refreshSavedThreads(){historyReads.push(current.sourceId);return refreshSavedThreads?refreshSavedThreads():true;},
     async selectSemanticTarget(ids){selections.push(ids);return selectSemanticTarget?selectSemanticTarget(ids):true;}};
   const workspace=mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoot,client,controller,discussionPanel:{setSemanticFeedMode(value){modes.push(value);}},navigate:value=>navigation.push(value),onAvailability:value=>availability.push(value)});
   const all=node=>[node,...node.children.flatMap(all)],byId=id=>all(discoverRoot).concat(all(discussionRoot)).find(node=>node.id===id);
   const pending=method=>calls.findLast(call=>call.method===method&&!call.done);
-  return {created,calls,selections,navigation,availability,modes,routing,historyReads,document,discoverRoot,discussionRoot,composer,workspace,client,all,byId,pending,
+  return {created,calls,selections,navigation,availability,modes,routing,authorModes,authorContexts,historyReads,document,discoverRoot,discussionRoot,composer,workspace,client,all,byId,pending,
     click(id){const item=byId(id);assert.ok(item,id);item.listeners.get('click')?.();},
     observe(value){current=value;workspace.observePage(value);},current:()=>current,
     start(){workspace.observePage(current);workspace.setActive(true);workspace.setConnection(true);},

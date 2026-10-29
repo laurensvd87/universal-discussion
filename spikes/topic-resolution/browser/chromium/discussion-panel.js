@@ -236,6 +236,8 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
   replyContext.append(replyAuthor, replyExcerpt, replyStatus);
   const identity = node("p"); identity.id = "discussion-demo-identity"; composer.append(identity);
   const originDisclosure = node("p"); originDisclosure.id = "discussion-origin-disclosure"; composer.append(originDisclosure);
+  const topicCaption=node('p');topicCaption.id='discussion-topic-caption';topicCaption.setAttribute('role','status');topicCaption.hidden=true;composer.append(topicCaption);
+  const topicRetry=button('uiRetryPostingTopic',()=>{void controller?.refreshAuthorContext?.();},composer);topicRetry.id='discussion-topic-retry';topicRetry.hidden=true;
   const body = node("textarea"); body.id = "discussion-body"; body.maxLength = 8000;
   body.rows = 3;
   function sizeReplyBody() {
@@ -1002,6 +1004,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     body.setAttribute("aria-label", bodyLabel.textContent);
     body.placeholder = uiMode === "user" ? text(state.draft.mode === "reply" ? "uiReplyPlaceholder" : "uiCommentPlaceholder") : "";
     if (state.draft.mode === "reply") body.setAttribute("aria-describedby", replyContext.id);
+    else if(state.authorContextEnabled||state.draft.authorScope)body.setAttribute('aria-describedby',topicCaption.id);
     else body.removeAttribute("aria-describedby");
     const arrivedCatalog = state.catalog && !previousState?.catalog;
     const reachedConnected = ["ready", "choose-topic"].includes(state.phase) &&
@@ -1124,6 +1127,11 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     submit.disabled = posting || !(ready || humanSubmitReady) || state.draft.detached || !state.draft.body.trim() ||
       state.draft.mode === "reply" && !replyTarget || state.draft.mode === "edit" && !editTarget ||
       semanticDraft && (!humanReady || !replyDestination || state.semanticWritePending);
+    if(state.authorContextEnabled&&state.draft.mode==='root'&&!state.draft.authorScope)submit.disabled=true;
+    const selectedScope=state.draft.authorScope??state.authorContext?.context?.scope;
+    topicCaption.hidden=state.draft.mode!=='root'||(!state.authorContextEnabled&&!state.draft.authorScope);
+    topicCaption.textContent=selectedScope?text('uiPostingTopic').replace('{title}',selectedScope.caption):text(state.authorContextError?'uiPostingTopicUnavailable':'uiPreparingPostingTopic');
+    topicRetry.hidden=topicCaption.hidden||!state.authorContextError;topicRetry.disabled=posting||state.busy;
     if(semanticDraft){body.disabled=body.disabled||!humanReady||!replyDestination||state.semanticWritePending;reattach.disabled=true;}
     mode.textContent = text((uiMode === "user" ? { root: "discussionComposerRoot", reply: "uiReplyMode", edit: "uiEditMode" }
       : { root: "discussionComposerRoot", reply: "discussionComposerReply", edit: "discussionComposerEdit" })[state.draft.mode])
@@ -1658,6 +1666,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     insightShortcut.hidden = uiMode === "user" && (hasResult || replyMode&&!semanticReply ||
       ((!selectedTopicReady && !loadingSelected) || lastState?.draft?.mode !== "root"&&!semanticReply));
     insightShortcut.disabled = semanticDraft&&!semanticReply || posting || !selectedTopicReady || uiMode === "user" && noCurrentSource || active || Boolean(state?.busy) || hasResult;
+    if(lastState?.authorContextEnabled&&lastState.draft.mode==='root'&&!(lastState.draft.authorScope??lastState.authorContext?.context?.scope))insightShortcut.disabled=true;
     insightShortcut.setAttribute("aria-busy", String(active));
     insightShortcut.setAttribute("data-phase", active ? "working" : "idle");
     insightShortcut.setAttribute("data-followup", String(Boolean(replyMode && followupQuestionId)));

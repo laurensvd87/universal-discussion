@@ -1,4 +1,4 @@
-import { readActorId, readPairingToken, isAccountActorId, readSemanticReplyWitness, readSemanticPublication } from "./local-service-contract.js";
+import { readActorId, readPairingToken, isAccountActorId, readSemanticReplyWitness, readSemanticPublication,readAuthoredTopicScope } from "./local-service-contract.js";
 import { readAccountAuthError } from "./account-auth-response.js";
 import { inspectPageUrl } from "./page-content-policy.js";
 
@@ -99,9 +99,10 @@ function projectDiagnostics(value) {
   }) };
 }
 function projectResult(value) {
-  keys(value, ["operationId", "state", "result", "error", "detail", "semanticPublication"], ["operationId", "state"]); id(value.operationId);
+  keys(value, ["operationId", "state", "result", "error", "detail", "semanticPublication","authorScope"], ["operationId", "state"]); id(value.operationId);
   if (!["running", "completed", "failed"].includes(value.state)) invalid();
   if(Object.hasOwn(value,'semanticPublication')&&value.state!=='completed')invalid();
+  if(Object.hasOwn(value,'authorScope')&&(value.state!=='completed'||Object.hasOwn(value,'semanticPublication')))invalid();
   if (value.state === "running" && (value.result !== undefined || value.error !== undefined || value.detail !== undefined) ||
       value.state === "failed" && (value.result !== undefined || typeof value.error !== "string" || !/^[a-z-]{1,64}$/u.test(value.error) ||
         value.detail !== undefined && !RESEARCH_DETAILS.has(value.detail))) invalid();
@@ -120,6 +121,7 @@ function projectResult(value) {
     return { startIndex: start, endIndex: end, url: publicUrl(item.url), title: text(item.title, 512) };
   });
   return { operationId: value.operationId, state: value.state, result: { body, model, citations },
+    ...(Object.hasOwn(value,'authorScope')?{authorScope:readAuthoredTopicScope(value.authorScope)}:{}),
     ...(Object.hasOwn(value,'semanticPublication')?{semanticPublication:readSemanticPublication(value.semanticPublication)}:{}) };
 }
 
@@ -127,7 +129,7 @@ function projectResumable(value) {
   keys(value, ["job"]);
   if (value.job === null) return null;
   const job = value.job;
-  keys(job, ["operationId", "state", "expected", "topicId", "originSourceId", "rootId", "replyToId", "discussionId", "followupTopicId", "semanticPublication"],
+  keys(job, ["operationId", "state", "expected", "topicId", "originSourceId", "rootId", "replyToId", "discussionId", "followupTopicId", "semanticPublication","authorScope"],
     ["operationId", "state", "expected", "topicId", "originSourceId", "rootId", "replyToId", "discussionId"]);
   id(job.operationId); id(job.topicId);
   if (!["running", "completed"].includes(job.state)) invalid();
@@ -142,11 +144,14 @@ function projectResumable(value) {
   if (job.followupTopicId !== undefined &&
       (id(job.followupTopicId) === job.topicId || job.replyToId === null)) invalid();
   const publication=Object.hasOwn(job,'semanticPublication')?readSemanticPublication(job.semanticPublication):null;
+  const authorScope=Object.hasOwn(job,'authorScope')?readAuthoredTopicScope(job.authorScope):null;
+  if(authorScope&&(job.replyToId!==null||publication||authorScope.sourceId!==job.originSourceId))invalid();
   if(publication&&(job.replyToId===null||publication.semanticTarget.topicId!==(job.followupTopicId??job.topicId)||
       job.originSourceId!==null&&publication.evidence.sourceId!==job.originSourceId))invalid();
   return { operationId: job.operationId, state: job.state, expected: { ...job.expected },
     topicId: job.topicId, originSourceId: job.originSourceId,
     rootId: job.rootId, replyToId: job.replyToId, discussionId: job.discussionId,
+    ...(authorScope?{authorScope}:{}),
     ...(job.followupTopicId === undefined ? {} : { followupTopicId: job.followupTopicId }),
     ...(publication?{semanticPublication:publication}:{}) };
 }
@@ -250,6 +255,11 @@ export function createLocalAiClient({ fetchImpl, getToken, getAccountToken = () 
         if(typeof value.followupQuestionId!=='string'||!ID.test(value.followupQuestionId)||
             semanticTarget.topicId!==(value.followupTopicId??value.context?.topic?.id))invalid();
         value={...value,semanticTarget};
+      }
+      if(Object.hasOwn(value,'authorScope')){
+        const authorScope=readAuthoredTopicScope(value.authorScope);
+        if(value.followupQuestionId!==undefined||authorScope.sourceId!==value.context?.currentSource?.id)invalid();
+        value={...value,authorScope};
       }
       if (typeof value.articleText !== "string" || !value.articleText.trim() || value.articleText.length > 4096 ||
           typeof value.allowWebResearch !== "boolean") invalid();

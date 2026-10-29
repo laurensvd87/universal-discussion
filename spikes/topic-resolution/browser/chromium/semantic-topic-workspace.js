@@ -1,5 +1,5 @@
 import {mountSemanticTopicPanel} from './semantic-topic-panel.js';
-import {readSemanticCapabilities,readSemanticContext} from '../core/local-service-contract.js';
+import {readSemanticCapabilities,readSemanticContext,readAuthorContext} from '../core/local-service-contract.js';
 import {isMissingSemanticCapabilities} from '../core/local-service-client.js';
 
 // Optional public browsing never replaces the controller's foreground document
@@ -14,6 +14,7 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
   let contextPending=false,contextRetry=null,retriesLeft=20;
   let savedView=false,historyPending=false,historyError=false,historyFlight=null;
   let refreshedPostId=null;
+  let authorAvailable=false,authorAbort=null,authorRequestKey=null,authorEpoch=0;
   const status=document.createElement('p');status.id='semantic-workspace-status';status.setAttribute('role','status');
   const retry=document.createElement('button');retry.id='semantic-workspace-retry';retry.type='button';retry.textContent='Try again';retry.hidden=true;
   const toggle=document.createElement('button');toggle.id='semantic-workspace-saved-toggle';toggle.type='button';toggle.hidden=true;
@@ -45,6 +46,7 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
     main.setConnection(enabled);main.setActive(enabled);discoverRoot.hidden=!enabled||!discoverActive;updateMain();}
   function clearContextRetry(){if(contextRetry!==null)clearTimeout(contextRetry);contextRetry=null;}
   function revoke(){epoch++;intentAbort.abort();intentAbort=new AbortController();contextEpoch++;contextAbort?.abort();contextAbort=null;clearContextRetry();
+    authorEpoch++;authorAbort?.abort();authorAbort=null;authorRequestKey=null;
     contextRequestKey=null;contextCard=null;contextLoading=false;contextError=false;contextPending=false;retriesLeft=20;override=null;
     savedView=false;historyPending=false;historyError=false;historyFlight=null;
     refreshedPostId=null;
@@ -69,7 +71,7 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
   const discover=mountSemanticTopicPanel(document,discoverRoot,{client:panelClient,idPrefix:'semantic-discover-',onReply:reply});
   const main=mountSemanticTopicPanel(document,mainRoot,{client:panelClient,idPrefix:'semantic-context-',contextMode:true,onReply:reply,
     onSelectionChange(selection){if(suppressSelection)return;override=selection?.rootId?{nodeId:selection.nodeId,rootId:selection.rootId}:null;updateMain();},
-    async onRefresh(){const ownEpoch=epoch;await loadContext(true);if(usable()&&ownEpoch===epoch)main.refreshPage();}});
+    async onRefresh(){const ownEpoch=epoch;void loadAuthorContext(true);await loadContext(true);if(usable()&&ownEpoch===epoch)main.refreshPage();}});
   async function loadContext(force=false,poll=false){if(!usable())return;
     const sourceId=pageState?.sourceId,version=pageState?.catalog?.version;
     if(!sourceId||!version){clearContextRetry();contextCard=null;contextLoading=false;contextError=false;contextPending=false;main.setTopicContext(null,{preserveThread:true});updateMain();return;}
@@ -94,15 +96,28 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
     }catch{if(current()){contextCard=null;contextLoading=false;contextError=true;contextPending=false;main.setTopicContext(null,{preserveThread:true});updateMain();}}
     finally{if(contextAbort===abort)contextAbort=null;}
   }
+  async function loadAuthorContext(force=false){
+    if(!usable()||!authorAvailable||typeof client.authorContext!=='function')return;
+    const sourceId=pageState?.sourceId,version=pageState?.catalog?.version;if(!sourceId||!version)return;
+    const requestKey=JSON.stringify([sourceId,version.generation,version.revision]);if(!force&&authorRequestKey===requestKey)return;
+    authorRequestKey=requestKey;authorAbort?.abort();const abort=new AbortController();authorAbort=abort;
+    const own=++authorEpoch,ownEpoch=epoch,current=()=>usable()&&authorAvailable&&epoch===ownEpoch&&own===authorEpoch&&!abort.signal.aborted;
+    try{const value=readAuthorContext(await client.authorContext({sourceId},{signal:abort.signal,beforeDispatch:current}),{sourceId});
+      if(!current()||value.version.generation!==version.generation||value.version.revision<version.revision)return;
+      controller.setAuthorContext?.(value);
+    }catch{if(current())controller.setAuthorContextError?.(true);}
+    finally{if(authorAbort===abort)authorAbort=null;}
+  }
   async function probe(){if(!connected||disposed)return;capabilityAbort?.abort();const abort=new AbortController();capabilityAbort=abort;
     const ownService=serviceEpoch;capability='loading';emit('loading');activatePanels();
     const current=()=>!disposed&&connected&&serviceEpoch===ownService&&capabilityAbort===abort&&!abort.signal.aborted;
-    try{const value=await client.semanticCapabilities({signal:abort.signal,beforeDispatch:current});if(!current())return;readSemanticCapabilities(value);
-      capability='available';routing(true);emit('available');activatePanels();void loadContext();
+    try{const value=await client.semanticCapabilities({signal:abort.signal,beforeDispatch:current});if(!current())return;const flags=readSemanticCapabilities(value);
+      authorAvailable=flags.authorContext==='authored-topics/v1';controller.setAuthorContextAvailable?.(authorAvailable);
+      capability='available';routing(true);emit('available');activatePanels();void loadAuthorContext();void loadContext();
     }catch(error){if(current()){capability=isMissingSemanticCapabilities(error)?'legacy':'error';routing(false);emit(capability);activatePanels();}}
     finally{if(capabilityAbort===abort)capabilityAbort=null;}
   }
-  async function retryContext(){const ownEpoch=epoch;if(!usable())return;await loadContext(true);if(usable()&&ownEpoch===epoch)main.refreshPage();}
+  async function retryContext(){const ownEpoch=epoch;if(!usable())return;void loadAuthorContext(true);await loadContext(true);if(usable()&&ownEpoch===epoch)main.refreshPage();}
   function readSavedThreads(){
     if(!usable()||!pageState?.sourceId||!savedView)return Promise.resolve();
     if(historyFlight)return historyFlight;
@@ -124,14 +139,17 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
   return {
     setActive(value){if(disposed)return;discoverActive=Boolean(value);activatePanels();},
     setConnection(value){value=Boolean(value);if(disposed||connected===value)return;connected=value;serviceEpoch++;capabilityAbort?.abort();capabilityAbort=null;revoke();
+      if(!value){authorAvailable=false;controller.setAuthorContextAvailable?.(false);}
       if(!value){capability='unknown';routing(false);emit('disconnected');activatePanels();}else void probe();},
     observePage(state){if(disposed)return;const previous=pageState,nextAccount=account(state),nextPage=identity(state);
       const changedAccount=accountKey!==null&&accountKey!==nextAccount,changedPage=pageKey!==nextPage;
       pageState=state;accountKey=nextAccount;pageKey=nextPage;
+      if(previous?.authorContext&&!state?.authorContext)authorRequestKey=null;
       if(changedPage)revoke();
       discover.observe(panelAccount());main.observe(panelAccount());
       if(changedAccount){serviceEpoch++;capabilityAbort?.abort();capabilityAbort=null;capability='unknown';if(connected)void probe();return;}
       if(usable()){
+        void loadAuthorContext();
         void loadContext();
         const accepted=state?.createdPost;
         const newPost=override&&accepted?.semantic&&typeof accepted.id==='string'&&accepted.id!==refreshedPostId&&
@@ -144,9 +162,10 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
         }
       }
     },
-    refresh(){if(disposed||!connected)return;const ownEpoch=epoch;if(capability==='available')return loadContext(true).then(()=>{if(usable()&&ownEpoch===epoch)main.refreshPage();});return probe();},
+    refresh(){if(disposed||!connected)return;const ownEpoch=epoch;if(capability==='available'){void loadAuthorContext(true);return loadContext(true).then(()=>{if(usable()&&ownEpoch===epoch)main.refreshPage();});}return probe();},
     dispose(){if(disposed)return;disposed=true;connected=false;serviceEpoch++;capabilityAbort?.abort();contextAbort?.abort();intentAbort.abort();clearContextRetry();
-      capabilityAbort=contextAbort=null;override=contextCard=null;discover.dispose();main.dispose();routing(false);discussionPanel.setSemanticFeedMode(false);
+      authorEpoch++;authorAbort?.abort();authorAvailable=false;controller.setAuthorContextAvailable?.(false);
+      capabilityAbort=contextAbort=authorAbort=null;override=contextCard=null;discover.dispose();main.dispose();routing(false);discussionPanel.setSemanticFeedMode(false);
       retry.removeEventListener('click',retryContext);toggle.removeEventListener('click',toggleSaved);historyRetry.removeEventListener('click',retrySaved);
       historyFlight=null;discoverRoot.hidden=discussionRoot.hidden=true;discussionRoot.replaceChildren();emit('disconnected');},
   };

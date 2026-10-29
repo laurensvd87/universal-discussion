@@ -34,8 +34,9 @@ export function createAutomaticAuthorContextRepository({database,nextId=()=>`con
    const a=readRecord(parsed(rawJson,1024),['generation','sourceId']);readId(a.generation);readId(a.sourceId);
    try{const r=value(await database.query('SELECT canonical_v4.named_read_editor($1,$2) AS result',[a.generation,a.sourceId]));
     if(r===null)return null;
-    try{const v=readRecord(r,['generation','topicId','scope']);if(v.generation!==a.generation)corrupt();readId(v.topicId);
-     const s=scope(v.scope);if(s.sourceId!==a.sourceId)corrupt();return frozenClone({...v,scope:s});
+    try{const v=readRecord(r,['generation','topicId','pageScope','scope']);if(v.generation!==a.generation)corrupt();readId(v.topicId);
+     const s=scope(v.scope),page=scope(v.pageScope);if(s.sourceId!==a.sourceId||page.kind!=='page'||page.sourceId!==a.sourceId||page.materialDigest!==s.materialDigest)corrupt();
+     return frozenClone({...v,scope:s,pageScope:page});
     }catch{corrupt();}
    }catch(error){throw failure(error);}
   },
@@ -76,6 +77,12 @@ export function createAutomaticAuthorContextRepository({database,nextId=()=>`con
     try{const r=readRecord(JSON.parse(value(raw)),['version','result']),version=readExpectedVersion(r.version),result=readRecord(r.result,['contributionId']);
      if(version.generation!==request.expected.generation)corrupt();readId(result.contributionId);return frozenClone({version,result});
     }catch{corrupt();}
+   }catch(error){throw failure(error);}
+  },
+  async scopeCurrent(rawJson){
+   const a=readRecord(parsed(rawJson,4096),['generation','topicId','scope']);readId(a.generation);readId(a.topicId);const s=scope(a.scope);
+   try{const r=value(await database.query('SELECT canonical_v4.named_check_editor_scope($1,$2,$3::jsonb) AS result',[a.generation,a.topicId,JSON.stringify(s)]));
+    if(typeof r!=='boolean')corrupt();return r;
    }catch(error){throw failure(error);}
   },
  });

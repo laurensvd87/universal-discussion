@@ -318,7 +318,7 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
     // A display capability only: no database, current model or posting grant.
     readRecord(parseJsonBody(request), []);
     if (!publicReadCurrent()) fail("unavailable", "Read unavailable");
-    return { status: 200, value: { protocol: "semantic-topics/v1" }, isCurrent: publicReadCurrent };
+    return { status: 200, value: { protocol: "semantic-topics/v1",...(typeof service.authorContext==='function'?{authorContext:'authored-topics/v1'}:{}) }, isCurrent: publicReadCurrent };
   }
   if (request.method === "POST" && path === "/v1/semantic/thread" && typeof service.semanticThread === "function")
     return publicRead("semanticThread", parseJsonBody(request));
@@ -328,6 +328,8 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
     return publicRead("semanticTopics", parseJsonBody(request));
   if (request.method === "POST" && path === "/v1/semantic/context" && typeof service.semanticContext === "function")
     return publicRead("semanticContext", parseJsonBody(request));
+  if(request.method==='POST'&&path==='/v1/semantic/editor'&&typeof service.authorContext==='function')
+    return publicRead('authorContext',parseJsonBody(request));
   if (request.method === "POST" && path === "/v1/discover/search" && service.discover) {
     return publicRead("discover", parseJsonBody(request));
   }

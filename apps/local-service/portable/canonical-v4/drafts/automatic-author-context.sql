@@ -40,7 +40,8 @@ BEGIN
   RAISE EXCEPTION 'Invalid editor context' USING ERRCODE='P1293';END IF;
  IF NOT EXISTS(SELECT 1 FROM canonical_v4.runtime_state WHERE singleton AND generation=p_generation) THEN
   RAISE EXCEPTION 'Editor generation changed' USING ERRCODE='P1291';END IF;
- SELECT jsonb_build_object('generation',p_generation,'topicId',link_.topic_id,'scope',
+ SELECT jsonb_build_object('generation',p_generation,'topicId',link_.topic_id,
+  'pageScope',jsonb_build_object('kind','page','id',s.id,'caption',s.title,'sourceId',s.id,'materialDigest',r.operation_digest),'scope',
   jsonb_build_object('kind',CASE WHEN h.subject_id IS NULL THEN 'page' ELSE 'named' END,
    'id',coalesce(h.subject_id::text,s.id),'caption',coalesce(h.label,s.title),
    'sourceId',s.id,'materialDigest',r.operation_digest)) INTO result_
@@ -60,6 +61,37 @@ BEGIN
  WHERE s.id=p_source AND s.provenance='owner-local-page-embedding/v1' AND s.has_embedding;
  RETURN result_;
 END $editor$;
+
+-- Same protected witnesses as publication, ordinary MVCC only. This permits
+-- real AI job creation to authorize the captured earlier broad/page scope even
+-- if the preferred leaf changes. Publication rechecks after its physical locks.
+CREATE FUNCTION canonical_v4.named_check_editor_scope(p_generation text,p_topic text,p_scope jsonb)
+RETURNS boolean LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $check$
+DECLARE named_id_ uuid;
+BEGIN
+ IF canonical_v4.named_valid_editor_scope(p_scope) IS DISTINCT FROM true OR
+   canonical_v4.runtime_safe_text(p_generation,128,false) IS DISTINCT FROM true OR
+   canonical_v4.runtime_safe_text(p_topic,128,false) IS DISTINCT FROM true THEN
+  RAISE EXCEPTION 'Invalid selected context' USING ERRCODE='P1293';END IF;
+ IF p_scope->>'kind'='named' THEN
+  IF p_scope->>'id' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' THEN
+   RAISE EXCEPTION 'Invalid selected subject' USING ERRCODE='P1293';END IF;
+  named_id_:=(p_scope->>'id')::uuid;
+ END IF;
+ RETURN EXISTS(SELECT 1 FROM canonical_v4.sources s
+  JOIN canonical_v4.runtime_state state_ ON state_.singleton AND state_.generation=p_generation
+  JOIN canonical_v4.source_links link_ ON link_.source_id=s.id AND link_.topic_id=p_topic
+  JOIN canonical_v4.operation_receipts r ON r.source_id=s.id AND r.operation_id=s.operation_id AND r.operation_digest=s.payload::jsonb->>'operationDigest'
+  JOIN canonical_v4.runtime_source_stamps st ON st.source_id=s.id AND st.postable
+  WHERE s.id=p_scope->>'sourceId' AND s.provenance='owner-local-page-embedding/v1' AND s.has_embedding AND r.operation_digest=p_scope->>'materialDigest'
+   AND ((p_scope->>'kind'='page' AND p_scope->>'id'=s.id AND p_scope->>'caption'=s.title) OR
+    (p_scope->>'kind'='named' AND EXISTS(SELECT 1 FROM canonical_v4.named_subject_heads h
+      JOIN canonical_v4.named_subject_ids identity_ ON identity_.id=h.subject_id AND identity_.revision=h.revision
+      JOIN canonical_v4.semantic_installation installation_ ON installation_.singleton AND installation_.matcher_hash=h.matcher_hash
+      JOIN canonical_v4.named_subject_members m ON m.subject_id=h.subject_id AND m.source_id=s.id AND m.source_version=s.write_version
+        AND m.operation_id=s.operation_id AND m.operation_digest=r.operation_digest AND m.source_stamp=st.stamp
+      WHERE h.subject_id=named_id_ AND h.label=p_scope->>'caption' AND h.generation=p_generation))));
+END $check$;
 
 -- Private finalizer, after canonical domain locks and before the watermark.
 -- Neither app nor worker can independently attach context to existing roots.
@@ -166,17 +198,17 @@ CREATE TRIGGER named_authored_withdrawal AFTER UPDATE OF withdrawn,visibility ON
  FOR EACH ROW EXECUTE FUNCTION canonical_v4.named_erase_authored_context();
 
 REVOKE ALL ON TABLE canonical_v4.named_root_contexts,canonical_v4.named_context_receipts FROM PUBLIC;
-REVOKE ALL ON FUNCTION canonical_v4.named_attach_root_context(text,text,text,text,text,jsonb),canonical_v4.named_valid_editor_scope(jsonb),canonical_v4.named_read_editor(text,text),
+REVOKE ALL ON FUNCTION canonical_v4.named_check_editor_scope(text,text,jsonb),canonical_v4.named_attach_root_context(text,text,text,text,text,jsonb),canonical_v4.named_valid_editor_scope(jsonb),canonical_v4.named_read_editor(text,text),
  canonical_v4.named_append_root(text,text,text,text,text,text,text,text,text,text,jsonb),
  canonical_v4.named_read_root_context(text,text),canonical_v4.named_erase_authored_context() FROM PUBLIC;
 DO $permissions$ DECLARE role_ text;BEGIN
  FOREACH role_ IN ARRAY ARRAY['murmingle_app','murmingle_ingest_worker','murmingle_crawler_submitter'] LOOP
   IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname=role_) THEN
    EXECUTE format('REVOKE ALL ON TABLE canonical_v4.named_root_contexts,canonical_v4.named_context_receipts FROM %I',role_);
-   EXECUTE format('REVOKE ALL ON FUNCTION canonical_v4.named_attach_root_context(text,text,text,text,text,jsonb),canonical_v4.named_valid_editor_scope(jsonb),canonical_v4.named_read_editor(text,text),canonical_v4.named_append_root(text,text,text,text,text,text,text,text,text,text,jsonb),canonical_v4.named_read_root_context(text,text),canonical_v4.named_erase_authored_context() FROM %I',role_);
+   EXECUTE format('REVOKE ALL ON FUNCTION canonical_v4.named_check_editor_scope(text,text,jsonb),canonical_v4.named_attach_root_context(text,text,text,text,text,jsonb),canonical_v4.named_valid_editor_scope(jsonb),canonical_v4.named_read_editor(text,text),canonical_v4.named_append_root(text,text,text,text,text,text,text,text,text,text,text,jsonb),canonical_v4.named_read_root_context(text,text),canonical_v4.named_erase_authored_context() FROM %I',role_);
   END IF;
  END LOOP;
  IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='murmingle_app') THEN
-  GRANT EXECUTE ON FUNCTION canonical_v4.named_read_editor(text,text),canonical_v4.named_read_root_context(text,text),
+  GRANT EXECUTE ON FUNCTION canonical_v4.named_check_editor_scope(text,text,jsonb),canonical_v4.named_read_editor(text,text),canonical_v4.named_read_root_context(text,text),
    canonical_v4.named_append_root(text,text,text,text,text,text,text,text,text,text,jsonb) TO murmingle_app;END IF;
 END $permissions$;

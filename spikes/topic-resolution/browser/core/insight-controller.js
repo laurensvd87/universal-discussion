@@ -1,5 +1,5 @@
 import { buildInsightContext } from "./insight-context.js";
-import { readSemanticPublication } from "./local-service-contract.js";
+import { readSemanticPublication,readAuthoredTopicScope } from "./local-service-contract.js";
 import { ModelListFailure } from "./local-ai-client.js";
 import { formatInsightCitations } from "./insight-citations.js";
 import { inspectPageUrl } from "./page-content-policy.js";
@@ -290,6 +290,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     }
     return { body: state.draft, operationId: completedJob.id, expected: { ...observed.discussion.version },
       topicId: observed.topicId, sourceId: observed.sourceId ?? null, actorId: observed.actorId,
+      ...(completedJob.authorScope?{authorScope:completedJob.authorScope}:{}),
       ...(completedJob.semanticPublication ? { semanticPublication: completedJob.semanticPublication,
         targetBinding: { rootBody: completedJob.followup.rootBody, targetBody: completedJob.followup.targetBody } } : {}),
       ...(completedJob.followup ? { discussionId: completedJob.followup.discussionId,
@@ -334,7 +335,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     if (!candidate) return false;
     review = candidate;
     const operator = observed.catalog.actors.find((actor) => actor.id === observed.actorId);
-    publish({ preview: { body: review.body, topicTitle: state.context.topic.title,
+    publish({ preview: { body: review.body, topicTitle: completedJob.authorScope?.caption??state.context.topic.title,
       operatorName: operator.displayName, sourceTitle: state.context.currentSource?.title ?? null,
       sourceUrl: state.context.currentSource?.url ?? null, replyToId: review.replyToId ?? null }, status: "preview" });
     return true;
@@ -539,6 +540,8 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     if (!disposed && observed?.phase === "ready" && !observed.actorId) { requestSignIn(); return false; }
     deliberateRequests += 1;
     try {
+    let clickedScope=null;
+    if(observed?.authorContextEnabled)try{clickedScope=readAuthoredTopicScope(observed.draft?.authorScope??observed.authorContext?.context?.scope);}catch{return false;}
     const clickedEpoch = epoch, clickedKey = key(), clickedAccount = accountKey();
     const clickedRevision = preferenceRevision;
     let clickedSettings = { preferences: { ...state.preferences }, browserLanguageHintEnabled: state.browserLanguageHintEnabled };
@@ -556,11 +559,11 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         if (!state.context?.currentSource) return false;
         aiPatch({ status: "preparingArticle", error: null, researchFailureDetail: null });
         if (!await readPageText()) return false;
-        return await runInsights({ skipConsent: true, preferences, publishOnCompletion: shareOnCompletion === true });
+        return await runInsights({ skipConsent: true, preferences, authorScope:clickedScope,publishOnCompletion: shareOnCompletion === true });
       } finally { automaticStartBusy = false; }
     }
     if (automaticStartBusy || completedJob) return false;
-    return runInsights({ skipConsent: false, preferenceSettings: clickedSettings, publishOnCompletion: shareOnCompletion === true });
+    return runInsights({ skipConsent: false, preferenceSettings: clickedSettings,authorScope:clickedScope,publishOnCompletion: shareOnCompletion === true });
     } finally {
       deliberateRequests = Math.max(0, deliberateRequests - 1);
       refreshOptionalContext();
@@ -618,7 +621,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       refreshOptionalContext();
     }
   }
-  async function runInsights({ skipConsent, followup = null, preferences, preferenceSettings, publishOnCompletion = false }) {
+  async function runInsights({ skipConsent, followup = null, preferences, preferenceSettings,authorScope=null,publishOnCompletion = false }) {
     await relatedPreferenceReady;
     if (!aiClient || !attestArticle || disposed || job || completedJob || pending || !state.ai.planEnabled ||
         (!skipConsent && !state.ai.costConsent) ||
@@ -650,6 +653,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
           .map((source) => source.id),
         sourceLimit: observed.sourceId === null ? 5 : 6 });
       const request = { operationId, model: state.ai.model, context: requestContext, preferences,
+        ...(authorScope?{authorScope}:{}),
         excludedRelatedSourceIds: [...state.excludedRelatedSourceIds], articleText: state.ai.articleText,
         allowWebResearch: false, expected: { ...observed.catalog.version },
         includeRelatedSources: preparedRelated !== null,
@@ -724,12 +728,14 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         }
         if (outcome.state === "completed") {
           const semanticPublication=publicationFor(outcome.semanticPublication,followup);
+          const completedScope=outcome.authorScope?readAuthoredTopicScope(outcome.authorScope):null;
+          if(JSON.stringify(completedScope)!==JSON.stringify(authorScope))throw new Error('changed generated topic');
           if(!await freshSemanticFollowup(followup)||!active())return false;
           const draft = formatInsightCitations(outcome.result.body, outcome.result.citations);
           review = null; job = null;
           // Keep the short-lived service result until Share or Discard so the
           // service can attest the exact generated body before publication.
-          completedJob = { id: operationId, actorId, account: accountKey(), followup, semanticPublication };
+          completedJob = { id: operationId, actorId, account: accountKey(), followup, semanticPublication,...(completedScope?{authorScope:completedScope}:{}) };
           publish({ draft, preview: null, status: "prepared", ai: { ...state.ai, result: outcome.result,
             status: "generated", costConsent: false } });
           // The opt-in belongs only to this live, explicit generation. A
@@ -823,11 +829,13 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         }
         if (outcome.state === "completed") {
           const semanticPublication=publicationFor(outcome.semanticPublication,followup);
+          const completedScope=outcome.authorScope?readAuthoredTopicScope(outcome.authorScope):null,resumedScope=resumable.authorScope?readAuthoredTopicScope(resumable.authorScope):null;
+          if(JSON.stringify(completedScope)!==JSON.stringify(resumedScope))throw new Error('changed generated topic');
           if(resumedPublication&&JSON.stringify(semanticPublication)!==JSON.stringify(resumedPublication))return false;
           if(!await freshSemanticFollowup(followup)||!active())return false;
           const draft = formatInsightCitations(outcome.result.body, outcome.result.citations);
           job = null; review = null;
-          completedJob = { id: resumable.operationId, actorId: snapshot.actorId, account: accountKey(), followup, semanticPublication };
+          completedJob = { id: resumable.operationId, actorId: snapshot.actorId, account: accountKey(), followup, semanticPublication,...(completedScope?{authorScope:completedScope}:{}) };
           publish({ draft, preview: null, followup: presentationFollowup, status: "prepared", ai: { ...state.ai, result: outcome.result,
             status: "generated", costConsent: false } });
           return true;

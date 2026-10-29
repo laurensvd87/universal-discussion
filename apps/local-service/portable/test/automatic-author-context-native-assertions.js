@@ -42,6 +42,7 @@ export async function runAutomaticAuthorContextNativeAssertions(scope){
  });
  await test(cases,1,async()=>{
   const page=await within(editor(pageSource));assert.equal(page.scope.kind,'page');assert.equal(page.scope.caption,'Unannounced novel product');
+  assert.deepEqual(page.pageScope,page.scope);assert.equal(await repo.scopeCurrent(JSON.stringify({generation,topicId:page.topicId,scope:page.scope})),true);
   const r=await post(await request(page));const read=await readRoot(r.result.contributionId);assert.deepEqual(read.scope,{kind:'page',id:pageSource,caption:page.scope.caption});
   assert.equal(read.topicId,page.topicId);assert.equal(read.discussionId,'discussion-semantic-manual');
  });
@@ -66,6 +67,7 @@ export async function runAutomaticAuthorContextNativeAssertions(scope){
  await test(cases,4,async()=>{
   const e=await editor(source),parent=await one(owner,'SELECT p.subject_id::text id,p.label FROM canonical_v4.named_subject_heads h JOIN canonical_v4.named_subject_heads p ON p.subject_id=h.parent_id WHERE h.subject_id=$1',[e.scope.id]);
   const broad={...e,scope:{...e.scope,id:parent.id,caption:parent.label}};assert.notEqual(broad.scope.id,e.scope.id);
+  assert.equal(await repo.scopeCurrent(JSON.stringify({generation,topicId:broad.topicId,scope:broad.scope})),true);
   const r=await post(await request(broad));assert.equal((await readRoot(r.result.contributionId)).scope.id,parent.id);
  });
  await test(cases,5,async()=>{
@@ -83,6 +85,7 @@ export async function runAutomaticAuthorContextNativeAssertions(scope){
   }
   const pageDraft=await request(await editor(pageSource));
   await changeFixtureTitle(pageSource,'This page now describes a different product');const changed=await state();
+  assert.equal(await repo.scopeCurrent(JSON.stringify({generation,topicId:pageDraft.command.topicId,scope:pageDraft.scope})),false);
   await assert.rejects(repo.appendRoot(JSON.stringify(pageDraft)),code('conflict'));assert.deepEqual(await state(),changed);
   await changeFixtureTitle(pageSource,'Unannounced novel product');await prepareFixtureSources();
  });
@@ -121,7 +124,7 @@ export async function runAutomaticAuthorContextNativeAssertions(scope){
    await tx.query('DELETE FROM canonical_v4.id_registry WHERE id=ANY($1::text[])',[roots]);
   });
   await owner.exec(`DROP TRIGGER named_authored_withdrawal ON canonical_v4.contributions;
-   DROP FUNCTION canonical_v4.named_attach_root_context(text,text,text,text,text,jsonb),canonical_v4.named_valid_editor_scope(jsonb),canonical_v4.named_read_editor(text,text),
+   DROP FUNCTION canonical_v4.named_check_editor_scope(text,text,jsonb),canonical_v4.named_attach_root_context(text,text,text,text,text,jsonb),canonical_v4.named_valid_editor_scope(jsonb),canonical_v4.named_read_editor(text,text),
     canonical_v4.named_append_root(text,text,text,text,text,text,text,text,text,text,jsonb),canonical_v4.named_read_root_context(text,text),canonical_v4.named_erase_authored_context();
    DROP TABLE canonical_v4.named_context_receipts,canonical_v4.named_root_contexts;`);
  });};

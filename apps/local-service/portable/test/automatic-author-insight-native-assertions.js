@@ -4,6 +4,14 @@ import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises
 import {createAutomaticAuthorContextRepository as repository} from '../canonical-v4/automatic-author-context-repository.js';
 import {createAutomaticNamedSubjectRepository as subjects} from '../canonical-v4/automatic-named-subject-repository.js';
 import {createCanonicalV4LifecycleRepository as lifecycle} from '../canonical-v4/lifecycle-repository.js';
+import {createCanonicalV4RuntimeRepository} from '../canonical-v4/runtime-repository.js';
+import {createCanonicalV4ReadFacade} from '../canonical-v4/read-facade.js';
+import {createPostgresCanonicalService} from '../../src/application/create-postgres-canonical-service.js';
+import {createChatGPTRuntime} from '../../src/ai/chatgpt-runtime.js';
+import {createRequestHandler} from '../../src/http/request-handler.js';
+import {buildInsightContext} from '../../../../spikes/topic-resolution/browser/core/insight-context.js';
+import {createLocalAiClient} from '../../../../spikes/topic-resolution/browser/core/local-ai-client.js';
+import {createLocalServiceClient} from '../../../../spikes/topic-resolution/browser/core/local-service-client.js';
 import names from './automatic-author-insight-native-cases.json' with {type:'json'};
 export const AUTOMATIC_AUTHOR_INSIGHT_NATIVE_CASES=Object.freeze([...names]);
 const actor={id:'demo-alex',type:'human',demo:true},code=c=>e=>e?.code===c;
@@ -40,7 +48,30 @@ export async function runAutomaticAuthorInsightNativeAssertions(scope){
     await tx.query("SELECT canonical_v4.named_attach_root_context('a','b','c','d','e','{}')");}),code('42501'));
  });
  await test(cases,1,async()=>{
-  const e=await editor(source);assert.equal(e.scope.kind,'named');original=await request(e);posted=await post(original);
+  const e=await editor(source);assert.equal(e.scope.kind,'named');original=await request(e);
+  const service=createPostgresCanonicalService({reads:createCanonicalV4ReadFacade({database:app}),
+   runtime:createCanonicalV4RuntimeRepository({database:app}),lifecycle:legacy,semanticDiscussions:true,authoredTopics:repo});
+  let providerCalls=0,issued=null;
+  const ai=createChatGPTRuntime({service,connectionAdapter:{status:()=>({connected:true,planEnabled:true,pending:false}),dispose(){}},
+   insightsAdapter:{async createInsight(){providerCalls++;return {body:original.command.body,citations:[],model:'synthetic'};},cancel(){},dispose(){}}});
+  try{
+   const config={hostHeader:'127.0.0.1:4174',origin:'chrome-extension://'+'a'.repeat(32),capability:'invented-owned-http-topic-capability'};
+   const handle=createRequestHandler({config,service:{...service,command(...args){issued=args[3];return service.command(...args);}},ai});
+   const fetchImpl=async(url,options)=>{const u=new URL(url);assert.equal(u.origin,'http://127.0.0.1:4174');
+    const r=await handle({method:options.method,url:u.pathname,headers:{...options.headers,host:config.hostHeader,origin:config.origin},body:options.body});
+    return new Response(r.body,{status:r.status,headers:r.headers});};
+   const client=createLocalServiceClient({fetchImpl,getToken:()=>config.capability}),aiClient=createLocalAiClient({fetchImpl,getToken:()=>config.capability});
+   assert.equal((await client.semanticCapabilities()).authorContext,'authored-topics/v1');
+   const shown=await client.authorContext({sourceId:source});assert.deepEqual(shown.context.scope,e.scope);
+   const bundle=await service.insightBundle({sourceId:source,topicId:e.topicId,includeDiscussion:false,includeRelatedSources:false,destinationTopicId:null});
+   const context=buildInsightContext({...bundle,sourceId:source,topicId:e.topicId,includeDiscussion:false});
+   original.expected=bundle.version;
+   await aiClient.start({operationId:original.command.operationId,model:'synthetic',context,articleText:'Invented foreground article text',allowWebResearch:false,
+    includeRelatedSources:false,expected:bundle.version,authorScope:e.scope},actor.id);
+   const result=await aiClient.result(original.command.operationId,actor.id);assert.equal(result.state,'completed');assert.deepEqual(result.authorScope,e.scope);
+   posted=await client.command(bundle.version,{...original.command,authorScope:e.scope},actor.id);roots.push(posted.result.contributionId);
+   assert.equal(providerCalls,1);assert.deepEqual(issued.authorScope,e.scope);assert.equal(issued.body,original.command.body);
+  }finally{ai.dispose();}
   const c=await root(posted.result.contributionId);assert.equal(c.scope.id,e.scope.id);assert.equal(c.scope.caption,e.scope.caption);
   assert.equal(c.topicId,e.topicId);assert.equal(c.discussionId,'discussion-semantic-manual');
   const v=await one(owner,"SELECT c.actor_type,c.operator_id,r.payload::jsonb->>'body' body FROM canonical_v4.contributions c JOIN canonical_v4.revisions r ON r.contribution_id=c.id AND r.ordinal=0 WHERE c.id=$1",[posted.result.contributionId]);

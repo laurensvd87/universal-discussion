@@ -395,6 +395,16 @@ function state(patch = {}) {
       ] }] }, related: { results: [{ title: "<iframe>inert source</iframe>", url: "https://synthetic.example/", relationship: "related" }] },
     draft: { body: "", detached: false, mode: "root", targetId: null }, ...patch };
 }
+test('composer displays the frozen topic as inert text, keeps typing available and offers an explicit failed-read retry',()=>{
+ let retries=0;const ui=harness(undefined,undefined,undefined,undefined,undefined,{refreshAuthorContext(){retries++;}});
+ const pending=state({authorContextEnabled:true,authorContextError:true,draft:{mode:'root',body:'Keep this message',detached:false,targetId:null,authorPendingPage:true}});
+ ui.panel.render(pending);assert.equal(ui.byId('discussion-body').disabled,false);assert.equal(ui.byId('discussion-submit').disabled,true);
+ assert.equal(ui.byId('discussion-topic-retry').hidden,false);ui.byId('discussion-topic-retry').listeners.get('click')();assert.equal(retries,1);
+ const scope={caption:'<img src=x onerror=alert(1)>',id:'first-topic'};
+ ui.panel.render({...pending,authorContextError:false,authorContext:{context:{scope:{caption:'New preferred child'}}},draft:{...pending.draft,authorScope:scope}});
+ const caption=ui.byId('discussion-topic-caption');assert.equal(caption.textContent,'Topic: '+scope.caption);assert.equal(caption.children.length,0);
+ assert.equal(ui.byId('discussion-body').value,'Keep this message');assert.equal(ui.byId('discussion-body').attributes['aria-describedby'],caption.id);ui.panel.dispose();
+});
 function semanticComposerState(patch={}){
   const current=emptyPageDiscussion(),post=(id,rootId=null)=>({id,rootId,replyToId:rootId,state:'visible',actorType:'human',authorId:'demo-blair',
     body:'Public text '+id,createdAt:'2026-10-27T12:00:00.000Z',edited:false});

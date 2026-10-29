@@ -10,6 +10,7 @@ import { ServiceError, fail } from "../domain/errors.js";
 import { readId } from "../domain/validation.js";
 import { isAccountPrincipal } from "../accounts/account-principal.js";
 import { types } from "node:util";
+import {readAuthoredTopicScope} from '../../../../spikes/topic-resolution/browser/core/local-service-contract.js';
 
 const FILE = "chatgpt-registration.json";
 const OPERATION = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
@@ -50,6 +51,7 @@ function operationId(value) {
 }
 function same(left, right) { return JSON.stringify(left) === JSON.stringify(right); }
 function bodyDigest(body) { return createHash("sha256").update(body, "utf8").digest("hex"); }
+function authoredScope(value){try{return readAuthoredTopicScope(value);}catch{fail('invalid','Invalid selected topic');}}
 function semanticWitness(value) {
   if (!value || typeof value !== 'object' || types.isProxy(value) || Object.getPrototypeOf(value) !== Object.prototype)
     fail('invalid', 'Invalid semantic witness');
@@ -323,7 +325,8 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     const validate = ({ anchor, followupDiscussion, semanticTarget }) => {
       if (!currentJobAuthority(job) || anchor.version.generation !== job.expected.generation ||
           !same({ ...anchor, version: null }, { ...job.anchor, version: null })) return null;
-      if (job.replyToId === null) return anchor;
+      if (job.replyToId === null) return job.authorScope?
+        mapResult(service.authorScopeCurrent({generation:job.expected.generation,topicId:job.topicId,scope:job.authorScope}),current=>current===true?anchor:null):anchor;
       let followupValue;
       try { followupValue = inspectFollowup(job.replyToId, job.destinationTopicId,
         job.evidenceSourceId ?? job.originSourceId, job.topicId, anchor.version, followupDiscussion, semanticTarget, job.semanticTarget); }
@@ -392,6 +395,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
         ...(Object.hasOwn(value ?? {}, "preferences") ? ["preferences"] : []),
         ...(Object.hasOwn(value ?? {}, "followupQuestionId") ? ["followupQuestionId"] : []),
         ...(Object.hasOwn(value ?? {}, "semanticTarget") ? ["semanticTarget"] : []),
+        ...(Object.hasOwn(value ?? {}, "authorScope") ? ["authorScope"] : []),
         ...(Object.hasOwn(value ?? {}, "followupTopicId") ? ["followupTopicId"] : [])]);
       if (Object.hasOwn(value, "followupTopicId") && !Object.hasOwn(value, "followupQuestionId")) {
         fail("invalid", "Invalid request");
@@ -421,9 +425,12 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       const hasFollowup = Object.hasOwn(value, "followupQuestionId");
       const witness=Object.hasOwn(value,'semanticTarget')?semanticWitness(value.semanticTarget):null;
       if(witness&&!hasFollowup)fail('invalid','Invalid semantic followup');
+      const selectedScope=Object.hasOwn(value,'authorScope')?authoredScope(value.authorScope):null;
+      if(selectedScope&&(hasFollowup||typeof service.authorScopeCurrent!=='function'))fail('invalid','Selected topic unavailable');
+      if(!hasFollowup&&typeof service.authorScopeCurrent==='function'&&!selectedScope)fail('invalid','Selected topic required');
       // Snapshot provider primitives before any asynchronous snapshot/dispatch
       // validation. The transient article is not retained in the job record.
-      const captured=witness?Object.freeze({model:value.model,articleText:value.articleText,allowWebResearch:value.allowWebResearch}):null;
+      const captured=witness||selectedScope?Object.freeze({model:value.model,articleText:value.articleText,allowWebResearch:value.allowWebResearch}):null;
       if(captured && (typeof captured.model!=='string'||!captured.model.length||captured.model.length>256||
           typeof captured.articleText!=='string'||!captured.articleText.length||captured.articleText.length>4096||
           typeof captured.allowWebResearch!=='boolean'))fail('invalid','Invalid semantic provider input');
@@ -433,7 +440,13 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       if(witness&&witness.topicId!==destinationTopicId)fail('invalid','Invalid semantic destination');
       if (Object.hasOwn(value, "followupTopicId") && destinationTopicId === contextTopicId)
         fail("invalid", "Invalid request");
-      const inspected = inspectContext(value, hasFollowup ? destinationTopicId : null);
+      const inspected = mapResult(inspectContext(value, hasFollowup ? destinationTopicId : null),bundle=>{
+        if(!selectedScope)return bundle;
+        if(selectedScope.sourceId!==bundle.context.currentSource.id)fail('invalid','Selected page changed');
+        return mapResult(service.authorScopeCurrent({generation:bundle.version.generation,topicId:contextTopicId,scope:selectedScope}),current=>{
+          if(current!==true)fail('conflict','Selected topic changed');return bundle;
+        });
+      });
       const prepare = ({ context, excludedWebUrls, version, anchor: bundledAnchor, followupDiscussion, semanticTarget }) => {
         if (disposed || generation !== preparationGeneration || seen.has(key) || active || privateActive)
           fail("conflict", "Operation changed");
@@ -468,6 +481,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
               fail("unauthorized", "ChatGPT plan permission required");
             if (!same(anchor.version, version)) fail("conflict", "State changed");
             const job = { operationId: key, actorId, expected: anchor.version, topicId: context.topic.id,
+              ...(selectedScope?{authorScope:selectedScope}:{}),
               destinationTopicId,
               originSourceId: witness && destinationTopicId!==context.topic.id ? null : context.currentSource?.id ?? null,
               ...(witness?{semanticTarget:witness,evidenceSourceId:context.currentSource.id,articleDigest:bodyDigest(captured.articleText),
@@ -609,6 +623,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
           cancelJob(job); job.error = "stale-context";
         }
         if (job.state === "completed") return { operationId: job.operationId, state: job.state, result: job.result,
+          ...(job.authorScope?{authorScope:job.authorScope}:{}),
           ...(job.semanticTarget?{semanticPublication:publicationFor(job)}:{}) };
         if (job.state === "failed") return { operationId: job.operationId, state: job.state, error: job.error,
           ...(job.detail ? { detail: job.detail } : {}) };
@@ -633,6 +648,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
             expected: context.version, topicId: job.topicId, originSourceId: job.originSourceId,
             ...(job.destinationTopicId !== job.topicId ? { followupTopicId: job.destinationTopicId } : {}),
             rootId: job.rootId, replyToId: job.replyToId, discussionId: job.discussionId,
+            ...(job.authorScope?{authorScope:job.authorScope}:{}),
             ...(job.semanticTarget?{semanticPublication:publicationFor(job)}:{}) } };
         });
       };
@@ -645,6 +661,8 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       if (!command || typeof command !== "object" || Array.isArray(command) ||
           !["share-insight", "share-insight-reply"].includes(command.type)) fail("invalid", "Invalid request");
       const job = owned(command.operationId, actorId);
+      if(job.authorScope?!same(authoredScope(command.authorScope),job.authorScope):Object.hasOwn(command,'authorScope'))
+        fail('conflict','Completed result topic changed');
       if (!requestAuthorityCurrent(isCurrent)) fail("unavailable", "Request unavailable");
       return mapResult(currentJobContext(job), context => {
         if (!requestAuthorityCurrent(isCurrent)) fail("unavailable", "Request unavailable");
@@ -665,6 +683,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
         const proof = Object.freeze({ kind: "generated-insight", operationId: job.operationId,
           actorId, topicId: job.destinationTopicId, originSourceId: job.originSourceId, body,
           rootId: job.rootId, replyToId: job.replyToId, discussionId: job.discussionId,
+          ...(job.authorScope?{authorScope:job.authorScope}:{}),
           ...(job.semanticTarget?{semanticPublication:publicationFor(job)}:{}) });
         const accepted = outcome => {
           clearTimeout(job.expiry); job.result = null; jobs.delete(job.operationId);

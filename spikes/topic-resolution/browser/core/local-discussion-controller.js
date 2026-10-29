@@ -1,7 +1,7 @@
 import { classifyActiveTabSnapshot, sameActiveTabObservation } from "./active-tab-policy.js";
 import { validateAndProjectActiveTabResponse } from "./indicator-contract.js";
 import { localServiceSourceId } from "../fixtures/local-service-fixture-bridge.js";
-import { readPostOrigin, isAccountActorId, readId, record, readSemanticTarget, readSemanticTargetRequest, readSemanticPublication, HIERARCHY_SOURCE_POLICY, MAX_CATALOG_ENTRIES } from "./local-service-contract.js";
+import { readPostOrigin, isAccountActorId, readId, record, readSemanticTarget, readSemanticTargetRequest, readSemanticPublication,readAuthorContext,readAuthoredTopicScope, HIERARCHY_SOURCE_POLICY, MAX_CATALOG_ENTRIES } from "./local-service-contract.js";
 import { isRidgeTopicView, requiresReferenceTopicView } from "./topic-view-mode.js";
 import { resolveDiscussionTarget } from "./discussion-target.js";
 import { projectPageResolution, isReadyPageResolution, samePageResolution } from "./page-resolution-contract.js";
@@ -64,7 +64,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     draft: { body: "", detached: false, mode: "root", targetId: null }, busy: false, needsFreshRead: false, resolution: null,
     createdPost: null, serviceConnection: "unverified", readRetryable: false,
     enrichmentPending: false, relatedError: null, semanticSelection: null, semanticError: null,
-    semanticWritePending: false, semanticAiAvailable: false, semanticTopicsAvailable: false };
+    semanticWritePending: false, semanticAiAvailable: false, semanticTopicsAvailable: false,authorContextEnabled:false,authorContext:null,authorContextError:false };
   let epoch = 0;
   let abort = new AbortController();
   let stopObservation = () => {};
@@ -99,6 +99,35 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     }
     publish({semanticTopicsAvailable:value,...(value?{alternateDiscussion:null,alternateError:null,
       related:null,relatedError:null,relatedDiscussions:[],enrichmentPending:false}:{})});
+  }
+  function setAuthorContextAvailable(value){
+    if(disposed||typeof value!=='boolean'||state.authorContextEnabled===value)return;
+    const draft=!value&&state.draft.authorScope?{...state.draft,detached:true}:state.draft;
+    publish({authorContextEnabled:value,authorContext:null,authorContextError:false,draft});
+  }
+  function setAuthorContext(raw){
+    if(disposed||!state.authorContextEnabled)return false;let value;
+    try{value=readAuthorContext(raw,{sourceId:state.sourceId});}catch{return false;}
+    if(value.version.generation!==state.catalog?.version.generation||value.context&&value.context.topicId!==state.topicId)return false;
+    let draft=state.draft;
+    if(draft.mode==='root'&&draft.body&&!draft.detached){
+      if(draft.authorPendingPage&&value.context){
+        const page=value.context.pageScope;
+        draft=draft.authorPageTitle&&draft.authorPageTitle!==page.caption?{...draft,detached:true}:
+          {...draft,authorScope:page,authorPendingPage:false};
+      }else if(draft.authorScope&&(!value.context||draft.authorScope.materialDigest!==value.context.pageScope.materialDigest))
+        draft={...draft,detached:true};
+    }
+    publish({authorContext:value,authorContextError:value.context===null,draft});return true;
+  }
+  function setAuthorContextError(value){if(!disposed&&state.authorContextEnabled&&typeof value==='boolean')publish({authorContextError:value});}
+  async function refreshAuthorContext(){
+    if(disposed||!state.authorContextEnabled||!state.sourceId||typeof client.authorContext!=='function')return false;
+    const own=epoch,sourceId=state.sourceId,generation=state.catalog?.version?.generation;
+    const current=()=>!disposed&&state.authorContextEnabled&&epoch===own&&state.sourceId===sourceId&&state.catalog?.version?.generation===generation;
+    setAuthorContextError(false);
+    try{const value=await client.authorContext({sourceId},{signal:abort.signal,beforeDispatch:current});return current()&&setAuthorContext(value);}
+    catch{if(current())setAuthorContextError(true);return false;}
   }
   const optionalError = error => ["unavailable", "capacity", "conflict", "invalid-response", "not-found"].includes(error?.code)
     ? error.code : "unavailable";
@@ -173,7 +202,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     selectionFlight = resolutionFlight = enrichmentFlight = null;
     if (enrichmentTimer !== null) cancelSchedule(enrichmentTimer);
     enrichmentTimer = null; enrichmentAttempts = 0;
-    state = { ...state, enrichmentPending: false, readRetryable: false };
+    state = { ...state, enrichmentPending: false, readRetryable: false,authorContext:null,authorContextError:false };
   }
   function cancelSemanticSelection() {
     semanticSequence++;semanticAbort?.abort();semanticAbort=null;semanticBinding=null;
@@ -1152,12 +1181,23 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     if (firstRootBinding && !firstRootContextCurrent()) { detach();publish();return; }
     if (mutationPending || pendingSemanticCommand || !(humanReady() || canStageRootDraft(targetState())) || state.needsFreshRead ||
         typeof body !== "string" || body.length > 8000) return;
-    publish({ draft: { ...state.draft, body } });
+    let draft={...state.draft,body};
+    if(state.authorContextEnabled&&draft.mode==='root'&&!draft.detached){
+      if(!body){const {authorScope,authorPendingPage,authorPageTitle,...empty}=draft;draft=empty;}
+      else if(!state.draft.body){
+        const selected=state.authorContext?.context?.scope;
+        draft=selected?{...draft,authorScope:selected}:{...draft,authorPendingPage:true,authorPageTitle:selectedPostingSource(state)?.title??null};
+      }
+    }
+    publish({ draft });
   }
   function reattachDraft() {
     if (firstRootBinding && !firstRootContextCurrent()) { detach();publish();return; }
     if (state.phase !== "ready" || state.needsFreshRead || mutationPending || pendingSemanticCommand || state.draft.semantic) return;
-    publish({ draft: { ...state.draft, detached: false, mode: "root", targetId: null } });
+    if(state.authorContextEnabled&&!state.authorContext?.context)return;
+    const {authorScope,authorPendingPage,authorPageTitle,...draft}=state.draft;
+    publish({ draft: { ...draft, detached: false, mode: "root", targetId: null,
+      ...(state.authorContextEnabled?{authorScope:state.authorContext.context.scope}:{}) } });
   }
   function canReplyToAlternate(root) {
     return humanReady() && !state.needsFreshRead && !state.busy &&
@@ -1535,7 +1575,11 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       command = { type: "reply", discussionId: binding.discussionId,
         rootId: binding.root.id, replyToId: binding.target.id, body: draft.body,
         destinationTopicId: binding.topicId, targetBinding: draft.targetBinding };
-    } else command = { type: "create-root", topicId: state.topicId, body: draft.body };
+    } else {
+      if(state.authorContextEnabled&&!draft.authorScope)return Promise.resolve(false);
+      command = { type: "create-root", topicId: state.topicId, body: draft.body,
+        ...(state.authorContextEnabled?{authorScope:draft.authorScope}:{}) };
+    }
     if (["create-root", "reply"].includes(command.type)) {
       command.originSourceId = selectedPostingSource(state)?.id ?? (savedBindingCurrent() ? savedPostingSource()?.id ?? null : null);
     }
@@ -1567,8 +1611,10 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         targetBinding: { rootBody: target.root.body, targetBody: target.target.body },
         body: review.body, originSourceId: review.sourceId, operationId: review.operationId });
     }
+    let scope=null;if(state.authorContextEnabled)try{scope=readAuthoredTopicScope(review.authorScope);if(scope.sourceId!==review.sourceId)return Promise.resolve(false);}catch{return Promise.resolve(false);}
+    else if(review.authorScope)return Promise.resolve(false);
     return mutate({ type: "share-insight", topicId: state.topicId, body: review.body,
-      originSourceId: review.sourceId, operationId: review.operationId });
+      originSourceId: review.sourceId, operationId: review.operationId,...(scope?{authorScope:scope}:{}) });
   }
   async function shareSemanticInsight(review) {
     if(disposed||mutationPending||pendingSemanticCommand||state.busy||state.phase!=='ready'||state.needsFreshRead||
@@ -1651,7 +1697,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       ...(semanticDraft?{draft:{body:'',detached:false,mode:'root',targetId:null}}:{}) });
     void open();
   }
-  return Object.freeze({ currentState, open, pair, disconnect, selectTopic, selectActor, selectSemanticTarget, readSemanticFollowupTarget, acknowledgeSemanticWriteUncertainty, setSemanticTopicsAvailable, refreshSavedThreads,
+  return Object.freeze({ currentState, open, pair, disconnect, selectTopic, selectActor, selectSemanticTarget, readSemanticFollowupTarget, acknowledgeSemanticWriteUncertainty, setSemanticTopicsAvailable,setAuthorContextAvailable,setAuthorContext,setAuthorContextError,refreshAuthorContext,refreshSavedThreads,
     selectSource, setTopicViewMode, canReplyToAlternate, setDraft, reattachDraft, begin, discardDraft, submitDraft, attestPrivateStart, shareInsight, withdraw, createTopic, reset,
     updatePageResolution, invalidateContext, accountChanged, correctSource, forgetSource, deleteLearnedTopic, clearLearnedData, dispose });
 }

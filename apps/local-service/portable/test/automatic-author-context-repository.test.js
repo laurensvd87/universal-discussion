@@ -27,13 +27,13 @@ test('malformed scopes and attempts to post under another page cannot reach SQL'
 
 test('page-only editor context remains usable and contains no evidence-revision dependency',async()=>{
  const page={kind:'page',id:sourceId,caption:'An entirely new webpage',sourceId,materialDigest:scope.materialDigest};
- const repo=repository({database:{async query(sql,p){assert(sql.includes('named_read_editor'));assert.deepEqual(p,[generation,sourceId]);return {rows:[{result:{generation,topicId,scope:page}}]};}}});
+ const repo=repository({database:{async query(sql,p){assert(sql.includes('named_read_editor'));assert.deepEqual(p,[generation,sourceId]);return {rows:[{result:{generation,topicId,pageScope:page,scope:page}}]};}}});
  const r=await repo.editor(JSON.stringify({generation,sourceId}));assert.deepEqual(r.scope,page);assert(Object.isFrozen(r.scope));assert(!Object.hasOwn(r.scope,'revision'));
 });
 
 test('a response for a different Source or generation is never installed as editor context',async()=>{
  for(const change of [{generation:'other'},{scope:{...scope,sourceId:'other'}}]){
-  const repo=repository({database:{async query(){return {rows:[{result:{generation,topicId,scope,...change}}]};}}});
+  const repo=repository({database:{async query(){return {rows:[{result:{generation,topicId,pageScope:{kind:'page',id:sourceId,sourceId,caption:'Current page',materialDigest:scope.materialDigest},scope,...change}}]};}}});
   await assert.rejects(repo.editor(JSON.stringify({generation,sourceId})),code('storage-corrupt'));
  }
 });
