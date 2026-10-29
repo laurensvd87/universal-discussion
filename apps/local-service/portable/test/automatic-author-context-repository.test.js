@@ -30,6 +30,12 @@ test('page-only editor context remains usable and contains no evidence-revision 
  const repo=repository({database:{async query(sql,p){assert(sql.includes('named_read_editor'));assert.deepEqual(p,[generation,sourceId]);return {rows:[{result:{generation,topicId,pageScope:page,scope:page}}]};}}});
  const r=await repo.editor(JSON.stringify({generation,sourceId}));assert.deepEqual(r.scope,page);assert(Object.isFrozen(r.scope));assert(!Object.hasOwn(r.scope,'revision'));
 });
+test('owner-wide grouping is an explicit editor composition and preserves the exact captured scope',async()=>{
+ let called=0;const page={kind:'page',id:sourceId,caption:'Current page',sourceId,materialDigest:scope.materialDigest};
+ const repo=repository({ownerGrouping:true,database:{query:async(sql,args)=>{called++;assert.equal(sql,'SELECT canonical_v4.named_read_grouped_editor($1,$2) AS result');assert.deepEqual(args,[generation,sourceId]);return {rows:[{result:{generation,topicId,pageScope:page,scope}}]};}}});
+ assert.deepEqual((await repo.editor(JSON.stringify({generation,sourceId}))).scope,scope);assert.equal(called,1);
+ assert.throws(()=>repository({ownerGrouping:1,database:{query:async()=>assert.fail()}}),TypeError);
+});
 
 test('a response for a different Source or generation is never installed as editor context',async()=>{
  for(const change of [{generation:'other'},{scope:{...scope,sourceId:'other'}}]){

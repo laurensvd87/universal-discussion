@@ -29,7 +29,7 @@ test('captured page adoption evidence is mandatory separately from public named-
 });
 
 test('public topic bridge evidence cannot be omitted or replaced by lower-level feed reports',()=>{
- for(const length of [0,1,8]){const input=lifecycle();input.checks.automaticTopicPublicCases.length=length;assert.equal(projectSemanticNativeResult(input).accepted,false);}
+ for(const length of [0,1,8,18]){const input=lifecycle();input.checks.automaticTopicPublicCases.length=length;assert.equal(projectSemanticNativeResult(input).accepted,false);}
  for(const status of ['running','failed']){const input=lifecycle();input.checks.automaticTopicPublicCases[6].status=status;assert.equal(projectSemanticNativeResult(input).accepted,false);}
  const wrong=lifecycle();wrong.checks.automaticTopicPublicCases[0].name=AUTOMATIC_TOPIC_FEED_NATIVE_CASES[0];assert.throws(()=>projectSemanticNativeResult(wrong),TypeError);
  const absent=lifecycle();delete absent.checks.automaticTopicPublicCases;assert.throws(()=>projectSemanticNativeResult(absent),TypeError);
