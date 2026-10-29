@@ -9,6 +9,21 @@ const request=()=>structuredClone({expected,command,actor,proof,scope}),dependen
 const result={version:{generation,revision:8},result:{contributionId:'generated-root'}};
 const code=c=>e=>e?.code===c;
 
+test('all context permission signatures match real declarations and the saved undefined-function regression is detected',async()=>{
+ const sql=(await readFile(new URL('../canonical-v4/drafts/automatic-author-context.sql',import.meta.url),'utf8')).replace(/\r\n/g,'\n');
+ function mismatches(source){
+  const declarations=new Map([...source.matchAll(/CREATE FUNCTION canonical_v4\.(named_\w+)\(([^)]*)\)\s*RETURNS/gu)]
+   .map(m=>[m[1],m[2].split(',').filter(p=>p.trim()).map(p=>p.trim().split(/\s+/u).at(-1))]));
+  return [...source.matchAll(/canonical_v4\.(named_\w+)\(([^()]*)\)/gu)].flatMap(m=>{
+   const types=m[2]?m[2].split(','):[],actual=declarations.get(m[1]);
+   return actual&&types.every(t=>['text','jsonb','integer'].includes(t))&&JSON.stringify(types)!==JSON.stringify(actual)?[{name:m[1],expected:actual.length,actual:types.length}]:[];
+  });
+ }
+ assert.deepEqual(mismatches(sql),[]);
+ const signature='named_append_root('+('text,'.repeat(10))+'jsonb)',bad='named_append_root('+('text,'.repeat(11))+'jsonb)';
+ assert.deepEqual(mismatches(sql.replace(signature,bad)),[{name:'named_append_root',expected:11,actual:12}]);
+});
+
 test('authored insight has an exact016 inverse except its four closed context blocks and explicit new signature',async()=>{
  const read=async file=>(await readFile(new URL(file,import.meta.url),'utf8')).replace(/\r\n/g,'\n');
  const original=(await read('../canonical-v4/migrations/016-semantic-insight-reply.sql')).match(/CREATE OR REPLACE FUNCTION canonical_v4\.runtime_lifecycle_command\([\s\S]*?\n\$runtime_lifecycle_command\$;/)[0];

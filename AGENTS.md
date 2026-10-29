@@ -8,6 +8,17 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct bridge ONE actual83948467...c04824 CLOSEDexit1/42883 atcontext
+installation; noHTTP/AIcase reached. Root all2579endpins/savedfailure auditPASS,
+exactownsmartstop/oneusedDBdrop/emptyJob/allhandlesTRUE/emergencyFALSE/stderr0.
+Source causal mismatch: perrole REVOKE named_append_root had11text+jsonb vs
+actual10text+jsonb. Narrow1token permission fix +causal declared/reference test
+now30focusedPASS, old514/66 checks unaffected. Currentcatalog STALE untilrebuilt;
+newsource/catalog/separateONEactual decision required, no rerun/adoption/waiver.
+Oldrunimmutable, production untouched. GoalACTIVE; normalHTTP/realAIjobpathstill
+unexecuted on PostgreSQL.
+
+
 CURRENT29Oct browser+realAIjob bridge SOURCE: optional explicit authored-topics/v1
 capability, bounded indexed editor MVCC read+earlier-scope check. Human firstkey
 freezes scope; pre-read typing stays PAGE; realmaterial change detaches with body
