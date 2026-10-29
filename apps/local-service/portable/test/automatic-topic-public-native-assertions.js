@@ -95,17 +95,25 @@ export async function runAutomaticTopicPublicNativeAssertions(scope){
  await test(cases,6,async at=>{
   const view=await target(),semanticTarget={nodeId:view.nodeId,topicId:view.topic.id,rootRevision:view.rootRevision,targetRevision:view.targetRevision};
   at('BUNDLE');const bundle=await service.insightBundle({sourceId:selected.scope.sourceId,topicId:selected.topicId,includeDiscussion:false,includeRelatedSources:false,destinationTopicId:selected.topicId,semanticTarget:{...semanticTarget,targetId:root}});
-  at('CONTEXT');const context=authoredFixtureInsightContext(bundle,selected.scope.sourceId,selected.topicId);let calls=0;
-  ai=createChatGPTRuntime({service,connectionAdapter:{status:()=>({connected:true,planEnabled:true,pending:false}),dispose(){}},
+  at('CONTEXT');const context=authoredFixtureInsightContext(bundle,selected.scope.sourceId,selected.topicId);let calls=0;const inflight=new Set();
+  const track=name=>(...args)=>{const pending=Promise.resolve().then(()=>service[name](...args));inflight.add(pending);pending.then(()=>inflight.delete(pending),()=>inflight.delete(pending));return pending;};
+  const aiService={...service,insightBundle:track('insightBundle'),insightJobBundle:track('insightJobBundle')};
+  ai=createChatGPTRuntime({service:aiService,connectionAdapter:{status:()=>({connected:true,planEnabled:true,pending:false}),dispose(){}},
    insightsAdapter:{async createInsight(){calls++;return {body:'A complete answer to the exact selected product question.',citations:[],model:'synthetic'};},cancel(){},dispose(){}}});
   try{handle=createRequestHandler({config,service,ai});const operationId='public-native-named-ai-reply';
    at('START');await aiClient.start({operationId,model:'synthetic',context,articleText:'Invented captured product evidence',allowWebResearch:false,includeRelatedSources:false,
     followupQuestionId:root,semanticTarget,expected:bundle.version},actor.id);
+   // This owned fixture deliberately uses one exclusive physical app session,
+   // not the live app pool. As in the existing semantic-insight fixture, wait
+   // on the real in-memory terminal event before a SQL-bearing result request.
+   const deadline=performance.now()+3000,terminal=()=>ai.diagnostics().events.some(event=>event.kind==='insight');
+   while(!terminal()&&performance.now()<deadline)await new Promise(resolve=>setTimeout(resolve,5));
+   assert(terminal(),'The original background AI job must settle within its existing deadline');
    at('RESULT');const result=await aiClient.result(operationId,actor.id);assert.equal(result.state,'completed');assert.equal(calls,1);assert(result.semanticPublication);
    at('PUBLISH');const outcome=await client.command(bundle.version,{type:'share-insight-reply',topicId:selected.topicId,discussionId:view.discussionId,rootId:root,replyToId:root,
     body:result.result.body,operationId,originSourceId:selected.scope.sourceId,semanticPublication:result.semanticPublication},actor.id);replyIds.push(outcome.result.contributionId);
    at('THREAD');const thread=await client.semanticThread({nodeId:node(),rootId:root,limit:20,cursor:null});assert(thread.root.replies.some(v=>v.id===outcome.result.contributionId&&v.actorType==='agent'&&v.body===result.result.body));
-  }finally{ai.dispose();ai=null;handle=createRequestHandler({config,service});}
+  }finally{ai.dispose();await Promise.allSettled([...inflight]);ai=null;handle=createRequestHandler({config,service});}
  });
  await test(cases,7,async()=>{
   for(const role of ['murmingle_app','murmingle_ingest_worker','murmingle_crawler_submitter'])for(const sql of ["SELECT canonical_v4.named_reply_member('g','n','r',1,'t','d')",'SELECT * FROM canonical_v4.named_feed_clock',"SELECT canonical_v4.named_process_feed_core('g',1)"])
