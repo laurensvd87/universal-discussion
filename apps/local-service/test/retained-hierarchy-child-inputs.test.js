@@ -35,3 +35,13 @@ test('quarantined material is recorded without opening or promoting its vector',
  const f=fixture();f.corpus.reviewedArchivedRows[0].reuseEligible=false;f.corpus.reviewedArchivedRows[0].heldoutDocumentCollisions=['held-out'];f.pairs.delete('train');
  const p=projectRetainedHierarchyChildRows(f);assert.deepEqual(p.quarantined,['train']);assert.equal(p.rows.length,1);assert.equal(retainedChildTrainingArguments(p,'video-games').trainingRows.length,0);
 });
+test('curated case-file hashes and observation input hashes remain distinct authenticated bindings',()=>{
+ const f=fixture(),meta=f.corpus.reviewedArchivedRows[0],pin={file:'train.json',bytes:123,sha256:'b'.repeat(64)};
+ meta.sourceInputHash=null;meta.cohort='gta-repaired-fit';meta.casePin={...pin};f.pairs.get('train').labelCasePin={...pin};
+ const p=projectRetainedHierarchyChildRows(f);assert.equal(p.rows[0].sourceVersion,H);assert.deepEqual(p.rows[0].labelBinding,{kind:'pinned-case-file',casePin:pin});assert.equal(meta.sourceInputHash,null);
+ for(const change of [v=>{v.pairs.get('train').labelCasePin.sha256='c'.repeat(64);},v=>{v.pairs.get('train').sourceInputHash=null;},
+  v=>{delete v.pairs.get('train').labelCasePin;},v=>{v.corpus.reviewedArchivedRows[0].cohort='arbitrary';},
+  v=>{v.corpus.reviewedArchivedRows[0].casePin.file='../escape.json';}]){
+  const clone={corpus:structuredClone(f.corpus),pairs:structuredClone(f.pairs),inputDefinition:f.inputDefinition};change(clone);assert.throws(()=>projectRetainedHierarchyChildRows(clone),TypeError);
+ }
+});

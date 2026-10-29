@@ -5,13 +5,21 @@ export const CHILD_TASKS=Object.freeze(['video-games','animals','koalas']);
 const invalid=()=>{throw new TypeError('Invalid retained child inputs');};
 const hash=value=>typeof value==='string'&&/^[a-f0-9]{64}$/u.test(value);
 const text=value=>typeof value==='string'&&value.length>0&&value.length<=160&&value.trim()===value;
+function binding(row){
+ if(hash(row.sourceInputHash))return {kind:'source-input-hash',sha256:row.sourceInputHash};
+ const p=row.casePin;
+ if(row.sourceInputHash===null&&row.cohort==='gta-repaired-fit'&&p&&p.file===row.id+'.json'&&
+  Number.isSafeInteger(p.bytes)&&p.bytes>0&&p.bytes<=4194304&&hash(p.sha256))return {kind:'pinned-case-file',casePin:{file:p.file,bytes:p.bytes,sha256:p.sha256}};
+ invalid();
+}
 
 export function projectRetainedHierarchyChildRows({corpus,pairs,inputDefinition}){
  if(!corpus||!Array.isArray(corpus.reviewedArchivedRows)||corpus.reviewedArchivedRows.length>256||!(pairs instanceof Map))invalid();
  const adapter=compilePairedE5Input(inputDefinition),representation=describePairedE5Input(adapter);
  const rows=[],quarantined=[],ids=new Set(),groups=new Set();
  for(const row of corpus.reviewedArchivedRows){
-  if(!row||!text(row.id)||!text(row.groupId)||!hash(row.sourceInputHash)||typeof row.reuseEligible!=='boolean'||ids.has(row.id))invalid();
+  if(!row||!text(row.id)||!text(row.groupId)||typeof row.reuseEligible!=='boolean'||ids.has(row.id))invalid();
+  const labelBinding=binding(row);
   ids.add(row.id);
   if(!row.reuseEligible){quarantined.push(row.id);continue;}
   if(!['training','calibration'].includes(row.split)||!Array.isArray(row.heldoutDocumentCollisions)||row.heldoutDocumentCollisions.length||
@@ -20,11 +28,13 @@ export function projectRetainedHierarchyChildRows({corpus,pairs,inputDefinition}
   if(!text(row.expectedRootId)||row.labels['video-games']===true&&row.expectedRootId!=='games'||
    row.labels.animals===true&&row.expectedRootId!=='nature'||row.labels.koalas===true&&row.labels.animals!==true)invalid();
   groups.add(row.groupId);const raw=pairs.get(row.id);
-  if(!raw||raw.id!==row.id||raw.sourceInputHash!==row.sourceInputHash)invalid();
-  const query={sourceId:row.id,sourceVersion:row.sourceInputHash,bodyVector:raw.bodyVector,titleVector:raw.titleVector};
+  if(!raw||raw.id!==row.id||!hash(raw.sourceInputHash))invalid();
+  if(labelBinding.kind==='source-input-hash'){if(raw.sourceInputHash!==labelBinding.sha256)invalid();}
+  else{const p=raw.labelCasePin,expected=labelBinding.casePin;if(!p||p.file!==expected.file||p.bytes!==expected.bytes||p.sha256!==expected.sha256)invalid();}
+  const query={sourceId:row.id,sourceVersion:raw.sourceInputHash,bodyVector:raw.bodyVector,titleVector:raw.titleVector};
   const fused=applyPairedE5Input(adapter,query);if(fused.status!=='available')invalid();
   rows.push({...query,id:row.id,groupId:row.groupId,split:row.split,language:row.language,
-   expectedRootId:row.expectedRootId,labels:{...row.labels},vector:fused.vector});
+   expectedRootId:row.expectedRootId,labels:{...row.labels},labelBinding,vector:fused.vector});
  }
  const omitted=corpus.unknownArchivedRoster;
  if(!omitted||!Array.isArray(omitted.training)||!Array.isArray(omitted.calibration))invalid();

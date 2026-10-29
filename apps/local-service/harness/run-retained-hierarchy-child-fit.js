@@ -8,7 +8,7 @@ import {trainBinaryHierarchyDetail,compileBinaryHierarchyDetail,classifyBinaryHi
 import {compileRootedHierarchyMatcher,classifyRootedHierarchyMatcher} from '../src/domain/hierarchy-rooted-matcher.js';
 import {CHILD_TASKS,projectRetainedHierarchyChildRows,retainedChildTrainingArguments,summarizeParentConditionedChildRows} from './retained-hierarchy-child-inputs.js';
 
-const ROOT=fileURLToPath(new URL('../../../',import.meta.url)),OUTPUT='apps/local-service/data/hierarchy-retained-child-fit-20261029';
+const ROOT=fileURLToPath(new URL('../../../',import.meta.url)),OUTPUT='apps/local-service/data/hierarchy-retained-child-fit-bindings-20261029';
 const ENCODER='76332323c22d9523de1c54e45bbec0ea762b9c259b10775f5ccb4cbad13a9cd3';
 const E='apps/local-service/experiments/topic-encoder/',D='apps/local-service/data/',A='apps/local-service/assets/hierarchy/';
 const SPECS=Object.freeze({
@@ -73,13 +73,16 @@ export async function runRetainedHierarchyChildFit(){
   for(const meta of corpus.reviewedArchivedRows.filter(r=>r.reuseEligible&&r.id.startsWith('gta-'))){
    need(/^gta-(train|cal)-\d{2}$/u.test(meta.id),'path');const file=meta.id+'.json',pin=values.gtaFit.casePins.find(p=>p.file===file);need(pin,'gta');
    const row=await json([D+'hierarchy-gta-detail-fit-parser-repair-20261026/'+file,pin.bytes,pin.sha256],ledger);
+   // Curation did not reopen these feature bodies: it bound the whole case
+   // file. Its null input-hash field is not the observation-hash domain.
+   need(meta.sourceInputHash===null&&meta.cohort==='gta-repaired-fit'&&meta.casePin.file===pin.file&&meta.casePin.bytes===pin.bytes&&meta.casePin.sha256===pin.sha256,'gta');
    need(row.id===meta.id&&row.groupId===meta.groupId&&row.split===meta.split&&row.url===meta.url&&row.evaluationStatus==='scored'&&row.captureStatus==='available'&&
-    row.observation.sourceInputHash===meta.sourceInputHash&&row.sourceVersion===meta.sourceInputHash&&row.modelId==='e5-small-q8-browser-main-prefix-v1','gta');
-   need(!pairs.has(meta.id),'duplicate');pairs.set(meta.id,{id:meta.id,sourceInputHash:meta.sourceInputHash,bodyVector:row.bodyVector,titleVector:row.titleVector});
+    /^[a-f0-9]{64}$/u.test(row.observation.sourceInputHash)&&row.sourceVersion===row.observation.sourceInputHash&&row.modelId==='e5-small-q8-browser-main-prefix-v1','gta');
+   need(!pairs.has(meta.id),'duplicate');pairs.set(meta.id,{id:meta.id,sourceInputHash:row.observation.sourceInputHash,labelCasePin:{...pin},bodyVector:row.bodyVector,titleVector:row.titleVector});
   }
   stage='projection';const projected=projectRetainedHierarchyChildRows({corpus,pairs,inputDefinition:values.inputDefinition});need(projected.rows.length===36&&projected.quarantined.length===1&&projected.unknownOmitted.length===153,'projection');
   await save('inputs.json',{schema:'retained-child-fit-inputs/v1',ledger,sourcePins,definition:values.inputDefinition,
-   included:projected.rows.map(({id,groupId,split,labels,sourceVersion})=>({id,groupId,split,labels,sourceInputHash:sourceVersion})),
+   included:projected.rows.map(({id,groupId,split,labels,sourceVersion,labelBinding})=>({id,groupId,split,labels,labelBinding,sourceInputHash:sourceVersion})),
    unknownOmitted:projected.unknownOmitted,quarantined:projected.quarantined,unavailable:corpus.unavailableArchivedRows.map(r=>({id:r.id,reason:r.reason})),...flags});
   stage='fit';const artifacts={},handles={};for(const node of CHILD_TASKS){artifacts[node]=trainBinaryHierarchyDetail(retainedChildTrainingArguments(projected,node));handles[node]=compileBinaryHierarchyDetail(artifacts[node]);await save(node+'-artifact.json',artifacts[node]);}
   const nodes=[...values.rootModel.nodes,{id:'video-games',parentId:'games'},{id:'gta',parentId:'video-games'}],base={rootModel:values.rootModel,rootPolicy:values.rootPolicy,inputDefinition:values.inputDefinition,nodes};
