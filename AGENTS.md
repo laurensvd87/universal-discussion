@@ -8,6 +8,55 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct combined fixed+learned AUTHOR hierarchy actual SQL ACCEPTED, NOT LIVE.
+Previous goalturnPROGRESS (unified160); current source+owned170/Root-only progress.
+Introduced50620ad9: owner cut is absolute through accepted fixed prefix + current
+named chain (independent fixed8/named8 bounds retained; owner depth1..8). Fixed
+fallback uses exact current protected metadata without vector/model/catalog read;
+unresolved page remains immediately writable. Semantic five-field captured scope
+uses registered public label/node160 and same Source/material fence. Private finalizer
+retains actor/receipt/Source/domain order, active matcher + sorted nonwaiting head
+fences. New broad semantic/named roots discard provisional competing Source snapshot;
+no existing root/canonical route rewritten. Author-owned fixed edges survive Source
+erasure; named/page-derived fixed edges have exact chosen-head FK and disappear.
+Indexed fixed feed unions two bounded pages; fixed search activity uses per-root
+index, no foreground hot directory lock. Same typed browser/HTTP scope and real AI
+issuer publish into exact selected topic. No ordinary startup activation.
+First ONE rune4e4389a...9ec57/map84564b9b...91482 passes4new actual cases incl four
+non-Wikipedia numeric Sources genuinely protected-prepare/classify/publish known Games
++learned parent/leaf; owner default/subtree/captured-draft checks PASS. Next HTTP/post/
+feed case failsPUBLIC30STORAGE_FAILURE/observed42702, exact internal diagnostic not
+retained. Source found unqualified generation vs OUT generation. Audit fafd0b53...1392
+all2632pins/normal smartstop/createdDBdrop/emptyJob/handles/stderr0; secondDBunreached.
+Correctiond7f7f4b4 changes ONLY one qualified SQL predicate (byte-exact inverse) plus
+source-derived paired actual DO probe requiring original42702/corrected success.
+No limits/assertion waiver. Guarded676PASS/pure70controllerPASS. Catalog5d37ae15/map
+fe65d5a5a805db646bf30b6fbcd15409ab4d2f4c7e5626c3824f90fb92f522eb ONE runca187c4a
+0f23d15eb04f82a7bd50045cd915f3070fe74967 ACCEPTED all170 (old160+10), bothDBdrop/
+exactsmartstop/emptyJob/allhandles/stderr0/emergencyFALSE/endpins2632. HTTP human
+post/reply, broad intent excludes deeper Source path, named immediate parent feed,
+real generated-root issuer(providerstub), roles/forgery, actual Sourceerase preserves
+public fixed authorship/removes derived fixed edge while direct named thread stays;
+complete predecessor functions/constraints restored and original160 stillPASS.
+Result90604d19...e137/stdout5d9ebb56...3c00; Root audit data/combined-author-hierarchy-
+native-root-audit-20261029.json SHAc0df4630cf795dc08929e24366ea5717112252fdad46460fb2fff8aaaf94f3e5.
+Actual invented numeric content, NOT representative E5/genuine browser/provider/
+load/live latency. Failed consumed input/output unadopted/immutable. Docs-only map
+a69e8cda6f7dcbb7a892d7425892f2098ca39d89b7e59f7694acd6d035877fe0 changes only
+COMBINED-AUTHOR-HIERARCHY.md; other2631pins identical. GoalACTIVE; final mixed
+fixed-prefix breadcrumbs, complete18 schema/install/recovery/startup/worker wiring,
+real quality/UI/speed/load and verified live cutover still OPEN.
+PG18688/worker11880/API38860/dashboard28420 originalstarts; crawler26784 original
+20:23:49Z advancing650ingested/stderr0. No second crawler/host/HBA/settings actions.
+Only verified stopped search160 +single140 scratch clusters losslessly NTFScompressed;
+977files each/logical hashes/creation+write times/ACLs and saved outputs retained,
+~37MB observed recovered each. Fullrestore11GiB D floor UNMET/no waiver. 21:22:23Z
+physicalFree11773624320/commitFree9052164096/C7248949248/D4399280128. Fresh floors
+mandatory, normal D4GiB margin now small. Earlier read-only stable development storage
+candidates below remain UNCOMPRESSED; content-preserving compression/relocation
+may recover capacity. No development cache/session deletion authorized or performed.
+
+
 LATEST29Oct unified global fixed/named/page/legacy search actual SQL ACCEPTED,
 NOT LIVE. Previous goalturnPROGRESS; this turn source+owned160/Root-only progress.
 Productionebb79376: one independent-page public directory/keyset order, fixed labels,

@@ -67,5 +67,21 @@ assertions, with a source-derived paired SQL ambiguity probe required in the nex
 fresh run. All2632 pins and normal smart-stop/empty Job/closed handles pass, the
 created scratch database drops, stderr is empty and emergency false; the second
 database is not reached. Consumed source/map/output remain immutable/unadopted.
-Corrected native execution is pending; no representative E5/browser/load/live
-speed or activation claim follows from these invented numeric fixtures.
+The corrected owned run passes all170 mandatory SQL reports, including all ten
+combined hierarchy cases and the source-derived original42702/corrected-success
+probe. Guarded Node tests pass676 and pure controller tests70. Both scratch
+databases drop, exact owned smart-stop succeeds, the Job is empty, all handles
+close, stderr is empty, emergency is false and all2632 execution pins authenticate.
+The original160 reports still pass after the complete predecessor restoration.
+
+Source `d7f7f4b4` qualifies exactly one predicate from introduced `50620ad9`, with
+a byte-exact inverse and no limit/assertion waiver. Catalog commit `5d37ae15` uses
+execution map `fe65d5a5a805db646bf30b6fbcd15409ab4d2f4c7e5626c3824f90fb92f522eb`.
+Run `run-ca187c4a0f23d15eb04f82a7bd50045cd915f3070fe74967` has result SHA256
+`90604d199645cc539a52297abf47cc25d7c328c91c957fb52b6ee9cf827ae137` and stdout
+SHA256 `5d9ebb568d8c5c73aa304fb58ebc44c198960642558889e9a1dcfbbd9d9f3c00`.
+Root audit is retained locally as `combined-author-hierarchy-native-root-audit-20261029.json`.
+This proves real owner/SQL/HTTP/issuer behavior on invented numeric fixtures;
+representative E5 quality, genuine browser/provider, many-user load and live speed
+remain unmeasured. Final mixed breadcrumbs, complete18 installer/recovery/startup
+and product cutover remain required before activation.
