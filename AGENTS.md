@@ -8,6 +8,32 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct registered automatic schema18 SOURCE checkpoint278546dc; corrected
+fixture d144eb73. Fixed14-component checked-in018 bundle/atomic owner fresh9->18
+and upgrade17->18 preserve canonical records/head/policy, strict18 health profile;
+ordinary API/worker/dashboard remain17. Inherited current confident named leaf
+supports its actual parent without historic cohort copying; original direct path
+and bounded sorted private lineage fences retained. Guarded699Node PASS and78pure
+controller PASS (restricted-token temp-folder permission attempt failed; identical
+normal-token run PASS). Original170 mandatory plus20integrated reports planned190.
+ONE map7391ad71...24ef/run50d2d8ba...b0e78 closesexit1 PUBLIC46CALL_UNAUTHORIZED:
+new39..45 fresh rollback/install/upgrade/idempotence/profile/roles PASS; case46
+invented token length30 violates actual unchanged minimum32 beforefetch. Root
+saved failure audit2b3c138e...75f1 all2639pins/normal smartstop/2DBdrop/emptyJob/
+handles/stderr0. Paired realclient causal test oldbeforefetch/newdispatch PASS;
+only2testfiles changed, other2637pins including production SQL/installer unchanged.
+New map966449bb...1173/catalog2b0144d5 separately decided ONE runaad85c41...e183
+CLOSEDexit1 resource-floor dFree4294590464<4294967296; stdout/stderr0/no retained
+SQL report. Owned emergencyTRUE/emptyJob/handles/endpins2639TRUE; Root saved failure
+auditd46c4a26...33ac. Both consumed inputs/outputs IMMUTABLE/unadopted; NO190acceptance.
+Only exactly audited stopped170 success/first170failure/first18failure clusters
+losslessly NTFScompressed; every logicalhash/creation+write time/ACL retained.
+No live/host/HBA/settings change; crawler26784 originalstart kept advancing.
+GoalACTIVE: adequate disk recovery, actual190, runtime/worker/dashboard wiring,
+mixed breadcrumbs, protected full-data recovery11GiB D floor, representative E5/
+UI/provider/load/latency and verified cutover OPEN. No live timetable established.
+
+
 LATEST29Oct combined fixed+learned AUTHOR hierarchy actual SQL ACCEPTED, NOT LIVE.
 Previous goalturnPROGRESS (unified160); current source+owned170/Root-only progress.
 Introduced50620ad9: owner cut is absolute through accepted fixed prefix + current

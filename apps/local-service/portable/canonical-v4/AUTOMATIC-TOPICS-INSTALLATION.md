@@ -46,3 +46,16 @@ fixture evidence, not representative E5 quality, genuine browser/provider, many-
 load or live latency. Native execution is pending. Runtime/worker/dashboard wiring,
 final breadcrumbs, protected full-data migration/recovery, real quality/UI/load
 and verified live activation are still required.
+
+On 29 October the first owned native invocation passed the fresh migration/install
+rollback checks and the existing-thread upgrade, idempotence, strict-profile and
+role checks. Its later legacy HTTP case refused the invented fixture token: its
+length30 violates the unchanged browser contract minimum32. A paired real-client
+test proves rejection before fetch and dispatch with the corrected shared invented
+token; the migration and installer bytes did not change. A separately authorized
+invocation of that correction stopped at the original D: resource floor, with no
+retained child assertion report. Both failed runs remain unadopted and immutable;
+all2639 consumed pins and their distinct normal/emergency cleanup were audited.
+There is no accepted190-case result yet. Guarded699 Node tests and78 pure controller
+tests pass; these do not replace actual SQL completion, storage recovery or the
+remaining product integration and quality checks.
