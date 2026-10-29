@@ -74,7 +74,24 @@ duplicate rules are rejected locally with TypeError before SQL, whereas the case
 expected the SQL adapter's invalid error for every malformed input. The new case
 requires both the actual local TypeError and the raw SQL duplicate refusal, with
 unchanged policy state. Production code and all original limits remain unchanged.
-The native fixture uses invented Source titles/coordinates and no genuine browser
-or provider. Updated SQL execution is pending. Complete18 composition, unified
-search, migration/recovery and representative real quality/UI/latency/load tests
-remain required before live activation.
+The corrected owned run passes all150 mandatory SQL reports, including all ten
+owner cases. The same normal HTTP client observes broad, specific, then broad
+defaults without a new embedding. A held uncommitted owner change permits the
+previous editor view and a normal committed human post. Both scratch databases
+drop, exact owned smart-stop succeeds, the Job is empty, all handles close,
+stderr is empty, emergency is false and all2622 execution pins reauthenticate.
+
+Production remains the code introduced in `888e4c89`; corrected fixture source is
+`a3aa18cb`, catalog commit `ad77023e`, execution map
+`9a14b4ee5491eea021a4901b297117a0d602bba3a527979fc541833b17432316`.
+Run `run-f7bfeec3778125be95399d9c33f97202d7afd74a2ac9f4ed` has result SHA256
+`944a26d8be5e063dfea69a27b1065a09c4ff66957b731518fe8c1c49a6f0dfe0` and stdout
+SHA256 `e6844cbb90a25be4c6fe0ab1cbfb4d3d439afb2e05bea3c2c2b2122a58af94b5`.
+Root audit is retained locally as
+`named-owner-grouping-native-root-audit-20261029.json`.
+
+The native fixture uses invented Source titles/coordinates and explicit rolled-back
+owner metadata controls, with no genuine browser or provider. This is a learned
+branch grouping component, not the full combined fixed/learned hierarchy.
+Complete18 composition, unified search, migration/recovery and representative real
+quality/UI/latency/load tests remain required before live activation.

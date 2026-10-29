@@ -8,6 +8,34 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct owner-wide/per-topic learned grouping actual SQL ACCEPTED, NOT LIVE.
+Previous goalturnPROGRESS; Root-only/source+owned150 proof, goalACTIVE. Production
+888e4c89 remains byteidentical; fixed Source deepest match retained, one existing
+owner policy/CAS, default depth and opaque subject subtree rules, <=8 head walk,
+current membership check, MVCC reads and posting during held policy write. Captured
+valid draft/root destination unchanged; no model/new embedding/index rebuild.
+Learned-branch relative depth is NOT combined fixed+learned hierarchy. Explicit
+specific search stays available under broad defaults; no personal grouping slider.
+Two earlier ONE runs failed fixture assertions: generic coordinates abstain from
+fixed taxonomy, duplicate rules reject locally TypeError before SQL. Exact native
+assertion details UNRETAINED; causal guarded controls plus corrected fixtures only,
+production/limits unchanged. Failed source/maps/output immutable; normal smartstop,
+created DB drop/endpins/emptyJob/handles/stderr0, second DB unreached. Audits retained.
+Corrected source a3aa18cb/catalog ad77023e/map9a14b4ee5491eea021a4901b297117a0d
+602bba3a527979fc541833b17432316, ONE runf7bfeec3778125be95399d9c33f97202d7afd74a2
+ac9f4ed ACCEPTED all150 (original140+10owner), both scratchDBdrop/exactsmartstop/
+emptyJob/allhandles/stderr0/emergencyFALSE/all2622pins. Same HTTP client sees
+broad-specific-broad; held owner write allows old editor plus committed normal
+post. Invented titles/vectors/rolled-back owner metadata control; NOT genuine
+browser/provider/E5/load/live-speed proof. Root saved audit data/named-owner-
+grouping-native-root-audit-20261029.json; result944a26d8...0dfe0/stdoute6844cbb...94b5.
+Docs-only currentmap9dfa9d665a13dc323ac462ad04fdbd511a9f9abf6c6ed285ee34fe7130c97aa1
+exactly one doc changed; other2621 execution pins identical. No default activation.
+Full fixed+learned authored hierarchy, unified legacy/fixed/named search, complete18
+migration/install/startup/recovery, representative quality and real UI/end-to-end
+latency/load/cutover remain OPEN. Live stays schema17/dashboard counts only.
+
+
 LATEST29Oct single-page existing-topic matching actual SQL ACCEPTED, NOT LIVE.
 Previous goalturnPROGRESS (source+owned140 proof), root-only. New production516d68ff:
 worker-only complete NFKC/Intl title focus probes<=512/64words/8wordphrase; raw64
