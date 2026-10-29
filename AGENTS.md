@@ -8,6 +8,43 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct publicnamedfeed/search/reply bridge ACTUALPASS. Sourcef23b0870/
+ee396e78; executionmap71767d59...4772e/2594files277710973B; runee43e54e...
+9ea657f EXIT0/all100reportsPASS(original91+9public). Rootall2594endpins/
+strictNode+Pythonledger/2freshDBdrops/exactownsmartstop/emptyJob/allhandlesTRUE,
+stderr0/emergencyFALSE. result0e96ed5f...a31c5/stdout21b80a47...2d514.
+Root-only/inventedgeneralweb. NORMAL HTTPclients+actualreadfacade/app/SQL+
+REAL AIjob/result-proof issuer exercised; externalproviderONLYstubbed. NOreal
+browser/representativequality/manyuser/live-latencyclaim. UIcapabilitygated
+remote20-row search/200msdebounce/cursors/stalefences; authorcaptiondisplay
+separatefromcanonicaldestinations. RRbatchpublicscopes withoutmaterialdigests.
+ThreeSQLoverrides015/016/authoredAIroot exactinverse exceptonemembershipcall;
+allactor/replay/lineage/body/evidence/expiryfences unchanged. Normalnamed/broad/
+nestedhuman+AIreplies/originaldest/replay/stalerefusal/SourceerasurePASS. Worker
+clockSKIPLOCKEDfirst+independentopaquecontext-events; preferredselection and
+preparationstamp changeswithoutcanonicalmutation; heldclockpermits appwrites.
+JoinedemojiSourcecaption works SQL->normalHTTP->client; canonicalUNSAFEpolicy.
+596guardedNodePASS2577.5593ms/68PythonPASS+existing1single-sessioncausalPASS.
+PriorDAAF CLOSED PUBLIC_6_RESULT_UNKNOWN; allpins+normalstop/handlesPASS but1
+scratchDBUNDROPPED, retained. ExactHTTP/sessioncauseUNRETAINED. Newfixturehad
+immediateSQLresult competingwithasyncAIchecks onsingleexclusivesession; known
+pureSESSION_BUSY regressionPASS. FixtureONLY terminal-memory wait+physical
+trackedreadjoin fix; actualcorrectedPASS, no product/limit/assertion change.
+Storage:27MOREverifiedSTOPPEDownedclusters NTFScompressed,26827hashes/times/
+ACLsunchanged, allsavedoutputs retained. Sumobservedfreechanges994160640B NOT
+exactallocationmeasurement. Earlierindividualcompressions alsoheldlogicalpins.
+Original5servicespreserved/crawler6384 advancing12274/stderr0. LatestD5356228608B/
+C7245635584B; private11GiB DfloorstillUNMET. NoHost/HBA/service/crawler action.
+GoalACTIVE; thisturnsubstantialpublicintegration+actualSQL/HTTP/AIevidence.
+NEXT: original-material witness for page-scoped roots joining LATER subjects
+WITHOUTretitling, static/dynamic search+identity aliases, same-repr model/
+recapturecontinuity, dynamicownerdepth+foregroundcontext, complete18/profile/
+startup/recovery, genuinebrowser/provider/quality/latency/livecutover. Named
+searchaloneMUSTNOTreplacelegacydirectory atactivation. Rootaudit data/automatic-
+topic-public-native-root-audit-20261029.json. Verificationdoc changed AFTER
+acceptedrun; refreshcurrentcatalog docs-only before nextactual invocation.
+
+
 LATEST29Oct namedfeed/globalSearch SOURCE+ownedSQL ACTUALPASS. Source659ea7b2/
 1f435e63; acceptedcatalog50b1bfaf...35c70/2585files277551311B; run7d7843c1...
 1bb0726 EXIT0/all91reportsPASS(original82+9feeds). Rootall2585endpins/saved
