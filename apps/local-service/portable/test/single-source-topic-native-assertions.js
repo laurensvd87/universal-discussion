@@ -10,7 +10,8 @@ const code=c=>e=>e?.code===c,wire=v=>'{'+v.join(',')+'}';
 const defer=()=>{let resolve;const promise=new Promise(done=>{resolve=done;});return {promise,resolve};};
 async function one(db,sql,args=[]){const r=await db.query(sql,args);assert.equal(r.rows.length,1);return r.rows[0];}
 async function bounded(p){let timer;try{return await Promise.race([p,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Single source check timed out')),1200);})]);}finally{clearTimeout(timer);}}
-async function rollback(db,work){const marker=Error('Rollback invented single source fixture');await assert.rejects(db.transaction(async tx=>{await work(tx);throw marker;}),e=>e===marker);}
+async function rollback(db,work){const marker=Error('Rollback invented single source fixture');let rolledBack=false;
+ try{await db.transaction(async tx=>{await work(tx);throw marker;});}catch(e){if(e!==marker)throw e;rolledBack=true;}assert(rolledBack);}
 export async function runSingleSourceTopicNativeAssertions(scope){
  const {owner,worker,app,observer,generation,matcherHash,descriptor,sourceIds,publicationInput,prepareFixtureSources,changeFixtureTitle,subjects,retrieval,page,check}=scope;
  const probe=sourceIds.at(-1),request=JSON.stringify({generation,matcherHash,sourceId:probe}),repo=single({database:worker});
@@ -74,18 +75,32 @@ export async function runSingleSourceTopicNativeAssertions(scope){
  await check(16,async()=>{
   await prepare('Orion Console Pro independent battery test');
   await owner.query('DELETE FROM canonical_v4.named_subject_members WHERE source_id=$1',[sourceIds[2]]);
-  const ready=defer(),release=defer();
+  const ready=defer(),release=defer();let primary=null,posting=null,other=null,postedId=null,stage='HELD';
   const held=worker.transaction(async tx=>{assert.equal((await single({database:tx}).match(request)).status,'matched');ready.resolve();await release.promise;});held.catch(e=>ready.resolve({error:e}));
   try{const r=await ready.promise;if(r?.error)throw r.error;
+   stage='READ';
    assert.equal((await bounded(page(probe))).subject,null);
-   await bounded(rollback(app,async tx=>{
-    const runtime=createCanonicalV4RuntimeRepository({database:tx,nextId:()=> 'single-source-concurrent-root',now:()=>new Date().toISOString()});
-    const expected=await one(tx,'SELECT generation,revision::integer revision FROM canonical_v4.runtime_state WHERE singleton');
-    const posted=await runtime.command({actorId:'demo-alex',requestId:'single-source-concurrent-request',expected,
-     command:{type:'create-root',topicId:'topic-semantic-manual',body:'A normal discussion post completes while a page assignment is held.',originSourceId:probe}});assert(posted.result.contributionId);
-   }));
-   await bounded(observer.transaction(async tx=>{await tx.exec('SET LOCAL ROLE murmingle_ingest_worker');const other=await single({database:tx}).match(JSON.stringify({generation,matcherHash,sourceId:sourceIds[2]}));assert.equal(other.status,'matched');assert.equal(other.subjectId,narrow);}));
-  }finally{release.resolve();await held;}
+   stage='POST';
+   // The normal runtime owns its transaction. An exclusive-session transaction
+   // lease has no transaction() method and cannot be its database dependency.
+   const runtime=createCanonicalV4RuntimeRepository({database:app,nextId:()=> 'single-source-concurrent-root',now:()=>new Date().toISOString()});
+   const expected=await one(app,'SELECT generation,revision::integer revision FROM canonical_v4.runtime_state WHERE singleton');
+   posting=runtime.command({actorId:'demo-alex',requestId:'single-source-concurrent-request',expected,
+    command:{type:'create-root',topicId:'topic-semantic-manual',body:'A normal discussion post completes while a page assignment is held.',originSourceId:probe}});
+   const posted=await bounded(posting);postedId=posted.result.contributionId;assert(postedId);
+   stage='OTHER';
+   other=observer.transaction(async tx=>{await tx.exec('SET LOCAL ROLE murmingle_ingest_worker');const out=await single({database:tx}).match(JSON.stringify({generation,matcherHash,sourceId:sourceIds[2]}));assert.equal(out.status,'matched');assert.equal(out.subjectId,narrow);});await bounded(other);
+  }catch(e){const known=String(e?.code??'UNKNOWN').toUpperCase().replaceAll('-','_');
+   primary=Object.assign(Error('Owned single page concurrency check failed'),{code:'SINGLE_16_'+stage+'_'+(/^[A-Z0-9_]{1,24}$/u.test(known)?known:'UNKNOWN')});
+  }finally{
+   release.resolve();
+   for(const work of [held,posting,other])if(work)try{const v=await work;if(work===posting)postedId=v.result.contributionId;}catch(e){primary??=e;}
+   if(postedId)await owner.transaction(async tx=>{
+    await tx.query('DELETE FROM canonical_v4.command_receipts WHERE contribution_id=$1',[postedId]);await tx.query('DELETE FROM canonical_v4.revisions WHERE contribution_id=$1',[postedId]);
+    await tx.query('DELETE FROM canonical_v4.contributions WHERE id=$1',[postedId]);await tx.query('DELETE FROM canonical_v4.id_registry WHERE id=$1',[postedId]);
+   });
+  }
+  if(primary)throw primary;
  });
  await check(17,async()=>{
   await prepare('Orion Console Pro another independent field test');const entered=defer(),release=defer();let acknowledged=false;

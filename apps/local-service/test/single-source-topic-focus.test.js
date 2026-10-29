@@ -1,6 +1,8 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';
 import {singleSourceTopicFocus as focus,SINGLE_SOURCE_TOPIC_POLICY as policy,SINGLE_SOURCE_TOPIC_POLICY_HASH as policyHash} from '../src/application/single-source-topic-focus.js';
 import {createSingleSourceTopicRepository as repository} from '../portable/canonical-v4/single-source-topic-repository.js';
+import {createCanonicalV4RuntimeRepository} from '../portable/canonical-v4/runtime-repository.js';
+import {createExclusiveSession} from '../portable/integration/native-hierarchy-postgres-v2/session.js';
 const sha=v=>createHash('sha256').update(JSON.stringify(v)).digest('hex'),hash='a'.repeat(64),uuid='a0000000-0000-4000-8000-000000000001';
 const request={generation:'g',matcherHash:hash,sourceId:'s'},raw=JSON.stringify(request),witness={sourceId:'s',sourceVersion:'0',operationId:'o',operationDigest:hash,sourceStamp:hash,title:'Steam Deck OLED battery replacement'};
 const row=v=>({rows:[{result:v}]}),code=c=>e=>e?.code===c;
@@ -40,4 +42,14 @@ test('malformed material, result fields and response getters never become assign
 });
 test('SQL conflicts remain explicit and raw database text remains private',async()=>{
  for(const [pg,expected]of [['P1321','conflict'],['P1323','invalid'],['42501','storage-failure']])await assert.rejects(repository({database:{query:async()=>{throw Object.assign(Error('private SQL detail'),{code:pg});}}}).match(raw),e=>e.code===expected&&!e.message.includes('private SQL'));
+});
+test('the actual exclusive lease cannot be a transaction-owning runtime, while the full session can',async()=>{
+ const calls=[],session=createExclusiveSession({query:async sql=>{calls.push(sql);if(sql.includes('runtime_append_command'))return {rows:[{response_text:JSON.stringify({version:{generation:'g',revision:1},discussionVersion:1,result:{contributionId:'c'}})}]};return {command:sql};},end:async()=>{}},()=>{});
+ const marker=Error('old rollback marker');
+ // Reproduce the old fixture's masking symptom using the real lease adapter,
+ // no PostgreSQL/socket. The constructor fails before any posting statement.
+ await assert.rejects(assert.rejects(session.transaction(async tx=>{assert.equal(typeof tx.transaction,'undefined');createCanonicalV4RuntimeRepository({database:tx});throw marker;}),e=>e===marker),e=>e.code==='ERR_ASSERTION');
+ assert.deepEqual(calls,['BEGIN','ROLLBACK']);calls.length=0;
+ const runtime=createCanonicalV4RuntimeRepository({database:session,nextId:()=> 'c'}),r=await runtime.command({actorId:'demo-alex',requestId:'r',expected:{generation:'g',revision:0},command:{type:'create-root',topicId:'t',body:'Actual transaction-owning repository control.'}});
+ assert.equal(r.result.contributionId,'c');assert.equal(calls[0],'BEGIN');assert(calls[1].includes('runtime_append_command'));assert.equal(calls[2],'COMMIT');await session.close();
 });

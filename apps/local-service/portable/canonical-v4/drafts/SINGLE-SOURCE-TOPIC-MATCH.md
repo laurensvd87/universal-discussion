@@ -47,14 +47,27 @@ publication so a still-confident leaf is restored. A busy final match leaves the
 existing durable discovery request pending. Closing joins physical work and
 does not acknowledge a later completion. There is no second queue/model/timer.
 
-Seven guarded focus/repository tests and three additional coordinator cases
+Eight guarded focus/repository tests and three additional coordinator cases
 cover complete probes, Unicode, bounds, typed witnesses/results, failure privacy,
 early assignment, busy backoff and shutdown. Ten new mandatory native reports
 exercise actual worker SQL, most-specific/parent fallback, no row churn, stale
 Source refusal, capacity, held writers, concurrent reads/posting/two different
 Source assignments, production coordinator ordering and real Source change.
 Those reports use invented titles/vectors and explicitly owner-controlled
-adversarial head setup. The updated owned SQL execution is pending. Neither this
+adversarial head setup. The first owned run passes the first seven new reports
+then fails the concurrent-post assertion. Its exact assertion detail was not
+retained. Root authenticates all2619 pins and normal owned smart-stop/empty Job/
+closed handles; the created database drops, stderr is empty, emergency false.
+The remaining reports and second database are not reached. A source finding is
+that the fixture passed a transaction lease to the transaction-owning runtime;
+the real lease has no transaction method, so construction refuses before post
+SQL, and the rollback assertion masks this as ERR_ASSERTION. A guarded causal
+test reproduces that exact source behavior and contrasts the valid full-session
+composition. The corrected fixture uses the normal runtime-owned transaction,
+joins all physical work and removes its committed invented root after release.
+Production focus/SQL/repository/coordinator code and all limits are unchanged.
+The first consumed source/catalog/run remain retained; the updated owned SQL
+execution requires a new reviewed catalog and separate decision. Neither this
 component nor these fixtures prove representative semantic quality, cross-language
 recall, many-user load, foreground/provider/browser behavior or live latency.
 
