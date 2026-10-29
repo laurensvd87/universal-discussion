@@ -8,6 +8,14 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct publication-claim normalizer nowSOURCE/experimentonly: no clock/IO/
+DOM/provider; dayprecision keptwithoutUTCmidnight, timestampsnormalizeoffsets/
+resolution, conflict/invalid/modified/visit/unknown-zone fields refused. 11meta+
+10proposal+7package PASS28/64MiB. Unusedhelper movedoutofextensioninventory after
+packageguardfailed; no inventorywaiver. Capture same-document provenance/Source
+storage/registry18 integration NEXT. Live/static model and crawler unchanged;
+goalACTIVE. This is not actual date-capture or automatic live topic evidence.
+
 LATEST29Oct AUTOMATICGROWTH: bounded64doc proposal/naming prototype10purePASS;
 closed collectors34PASS (thenlabel10 separately). Actualoriginal6:1usable/5fail,
 additional4:3usable/1fail, all10retained/no retry. E5actual15636 EXIT0/closed/

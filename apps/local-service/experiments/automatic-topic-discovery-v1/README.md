@@ -28,6 +28,14 @@ contract does not retain that metadata, so ingestion changes and provenance are
 still needed before a live event pipeline. The helper does not attest supplied
 dates, publisher identities or the parent path itself.
 
+The separate publication-claim normalizer now preserves calendar-day versus
+timestamp precision, compares consistent timezone claims and refuses conflicts,
+calendar rollovers, modified/visit time and unknown timezones. It has no clock or
+IO and is not yet wired to capture or live Source storage. Bare dates never become
+invented UTC midnight. A known UTC instant is usable even when its publisher-local
+offset is unspecified; see [RFC9557](https://www.rfc-editor.org/info/rfc9557/).
+The helper accepts bounded JSON data and never returns invalid raw field values.
+
 Next compare real same-event/different-event/novelty cases against other bounded
 approaches. Include different news about the same entity, delayed arrivals,
 syndication, singletons, multilingual captures and erased inputs. Calibrate on

@@ -1,5 +1,18 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct next-source slice: publication-metadata.js/test added ONLY to unregistered
+automatic-topic-discovery-v1 experiment, not extension inventory/live. Portable
+boundedJSON claim normalization, no clock/IO/DOM/provider: baredate remainsday/no
+inventedUTCmidnight; knownUTCtimestamps normalizeoffsets and preserve resolution;
+conflicting/invalid/modified/visit/unknown-zone claims cannot supply pubtime.
+11puremetadata+10proposal+7extensionpackage reports PASS28/144.69ms64MiBguard.
+Initial placement in browser/core correctly failed exactpackageinventory; moved
+out beforecommit ratherthan waiving inventory or shipping unused experimental
+code. RFC3339/updated9557 checked: -00:00 still has knownUTCinstant, unknownlocal
+offset; test prevents confusing those facts. Same-document/crawler metadata
+collection and Source-bound persistence remain NEXT, not implemented/attested.
+No API/worker/crawler/schema change or new actualcapture followed this helper.
+
 29Oct automatic growth SOURCE+actualDEV progress: commits7612bcca/ec079232 add
 unregistered bounded64doc complete-link proposal/naming and closed DEV collectors.
 First6actual78761 exit0:1available/5unavailable/12requests/55.21s, result12126B SHA
