@@ -78,6 +78,16 @@ generation/receipt/Source-version/stamp/revision fences atomically. There is no
 generic SQL publication, schema18 installation or live named-topic UI yet.
 The joined37 pure tests pass with64MiB heap and the offline capability guard.
 
+After source commit99145cfd, an actual offline application check also passes the
+two stored owner examples through the explicit v2 entry: Kapsalon,2 selections,
+one opaque UUID reused in the second pass. Source/input hashes are retained in
+`data/general-topic-registry-plan-v2-20261029/result.json`, SHA-256
+`a4fbccfaf58e4fbbe2a4dcb94c7058945b49c1faedd21871b150996250b58351`.
+The policy hash is
+`cd4f0786245a561499253c33cf53a0dc45e0d75e0471707e3a3f8606fb7c4217`.
+This uses a historical protected snapshot and an invented revision1 candidate;
+there is no fresh Source authority, SQL publication, network or model call.
+
 ## Retained local receipts
 
 These ignored local receipts are not included in Git exports. Root verified
