@@ -7,7 +7,7 @@ import {compilePairedE5Input,applyPairedE5Input,describePairedE5Input} from '../
 import {loadInstalledHierarchyMatcher} from '../src/application/installed-hierarchy-matcher.js';
 import {classifyRootedHierarchyMatcher} from '../src/domain/hierarchy-rooted-matcher.js';
 import {proposeFocusedSubjects} from '../experiments/automatic-topic-discovery-v1/focus-subjects.js';
-const ROOT='apps/local-service/',D=ROOT+'data/',OUTPUT=D+'general-topic-owner-focus-20261029';
+const ROOT='apps/local-service/',D=ROOT+'data/',OUTPUT=D+'general-topic-owner-focus-verified-20261029';
 const SOURCES=['harness/run-general-topic-owner-examples.js','harness/hierarchy-benchmark-files.js',
  'src/domain/hierarchical-e5-paired-input.js','src/application/installed-hierarchy-matcher.js',
  'src/domain/hierarchy-rooted-matcher.js','experiments/automatic-topic-discovery-v1/focus-subjects.js'].map(p=>ROOT+p);
@@ -19,6 +19,8 @@ export async function runSpecifiedGeneralTopicExamples(){
  const policy=await json(ROOT+'experiments/automatic-topic-discovery-v1/focus-policy.json',null,ledger),
   snapshot=await json(D+'general-topic-owner-examples-20261029.json',{sha256:'752cecd836bb5ed0d66cb08430104a056eb6fc181d9ee858cad4f818786e3e2b'},ledger),
   definition=await json(ROOT+'assets/hierarchy/input-definition.json',null,ledger);
+ const prior=await json(D+'general-topic-owner-focus-20261029/result.json',{sha256:'fe9c4a663acec3d55642698247c2ac7faeaab2fea4234584dbedd99cb2e94ff9'},ledger);
+ need(prior.output.status==='proposed'&&prior.output.proposals.length===1&&prior.output.proposals[0].focusTokens.join(' ')==='kapsalon');
  need(snapshot.rows.length===2&&snapshot.missing.length===0&&snapshot.readOnly&&snapshot.liveChanged===false);
  const source=sources.find(p=>p.file===policy.algorithm.file);need(source.sha256===policy.algorithm.sha256&&source.bytes===policy.algorithm.bytes);
  const fusion=compilePairedE5Input(definition),representation=describePairedE5Input(fusion),installed=await loadInstalledHierarchyMatcher();
@@ -38,11 +40,12 @@ export async function runSpecifiedGeneralTopicExamples(){
  const output=proposeFocusedSubjects(raw),timings=[];for(let i=0;i<100;i++){const at=performance.now();proposeFocusedSubjects(raw);timings.push(performance.now()-at);}timings.sort((a,b)=>a-b);
  const proposed=output.proposals.filter(p=>p.focusTokens.join(' ')==='kapsalon'&&p.members.length===2);
  const covered=output.selections.filter(s=>proposed.some(p=>p.proposalKey===s.preferredProposalKey));
- const accepted=output.status==='completed'&&proposed.length===1&&covered.length===2;
+ const accepted=output.status==='proposed'&&proposed.length===1&&covered.length===2;
  await endPins(ledger,SOURCES,sources);
  const result={schema:'specified-general-topic-owner-focus/v1',status:'completed',candidateSucceeded:accepted,
   protocol:{expectedCommonSubject:'Kapsalon',basis:'Owner-supplied real recipe/video example, revisited inspected DEV; not fresh final validation.',
-   specificRecipeEqualityExpected:false,requiredDomains:['leukerecepten.nl','youtube.com'],minimumSimilarity:policy.parameters.minimumSimilarity},
+   specificRecipeEqualityExpected:false,requiredDomains:['leukerecepten.nl','youtube.com'],minimumSimilarity:policy.parameters.minimumSimilarity,
+   priorHarnessCorrection:'The first saved projection already found Kapsalon and covered both Sources; its CLI incorrectly expected status completed instead of the unchanged algorithm status proposed. Original output retained; algorithm/policy unchanged.'},
   classification,output,timing:{repetitions:100,p50Ms:timings[49],p95Ms:timings[94],maximumMs:timings[99]},
   sourcePins:sources,inputPins:ledger,endPinsChecked:true,...flags};
  return {status:result.status,candidateSucceeded:accepted,names:proposed.map(p=>p.label),covered:covered.length,timing:result.timing,result:await save(OUTPUT,'result.json',result)};
