@@ -1,5 +1,45 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct hard-case comparison COMPLETE/DEV ONLY. Closed12 new primary URLs declared
+in automatic-topic-comparison-corpus.js; no oldTEST or deniedpublisherretry.
+Actual7078 EXIT0:8available/4policy refusals(UT3/Waterloo1),5knownpubclaims,
+2sequential ownedbrowsers/8native reads/exits+profilecleanup/endpinsTRUE.
+Result47247B SHA26b065a8dfdb384cccb078862f348291523b41c18bc9be556609307911f5999e.
+All22originaldeclared/12usable/10unavailable retained. E5actual34143 EXIT0:
+result35255B SHA104491a7a48afb7979cceefa2dec95ce15e92e8332f3cd3f251457241c78c39c.
+All3methods x3views measured: paired complete-link/centroid4true17wrong0missed,
+graph4true62wrong; title-only1true0wrong3missed. ~0.6ms median all3methods12docs;
+9.72sencoding/setup, close/endpinsTRUE. EXACT old3sources mechanically recovered,
+hashchecked/all36pinPASS and committed ab67a753 BEFORE maintainedrange/metric
+exports restored for alternative model. No saved output/case rewritten.
+
+Separate local official paraphrase-MiniLM revisione8f8c211...f42 prepared onDONLY,
+model118412398B/tokenizer9081518B/all5knownhashes/cardApache2checked;8.52sdownload,
+assets under data/automatic-topic-paraphrase-assets-20261029 (ignored). Oldtemp
+assets missing; old infer/download/main NOTinvoked. Newhelper uses checked existing
+WASM/tokenizer/runtime, noTorch/thirdpartyexec/provider. Actual25412 EXIT0/24calls/
+2.936s/close/endpins39TRUE. Result72034B SHA
+98260e2132cbf2f58f33b2ac7b17482f6c5c784241d32e3c39c134e4124a6b67.
+Two inputviews x fixedgrid.5/.6/.7/.8/.9 x3methods; title+lead.7 gives3true/
+1wrong/1missed: Bakerprofile+engineering wrong, Physics2025 missed. DO NOTactivate
+or callthissafe. Rootaudit saved, allcasepins/unitvectors/current39pins checked;
+Root-only/noindependentreview/populationclaim. Original unrelated study outputs
+remainimmutable. Current diagnostic generalized0..0.99 for other representations;
+Related0.88/min0.8 and live E5 policies UNCHANGED. MaintainedSource may evolve Git.
+
+Strong next action: subject/event focus/context evidence + accurate common-scope
+names. Broad DavidBaker membership may be valid where one concrete news-event
+label would be false. Same-event Trinity2025 pub17days after Berkeley; a one-day
+pubtimehardgate fails. Profilepub2013 doesnot dateallmentioned events. No old gold
+dates used as input. Consider bounded focusphrase/entity-action or independently
+validated event verifier; then prospective whole-event/site/language validation,
+registry18/roles/races/erasure/index/restore/UI. Do not return to per-story manual
+headtraining or make firstpagecomments waitfor another publisher. Full restore
+still11GiBfloor/unmet. Latestpre-inference physical16.0GB/commit12.9GB/C7.88GB/
+D5.50GB; freshreadsneeded. Crawler6384 advancing6499+/stderr0, live services/model/
+schema17 untouched. GoalACTIVE. Priorgoalturn made actual failure evidence plus
+implemented diagnostics/tests, NOTcompletion. ReadRESULTS.md/ADR228 fordetails.
+
 29Oct publication DOM/same-response metadata slice COMPLETE in experiment only.
 Collector46 joined purePASS251ms64MiB; offline native fixture9PASS result
 A000A545...0F6F44 (attempt-UVvhWb). Separate response/CSP check2nativePASS,

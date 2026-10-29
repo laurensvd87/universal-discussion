@@ -8,6 +8,18 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct realhardcase comparison: NEW12 capture7078 EXIT0/8usable4refused;
+all22retained/12encoded10unavailable. E5actual34143 EXIT0/closed36pins: paired
+complete-link+centroid4true17wrong; graph62wrong; title1true0wrong3missed.
+SentenceMiniLM alternative25412 EXIT0/24localcalls/2.94s/closed39pins; titlelead.7
+3true1wrong1missed. NEITHERapproved/activated. OriginalE5source exactab67a753,
+alloutputsIMMUTABLE; maintaineddiagnostic range generalization NOTRelatedchange.
+Results104491a7...c39c/98260e21...a6b67; RootauditPASS/Root-only. Readexperiment
+RESULTS+latestHANDOFF. NEXT subject/eventfocus+accuratecommonnames thenregistry18/
+prospectivequality/SQL/index/recovery/UI. PubtimeNOTeventtime(17daylag/profile).
+New128MBassets ONLYonD/hashpinned/Apache2/noownertextsent. Crawler6384 advances
+6499+/stderr0; services/schema17 unchanged. GOALACTIVE, notcompletion.
+
 LATEST29Oct publication DOM+same-response DEV4 COMPLETE/experiment-only:46purePASS,
 9nativeChrome fixtures+2CSPresponse checksPASS. Actual11128 EXIT0/4eligible/2known
 pubclaims(day+timestamp)/2missing; result8479d0da...ed57cb39/39pins/endpinsTRUE/

@@ -15,6 +15,24 @@ Permanent manual approval/training for every new event cannot be the growth path
 
 ## Evidence changing the design
 
+The subsequent [real hard-case comparison](../apps/local-service/experiments/automatic-topic-discovery-v1/RESULTS.md)
+changes the interpretation of the initial success below. Across22 declared
+articles,12 usable/10 unavailable, paired E5 complete-link and centroid each
+produce4 correct and17 wrong event pairs; connected components produce62 wrong
+pairs. Title-only preserves one true pair and misses three. A separately pinned
+compact multilingual paraphrase encoder also leaves false/missed event pairs;
+headline+lead0.7 gives3 true/1 false/1 missed on this DEV cohort. No tested
+geometry-only policy is accepted for specific event publication.
+
+Broad named subjects and specific events need different evidence. E5 can retrieve
+neighbors quickly while a bounded focus/context check decides whether the common
+scope supports an event or only a broader subject. A medoid event headline is not
+an adequate name for a cluster of that person's different achievements/profile.
+Publication constraints must not equate publication and event time: one same-event
+report arrives17days later; one updated profile has an old publication date.
+Continue registry work with this distinction; do not ship the initial0.90 rule,
+lower thresholds after looking at final TEST or silently install the new encoder.
+
 The first ten declared DEV articles yielded four usable observations and six
 retained policy/access/extraction refusals. Without predefined child names, the
 bounded paired-E5 prototype grouped the two physics-announcement articles and

@@ -1,5 +1,17 @@
 # Project status
 
+29October hard-case method comparison: new12 primary-page DEV declarations yield
+8usable/4policy refusals; together with the original10,12encoded/10unavailable.
+Three E5 grouping methods across three views now measured. Paired complete-link
+and centroid:4 true/17 wrong event pairs; graph:4true/62wrong. Title-only:1true/
+0wrong/3missed. Separate local Apache-2.0 multilingual sentence model tested on
+the same12, two views/five diagnostic thresholds; title+lead0.7 still3true/1wrong/
+1missed. Neither is activated. Real counterexamples require subject/event focus
+and truthful common-scope labels, not a universal cosine cutoff. E5 comparison
+~0.6ms median per12/three methods; this is not UI capacity. Both actual encoder
+processes exited0/closed/pins checked. Source/tests/results interpretation saved;
+crawler6384 original process still advancing/stderr0. See experiment RESULTS.md.
+
 29October metadata-capture progress: publication claims can now be extracted in
 an isolated browser world and normalized without executing page code.46 joined
 pure tests, nine native Chrome fixtures and a two-document response/CSP check

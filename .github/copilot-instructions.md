@@ -2,6 +2,11 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current29October hard-case DEV disproves geometry-only event promotion. E5
+complete-link4true17wrong pairs; compact sentence encoder also wrong/missed events.
+Neither activated. See experiment RESULTS/latest handoff for subject/event focus
+next. Actual processes closed; crawler6384 advances. Goal active.
+
 Current29October metadata:46pure tests,9native DOM fixtures and2response/CSP
 checks pass. Four new same-response DEV captures yield2known publication claims
 and2missing;39pins/ownbrowsercleanup pass. Experiment only; no live Source

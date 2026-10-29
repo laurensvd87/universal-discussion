@@ -9,7 +9,7 @@ export function compareDiscoveryStrategies(rawJson){
  if(arguments.length!==1||typeof rawJson!=='string'||rawJson.length>1048576)bad();
  let input;try{input=JSON.parse(rawJson);}catch{bad();}
  if(!keys(input,['observations','minimumSimilarity','minimumMargin'])||!Array.isArray(input.observations)||input.observations.length>MAX||
-  !Number.isFinite(input.minimumSimilarity)||input.minimumSimilarity<.8||input.minimumSimilarity>.99||
+  !Number.isFinite(input.minimumSimilarity)||input.minimumSimilarity<0||input.minimumSimilarity>.99||
   !Number.isFinite(input.minimumMargin)||input.minimumMargin<0||input.minimumMargin>.2)bad();
  const docs=input.observations;
  for(const d of docs){

@@ -30,5 +30,8 @@ test('maximum cohort retains bounded matrix and measured work; no labels or pare
 test('untrusted objects, malformed/nonunit vectors, duplicate identities and invalid policy fail before comparison',()=>{
  let hooks=0;assert.throws(()=>compare(new Proxy({}, {get(){hooks++;throw Error();}})));assert.equal(hooks,0);
  for(const raw of ['{}','null','[]','not-json','x'.repeat(1048577)])assert.throws(()=>compare(raw));
- for(const patch of [{minimumSimilarity:.79},{minimumSimilarity:'0.9'},{minimumMargin:-1},{observations:[{sourceId:'a',vector:Array(384).fill(0)}]},{observations:[{sourceId:'a',vector:vector(0)},{sourceId:'a',vector:vector(20)}]}])assert.throws(()=>compare(JSON.stringify({observations:[],minimumSimilarity:.9,minimumMargin:.01,...patch})));
+ for(const patch of [{minimumSimilarity:-.01},{minimumSimilarity:'0.9'},{minimumMargin:-1},{observations:[{sourceId:'a',vector:Array(384).fill(0)}]},{observations:[{sourceId:'a',vector:vector(0)},{sourceId:'a',vector:vector(20)}]}])assert.throws(()=>compare(JSON.stringify({observations:[],minimumSimilarity:.9,minimumMargin:.01,...patch})));
+});
+test('diagnostic thresholds are representation-specific; a new encoder does not inherit E5 or Related cutoffs',()=>{
+ assert.deepEqual(sizes(run([0,45],.6)),[[2],[2],[2]]);assert.deepEqual(sizes(run([0,45],.8)),[[1,1],[1,1],[1,1]]);
 });

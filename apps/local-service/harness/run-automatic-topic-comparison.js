@@ -19,7 +19,7 @@ const MORE=[
 ];
 const flags={developmentOnly:true,liveChanged:false,assignmentAuthority:false,independentValidation:false,
  representativePopulation:false,productionValidated:false,goldEventDatesUsedAsInputs:false};
-const metric=(groups,gold)=>{
+export const developmentEventPairMetrics=(groups,gold)=>{
  const memberships=new Map(groups.flatMap((g,i)=>g.members.map(id=>[id,i]))),ids=[...memberships.keys()];
  const result={trueSameEventPairs:0,wrongMergedPairs:0,missedSameEventPairs:0,trueSeparatedPairs:0,wrongPairs:[],missedPairs:[]};
  for(let i=0;i<ids.length;i++)for(let j=0;j<i;j++){
@@ -68,7 +68,7 @@ export async function encodeAndCompareAutomaticTopicDevelopment(expectedCaptureS
    const observations=features.map(f=>({sourceId:f.id,vector:f[view]})),raw=JSON.stringify({observations,minimumSimilarity:PROTOCOL.threshold,minimumMargin:PROTOCOL.margin}),timings=[];
    const comparison=compareDiscoveryStrategies(raw);
    for(let i=0;i<100;i++){const at=performance.now();compareDiscoveryStrategies(raw);timings.push(performance.now()-at);}timings.sort((a,b)=>a-b);
-   comparisons.push({view,comparison,metrics:comparison.results.map(r=>({method:r.method,...metric(r.groups,gold)})),
+   comparisons.push({view,comparison,metrics:comparison.results.map(r=>({method:r.method,...developmentEventPairMetrics(r.groups,gold)})),
     timing:{repetitions:100,threeMethodsPerRepetition:true,p50Ms:timings[49],p95Ms:timings[94],maximumMs:timings[99]}});
   }
  }catch{failure??={stage:'strategy-comparison'};}

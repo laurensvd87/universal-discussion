@@ -1,5 +1,11 @@
 # Automatic named-topic discovery experiment
 
+The harder real-news [method comparison](RESULTS.md) now shows that the first
+four-article success is insufficient: paired-E5 complete-link merges17 wrong
+event pairs, a threshold graph62. A separate compact sentence encoder also leaves
+wrong/missed events. None is activated as event matching. The goal now requires
+subject/event focus evidence and accurate common-scope names as well as geometry.
+
 This unregistered pure module starts the owner's29October requirement: visits
 must supply novel named topics/news, not merely populate a predefined taxonomy.
 It loads no model/database, changes no registry and grants no assignment/posting
