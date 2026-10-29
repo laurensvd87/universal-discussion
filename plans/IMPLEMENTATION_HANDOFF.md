@@ -1,5 +1,20 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct child development: retained36 reviewed TRAIN/CAL observations fitted offline
+in172ms without encoder/network/SQL. Video-games candidate eligible on9 CAL positives
+and0/5 accepted negatives; only2 negatives are insideGames (3 outside), so this is
+not sufficient branch-conditioned acceptance. Five Games->Video-games promotions,
+all4 existing GTA paths/root paths unchanged. Animals/Koalas remain ineligible.
+Result data/hierarchy-retained-child-fit-bindings-20261029/result.json SHA
+f72e46013f69feb3b4a1fb93474d6dec69847666313f23805576e8711aeba4fa;
+Root-only completed audit ...bindings-root-audit-20261029.json. Initial fit failed
+before training because curated GTA labels bind whole case files (sourceInputHash
+deliberately null); corrected reader authenticates casePin without overwriting
+that domain. Initial failure/output immutable.17 guarded projection/matcher tests
+pass. No candidate deployment/TEST capture. Next: fixed6 QLD CAL parser-repair
+recollection; factory excludes TRAIN/TEST, max8 requests/5s spacing.50 guarded
+capture/parser tests pass. New source-check recorded; actual decision still next.
+
 Current29Oct local (28Oct23:45UTC): core hierarchy is LIVE on PostgreSQL17.
 API33748 uses sealed HTTP-priority release158cd63f6d3275d4ab21981fe81b659a5d9e51e9c91cbd5f40511bce7bf1b556;
 worker34788/dashboard33592/crawler6384 continue on earlier17 release7ea0ce...

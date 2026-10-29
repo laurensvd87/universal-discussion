@@ -25,6 +25,9 @@ const CHILD_TRAIN_CAL=Object.freeze([
  ['child-cal-09','https://www.qld.gov.au/environment/plants-animals/animals/discovering-wildlife/possum/lemuroid-ringtail-possum'],
 ].map(([id,url])=>Object.freeze({id,url})));
 const CHILD_DIAGNOSIS=Object.freeze([CHILD_TRAIN_CAL[0],CHILD_TRAIN_CAL[2]]);
+// New observations after the unused-attribute parser repair. Original failed
+// observations are retained; this collector cannot access TRAIN or TEST.
+const CHILD_CAL_REPAIR=Object.freeze(CHILD_TRAIN_CAL.filter(p=>['child-cal-01','child-cal-02','child-cal-03','child-cal-04','child-cal-08','child-cal-09'].includes(p.id)));
 const CODES=new Set(['already-attempted','deadline','aborted','clock-invalid','request-limit','robots-denied','policy-unavailable',
  'page-unavailable','redirect-refused','response-invalid','header-restricted','tdm-ambiguous','tdm-reserved','document-invalid','document-restricted','insufficient-text','pace-unavailable',
  'origin-paused','rate-limited','access-denied','upstream-unavailable','fetch-unavailable']);
@@ -67,16 +70,17 @@ function defaultSleep(milliseconds,signal){
 export function createHierarchyPublicCapture(dependencies={}){return createCapture(dependencies,false);}
 export function createHierarchyChildTrainCalCapture(dependencies={}){return createCapture(dependencies,true);}
 export function createHierarchyChildDiagnosisCapture(dependencies={}){return createCapture(dependencies,true,true);}
-function createCapture({fetchPublic=fetchPublicResource,clock=Date.now,sleep=defaultSleep,signal,deadline},child,diagnosis=false){
+export function createHierarchyChildCalibrationRepairCapture(dependencies={}){return createCapture(dependencies,true,false,true);}
+function createCapture({fetchPublic=fetchPublicResource,clock=Date.now,sleep=defaultSleep,signal,deadline},child,diagnosis=false,calibrationRepair=false){
  if(typeof fetchPublic!=='function'||typeof clock!=='function'||typeof sleep!=='function')throw new TypeError('Invalid fixed public capture dependencies');
  const start=clock();if(!Number.isFinite(start)||start<0)throw new TypeError('Invalid fixed public capture clock');
  deadline??=start+MAX_DURATION;
  if(!Number.isFinite(deadline)||deadline<=start||deadline>start+MAX_DURATION||signal!==undefined&&(!signal||typeof signal.aborted!=='boolean'))throw new TypeError('Invalid fixed public capture deadline or signal');
- const approved=child?(diagnosis?CHILD_DIAGNOSIS:CHILD_TRAIN_CAL):[...PUBLIC_HIERARCHY_PROBES,...RECIPE_CAL_PROBES,...RECIPE_TEST_PROBES,...GTA_TRAIN_PROBES,...GTA_CAL_PROBES,...GTA_TEST_PROBES];
+ const approved=child?(calibrationRepair?CHILD_CAL_REPAIR:diagnosis?CHILD_DIAGNOSIS:CHILD_TRAIN_CAL):[...PUBLIC_HIERARCHY_PROBES,...RECIPE_CAL_PROBES,...RECIPE_TEST_PROBES,...GTA_TRAIN_PROBES,...GTA_CAL_PROBES,...GTA_TEST_PROBES];
  const origins=new Set(child?approved.map(p=>new URL(p.url).origin):[ORIGIN]);
  const probes=new Map(approved.map(p=>[p.id,p]));
- if(probes.size!==(child?(diagnosis?2:11):64)||probes.size!==approved.length||[...probes.values()].some(p=>normalizeCrawlUrl(p.url,undefined,[])!==p.url||!origins.has(new URL(p.url).origin)))throw new TypeError('Invalid fixed probe source');
- const maxRequests=diagnosis?6:MAX_REQUESTS;
+ if(probes.size!==(child?(calibrationRepair?6:diagnosis?2:11):64)||probes.size!==approved.length||[...probes.values()].some(p=>normalizeCrawlUrl(p.url,undefined,[])!==p.url||!origins.has(new URL(p.url).origin)))throw new TypeError('Invalid fixed probe source');
+ const maxRequests=calibrationRepair?8:diagnosis?6:MAX_REQUESTS;
  const unavailableRow=(probe,reason,parserDiagnostic=null)=>{
   if(!diagnosis)return unavailable(probe,reason);
   const observed=['document-invalid','insufficient-text'].includes(reason)?parserDiagnostic:null;

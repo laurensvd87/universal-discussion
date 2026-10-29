@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {createHierarchyPublicCapture,createHierarchyChildTrainCalCapture,createHierarchyChildDiagnosisCapture} from '../harness/hierarchy-public-capture.js';
+import {createHierarchyPublicCapture,createHierarchyChildTrainCalCapture,createHierarchyChildDiagnosisCapture,createHierarchyChildCalibrationRepairCapture} from '../harness/hierarchy-public-capture.js';
 import {readFileSync} from 'node:fs';
 import {PUBLIC_HIERARCHY_PROBES as probes} from '../harness/hierarchy-public-probes.js';
 import {RECIPE_CAL_PROBES,RECIPE_TEST_PROBES} from '../harness/hierarchy-recipe-corpus.js';
@@ -27,6 +27,20 @@ function fixture({robots='',tdm=null,page=()=>html(),onRequest}={}){
 
 const childPlan=JSON.parse(readFileSync(new URL('../harness/hierarchy-child-corpus.json',import.meta.url),'utf8'));
 const childRows=childPlan.freshCandidates.filter(r=>r.split!=='test');
+
+test('parser repair collection stays on six declared CAL pages, with one policy and eight requests',async()=>{
+ const f=fixture(),capture=createHierarchyChildCalibrationRepairCapture(f.options);
+ for(const id of ['child-train-01','child-test-01','child-cal-05','child-cal-06','child-cal-07'])await assert.rejects(capture.capture(id));
+ for(const suffix of ['01','02','03','04','08','09']){
+  const id='child-cal-'+suffix,row=await capture.capture(id);
+  assert.equal(row.status,'available');assert.equal(row.url,childRows.find(p=>p.id===id).url);
+ }
+ assert.equal(f.calls.length,8);assert.equal(capture.snapshot().maxRequests,8);
+ assert.ok(f.calls.every(c=>new URL(c.url).origin==='https://www.qld.gov.au'));
+ assert.ok(f.buffers.every(buffer=>buffer.every(n=>n===0)));
+ assert.equal((await capture.capture('child-cal-01')).reason,'already-attempted');
+ for(let i=1;i<f.calls.length;i++)assert.ok(f.calls[i].time-f.calls[i-1].time>=5000);
+});
 
 test('closed diagnosis reuses two independent policies and emits only bounded parser counters under six requests',async()=>{
  const f=fixture(),capture=createHierarchyChildDiagnosisCapture(f.options),rows=[];

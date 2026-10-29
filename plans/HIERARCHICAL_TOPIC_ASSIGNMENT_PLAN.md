@@ -1,5 +1,10 @@
 # Hierarchical topic assignment and discussion plan
 
+29Oct child candidate: independent Video-games head now fits retained labelled
+TRAIN/CAL features offline, adding5 correct CAL refinements while preserving the
+root/GTA paths. It remains undeployed pending stronger insideGames negatives and
+fresh TEST. Animals/Koalas still lack valid support. Live core below is unchanged.
+
 29 October delivery: PostgreSQL17 hierarchy is live; API, separate worker,
 dashboard and crawler use it. Fresh encrypted PG/local-state pair authenticated,
 original18 canonical counts/seven sequences preserved at cutover. Real SQL25,

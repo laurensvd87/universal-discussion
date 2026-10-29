@@ -1,5 +1,13 @@
 # E5 matching across broad and specific topics
 
+29Oct offline refinement: retained labelled observations produce an eligible
+Video-games candidate without re-encoding (172ms). It adds5 CAL refinements and
+preserves4 GTA paths; no accepted known CAL negatives, but only2 are insideGames.
+Further branch-conditioned CAL and fresh TEST are required before activation.
+Animals/Koalas remain ineligible; unknown archived rows remain omitted. Fixed
+six-page QLD CAL recollection will test the causal parser repair; original failed
+observations and every TRAIN/CAL/TEST role remain unchanged. See current handoff.
+
 29 October: paired E5 rooted matching, stored-source priority and owner cuts are
 LIVE on PostgreSQL17. Rooted model remains16 broad roots plus one GTA detail;
 default depth1/Games depth3, current owner policy revision3. Cold saved recipe
