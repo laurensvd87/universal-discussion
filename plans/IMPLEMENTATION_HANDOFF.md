@@ -1,5 +1,17 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct CAL parser repair actual PASSED: all6 declared QLD pages now available,
+8 paced requests/53.126s/endpins true. Original6 failures preserved. Result
+data/hierarchy-child-calibration-parser-repair-20261029/result.json33012B SHA
+77a4732c2e5b40fd8ab65b37af8d897110d6dc141c1fc4f31f6ae4182aadaaf2.
+New maintained CAL-extension source separates offline encoding of these6 plus
+the2 original usable CAL captures from fitting with an explicit feature-manifest
+SHA. No network/TEST/SQL/live changes in either phase. Root-only source review,
+20 guarded projection/matcher tests pass; retained loader read-only probe36/1/153
+and24 original pins passes. TRAIN remains exactly the22 original reviewed rows;
+no new Koalas training evidence. Next encode under fresh original resource floors,
+then separate pure fit and parent-conditioned audit; no automatic activation.
+
 29Oct child development: retained36 reviewed TRAIN/CAL observations fitted offline
 in172ms without encoder/network/SQL. Video-games candidate eligible on9 CAL positives
 and0/5 accepted negatives; only2 negatives are insideGames (3 outside), so this is

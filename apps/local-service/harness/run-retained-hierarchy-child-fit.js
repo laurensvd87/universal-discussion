@@ -56,11 +56,11 @@ export async function checkRetainedHierarchyChildFitSource(){const corpus=await 
  schema:'retained-child-fit-source-check/v1',sourcePins:await sources(),fixedInputFiles:Object.keys(SPECS).length,
  reviewedKnownRows:36,unknownOmitted:153,quarantined:1,numericFeaturesOpened:false,fittingExecuted:false,testPermitted:false};}
 
-let used=false;
-export async function runRetainedHierarchyChildFit(){
- need(arguments.length===0&&!used,'one-shot');used=true;const started=performance.now(),sourcePins=await sources(),ledger=[],values={},pairs=new Map();
- const corpus=await json(SPECS.corpus,ledger);checkCorpus(corpus);await mkdir(path.join(ROOT,OUTPUT));let stage='inputs';
- try{
+// Reusable read-only feature loading for separately declared CAL extensions.
+// It has no output/fit/model/session side effects and retains the original pins.
+export async function readRetainedHierarchyChildInputs(){
+ need(arguments.length===0);const ledger=[],values={},pairs=new Map();
+ const corpus=await json(SPECS.corpus,ledger);checkCorpus(corpus);
   for(const [key,spec]of Object.entries(SPECS))if(key!=='corpus')values[key]=await json(spec,ledger);
   for(const [key,encodingKey,count,freeze]of [['oldVectors','oldEncoding',96,'6892118af0326115f1bc40d19db30956b319157efde7991e6128d9823b4fb92a'],
    ['expansionVectors','expansionEncoding',79,'ee742344cdfd96d77f70764ffbe7c33d71b3404fa86d7f4646003389262d4c83']]){
@@ -80,7 +80,15 @@ export async function runRetainedHierarchyChildFit(){
     /^[a-f0-9]{64}$/u.test(row.observation.sourceInputHash)&&row.sourceVersion===row.observation.sourceInputHash&&row.modelId==='e5-small-q8-browser-main-prefix-v1','gta');
    need(!pairs.has(meta.id),'duplicate');pairs.set(meta.id,{id:meta.id,sourceInputHash:row.observation.sourceInputHash,labelCasePin:{...pin},bodyVector:row.bodyVector,titleVector:row.titleVector});
   }
-  stage='projection';const projected=projectRetainedHierarchyChildRows({corpus,pairs,inputDefinition:values.inputDefinition});need(projected.rows.length===36&&projected.quarantined.length===1&&projected.unknownOmitted.length===153,'projection');
+  const projected=projectRetainedHierarchyChildRows({corpus,pairs,inputDefinition:values.inputDefinition});need(projected.rows.length===36&&projected.quarantined.length===1&&projected.unknownOmitted.length===153,'projection');
+ return {corpus,values,projected,ledger};
+}
+let used=false;
+export async function runRetainedHierarchyChildFit(){
+ need(arguments.length===0&&!used,'one-shot');used=true;const started=performance.now(),sourcePins=await sources();
+ await mkdir(path.join(ROOT,OUTPUT));let stage='inputs';
+ try{
+  const {corpus,values,projected,ledger}=await readRetainedHierarchyChildInputs();
   await save('inputs.json',{schema:'retained-child-fit-inputs/v1',ledger,sourcePins,definition:values.inputDefinition,
    included:projected.rows.map(({id,groupId,split,labels,sourceVersion,labelBinding})=>({id,groupId,split,labels,labelBinding,sourceInputHash:sourceVersion})),
    unknownOmitted:projected.unknownOmitted,quarantined:projected.quarantined,unavailable:corpus.unavailableArchivedRows.map(r=>({id:r.id,reason:r.reason})),...flags});
