@@ -22,6 +22,7 @@ OLD = OWN + 'native-hierarchy-postgres-v2/'
 NODE = 'C:/Program Files/nodejs/node.exe'
 ENTRY = OWN + 'semantic-native-check.js'
 SEMANTIC_LEDGER = 'apps/local-service/portable/test/semantic-native-cases.json'
+PUBLIC_SUBJECT_LEDGER = 'apps/local-service/portable/test/public-subject-native-cases.json'
 RUNS_ROOT = REPO / 'apps/local-service/portable/data/hierarchy-native-runs'
 PRIVATE_ENTRY = OWN + 'owner-restore-native-check.js'
 HTTP_ENTRY = OWN + 'owner-http-native-check.js'
@@ -84,6 +85,7 @@ HTTP_CASES = ('hierarchy17-http-health','independent-semantic-directory','saved-
     'owner-policy-refresh','bounded-concurrent-public-reads','revoked-session-denied','provider-unavailable')
 MAP_KEY = OWN + 'hierarchy-native-reviewed-sources.json'
 NORMAL_SCOPE_ABSENCES = frozenset([
+    'apps/local-service/experiments/automatic-topic-discovery-v1/package.json',
     'apps/local-service/src/http/package.json',
     'apps/local-service/test/package.json',
     'apps/local-service/src/ai/package.json',
@@ -160,6 +162,12 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/portable/test/hierarchy-native-run.test.js',
     OWN + 'semantic-native-context.js', OWN + 'semantic-native-check.test.js',
     SEMANTIC_LEDGER,
+    PUBLIC_SUBJECT_LEDGER,
+    'apps/local-service/portable/test/public-subject-native-assertions.js',
+    'apps/local-service/portable/test/public-subject-registry.test.js',
+    'apps/local-service/portable/canonical-v4/public-subject-registry.js',
+    'apps/local-service/portable/canonical-v4/drafts/public-subject-registry.sql',
+    'apps/local-service/experiments/automatic-topic-discovery-v1/wiki-entity-subjects.js',
     'apps/local-service/portable/test/semantic-native-assertions.js',
     'apps/local-service/portable/canonical-v4/migrations/010-semantic-hierarchy.sql',
     'apps/local-service/portable/canonical-v4/semantic-repository.js',
@@ -425,7 +433,7 @@ def semantic_completion(stdout, stderr, exit_code):
             or not all(cleanup[key] is True for key in cleanup if key != 'reason')):
         return refused('json-cleanup')
     proof = value['proof']
-    if not shape(proof, 'schema status nativeExecuted pendingAssertions cases restrictedRoleValidated concurrencyScope multiUserLoadValidated semanticQualityMeasured lastObservedSqlFailure cleanup'):
+    if not shape(proof, 'schema status nativeExecuted pendingAssertions cases publicSubjectCases restrictedRoleValidated concurrencyScope multiUserLoadValidated semanticQualityMeasured lastObservedSqlFailure cleanup'):
         return refused('json-shape')
     if (proof['schema'] != 'canonical-semantic-postgres-proof/v1' or proof['status'] != 'passed'
             or proof['nativeExecuted'] is not True or not integer(proof['pendingAssertions'],0)
@@ -458,6 +466,22 @@ def semantic_completion(stdout, stderr, exit_code):
             return refused('json-cases')
     except (OSError, ValueError, UnicodeError, RecursionError):
         return refused('json-cases')
+    try:
+        raw = (REPO/PUBLIC_SUBJECT_LEDGER).read_bytes()
+        if not 0 < len(raw) <= 4096:
+            return refused('json-public-subject-cases')
+        names = parse(raw)
+        observed = proof['publicSubjectCases']
+        if (type(names) is not list or len(names) != 8 or len(set(names)) != 8
+                or any(type(name) is not str for name in names)
+                or type(observed) is not list or len(observed) != 8
+                or observed != [{'name':name,'status':'passed'} for name in names]
+                or any(not shape(row,'name status') for row in observed)):
+            return refused('json-public-subject-cases')
+    except (OSError, ValueError, TypeError, UnicodeError, RecursionError):
+        return refused('json-public-subject-cases')
+    # Preserve the frozen transport's25/3 counters. The eight additional actual
+    # registry checks are separately required above and retained in child JSON.
     result.update(testPoints=25, outerTests=3)
     dbs = proof['cleanup']
     if (not shape(dbs, 'status used finished adminClosed failureCount databases') or dbs['status'] != 'passed'

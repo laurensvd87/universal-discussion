@@ -223,7 +223,9 @@ class MaintainedDriverTest(unittest.TestCase):
             'cleanup':{'reason':'verified-own-server-smart-stopped','stopped':True,'childExited':True,
                 'clientsClosed':True,'physicalSettled':True,'directoryRetained':True},
             'proof':{'schema':'canonical-semantic-postgres-proof/v1','status':'passed','nativeExecuted':True,
-                'pendingAssertions':0,'cases':cases,'restrictedRoleValidated':True,
+                'pendingAssertions':0,'cases':cases,
+                'publicSubjectCases':[{'name':name,'status':'passed'} for name in json.loads((D.REPO/D.PUBLIC_SUBJECT_LEDGER).read_bytes())],
+                'restrictedRoleValidated':True,
                 'concurrencyScope':'head-switch-vs-apply-and-mvcc-read','multiUserLoadValidated':False,
                 'semanticQualityMeasured':False,'lastObservedSqlFailure':None,
                 'cleanup':{'status':'passed','used':2,'finished':True,'adminClosed':True,'failureCount':0,'databases':databases}}}
@@ -240,6 +242,18 @@ class MaintainedDriverTest(unittest.TestCase):
         self.assertEqual(report['code'],'complete')
         value['schema']='native-hierarchy-postgres-result/v2'
         self.assertEqual(self.complete(value)['code'],'json-proof')
+
+    def test_public_subject_cases_cannot_be_missing_reordered_or_borrowed(self):
+        for change in ('missing','partial','order','name','status','extra'):
+            value=self.semantic_result()
+            rows=value['proof']['publicSubjectCases']
+            if change=='missing':del value['proof']['publicSubjectCases']
+            elif change=='partial':rows.pop()
+            elif change=='order':rows[0],rows[1]=rows[1],rows[0]
+            elif change=='name':rows[0]['name']='borrowed semantic case'
+            elif change=='status':rows[0]['status']='skipped'
+            elif change=='extra':rows[0]['extra']=True
+            self.assertFalse(self.complete(value)['accepted'])
 
     def test_semantic_case_identity_order_depth_and_completion_are_required(self):
         for change in ('name','order','depth','bool-depth','missing','status','extra'):

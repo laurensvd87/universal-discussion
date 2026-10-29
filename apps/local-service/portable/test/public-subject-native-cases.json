@@ -1,0 +1,10 @@
+[
+ "public subject draft creates an empty provider registry only in the owned fixture",
+ "same-name entities retain distinct UUIDs while multilingual sitelinks join exactly",
+ "identical entity revisions preserve IDs and first response provenance across different batches",
+ "new labels and sitelinks retain subject identity and immutable earlier versions",
+ "stale and conflicting entity revisions roll back without changing current metadata",
+ "a conflicting sitelink rolls back the entire batch including earlier successful items",
+ "application role can read metadata but cannot import or mutate registry tables",
+ "invalid metadata is refused and fixture-only registry objects are retired"
+]

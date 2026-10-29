@@ -1,5 +1,29 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct exact public entity route now implemented and measured. A read-only count
+found65,744 Wikipedia Sources among66,148 total, without exporting owner URLs or
+content. Public pilot94ad6f98 uses8 independently declared public QIDs/24 exact
+EN-DE-NL URLs:24 correct/0wrong/0unresolved, one API call, no model/ontology.
+Cached24-lookups median0.0593ms is metadata lookup only, not UI/Source latency.
+Resultb3702d96...fa54b/response99f3232a...3d92f; Root24replay+6pins pass. Root-only.
+See automatic-topic experiment RESULTS for full interpretation and official links.
+
+New maintained public-subject-registry adapter plus unregistered draft SQL create
+persistent UUIDs separate from names/provider IDs. Revisions preserve old labels,
+reject stale/conflicting payloads and roll back colliding sitelinks atomically.
+Owner-only import/read-only app projection; no Source assignment or posting
+permission. NOT complete schema18, no ordinary startup registration/live DDL.
+Eight new native checks are required separately from unchanged semantic25 in
+maintained owned fixture; same physical-client cap/lifecycle/resource floors.
+Pure14resolver+adapter,16adapter+projection,61Pythoncontroller pass. The initial
+Python restricted-token temp failures did not start a database; resolution-scope
+absence fixed before normal-token61PASS. Actual SQL proof next after source
+commit/catalog authentication; do not report draft assertions as executed.
+Keep frozen shared-focus policy unchanged. Wikipedia identity is not general-page
+entity linking, ancestry, fresh-event validation, membership or live integration.
+Original crawler6384 advances7565/stderr0. Goal active.
+
+
 29Oct named-subject candidate implemented+DEV frozen. NEW focus-subjects.js/test
 and run-automatic-topic-focus-subjects.js use retainedE5/no model/provider/DB.
 Literalheadline focus1..8words +independent material/publisher≥2 +coscohesion;

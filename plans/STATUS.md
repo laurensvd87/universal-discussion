@@ -1,5 +1,18 @@
 # Project status
 
+29October public identity and persistent registry progress: read-only aggregate
+counts show99.39% of66,148 saved Sources are Wikipedia. A new exact public
+sitelink resolver correctly joins24 predeclared URLs/8 entities across EN-DE-NL,
+including equal-name senses. One public API request; no owner inventory/content
+export, model or ontology. Cached24-lookups median0.0593ms is not app latency.
+A PostgreSQL registry draft now preserves UUIDs across label/revision updates,
+with owner-only imports and read-only metadata. Pure tests pass; eight added
+native metadata checks are composed separately from original semantic25.
+Actual SQL and complete schema18/Source fences/erasure/author context/search/UI
+are still pending; no live activation. Frozen shared-focus candidate unchanged.
+See experiment RESULTS and current implementation handoff.
+
+
 29October automatic named subjects: a new stored-E5/shared-headline focus candidate
 now builds names and literal subject hierarchies without predefined topic labels,
 LLM calls or a new model. On inspected realDEV12:9 proposed subjects/11covered at

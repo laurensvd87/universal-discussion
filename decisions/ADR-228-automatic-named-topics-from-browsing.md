@@ -84,6 +84,24 @@ throughput. No production index or row was changed.
 
 ## Registry and assignment
 
+A read-only source-mix count now finds65,744 Wikipedia Sources among66,148 total.
+A fixed public Wikidata pilot resolves24 predeclared multilingual article URLs to
+eight correct entity identities, with no owner inventory egress. Exact sitelinks
+provide a direct named-subject path for this corpus; labels alone cannot resolve
+homonyms. Keep provider IDs separate from persistent opaque registry IDs and
+mutable multilingual names/revisions. Cache bounded public metadata enrichment
+outside page reads; do not send personal browsing inventories by default.
+
+An unregistered SQL building block and adapter now implement public entity
+metadata storage and stable UUID/version behavior. Eight separate native checks
+are composed in the maintained owned fixture, with original semantic25 unchanged.
+Until actual proof and the complete schema18 Source/context/search integration,
+this is no live topic registry or assignment authority. Provider identity is not
+general-page linking or discussion ancestry; importing P31/P279/taxon relations
+as one undifferentiated parent relation remains prohibited by the design.
+
+
+
 The next implemented DEV candidate combines shared literal headline focus with
 stored-E5 cohesion and independent source support. It automatically forms named
 subject branches, including Physics/Chemistry prize editions, without a supplied

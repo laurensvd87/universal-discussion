@@ -164,3 +164,45 @@ Final result`500d8f8d7534f87b66ef0fefa846dd6fb553104751682ed1af6f57287d337a42`.
 The separate Root audit checks22 literal labels,11 parent edges,30 selected leaves
 across the grid and all36 source pins. This is the same agent's explicit check,
 not an independent reviewer. No live registry/schema/model or crawler changed.
+
+## Exact public entity identity for the current Wikipedia-heavy library
+
+A read-only aggregate on29October counted66,148 Sources,66,140 learned and65,744
+Wikipedia (99.39%). No titles, URLs, bodies or vectors were selected/exported.
+This source mix makes exact public entity metadata a practical first path for
+named subjects; literal shared-focus proposals require independent publishers
+and cannot build shared topics from Wikipedia-only evidence by themselves.
+
+A new resolver indexes exact language+article-title sitelinks, never labels.
+One fixed public Wikidata API request supplied eight predeclared entities and24
+predeclared English/German/Dutch article URLs. Java language/island, Mercury
+planet/element, Rust/Python languages and Mars planet/deity all resolved correctly:
+24 completed,24 correct,0 unresolved,0 wrong identities. These are Root-reviewed
+public identity examples, not independent population validation. The shared mul
+label language is retained honestly; descriptions disambiguate equal labels.
+
+Cached24-lookup batches measured median0.0593ms/p950.1778ms across100 repetitions.
+The full request/validation/persistence pilot took621.64ms. Neither number is
+end-to-end Source preparation, browser latency, indexed catalog capacity or
+arbitrary-webpage linking. No model was opened and no ontology edge was imported.
+Only the eight fixed public QIDs were sent, not the owner's browsing inventory.
+
+Source commit94ad6f98; result b3702d96e0db7058e7c2773eae91c4214473e17ddd3e157fe1a0e324b6bfa54b;
+public response99f3232a2bf3c823782d90ef8b7ee76f53e7f5ee0d0c8359178b1ca58943d92f.
+Root separately reproduced all24 mappings/eight identities, six source/input pins
+and exact response/result hashes. Saved root audit is not independent review.
+All original focus results/policy remain unchanged. No registry or live assignment
+was activated by this pilot.
+
+The chosen direction is hybrid: exact entity identity for supported public
+Wikipedia sitelinks, E5 candidate retrieval plus contextual focus for general web
+pages, and separate supported ancestry. A mention of Java on a general page is
+not an entity-linking proof. Public instance/subclass/taxon edges are not all
+valid discussion parents and are not imported. Provider metadata can refresh in
+bounded cached background work; no provider call belongs on every reader's path.
+Scope any synchronization to the public crawler corpus/explicit privacy policy;
+this pilot does not authorize sending a personal browsing inventory externally.
+
+Official references: [Wikidata data access](https://www.wikidata.org/wiki/Wikidata:Data_access),
+[Wikibase API](https://www.mediawiki.org/wiki/Wikibase/API),
+[structured-data CC0 licensing](https://www.wikidata.org/wiki/Wikidata:Licensing).

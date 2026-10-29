@@ -8,6 +8,23 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct publicentityroute: readonly aggregate66148Sources/65744Wikipedia,
+noownercontentexport. NEW94ad6f98 exactsitelinkresolver +ONEpublic8QIDpilot:
+24declaredEN/DE/NL URLs/24correct/0unresolved/0wrong; cached24lookupmedian0.0593ms,
+NOTSource/UI/globalcapacity. Resultb3702d96...fa54b/response99f3232a...3d92f;
+Root24replay/6pins PASS, Root-only/noontology/noLLM/noownerinventorysent.
+Frozenfocus6dfb...e21580 unchanged/generalwebcontextlinking stillOPEN.
+NEW publicsubjectregistry SOURCE draft: stableUUIDs/providerIDs/versionedlabels/
+exactsitelinks/ownerimport/MVCCreads; noSource/routeauthority. UnregisteredSQL,
+NOTcompletehierarchy18/no liveDDL. Eight newnative metadata cases appended as
+SEPARATErequired proof; original25cases/8clients/lifecycle/caps preserved.
+Pure14identity+adapter/16adapter+projection and61Pythoncontroller PASS.
+FirstPython sandboxtempfailures+onepackageresolutionfinding fixed; normaltoken
+61PASS. ActualSQL notyetexecuted. NEXT fixedcatalog/commit/ownednativeproof,
+thenSourcefences/erase/authorcontext/index/generalwebquality/UI/full18profile.
+Crawler6384 advancing7565/stderr0; originalservices unchanged; goalACTIVE.
+
+
 LATEST29Oct NAMEDSUBJECT candidate implemented/frozenDEV: sharedheadlinefocus+
 storedE5/independentpublishers buildsnew names+literalhierarchy, noLLM/newmodel.
 17focus/80joinedPASS64MiB. Source53b6c801 initial?80c7ae59 context?b32e5c6f

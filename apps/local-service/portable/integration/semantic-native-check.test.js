@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {projectSemanticNativeResult} from './semantic-native-check.js';
 import {SEMANTIC_CASES,runSemanticAssertions} from '../test/semantic-native-assertions.js';
+import {PUBLIC_SUBJECT_NATIVE_CASES} from '../test/public-subject-native-assertions.js';
 
 const names=['murmingle_hierarchy_fixture_20261026_a','murmingle_hierarchy_fixture_20261026_b'];
 function lifecycle(){return {
  status:'passed',server:{port:55433,version:170011,ownershipVerified:true},
  cleanup:{reason:'verified-own-server-smart-stopped',stopped:true,childExited:true,clientsClosed:true,physicalSettled:true,directoryRetained:true},
  checks:{schema:'canonical-semantic-postgres-proof/v1',status:'passed',primary:null,nativeExecuted:true,pendingAssertions:0,
-  cases:SEMANTIC_CASES.map(row=>({...row,status:'passed'})),restrictedRoleValidated:true,
+  cases:SEMANTIC_CASES.map(row=>({...row,status:'passed'})),publicSubjectCases:PUBLIC_SUBJECT_NATIVE_CASES.map(name=>({name,status:'passed'})),restrictedRoleValidated:true,
   concurrencyScope:'head-switch-vs-apply-and-mvcc-read',multiUserLoadValidated:false,semanticQualityMeasured:false,lastObservedSqlFailure:null,
   cleanup:{status:'passed',used:2,finished:true,adminClosed:true,failures:[],databases:names.map((name,i)=>({name,oid:String(17001+i),created:true,closed:true,dropped:true,pending:0,sessionCleanupFailures:[]}))}},
 };}
@@ -54,6 +55,13 @@ test('case identity, order, depth and status bind the new ledger exactly; partia
  ]){const input=lifecycle();alter(input);assert.throws(()=>projectSemanticNativeResult(input),TypeError);}
  for(const length of [0,1,24]){const input=lifecycle();input.checks.cases.length=length;assert.equal(projectSemanticNativeResult(input).accepted,false);}
  for(const status of ['running','failed']){const input=lifecycle();input.checks.cases[12].status=status;assert.equal(projectSemanticNativeResult(input).accepted,false);}
+});
+
+test('additional public registry cases are required separately and never replace original semantic25',()=>{
+ for(const length of [0,1,7]){const input=lifecycle();input.checks.publicSubjectCases.length=length;assert.equal(projectSemanticNativeResult(input).accepted,false);}
+ for(const status of ['failed','running']){const input=lifecycle();input.checks.publicSubjectCases[2].status=status;assert.equal(projectSemanticNativeResult(input).accepted,false);}
+ const wrong=lifecycle();wrong.checks.publicSubjectCases[0].name='borrowed assertion';assert.throws(()=>projectSemanticNativeResult(wrong),TypeError);
+ const absent=lifecycle();delete absent.checks.publicSubjectCases;assert.throws(()=>projectSemanticNativeResult(absent),TypeError);
 });
 
 test('incomplete or failed server, proof and database cleanup remain explicitly unaccepted',()=>{
