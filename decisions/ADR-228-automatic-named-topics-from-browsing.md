@@ -4,6 +4,44 @@ Date:2026-10-29
 
 ## Current priority: general websites, without a Wikipedia dependency
 
+Bounded indexed discovery now also passes actual owned PostgreSQL checks:10 new
+retrieval cases plus all prior25+8+10+12 reports. A normal production coordinator
+uses the existing prepared vectors,95 HNSW candidates, up to32 indexed title
+postings and the explicit seed, then verifies/re-ranks at most128 binary64 inputs
+into at most64 observations. Durable per-Source queues prioritize urgent work
+while advancing old work; no second model or crawler is started. Partial cohorts
+retain valid existing selections, and a new broader parent can attach to a
+parentless subject while retaining its ID. See
+[retrieval proof and limits](../apps/local-service/portable/canonical-v4/drafts/AUTOMATIC-RETRIEVAL.md).
+Representative recall, multilingual/model-specific precision and real UI latency
+are still unproven. The component remains unregistered and is not running live.
+
+The next shipping bridge is author context, public feeds/search and the complete
+profile18. A new root should retain its existing canonical Source-container
+destination and acquire an immutable logical scope/caption in the same physical
+transaction. Reuse the private runtime prepare/complete primitives behind a new
+execute-only wrapper, preserving the actor gate and receipt-before-Source order.
+Take new metadata fences after canonical domain locks and before completion;
+test the full lock order rather than placing a head lock ahead of old domain
+operations. Exact replay must agree with the originally recorded scope, and an
+old receipt must not authorize retrospective attachment of a new scope.
+
+Keep the writer's most-specific supported scope separate from owner browsing
+breadth. Freeze its ID/meaning when typing starts; additional evidence revisions
+or first-parent attachment alone should not stale a draft or change its target.
+A page-context draft may finish as that page context even if a shared subject
+appears meanwhile. Human roots, AI new-thread publication and replies need the
+same explicit intent rule. Old roots need an honest historical/page-context basis
+instead of being relabelled as if their authors chose a newly discovered topic.
+Author-owned posted captions can support occupied-topic search after Source
+withdrawal; erased Source-derived labels/hashes cannot be identity shortcuts.
+
+Accepted Source context is not proof of an is-a parent. Attach new named scopes
+under broad context unless a more specific branch is justified, and reuse fixed
+node aliases. For example, an article classified as GTA does not make its named
+publisher a subtype of GTA. Current parent containment concerns literal focus
+and evidence subsets, not an automatically learned universal taxonomy.
+
 The provider-independent storage component now passes an actual owned PostgreSQL
 run:12 general subject cases plus original25, metadata8 and Source-binding10.
 It stores names/literal nested scopes, preserves UUIDs across identical-material
@@ -13,13 +51,15 @@ derived evidence while preserving human discussion records. See the
 [component proof and limits](../apps/local-service/portable/canonical-v4/drafts/AUTOMATIC-SUBJECTS.md).
 Its source adapter recomputes the explicit v2 planner; neither app nor crawler
 can supply a publication plan or read private prototypes directly. Source-only
-installation: the complete schema18/profile, bounded background indexed cohort
-retrieval, author-selected context, occupied-topic search/UI, recovery and live
+installation: the complete schema18/profile/startup, author-selected context,
+occupied-topic search/UI, recovery and live
 concurrency/cutover remain required. Current Source-derived metadata withdrawal
 does not recover an old UUID from a forgotten name/hash; human-owned context
-integration must handle retained occupied discussions. Incremental attachment
-of newly discovered broader parents also needs a tested CAS/ancestry policy;
-the current component refuses changes to an existing parent.
+integration must handle retained occupied discussions. First-parent attachment
+is now tested; replacing an existing nonnull parent remains prohibited.
+Identity continuity over a compatible matcher change needs an explicit test and
+integration policy before rollout. Static-label aliases must also avoid creating
+duplicate logical topics for already supported fixed hierarchy nodes.
 
 The owner explicitly requires normal websites, videos, products and novel news.
 The Wikipedia-heavy crawler inventory is not a reason to make exact sitelinks

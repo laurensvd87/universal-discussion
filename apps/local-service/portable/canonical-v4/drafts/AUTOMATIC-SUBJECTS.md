@@ -51,10 +51,15 @@ rediscovery does not recover that old UUID by retaining a forgotten name/hash.
 Later integration with author-owned discussion context is needed to offer
 existing occupied threads without treating erased Source metadata as public.
 
-Existing heads keep their founding label/prototype/parent while adding evidence.
+Existing heads keep their founding label/prototype while adding evidence.
 A small new cohort cannot continually move the center or delete assignments
-from an earlier cohort. Updating labels/centers or reparenting is separate owner
-maintenance; this component does not claim a completed adaptive hierarchy.
+from an earlier cohort. A bounded singleton also retains its existing valid
+selection: a partial cohort cannot disprove it. A previously parentless head may
+acquire a new broader parent with revision CAS and the current child cohort
+contained in that parent's evidence; an existing nonnull parent cannot silently
+change. These additions pass the subsequent
+[actual indexed-discovery component proof](AUTOMATIC-RETRIEVAL.md). Updating
+labels/centers or replacing a parent remains separate owner maintenance.
 All named paths are limited to8 named levels, with the separately bounded static
 ancestor context retained. No broad-root confidence is invented for unknowns.
 
@@ -62,12 +67,13 @@ The candidate port uses indexed exact focus/context scopes, at most128 scopes
 and64 returned heads. It refuses an incomplete cohort. Publication serializes
 overlapping focus scopes, rechecks their complete head snapshot and returns a
 conflict after a concurrent new head; a caller retrieves candidates and replans.
-There is no global catalog fit/scan or global named-topic writer lock. This port
-does not yet implement ANN retrieval or multilingual aliases. Reads are ordinary
+There is no global catalog fit/scan or global named-topic writer lock. The
+subsequent retrieval component supplies bounded hybrid cohorts; multilingual
+aliases are still unresolved. Reads are ordinary
 MVCC SELECTs with no row/advisory write locks or model work.
 
 Remaining production work includes the complete schema18 manifest/roles and
-readiness checks, bounded background cohort scheduling, occupied-topic indexed
+readiness/startup composition, occupied-topic indexed
 search, exact author-selected context and immutable canonical routing, recovery,
 real UI/crawler concurrency and live rollout. The older provider-specific10-case
 Source extension remains separate and does not substitute for this general path.

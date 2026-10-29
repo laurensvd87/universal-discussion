@@ -1,5 +1,36 @@
 # Implementation handoff: local-service discussion MVP
 
+LATEST29Oct indexed retrieval+normal coordinator ACTUALPASS: source9e2259d0/
+catalogfbf83fc5/map3f3e8bae...99cb/2564files/276848863B. Owned run
+ed4e9e2bda85d5000bfa2f58de3b9707515a7aa1e244b26e EXIT0/acceptedTRUE:
+10new retrieval +all original25/metadata8/Source10/general12 PASS. Root all2564
+endpins/exact65reports/2freshDBdrops/ownsmartstop/emptyJob/allhandlesTRUE,
+emergencyFALSE/stderr0. Result01b3e4be...de57/stdoutfd5889d9...ba81.
+Root-only/invented data, NOT representative recall/multiuser/UI/live proof.
+81guardedNode/64Python PASS. New95ANN+32lexical+seed <=128 raw ->64 exactfloat8
+cohort/16lex reserve; HNSW+term access paths and temporary settings restore
+verified. Derived index/discovery queues bounded/fair; app5ms urgency skipsheld
+work while MVCC reads/revisionwrites progress. Normal production coordinator
+publishes through real worker SQL; no model/capture/second crawler. Partialcohort
+keeps existing valid selection; first-parent member-superset+revisionCAS preserves
+childUUID; existing nonnull parent cannot change. Committed Source erasure clears
+all cache/terms/queues. Newcomponent UNREGISTERED/not live18/startup.
+Rootreceipt data/automatic-retrieval-native-root-audit-20261029.json;
+see portable/canonical-v4/drafts/AUTOMATIC-RETRIEVAL.md. Earlier WIP/UNEXECUTED
+notes superseded. Next complete18/profile/readiness/startup +author-selected named
+context/canonical routes +occupied-topic search/UI, recovery/concurrency/cutover.
+Also remaining: representative recall/latency, multilingual/model-leaf precision,
+identity continuity over same-representation model activation, fixed-node alias
+reuse, human-owned occupied topic context after derived Source withdrawal.
+Preserve author intent: most-specific post scope is independent of browsing
+breadth; freeze scope while typing; evidence revisions must not stale drafts;
+new named context cannot silently replace a page-context draft. No forgotten
+Source label/hash as identity recovery shortcut. Full private restore still needs
+original11GiB D admission (last~4.9GB); no waiver or cleanup performed this turn.
+Original5 service starts verified; crawler6384 advancing10049/stderr0;55433 absent.
+GoalACTIVE; previous turn concrete code+actualSQL progress, not completion.
+
+
 LATEST29Oct GENERAL named-subject SQL ACTUALPASS: source8ecb1671/catalog50083bc7,
 mapd397aed7...17923/2554files/276769749B. Owned run55c556577344a46f247baea5eb98867229ca16b7aae807db EXIT0/acceptedTRUE:
 12general +original25 +metadata8 +Source-binding10 required/pass. Root all2554

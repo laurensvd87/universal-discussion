@@ -52,12 +52,23 @@ Source hashes, preservation of selection, capacity, conflicts and closing during
 publication. Ten new required owned-SQL assertions exercise actual indexing,
 access paths, current Source fences, best-effort urgency, the production
 coordinator, first-parent attachment, role boundaries and committed erasure.
-At initial source checkpoint these SQL assertions are UNEXECUTED. Old12-general
-plus25+8+10 proofs remain historical component evidence. Refresh/authenticate the
-maintained catalogue and record a separate owned-run decision before execution.
+29 October actual proof now passes all10 retrieval cases and the original
+25+8+10+12 ledgers. Source9e2259d0/catalogfbf83fc5, catalogue SHA-256
+`3f3e8baeddeb196ce71fea9e9436440cf863256a829cafd63b881f088bf399cb`,
+2564 files/276848863 bytes. Owned run
+`run-ed4e9e2bda85d5000bfa2f58de3b9707515a7aa1e244b26e` exits0/accepted.
+Result SHA-256 `01b3e4bef312b2b9180fb6822c4a006e55951edc34db4704fdd2ffc3f209de57`;
+stdout `fd5889d945d6474c1af3d75697f3f1d45671c2692f84a15c4d6c3487aa67ba81`;
+stderr0. Root checks all2564 end pins and all65 required reports, both fresh
+database removals, exact owned smart-stop, empty Job/all handles closed and no
+emergency. Eighty-one guarded pure Node tests and64 Python controller tests pass.
+The SQL run uses invented material and the normal production coordinator factory
+on real worker/app/observer sessions. It is Root-only component evidence, not
+representative retrieval recall, many-user capacity, UI latency or live rollout.
 
 Still required: representative recall/latency tests, real multilingual aliases,
 complete hierarchy18/profile/readiness, actual worker/API startup composition,
 author-selected named context, occupied-topic indexed search/UI, recovery and
-live concurrency/cutover. This module does not turn raw HNSW neighbours into
+live concurrency/cutover, including identity continuity over a same-representation
+matcher change. This module does not turn raw HNSW neighbours into
 published topics by itself or recover an erased identity from a forgotten name.
