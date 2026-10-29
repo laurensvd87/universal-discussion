@@ -26,8 +26,9 @@ function titlePatterns(title){
    // Collect all occurrences; focal/named evidence is checked for the whole
    // supported phrase, so a mid-title occurrence can corroborate a focal one.
    const named=span.some(w=>!STOP.has(w.key)&&/\p{L}/u.test(w.raw)&&(w.raw!==w.raw.toLowerCase()||w.raw.toUpperCase()===w.raw.toLowerCase()));
-   const key=span.map(w=>w.key).join('\u001f');if(!output.has(key))output.set(key,{key,tokens:span.map(w=>w.key),label,start:first.start,end:last.end,named,focal:first.start===0});
-   else{const old=output.get(key);old.named||=named;old.focal||=first.start===0;}
+   const cleanStart=first.raw!==first.raw.toLowerCase()||first.raw.toUpperCase()===first.raw.toLowerCase();
+   const key=span.map(w=>w.key).join('\u001f');if(!output.has(key))output.set(key,{key,tokens:span.map(w=>w.key),label,start:first.start,end:last.end,named,cleanStart,focal:first.start===0});
+   else{const old=output.get(key);old.named||=named;old.cleanStart||=cleanStart;old.focal||=first.start===0;}
   }
  }
  return output;
@@ -56,23 +57,36 @@ export function proposeFocusedSubjects(rawJson){
  const patterns=new Map();let capacity=null;
  for(let i=0;i<n;i++){
   const found=titlePatterns(docs[i].title);if(found===null){capacity='title-work-bound';break;}
-  for(const [phraseKey,witness]of found){
-   // Known disjoint roots cannot be joined by a repeated ambiguous word.
-   // Unknown-root evidence has its own bucket and cannot bridge known senses.
-   const key=JSON.stringify([docs[i].acceptedPath[0]??null,phraseKey]);
+  for(const [key,witness]of found){
    patternsSeen++;if(!patterns.has(key)){if(patterns.size>=MAX_PATTERNS){capacity='pattern-bound';break;}patterns.set(key,{...witness,members:[],witnesses:new Map()});}
    patterns.get(key).members.push(i);
    patterns.get(key).witnesses.set(i,witness);
-   patterns.get(key).named||=witness.named;patterns.get(key).focal||=witness.focal;
+   patterns.get(key).named||=witness.named;patterns.get(key).cleanStart||=witness.cleanStart;patterns.get(key).focal||=witness.focal;
   }if(capacity)break;
  }
  const work={observations:n,pairs,coordinateProducts:products,matrixBytes:matrix.byteLength,patternOccurrences:patternsSeen,distinctPatterns:patterns.size,candidatePairChecks:0,duplicateRelations};
  const base={schema:'automatic-focus-subjects/v1',representationHash:a.representationHash,matcherHash:a.matcherHash,minimumSimilarity:a.minimumSimilarity,kind:'subject',work,
   assignmentAuthority:false,registryChanged:false,eventIdentityAsserted:false,semanticQualityMeasured:false};
  if(capacity)return frozen({...base,status:'capacity',reason:capacity,proposals:[],selections:[]});
- const closed=new Map();let incoherent=0,insufficient=0;
+ const scoped=[];
  for(const p of patterns.values()){
-  if(!p.named||p.tokens.length===1&&!p.focal){insufficient++;continue;}
+  const roots=new Set(p.members.map(i=>docs[i].acceptedPath[0]).filter(id=>id!==undefined));
+  // An abstention is not a conflicting sense. Allow matching unknown evidence
+  // alongside one known root, without inventing an accepted path for it.
+  // With two known conflicting senses, unknowns cannot bridge either branch.
+  const buckets=new Map();
+  for(const i of p.members){const root=roots.size<=1?[...roots][0]??null:docs[i].acceptedPath[0]??null;if(!buckets.has(root))buckets.set(root,[]);buckets.get(root).push(i);}
+  for(const [contextRootId,members]of buckets){
+   if(scoped.length>=MAX_PATTERNS)return frozen({...base,status:'capacity',reason:'context-work-bound',proposals:[],selections:[]});
+   const witnesses=members.map(i=>p.witnesses.get(i)),labelWitness=witnesses.find(w=>w.cleanStart)??witnesses[0];
+   scoped.push({...p,...labelWitness,contextRootId,members,
+    named:witnesses.some(w=>w.named),cleanStart:witnesses.some(w=>w.cleanStart),focal:witnesses.some(w=>w.focal),
+    labelSourceIndex:members[witnesses.indexOf(labelWitness)]});
+  }
+ }
+ const closed=new Map();let incoherent=0,insufficient=0;
+ for(const p of scoped){
+  if(!p.named||!p.cleanStart||p.tokens.length===1&&!p.focal){insufficient++;continue;}
   const independent=new Map();for(const i of p.members)if(!independent.has(find(i)))independent.set(find(i),i);
   const publishers=new Set([...independent.values()].map(i=>docs[i].publisherKey));
   if(independent.size<2||publishers.size<2){insufficient++;continue;}
@@ -87,9 +101,9 @@ export function proposeFocusedSubjects(rawJson){
  const candidates=[...closed.values()].sort((x,y)=>x.tokens.length-y.tokens.length||order(x.key,y.key));
  if(candidates.length>MAX_PROPOSALS)return frozen({...base,status:'capacity',reason:'proposal-work-bound',proposals:[],selections:[]});
  const proposals=candidates.map(p=>({
-  proposalKey:'subject-proposal-'+hash([a.representationHash,a.matcherHash,docs[p.members[0]].acceptedPath[0]??null,p.key,p.members.map(i=>[docs[i].sourceId,docs[i].inputHash])]),
+  proposalKey:'subject-proposal-'+hash([a.representationHash,a.matcherHash,p.contextRootId,p.key,p.members.map(i=>[docs[i].sourceId,docs[i].inputHash])]),
   kind:'subject',label:p.label,labelBasis:'shared-literal-headline-focus',focusTokens:p.tokens,
-  labelWitness:{sourceId:docs[p.members[0]].sourceId,inputHash:docs[p.members[0]].inputHash,titleNormalization:'NFKC',start:p.start,end:p.end},
+  labelWitness:{sourceId:docs[p.labelSourceIndex].sourceId,inputHash:docs[p.labelSourceIndex].inputHash,titleNormalization:'NFKC',start:p.start,end:p.end},
   members:p.members.map(i=>({sourceId:docs[i].sourceId,inputHash:docs[i].inputHash,focusStart:p.witnesses.get(i).start,focusEnd:p.witnesses.get(i).end})),publishers:p.publishers,distinctInputs:p.distinctInputs,minimumPairSimilarity:p.minimumPairSimilarity,
   parentProposalKey:null,parentBasis:null,acceptedAncestorPath:docs[p.members[0]].acceptedPath.filter((id,depth)=>p.members.every(i=>docs[i].acceptedPath[depth]===id&&docs[i].acceptedPath.slice(0,depth).every((v,k)=>v===docs[p.members[0]].acceptedPath[k]))),
   status:'supported-subject-proposal',eventIdentityAsserted:false,

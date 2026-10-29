@@ -73,3 +73,14 @@ test('maximum supported cohort reports bounded work and keeps every source selec
 test('normalization work overflow leaves the whole cohort page-only, without partial named proposals',()=>{
  const r=run([doc('a','\uFDFA'.repeat(40)),doc('b','Cedar Grove festival')]);assert.equal(r.status,'capacity');assert.equal(r.reason,'title-work-bound');assert.deepEqual(r.proposals,[]);assert.deepEqual(r.selections,[]);
 });
+test('unknown roots can corroborate one unopposed named subject without inventing a classifier path',()=>{
+ const docs=[doc('a','Northern Reef survey 2041 starts'),doc('b','Northern Reef survey 2042 starts'),doc('c','Northern Reef survey 2042 results')];
+ docs[1].acceptedPath=['nature'];docs[2].acceptedPath=['nature'];
+ const r=run(docs),parent=r.proposals.find(p=>p.label==='Northern Reef survey'),child=r.proposals.find(p=>p.label==='Northern Reef survey 2042');
+ assert.ok(parent&&child);assert.equal(parent.members.length,3);assert.equal(child.parentProposalKey,parent.proposalKey);
+ assert.deepEqual(parent.acceptedAncestorPath,[]);assert.deepEqual(child.acceptedAncestorPath,['nature']);
+});
+test('lowercase reporting-verb prefixes do not become the shared subject label',()=>{
+ const r=run([doc('a','Experts awarded 2041 Copper Crown'),doc('b','Researchers awarded 2041 Copper Crown')]);
+ assert.deepEqual(label(r),['2041 copper crown']);
+});
