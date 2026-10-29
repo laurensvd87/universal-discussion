@@ -48,10 +48,25 @@ search identities is still required; this component does not replace that work
 with a page-dependent search or hide saved conversations behind the default cut.
 
 One additional guarded repository test checks explicit opt-in and exact scope
-forwarding. Ten mandatory new native cases check owner defaults/rules, current
+forwarding. A guarded causal test compiles the actual invented numeric matcher
+and proves that the general-web fixture coordinates intentionally abstain from
+the fixed taxonomy. Ten mandatory new native cases check owner defaults/rules, current
 Source membership, unchanged numeric material, canonical scope preservation,
 invalid/CAS refusals, SQL roles, a held policy write with normal posting, actual
 HTTP context and continued specific search, plus real Source-erasure behavior.
+The first owned run passes three new owner cases then fails the fourth at an
+assertion; the exact assertion detail was not retained. Root authenticates all2622
+pins and normal owned smart-stop/empty Job/closed handles; the created scratch
+database drops, stderr is empty and emergency false. Remaining reports and the
+second database are not reached. Source review finds an invalid fixture assumption
+that a generic learned branch already has a fixed taxonomy ancestor. The real
+numeric matcher causally reproduces the empty fixed path for these coordinates.
+The corrected case proves that an unsupported fixed rule has no effect and
+separately tests positive inheritance with controlled owner-only hierarchy metadata
+inside a rollback. That control is not a classification/issuer/posting proof.
+Production SQL/repository code, assertions for both rule directions and all limits
+are retained. The consumed first source/catalog/output remain immutable; corrected
+execution needs a new reviewed catalog and separate decision.
 The native fixture uses invented Source titles/coordinates and no genuine browser
 or provider. Updated SQL execution is pending. Complete18 composition, unified
 search, migration/recovery and representative real quality/UI/latency/load tests

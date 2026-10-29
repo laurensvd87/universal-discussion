@@ -46,7 +46,21 @@ export async function runNamedOwnerGroupingNativeAssertions(scope){
  });
  await check(11,async()=>{
   await set(1,[{nodeId:parentRoute,maxDepth:1},{nodeId:leafRoute,maxDepth:2}]);assert.equal((await editor()).scope.id,leaf.id,'deepest explicit topic rule wins');
-  assert(head.ancestor_path.length>0);await set(1,[{nodeId:head.ancestor_path[0],maxDepth:2}]);assert.equal((await editor()).scope.id,leaf.id,'existing fixed subtree default also applies to learned branches');
+  // These general-web invented coordinates intentionally abstain in the strict
+  // fixed classifier. Do not manufacture a fixed category for this branch.
+  assert.deepEqual(head.ancestor_path,[]);await set(1,[{nodeId:'games',maxDepth:2}]);assert.equal((await editor()).scope.id,parent,'an unsupported fixed subtree rule must not affect this learned branch');
+  // Separate owner-only metadata control exercises positive inheritance. It is
+  // not an issued classification, Source assignment or posting-authority test.
+  const marker=Error('Rollback controlled owner metadata');let rolledBack=false;
+  try{await owner.transaction(async tx=>{
+   const a='c0000000-0000-4000-8000-000000000001',b='c0000000-0000-4000-8000-000000000002';
+   await tx.query('INSERT INTO canonical_v4.named_subject_ids VALUES($1,1),($2,1)',[a,b]);
+   for(const [id,from,up]of [[a,parent,null],[b,leaf.id,a]])await tx.query(`INSERT INTO canonical_v4.named_subject_heads
+    SELECT $1,1,generation,policy_hash,matcher_hash,representation_hash,focus_key,'games',label,label_source_id,$3::uuid,ARRAY['games']::text[],prototype_values
+    FROM canonical_v4.named_subject_heads WHERE subject_id=$2`,[id,from,up]);
+   assert.equal((await one(tx,'SELECT canonical_v4.named_grouped_subject($1,$2) id',[generation,b])).id,b,'a declared fixed subtree default applies to the controlled learned metadata path');
+   throw marker;
+  });}catch(e){if(e!==marker)throw e;rolledBack=true;}assert(rolledBack);
  });
  await check(12,async()=>{
   const p=await policy.ownerPolicy();for(const overrides of [[{nodeId:leafRoute,maxDepth:1}],[{nodeId:leafRoute,maxDepth:2},{nodeId:leafRoute,maxDepth:2}],
