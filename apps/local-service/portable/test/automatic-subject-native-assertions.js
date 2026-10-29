@@ -19,8 +19,8 @@ async function within(promise,ms=1200){let timer;try{return await Promise.race([
 async function waiting(observer,pid){const end=performance.now()+1200;while(performance.now()<end){
  if((await one(observer,"SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE pid=$1 AND state='active' AND wait_event_type='Lock') waiting",[pid])).waiting)return;
  await new Promise(resolve=>setTimeout(resolve,10));}assert.fail('existing owned connection did not reach its expected SQL lock');}
-function command(input){const p=plan(JSON.stringify(input));return {generation:p.generation,policyHash:p.policyHash,matcherHash:p.matcherHash,representationHash:p.representationHash,
- updates:p.updates,selections:p.selections,witnesses:p.commitWitnesses,candidates:input.candidates.map(({subjectId,revision,focusKey,contextRootId})=>({subjectId,revision,focusKey,contextRootId}))};}
+export function automaticSubjectNativeCommand(input){const p=plan(JSON.stringify(input));return structuredClone({generation:p.generation,policyHash:p.policyHash,matcherHash:p.matcherHash,representationHash:p.representationHash,
+ updates:p.updates,selections:p.selections,witnesses:p.commitWitnesses,candidates:input.candidates.map(({subjectId,revision,focusKey,contextRootId})=>({subjectId,revision,focusKey,contextRootId}))});}
 
 export async function runAutomaticSubjectNativeAssertions({owner,worker,app,observer,generation,matcher,cases}){
  const identity=describeRootedHierarchyMatcher(matcher),matcherHash=sha(JSON.stringify(identity)),
@@ -149,7 +149,7 @@ export async function runAutomaticSubjectNativeAssertions({owner,worker,app,obse
   // Withdraw every derived head while retaining prepared material and identities.
   for(const id of ids.slice(1))await owner.query('UPDATE canonical_v4.runtime_source_stamps SET postable=false WHERE source_id=$1',[id]);
   for(const id of ids.slice(1))await owner.query('UPDATE canonical_v4.runtime_source_stamps SET postable=true WHERE source_id=$1',[id]);await prepare();
-  const a=await input(ids.slice(1));const c=command(a);assert(c.updates.length>=2);c.updates[0].parentId=c.updates[1].subjectId;c.updates[1].parentId=c.updates[0].subjectId;
+  const a=await input(ids.slice(1));const c=automaticSubjectNativeCommand(a);assert(c.updates.length>=2);c.updates[0].parentId=c.updates[1].subjectId;c.updates[1].parentId=c.updates[0].subjectId;
   const before=await state();await assert.rejects(worker.query('SELECT canonical_v4.named_publish($1::jsonb)',[JSON.stringify(c)]),code('P1283'));assert.deepEqual(await state(),before);
  });
  await test(10,async()=>{
