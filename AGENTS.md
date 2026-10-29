@@ -8,6 +8,50 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct current goalturn PROGRESS: automatic dashboard18 Source+actualSQL+
+realbrowser metadata UI ACCEPTED, NOT LIVE. Previous goalturnPROGRESS actual190
+migration/runtime. Root-only. Sourceba41fec8 adds15th aggregate dashboard component
+to unactivated018; old14-component018 is exact372413B prefix, all1..17 untouched.
+New018378431B SHA7ac32a90c8f904bf8f970704ebdf78cae88662e00ca0033d447a060c2ec0e725.
+Same protected Source/version/operation/receipt/stamp/postable metadata, no vectors/
+Source payload/IDs/URLs/body returned. Leaf selections count once, complete current
+named paths<=8 roll up ancestors; exact totals and max200rows/explicittruncation.
+Onlyappaggregateexecute; worker/crawler/private tables/trigger remain denied.
+Selection changes append<=2 existing scope events, no globalwriter counter/headFK/
+childfanout. New exact18 reader uses unified revision and same read-only RR; fixed
+hierarchy labeled ground topics, separate automatic direct/subtree count section.
+Watcher explicit --automatic-topics only; default17/livewatcher unchanged.
+Guarded738PASS +8pure dashboard +24CLI/refresh +78purecontrollerPASS. RealChrome
+9synthetic-metadata cases PASS/narrow390px incl refreshed independent counts,
+invalid refresh preserves lastgood, absent18 counts refuse, literal caption/XSS.
+Firstactualbrowser failure found17-only dispatch, fixed exact17/18 +unknownschema
+refusal; allold5+new4PASS, no assertionwaiver. Isolated profiles exactpaths verified
+and retired percase; no existing browser/profile altered.
+Catalog45f39474/mapc208917256c2dd1a367ad87f4c305a77dc3eedc118c25b18c7d954a38ad8efa4
+ONE run3b9a8a97b1e30d444dcbc1d6ae27ca82349f4535a18e1c3d ACCEPTED190/allold
+assertions+joinedB realappcounter checks/selection-only refresh/no canonicalwrite/
+rollback1000head max200 response/exacttotal/erasure/role refusal. Native fixture
+numeric4Source +layoutcontrol, NOTclassifier quality/largeSource population/load.
+Root audit data/automatic18-dashboard-native-root-audit-20261029.json SHA
+c17aa1eac2297eadfd8fad02deccd748cdc48d9ce8498a1802dd7951f14c0a70; all2650pins/
+2DBdrops/exactsmartstop/emptyJob/allhandles/stderr0/noemergency. Closed result/
+stdout hashes equal prior190 (8f2909e2...9f47/c3807072...67d); new source/catalog/
+invocation independently authenticated, no saved-run adoption. Versions retained.
+Read-only storage metadata inventory97040files/errors0/no reparse, no contents or
+mutation: data/canonical-migration-backups4.712GB stored; native-runs1.570GBstored
+(3.165GBlogical); experiments/embeddings1.464GB; topic-encoder431MB. Allocation-per-
+path may count hardlinks twice. No extra compression/deletion/relocation thisturn.
+OriginalPG18688/worker11880/API38860/dashboard28420starts unchanged; crawler26784
+same20:23:49Z advances1725/stderr0. 22:57:23Z physicalFree12066078720/commitFree
+9453105152/C6721146880/D4589989888; normalfloorsPASS, fullrestore11GiB D UNMET.
+Owner storage question pending: free~8GB D or provide anotherdrive. Continue useful
+independent work; not a goalblock while work available. GoalACTIVE: mixed fixed/
+named breadcrumbs, legacy-client/capability compatibility and extension activation,
+protected full-data18 recovery, representative realE5, genuine app-browser/provider/
+load/latency incl FIRST-EVER uncaptured URL composer vs existing unprepared Source,
+verified live cutover OPEN. No service/HBA/host action or live activation.
+
+
 LATEST29Oct current goalturn PROGRESS: actual190 full schema18 migration ACCEPTED,
 then ordinary API/worker integration SOURCE+actual190 ACCEPTED; NOT LIVE.
 Previous goalturnPROGRESS (registered18 source/two audited failures). Root-only.

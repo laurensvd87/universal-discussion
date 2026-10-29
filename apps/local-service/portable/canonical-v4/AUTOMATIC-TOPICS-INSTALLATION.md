@@ -123,5 +123,15 @@ strict17/18 branch fixes it and refuses unknown semantic snapshot profiles. Eigh
 pure dashboard reader tests and24 CLI/refresh tests pass. The native fixture now
 adds real app-role Source counts, selection-only revision change, a rolled-back
 1000-head response-bound control and Source erasure to its existing joined cases.
-That new15-component SQL proof is pending; these fixtures do not prove real E5,
-production load, real-data recovery or live readiness.
+The new15-component SQL proof completed all190 reports on29 October. Source
+`ba41fec8` and catalog commit `45f39474` produced execution catalog
+`c208917256c2dd1a367ad87f4c305a77dc3eedc118c25b18c7d954a38ad8efa4`.
+Run `run-3b9a8a97b1e30d444dcbc1d6ae27ca82349f4535a18e1c3d` passed those additional
+joined checks, all predecessor assertions, both database drops and complete normal
+shutdown. Root receipt `data/automatic18-dashboard-native-root-audit-20261029.json`
+has SHA256 `c17aa1eac2297eadfd8fad02deccd748cdc48d9ce8498a1802dd7951f14c0a70`;
+all2650 consumed pins were authenticated unchanged. The closed outcome wire has
+the same result/stdout hashes as the preceding190 runs; this separate source/map/
+invocation audit identifies execution of the additional checks. These fixtures do
+not prove real E5, production load, real-data recovery or live readiness. The sealed
+live database/API/worker/crawler/dashboard remain on17 until the reviewed cutover.
