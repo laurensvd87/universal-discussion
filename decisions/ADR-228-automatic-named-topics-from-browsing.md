@@ -4,6 +4,23 @@ Date:2026-10-29
 
 ## Current priority: general websites, without a Wikipedia dependency
 
+The provider-independent storage component now passes an actual owned PostgreSQL
+run:12 general subject cases plus original25, metadata8 and Source-binding10.
+It stores names/literal nested scopes, preserves UUIDs across identical-material
+renewal, checks full candidate snapshots and Source fences atomically, permits
+MVCC readers/ordinary revision writes during publication and withdraws erased
+derived evidence while preserving human discussion records. See the
+[component proof and limits](../apps/local-service/portable/canonical-v4/drafts/AUTOMATIC-SUBJECTS.md).
+Its source adapter recomputes the explicit v2 planner; neither app nor crawler
+can supply a publication plan or read private prototypes directly. Source-only
+installation: the complete schema18/profile, bounded background indexed cohort
+retrieval, author-selected context, occupied-topic search/UI, recovery and live
+concurrency/cutover remain required. Current Source-derived metadata withdrawal
+does not recover an old UUID from a forgotten name/hash; human-owned context
+integration must handle retained occupied discussions. Incremental attachment
+of newly discovered broader parents also needs a tested CAS/ancestry policy;
+the current component refuses changes to an existing parent.
+
 The owner explicitly requires normal websites, videos, products and novel news.
 The Wikipedia-heavy crawler inventory is not a reason to make exact sitelinks
 the core assignment mechanism. They remain optional public enrichment.
@@ -27,11 +44,10 @@ withdraw erased Source-derived names/prototypes/membership, and preserve human
 posts/routes and the exact author-selected context. Never make new names require
 an existing Wikipedia record or an LLM call on a reader's critical path.
 
-The prior provider registry's actual8 metadata plus25 semantic checks remain
-historical component evidence. A later10-case Source-binding/race extension is
-SOURCE-only and has not run in PostgreSQL; the maintained native source catalog
-is stale after those changes. Do not invoke it or report those10 as executed
-before rebuilding/reviewing the closure and making a separate owned-run decision.
+The earlier provider registry's8 metadata checks and the subsequent10-case
+Source-binding/race extension are both included in the new accepted run. Its
+maintained catalog is now authenticated as50083bc7. This supersedes the earlier
+SOURCE-only/stale-catalog status; all prior results remain historical evidence.
 
 General extraction repairs are also source-only; no live service was cut over.
 

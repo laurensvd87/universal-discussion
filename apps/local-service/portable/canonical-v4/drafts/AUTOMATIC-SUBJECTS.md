@@ -6,6 +6,25 @@ Wikipedia registry. The maintained owned native fixture requires12 new cases
 separately from the original25 semantic,8 metadata and10 Source-binding cases.
 Adding those assertions is source work; only a completed actual run proves SQL.
 
+29 October actual proof now passes all12 general cases, original25 semantic,
+8 metadata and10 provider Source-binding cases. Source8ecb1671/catalog50083bc7,
+catalog SHA-256 `d397aed767cce0584059898837d490370858e012045e58c6bbd74b2f0b617923`,
+2554 files/276769749 bytes. Owned run
+`run-55c556577344a46f247baea5eb98867229ca16b7aae807db` exits0 and is accepted.
+Root audit checks all2554 end pins and exact case ledgers, both fresh database
+removals, owned smart-stop, empty Job/all handles closed and no emergency.
+Result SHA-256 `3e1e08c802b22ee53d3b1eb3944aed9e90221c967836c9691974fea9f183684e`;
+child stdout `43358704ba5da6aa9ab9503009a28eb169a02eb149d93f59d52784e0a4d0e06d`;
+stderr0. This is Root-only synthetic SQL evidence, not real matching quality,
+many-user capacity, recovery, a registered migration or a live installation.
+
+Two earlier failed runs and their catalogs remain retained. The first stops
+before case0 because a full derived input definition was passed to a compiler
+requiring three fields. The second passes nine general cases, then attempts to
+mutate a frozen plan in its deliberately malformed-cycle fixture. Three pure
+causal checks reproduce/close those setup errors. SQL, assertions and original
+resource limits were not relaxed. The corrected run requires all12 cases.
+
 The trusted worker runs the explicit fingerprinted v2 subject policy from
 prepared Sources. The repository accepts that planner's original input and
 recomputes proposals, rather than trusting a caller-provided publication plan.

@@ -1,5 +1,32 @@
 # Implementation handoff: local-service discussion MVP
 
+LATEST29Oct GENERAL named-subject SQL ACTUALPASS: source8ecb1671/catalog50083bc7,
+mapd397aed7...17923/2554files/276769749B. Owned run55c556577344a46f247baea5eb98867229ca16b7aae807db EXIT0/acceptedTRUE:
+12general +original25 +metadata8 +Source-binding10 required/pass. Root all2554
+endpins/exactledgers/2freshDBdrops/ownsmartstop/emptyJob/allhandles TRUE,
+emergencyFALSE/stderr0. Result3e1e08c8...3684e/stdout43358704...e06d.
+Root-only/synthetic vectors, NOT actual matching quality/multiuser/recovery/live.
+General registry is provider-independent; stableUUID/evidenceCAS/currentSource
+fences/NFKC UTF16 witness/parentforest/indexedexactscopes work. Same-material
+renewals refresh fences without new topics. Real changes/erase withdraw heads
+and descendants; human posts/routes +opaqueIDs survive. Existing heads keep
+founding center/label and prior assignments. App/crawler cannot publish or read
+prototypes. Unregistered draft/API adapter, NOT complete18 or live integration.
+Two failed runs audited/preserved: e987 setup full-definition-vs3field compiler;
+b869 9generalPASS then frozen-plan mutation in cycle fixture. Source causal3PASS;
+corrected60Node/63PythonPASS, SQL/assertions/caps unchanged. Read Root receipt
+apps/local-service/data/automatic-subject-native-root-audit-20261029.json and
+portable/canonical-v4/drafts/AUTOMATIC-SUBJECTS.md. Earlier10UNEXECUTED/stalecatalog
+notes superseded. Next bounded indexed background cohorts; author-selected named
+context/canonical routes; occupied-topic search/UI; complete18/profile/readiness,
+recovery/concurrency/livecutover; prospective multilingual/model-leaf validation.
+Also pending: automatic attachment of new broader parents (current CAS refuses
+existing parent change), recovery of occupied topics after derived withdrawal
+without retaining forgotten labels/hashes. No Wikipedia dependency/LLM perread.
+CIM original5starts preserved; crawler6384 advancing9374; isolated55433 absent.
+GoalACTIVE; previous turn meaningful source+actualSQL progress, not completion.
+
+
 29Oct GENERAL-WEB priority: Wikipedia is optional enrichment, never the core
 assignment dependency. Real owner recipe/video yields Kapsalon (paired cosine
 0.9184236); opaque UUID reused in planning only, no SQL persistence. Closed12
