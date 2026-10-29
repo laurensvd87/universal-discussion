@@ -8,6 +8,48 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST29Oct publicDISCUSSION identity-recovery DEV measured, NOTactivated.
+Prior goalturnPROGRESS: captured-page docs/catalog committed/pushed63e069d1;
+currentheldnativecatalog7842a06e...ca105 unchanged, noSQL/program/runtime delta.
+NEW experiment public-topic-recovery-v1 sourcead829974; arbitrary128MiB model
+startup FAILED V8heap, PID42944 terminal/emptyoutput/no scores; exactallocation
+siteUNRETAINED/nohostOOMclaim. Retaineddata/...startup-failure-root-audit.
+Readonlyverified originalcrawler6384+worker11880 BOTH explicit512MiB; separate
+reviewedeca0b635/ONE existingpackaged512 modelcomparison EXIT0/encoderClosedTRUE/
+all29source+asset+inputpinsRootreauthenticated. ThirteenINVENTEDpublicdiscussions,
+26actualE5body/titleinputs, elevenHISTORICALnonWikipediawebvectors/sixqueries;
+NOnewcapture/actualuserpost/provider/SQL/live. 2357.1373ms forwholeencode+compare,
+maxRss1109916KiB standalone NOTperpage/incrementalproductionRAM. Result7cab3449
+...876b/audit4eb1ba6e...2084. Label-only4correct/1ambiguous/1unresolved;
+publicsemantic1correct/3ambiguous/2unresolved; HYBRID4correct/2unresolved/0wrong.
+DEVnotrepresentative. Kapsalonrecipe0.8752<unchanged.88; GermanRoterPanda public
+prototypeswrongtopGiant/neartie ->REFUSE. SteamDeck nearestOLED despitemixed
+LCD/OLEDquery ->marginREFUSES. Primarygeneralpage->Kapsalon STILLworks separately.
+Purecounterexample fixed below-floorcompetitor margin(policyv2) +Unicodeprefix/
+CJKwords;11guarded64MiBPASS. Retainedmodel-free re-scorea11941c1 unchanged6results.
+Final007389b7 adds2DERIVEDmissing-targetlibrarysubsets: withonlyhairdresser
+Kapsalon, name-onlyWRONG/hybridREFUSES; absentSteamDeckfamily allREFUSE. No fresh
+validation. Finalresult0b4aff24...1552/14534B/30pinsRootreauthenticated; audit89031b65
+...b05. Mean6query scoringmedian.6741ms/p95.7824; synthetic64x64median4.9096ms/
+p955.5414 excludesinference/SQL/HTTP/UI, repeatedvectorsNOTnewmaterials/cases.
+Allconsumedoutputs+sourcecommitsretained, root-onlyreview. Resultsunderexperiment.
+NEXT implementbounded actualPUBLIC-root prototype/index+revisionCAS from expressly
+postednamedcaption +CURRENTrevisionbody (revisions table, NOToriginalpayloadbody).
+No forgottenSourceprototype/hiddenpath/originURL/digest retention. Rootbodyedit/
+withdrawal invalidates; Sourceerase must preserveindependentpublictext; unchanged
+publicdigest mayrefreshrootversion withoutreencoding. Worker alreadyexposes serial
+sharedencoder viaembedCapturedBody; useit, no extra modelprocess. Indexedbounded
+candidatelookup then SOURCE/currentpublicroot/identity/revision CAS inpublication
+beforeoccupiedIDreuse; equalnamesalone neverrecover. Static/dynamic unification,
+ownerdepth/foregroundcontext/full18/profile/recovery/realbrowser/provider/quality/
+latency/live allOPEN. GoalACTIVE; thisturnsubstantialSOURCE+actualE5/comparison/
+counterexamplefixevidence. Crawler6384 advancing13099/stderr0; alloriginal5PIDs+
+startsunchanged.17:02Z physicalfree12869632000/commit9969094656/C7248359424/
+D5234929664B. Private11GiB DfloorUNMET/no waiver; freshchecksmandatory. Readonly
+relocatedcodexsessions1307files2674340621B/no compression, older2days2091209056B;
+NOcompression/deletion/relocation/hostaction thisturn. NativeSQL110 stilllastproof.
+
+
 LATEST29Oct capturedPAGE->laterTopic ACTUALPASS. Sourcedc6f810a/executionmap
 5e519701...0866e/2599files277770107B; runa9aef2af...6ebbd625 EXIT0/all110reports
 PASS(original100+10page). Rootall2599endpins/strictNode+Pythoncompletion/2DBdrops/
