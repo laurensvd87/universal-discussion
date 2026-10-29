@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {extendChildCalibration} from '../harness/hierarchy-child-calibration-extension.js';
+import {extendChildCalibration,extendReviewedChildDevelopment} from '../harness/hierarchy-child-calibration-extension.js';
 const vector=[1,...Array(383).fill(0)];
 // Use the installed fixed representation definition, without a model or state.
 import {readFileSync} from 'node:fs';
@@ -18,4 +18,10 @@ test('split leakage, cross-observation swaps, duplicate groups and malformed vec
 test('an unavailable declared case stays reported and cannot turn into a negative observation',()=>{
  const f=fixture();f.features[0]={id:'cal',url:f.probes[0].url,split:'calibration',status:'unavailable',reason:'robots-denied'};
  const out=extendChildCalibration(f);assert.equal(out.rows.length,1);assert.deepEqual(out.extensionUnavailable,[{id:'cal',reason:'robots-denied'}]);
+});
+test('explicit new development TRAIN stays TRAIN, while a feature split swap or any TEST row refuses',()=>{
+ const f=fixture();f.probes[0].split='training';f.features[0].split='training';
+ assert.equal(extendReviewedChildDevelopment(f).rows[1].split,'training');assert.throws(()=>extendChildCalibration(f));
+ f.features[0].split='calibration';assert.throws(()=>extendReviewedChildDevelopment(f));
+ f.probes[0].split='test';f.features[0].split='test';assert.throws(()=>extendReviewedChildDevelopment(f));
 });

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {createHierarchyPublicCapture,createHierarchyChildTrainCalCapture,createHierarchyChildDiagnosisCapture,createHierarchyChildCalibrationRepairCapture,createHierarchyChildEvaluationCapture} from '../harness/hierarchy-public-capture.js';
+import {createHierarchyPublicCapture,createHierarchyChildTrainCalCapture,createHierarchyChildDiagnosisCapture,createHierarchyChildCalibrationRepairCapture,createHierarchyChildEvaluationCapture,createHierarchyChildDiversityCapture} from '../harness/hierarchy-public-capture.js';
 import {readFileSync} from 'node:fs';
 import {PUBLIC_HIERARCHY_PROBES as probes} from '../harness/hierarchy-public-probes.js';
 import {RECIPE_CAL_PROBES,RECIPE_TEST_PROBES} from '../harness/hierarchy-recipe-corpus.js';
@@ -27,6 +27,21 @@ function fixture({robots='',tdm=null,page=()=>html(),onRequest}={}){
 
 const childPlan=JSON.parse(readFileSync(new URL('../harness/hierarchy-child-corpus.json',import.meta.url),'utf8'));
 const childRows=childPlan.freshCandidates.filter(r=>r.split!=='test');
+const diversityPlan=JSON.parse(readFileSync(new URL('../harness/hierarchy-child-diversity-corpus.json',import.meta.url),'utf8'));
+
+test('diversity collectors enforce the frozen development/TEST boundary and exact publisher policies',async()=>{
+ for(const phase of ['development','test']){
+  const f=fixture(),capture=createHierarchyChildDiversityCapture(phase,f.options),probes=diversityPlan[phase];
+  for(const p of diversityPlan[phase==='test'?'development':'test'])await assert.rejects(capture.capture(p.id));
+  for(const p of childPlan.freshCandidates)await assert.rejects(capture.capture(p.id));
+  for(const p of probes){const r=await capture.capture(p.id);assert.equal(r.status,'available');assert.equal(r.url,p.url);}
+  const origins=new Set(probes.map(p=>new URL(p.url).origin));assert.equal(f.calls.length,probes.length+2*origins.size);assert.ok(f.calls.length<=34);
+  assert.deepEqual(f.calls.filter(c=>c.resourceKind==='page').map(c=>c.url),probes.map(p=>p.url));
+ }
+ assert.throws(()=>createHierarchyChildDiversityCapture('arbitrary'));
+ const all=[...diversityPlan.development,...diversityPlan.test];assert.equal(new Set(all.map(p=>p.id)).size,18);assert.equal(new Set(all.map(p=>p.url)).size,18);assert.equal(new Set(all.map(p=>p.groupId)).size,18);
+ const roles=new Map();for(const p of all){const role=p.split==='test'?'test':p.split==='calibration'?'calibration':'training';assert.ok(!roles.has(p.publisher)||roles.get(p.publisher)===role);roles.set(p.publisher,role);}
+});
 
 test('held-out collector contains exactly the declared fourteen TEST pages and never TRAIN or CAL',async()=>{
  const f=fixture(),capture=createHierarchyChildEvaluationCapture(f.options),heldout=childPlan.freshCandidates.filter(r=>r.split==='test');

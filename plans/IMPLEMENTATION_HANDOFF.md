@@ -1,5 +1,20 @@
 # Implementation handoff: local-service discussion MVP
 
+29Oct diversity experiment SOURCE ready, not executed: fixed new corpus7
+development observations (5TRAIN:2koala documents/3non-GTA video games;2plantCAL)
+plus11 newly reserved TEST. Existing corpora/roles/results immutable. Primary
+publisher subject review Root-only, explicitly NOT independent reviewer acceptance;
+shared species/publisher correlation declared. Metadata collision check against6
+archived root gold/capture files found only red-panda vs giant-panda partial-name
+match (different species), no selected exact document collision. Source uses
+chosen fully parent-conditioned method, original lambda/minimums, pinned existing
+features and separate public-capture/local-encode phases; no live/SQL writes.
+45 guarded tests pass incl exact role/publisher/URL boundaries and unavailable/
+root-abstention/false-child metric separation. Source-check32listedfiles reads
+metadata/features without output/model/network. Next one bounded development
+capture under fresh original floors, then separate fit. New TEST stays reserved
+until candidate freeze; no old TEST optimization/relabel/retry.
+
 29Oct parent-conditioned comparison actual PASSED/terminalexit0. Both fixed
 Video-games variants accept9 CAL positives and0/3 insideGames negatives; the
 predeclared tie selects fully parent-conditioned training+CAL. Animals correctly
