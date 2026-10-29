@@ -55,6 +55,16 @@ progress. This is a single separately decided comparison, not an automatic
 budget ladder. The model/encoder code, all three strategies, constants, input
 cohort, original native-SQL fixture limits and live settings remain unchanged.
 
+After this comparison, a pure counterexample exposed a confidence-boundary
+mistake: a competing public scope just below0.88 was omitted from the margin
+calculation. Policyv2 now measures separation against every compatible public
+scope, including those below the floor. It also preserves supplementary Unicode
+characters at the text limit and counts unspaced-language words with the word
+segmenter. Eleven pure tests pass. Re-scoring the retained vectors is a separate
+offline observation, not another encoder run, fresh validation or a replacement
+for the original result. Case hashes first recorded by that re-score are labeled
+as such; the original result recorded input/source/asset pins and numeric scores.
+
 If a strategy is promising, subsequent integration must capture public evidence
 at its real SQL revision, invalidate it on body edit/root withdrawal, recheck
 the public root and current Source fences in one canonical publication

@@ -48,3 +48,13 @@ test('empty or unbounded inputs and malformed vectors refuse rather than falling
  assert.throws(()=>run([candidate('t',[1])]),TypeError);assert.throws(()=>run([candidate('t')],undefined,'!!!'),TypeError);
  assert.throws(()=>input(JSON.stringify({rootId:'r',topicId:'t',caption:'x',body:'x'.repeat(8001)})),TypeError);
 });
+test('a competing scope just below the floor still blocks a small-margin recommendation',()=>{
+ const r=run([candidate('first',v(.89,Math.sqrt(1-.89**2))),candidate('second',v(.879,Math.sqrt(1-.879**2)))],[v(1),v(1)]);
+ assert.equal(decision(r,'literal-and-public-semantic').status,'ambiguous');assert.equal(decision(r,'public-semantic').eligibleTopics,1);
+});
+test('public encoder inputs keep supplementary characters whole and recognize unspaced language words',()=>{
+ const p={rootId:'r',topicId:'t',caption:'Koalas',body:'a'.repeat(1999)+'\u{1f43c}'};
+ const a=input(JSON.stringify(p));assert.equal(a.bodyInput.length,1999);assert(a.bodyInput.isWellFormed());
+ assert.equal(input(JSON.stringify({...p,body:'\u5927\u718a\u732b\u751f\u6d3b\u5728\u4e2d\u56fd\u7684\u7af9\u5b50\u68ee\u6797\u4e2d\uff0c\u6211\u4eec\u5e94\u8be5\u4fdd\u62a4\u5b83\u4eec\u7684\u81ea\u7136\u6816\u606f\u5730\u3002'})).meaningful,true);
+ assert.throws(()=>input(JSON.stringify({...p,rootId:123})),TypeError);
+});
