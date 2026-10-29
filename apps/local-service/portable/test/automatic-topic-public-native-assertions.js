@@ -15,6 +15,7 @@ import {authoredFixtureInsightContext} from './automatic-author-insight-native-a
 import {runAutomaticPageTopicNativeAssertions} from './automatic-page-topic-native-assertions.js';
 import {runNamedOwnerGroupingNativeAssertions} from './named-owner-grouping-native-assertions.js';
 import {runUnifiedTopicSearchNativeAssertions} from './unified-topic-search-native-assertions.js';
+import {runCombinedAuthorHierarchyNativeAssertions} from './combined-author-hierarchy-native-assertions.js';
 import names from './automatic-topic-public-native-cases.json' with {type:'json'};
 export const AUTOMATIC_TOPIC_PUBLIC_NATIVE_CASES=Object.freeze([...names]);
 const actor={id:'demo-alex',type:'human',demo:true},code=c=>e=>e?.code===c;
@@ -123,12 +124,13 @@ export async function runAutomaticTopicPublicNativeAssertions(scope){
    await assert.rejects(owner.transaction(async tx=>{await tx.exec('SET LOCAL ROLE '+role);await tx.query(sql);}),code('42501'));
   for(const role of ['murmingle_ingest_worker','murmingle_crawler_submitter'])await assert.rejects(owner.transaction(async tx=>{await tx.exec('SET LOCAL ROLE '+role);await tx.query('SELECT canonical_v4.named_read_root_contexts($1,$2::text[])',[generation,[root]]);}),code('42501'));
  });
- const finishGrouping=await runNamedOwnerGroupingNativeAssertions({...scope,check:(index,body)=>test(cases,index===17?26:index,body)});
+ const finishGrouping=await runNamedOwnerGroupingNativeAssertions({...scope,check:(index,body)=>test(cases,index===17?36:index,body)});
  let finishSearch;
  const finishPages=await runAutomaticPageTopicNativeAssertions({...scope,cases:scope.pageCases,afterInstall:async()=>{
-  finishSearch=await runUnifiedTopicSearchNativeAssertions({...scope,check:(index,body)=>test(cases,index===27?27:index-1,body)});
+  finishSearch=await runUnifiedTopicSearchNativeAssertions({...scope,check:(index,body)=>test(cases,index===27?37:index-1,body)});
+  await runCombinedAuthorHierarchyNativeAssertions({...scope,check:(index,body)=>test(cases,26+index,body)});
  }});
- return async()=>{await finishGrouping();await finishSearch();await finishPages();return test(cases,28,async()=>{
+ return async()=>{await finishGrouping();await finishSearch();await finishPages();return test(cases,38,async()=>{
   assert.equal((await one(owner,'SELECT count(*)::integer n FROM canonical_v4.sources')).n,0);await drain();
   const view=await target();assert.equal(view.scope.caption,selected.scope.caption);
   await assert.rejects(service.semanticTarget({nodeId:'subject-'+parent,rootId:root,targetId:root}),code('not-found'));

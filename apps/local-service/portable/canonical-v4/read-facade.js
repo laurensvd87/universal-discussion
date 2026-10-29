@@ -342,12 +342,12 @@ async function snapshot(database, work) {
 
 // Fixed composite reads may reuse the already-open repeatable-read transaction.
 // This is private composition only: callers cannot provide SQL or callbacks.
-function sameSnapshotFacade(tx, relatedState, automaticTopics=false, unifiedTopicSearch=false) {
+function sameSnapshotFacade(tx, relatedState, automaticTopics=false, unifiedTopicSearch=false, combinedHierarchy=false) {
   const nested = Object.freeze({ dialect: 'canonical-snapshot', wireDialect: tx.wireDialect ?? tx.dialect,
     query: (...args) => tx.query(...args) });
   return createCanonicalV4ReadFacade({
     database: Object.freeze({ query: (...args) => tx.query(...args), transaction: (work) => work(nested) }),
-    [RELATED_STATE]: relatedState,automaticTopics,unifiedTopicSearch,
+    [RELATED_STATE]: relatedState,automaticTopics,unifiedTopicSearch,combinedHierarchy,
   });
 }
 
@@ -860,13 +860,13 @@ async function indexedRelatedSources(tx, header, sourceId, limit, state) {
     results }, 'Related Sources');
 }
 
-export function createCanonicalV4ReadFacade({ database, automaticTopics=false, unifiedTopicSearch=false, [RELATED_STATE]: inheritedRelatedState } = {}) {
+export function createCanonicalV4ReadFacade({ database, automaticTopics=false, unifiedTopicSearch=false, combinedHierarchy=false, [RELATED_STATE]: inheritedRelatedState } = {}) {
   if (!database || typeof database.query !== 'function' || typeof database.transaction !== 'function')
     throw new TypeError('Invalid canonical PostgreSQL read dependencies');
 
-  if(typeof automaticTopics!=='boolean'||typeof unifiedTopicSearch!=='boolean'||unifiedTopicSearch&&!automaticTopics)throw new TypeError('Invalid automatic topic read dependency');
+  if(typeof automaticTopics!=='boolean'||typeof unifiedTopicSearch!=='boolean'||unifiedTopicSearch&&!automaticTopics||typeof combinedHierarchy!=='boolean'||combinedHierarchy&&!unifiedTopicSearch)throw new TypeError('Invalid automatic topic read dependency');
   const relatedState = inheritedRelatedState ?? { view: null };
-  const semanticRepository=tx=>{const legacy=createCanonicalV4SemanticDiscussionRepository({database:tx});if(!automaticTopics)return legacy;
+  const semanticRepository=tx=>{const legacy=createCanonicalV4SemanticDiscussionRepository({database:tx,combinedHierarchy});if(!automaticTopics)return legacy;
    const named=createAutomaticTopicFeedRepository({database:tx,unifiedSearch:unifiedTopicSearch});return {...legacy,feedReferences:value=>isAutomaticTopicRoute(value.nodeId)||unifiedTopicSearch&&isLegacyTopicRoute(value.nodeId)?named.feedReferences(JSON.stringify(value)):legacy.feedReferences(value)};};
 
   const facade = {
@@ -924,7 +924,7 @@ export function createCanonicalV4ReadFacade({ database, automaticTopics=false, u
 
     async fullCatalog() {
       return snapshot(database, async (tx) => {
-        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics, unifiedTopicSearch), topics = [], sources = [];
+        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics, unifiedTopicSearch, combinedHierarchy), topics = [], sources = [];
         let version = null, catalogVersion = null;
         for (const kind of ['topics', 'sources']) {
           let cursor = null;
@@ -943,7 +943,7 @@ export function createCanonicalV4ReadFacade({ database, automaticTopics=false, u
     async fullDiscussion(topicId) {
       topicId = readId(topicId);
       return snapshot(database, async (tx) => {
-        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics, unifiedTopicSearch), items = [];
+        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics, unifiedTopicSearch, combinedHierarchy), items = [];
         let cursor = null, header = null;
         do {
           const page = await scoped.discussionPage({ topicId, limit: MAX_PAGE_ITEMS, cursor });
@@ -961,7 +961,7 @@ export function createCanonicalV4ReadFacade({ database, automaticTopics=false, u
       const sourceId = input.sourceId === null ? null : readId(input.sourceId);
       const topicId = readId(input.topicId);
       return snapshot(database, async (tx) => {
-        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics, unifiedTopicSearch);
+        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics, unifiedTopicSearch, combinedHierarchy);
         const catalog = await scoped.catalogContext({ sourceId, topicId });
         const discussion = await scoped.fullDiscussion(topicId);
         if (catalog.version.generation !== discussion.version.generation ||
@@ -983,7 +983,7 @@ export function createCanonicalV4ReadFacade({ database, automaticTopics=false, u
         if (source.value.url !== url || source.value.provenance !== LEARNED_SOURCE_PROVENANCE ||
             !source.link?.topicId || source.public.topicId !== source.link.topicId)
           corrupt('Invalid learned Source URL selection');
-        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics, unifiedTopicSearch);
+        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics, unifiedTopicSearch, combinedHierarchy);
         const catalog = await scoped.catalogContext({ sourceId: source.value.id, topicId: source.link.topicId });
         const discussion = await scoped.fullDiscussion(source.link.topicId);
         if (catalog.version.generation !== discussion.version.generation ||
@@ -995,7 +995,7 @@ export function createCanonicalV4ReadFacade({ database, automaticTopics=false, u
 
     async catalogPageWithContexts(value) {
       return snapshot(database, async (tx) => {
-        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics, unifiedTopicSearch), page = await scoped.catalogPage(value), contexts = [];
+        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics, unifiedTopicSearch, combinedHierarchy), page = await scoped.catalogPage(value), contexts = [];
         if (page.kind === 'sources') for (const source of page.items)
           contexts.push(await scoped.catalogContext({ sourceId: source.id, topicId: source.topicId }));
         return { page, contexts };
@@ -1005,7 +1005,7 @@ export function createCanonicalV4ReadFacade({ database, automaticTopics=false, u
     async alternateBundle(sourceId) {
       sourceId = readId(sourceId);
       return snapshot(database, async (tx) => {
-        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics, unifiedTopicSearch), header = await headerIn(tx);
+        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics, unifiedTopicSearch, combinedHierarchy), header = await headerIn(tx);
         const source = await scoped.exactSource(sourceId);
         if (!Array.isArray(source.topicIds) || !source.topicId || !source.topicIds.includes(source.topicId))
           fail('not-found', 'Object unavailable');
@@ -1034,7 +1034,7 @@ export function createCanonicalV4ReadFacade({ database, automaticTopics=false, u
       if (typeof input.includeDiscussion !== 'boolean' || typeof includeRelatedSources !== 'boolean')
         fail('invalid', 'Invalid request');
       return snapshot(database, async (tx) => {
-        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics, unifiedTopicSearch);
+        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics, unifiedTopicSearch, combinedHierarchy);
         const base = await scoped.catalogContext({ sourceId, topicId });
         const discussion = input.includeDiscussion
           ? await scoped.fullDiscussion(topicId) : await scoped.topicDiscussion(topicId);
@@ -1061,7 +1061,7 @@ export function createCanonicalV4ReadFacade({ database, automaticTopics=false, u
       const sourceId = readId(input.sourceId), topicId = readId(input.topicId);
       const destinationTopicId = input.destinationTopicId === null ? null : readId(input.destinationTopicId);
       return snapshot(database, async (tx) => {
-        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics, unifiedTopicSearch);
+        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics, unifiedTopicSearch, combinedHierarchy);
         const semanticTarget = input.semanticTarget === undefined ? null : await insightSemanticTarget(tx, scoped, input.semanticTarget, destinationTopicId);
         const anchor = await scoped.insightAnchor(topicId, sourceId, semanticTarget !== null);
         const followupDiscussion = semanticTarget !== null ? null : destinationTopicId === null
@@ -1077,7 +1077,7 @@ export function createCanonicalV4ReadFacade({ database, automaticTopics=false, u
       const sourceId = readId(input.sourceId), topicId = readId(input.topicId);
       if (typeof input.includeAlternate !== 'boolean') fail('invalid', 'Invalid request');
       return snapshot(database, async (tx) => {
-        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics, unifiedTopicSearch);
+        const scoped = sameSnapshotFacade(tx, relatedState, automaticTopics, unifiedTopicSearch, combinedHierarchy);
         const base = await scoped.catalogContext({ sourceId, topicId });
         const discussion = await scoped.fullDiscussion(topicId);
         const errors = { related: null, prior: null, alternate: null };

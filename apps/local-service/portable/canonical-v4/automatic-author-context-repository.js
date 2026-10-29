@@ -12,7 +12,8 @@ const sha=value=>createHash('sha256').update(value).digest('hex');
 function parsed(raw,max=65536){if(typeof raw!=='string'||Buffer.byteLength(raw)>max)invalid();try{return JSON.parse(raw);}catch{invalid();}}
 function scope(value,{material=true}={}){
  const s=readRecord(value,material?['kind','id','caption','sourceId','materialDigest']:['kind','id','caption']);
- if(!['page','named'].includes(s.kind))invalid();readId(s.id);readText(s.caption,200);
+ if(!['page','named','semantic'].includes(s.kind))invalid();
+ if(s.kind==='semantic'){if(readText(s.id,160)!==s.id||/^(subject|page|legacy)-/u.test(s.id))invalid();}else readId(s.id);readText(s.caption,200);
  if(s.kind==='named'&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(s.id))invalid();
  if(material){readId(s.sourceId);if(typeof s.materialDigest!=='string'||!/^[a-f0-9]{64}$/u.test(s.materialDigest)||s.kind==='page'&&s.id!==s.sourceId)invalid();}
  return s;
@@ -27,12 +28,12 @@ function failure(error){
  if(error?.code==='P1006')return new ServiceError('forbidden','Action unavailable');
  return new ServiceError('storage-failure','Authored topic storage unavailable');
 }
-export function createAutomaticAuthorContextRepository({database,nextId=()=>`contribution-${randomUUID()}`,now=()=>new Date().toISOString(),ownerGrouping=false}={}){
- if(!database||typeof database.query!=='function'||typeof nextId!=='function'||typeof now!=='function'||typeof ownerGrouping!=='boolean')throw new TypeError('Invalid authored topic dependencies');
+export function createAutomaticAuthorContextRepository({database,nextId=()=>`contribution-${randomUUID()}`,now=()=>new Date().toISOString(),ownerGrouping=false,combinedHierarchy=false}={}){
+ if(!database||typeof database.query!=='function'||typeof nextId!=='function'||typeof now!=='function'||typeof ownerGrouping!=='boolean'||typeof combinedHierarchy!=='boolean'||combinedHierarchy&&!ownerGrouping)throw new TypeError('Invalid authored topic dependencies');
  return Object.freeze({
   async editor(rawJson){
    const a=readRecord(parsed(rawJson,1024),['generation','sourceId']);readId(a.generation);readId(a.sourceId);
-   try{const r=value(await database.query(ownerGrouping?'SELECT canonical_v4.named_read_grouped_editor($1,$2) AS result':'SELECT canonical_v4.named_read_editor($1,$2) AS result',[a.generation,a.sourceId]));
+   try{const r=value(await database.query(combinedHierarchy?'SELECT canonical_v4.combined_read_editor($1,$2) AS result':ownerGrouping?'SELECT canonical_v4.named_read_grouped_editor($1,$2) AS result':'SELECT canonical_v4.named_read_editor($1,$2) AS result',[a.generation,a.sourceId]));
     if(r===null)return null;
     try{const v=readRecord(r,['generation','topicId','pageScope','scope']);if(v.generation!==a.generation)corrupt();readId(v.topicId);
      const s=scope(v.scope),page=scope(v.pageScope);if(s.sourceId!==a.sourceId||page.kind!=='page'||page.sourceId!==a.sourceId||page.materialDigest!==s.materialDigest)corrupt();

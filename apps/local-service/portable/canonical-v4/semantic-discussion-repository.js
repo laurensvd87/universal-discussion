@@ -30,8 +30,8 @@ function storage(error){
  return new ServiceError('storage-failure','Semantic discussion operation failed');
 }
 
-export function createCanonicalV4SemanticDiscussionRepository({database}={}){
- if(!database||typeof database.query!=='function')invalid();
+export function createCanonicalV4SemanticDiscussionRepository({database,combinedHierarchy=false}={}){
+ if(!database||typeof database.query!=='function'||typeof combinedHierarchy!=='boolean')invalid();
  return Object.freeze({
   async ownerPolicy(){
    try{const {rows}=await database.query('SELECT * FROM canonical_v4.semantic_read_owner_policy()');
@@ -58,7 +58,7 @@ export function createCanonicalV4SemanticDiscussionRepository({database}={}){
    const a=record(value,['generation','nodeId','beforeOrdinal','limit']);readId(a.generation);node(a.nodeId);
    if(a.beforeOrdinal!==null)ordinal(a.beforeOrdinal);
    if(!Number.isInteger(a.limit)||a.limit<1||a.limit>100)invalid();
-   try{const {rows}=await database.query('SELECT * FROM canonical_v4.semantic_read_feed($1,$2,$3::bigint,$4)',
+   try{const {rows}=await database.query(combinedHierarchy?'SELECT * FROM canonical_v4.combined_read_fixed_feed($1,$2,$3::bigint,$4)':'SELECT * FROM canonical_v4.semantic_read_feed($1,$2,$3::bigint,$4)',
     [a.generation,a.nodeId,a.beforeOrdinal,a.limit]);
     if(!Array.isArray(rows)||rows.length>a.limit)corrupt();const seen=new Set();let previous=a.beforeOrdinal;
     const references=rows.map(row=>{let ref;

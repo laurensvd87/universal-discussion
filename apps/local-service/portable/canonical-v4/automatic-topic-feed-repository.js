@@ -15,7 +15,8 @@ function fields(v,keys){if(!v||types.isProxy(v)||Object.getPrototypeOf(v)!==Obje
 function parsed(raw,max=8192){if(typeof raw!=='string'||Buffer.byteLength(raw)>max)bad();try{return JSON.parse(raw);}catch{bad();}}
 function input(raw,extra=[]){const a=fields(parsed(raw),['generation',...extra]);if(!id(a.generation))bad();return a;}
 function one(r){if(!Array.isArray(r?.rows)||r.rows.length!==1)bad();return fields(r.rows[0],['result']).result;}
-function route(kind,key){if(!['page','named'].includes(kind)||!id(key)||kind==='named'&&!uuid(key))bad();return (kind==='named'?'subject-':'page-')+key;}
+function route(kind,key){if(kind==='semantic')return searchRoute('fixed',key,true);
+ if(!['page','named'].includes(kind)||!id(key)||kind==='named'&&!uuid(key))bad();return (kind==='named'?'subject-':'page-')+key;}
 function scope(nodeId){if(typeof nodeId!=='string')bad();const kind=nodeId.startsWith('subject-')?'named':nodeId.startsWith('page-')?'page':null;
  const key=nodeId.slice(kind==='named'?8:5);if(route(kind,key)!==nodeId)bad();return {kind,key};}
 export function isAutomaticTopicRoute(value){try{scope(value);return true;}catch{return false;}}

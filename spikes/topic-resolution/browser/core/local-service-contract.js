@@ -204,7 +204,8 @@ export function readSemanticCapabilities(value) {
   return Object.freeze(item);
 }
 export function readAuthoredTopicScope(value){
- const s=record(value,['kind','id','caption','sourceId','materialDigest']);oneOf(s.kind,['page','named']);readId(s.id);readId(s.sourceId);text(s.caption,200);
+ const s=record(value,['kind','id','caption','sourceId','materialDigest']);oneOf(s.kind,['page','named','semantic']);
+ if(s.kind==='semantic'){semanticNode(s.id);if(s.id.trim()!==s.id||/^(subject|page|legacy)-/u.test(s.id))invalid();}else readId(s.id);readId(s.sourceId);text(s.caption,200);
  if(s.kind==='page'&&s.id!==s.sourceId||s.kind==='named'&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(s.id)||
    typeof s.materialDigest!=='string'||!/^[a-f0-9]{64}$/u.test(s.materialDigest))invalid();
  return Object.freeze({kind:s.kind,id:s.id,caption:s.caption,sourceId:s.sourceId,materialDigest:s.materialDigest});
@@ -340,7 +341,8 @@ function semanticHeader(item, expected) {
   if (expected && nodeId !== expected.nodeId) invalid();
   return { version: readVersion(item.version), policyRevision: item.policyRevision, nodeId };
 }
-export function readPublicTopicScope(value){const s=record(value,['kind','id','caption']);oneOf(s.kind,['page','named']);readId(s.id);text(s.caption,200);
+export function readPublicTopicScope(value){const s=record(value,['kind','id','caption']);oneOf(s.kind,['page','named','semantic']);
+ if(s.kind==='semantic'){semanticNode(s.id);if(s.id.trim()!==s.id||/^(subject|page|legacy)-/u.test(s.id))invalid();}else readId(s.id);text(s.caption,200);
  if(s.kind==='named'&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(s.id))invalid();return freeze(s);}
 export function readSemanticFeed(value, expected = null) {
   const item = record(value, ["version", "policyRevision", "nodeId", "roots", "nextCursor", "actors"]);
