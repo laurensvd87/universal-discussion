@@ -2,6 +2,53 @@
 
 Date:2026-10-29
 
+## 30 October fresh nine-card result
+
+The pre-inference committed cae75d11 nine-card stress set was executed with the
+unchanged v2 linker and retained24-node definition bank. Only18 fresh title/body
+texts were encoded, one serial single-WASM-thread local session. No provider,
+new alias, tree/cutoff/grouping change, SQL or live activation. Actual53293
+completed/exit0; encoder closed; all22 selected Source+2 input+9 asset endpins pass.
+
+Known6: **4 exact,0 broader,2 unresolved**. W3Schools Python, German KDE Dolphin,
+Rockstar GTA VI news and Xbox GTA V are exact. Queensland koala and Raclette
+kapsalon remain unresolved. Unknown3: the python snake gets valid Nature;
+Dolphin Browser and Dolphin Emulator are refused rather than becoming the KDE
+file-manager leaf. **0 wrong assignments**. The declared4/6 known target and0wrong
+criterion pass in this manual title/excerpt diagnostic. This is useful evidence,
+not full-page/corpus/publisher-independent/independent-review/live acceptance.
+Two text excerpts were reviewed in web search where direct open was unreadable.
+
+The288 repeated lookups have p50=.1047ms/p95=.1620ms/max14.8502ms. First9 lookups
+p95=2.6500ms. Fresh title encoding p50=15.9376ms/p95=42.1465ms, body p50=22.8391ms/
+p95=39.5376ms. Initialization1098.8453ms; full measured session3814.2398ms.
+The separate sandbox counter before launch reported D4254380032B below the floor;
+the actual host runner independently sampled/enforced all original floors before
+output/model and during encoding, minimum D4316827648B. Context/timing discrepancy
+cause is unknown. No floor waiver was used; do not use old samples for a new run.
+Result SHA256 `1ec0ff6d41e0906fba09022301d711202c480d0a98d5556a4e650583d4016ee5`;
+Root terminal audit `a34875dd4a0098f5e511f614a936ab66c077082e57cc7924c6e2a6e3e901e44d`.
+
+Remaining semantic work: represent common subject classes versus proper named
+entities, so a geographic animal qualifier or recipe variant can support class
+membership without weakening same-name product identity. Any change now needs a
+new validation set; these9 cases become development data. No canonical IDs are
+assigned by path-label hashes. Automatic discovery, stable identity, owner controls,
+full capture/ANN/canonical/UI integration and full18 recovery/cutover remain open.
+
+Storage inspection found only C: and D: fixed local volumes. Relocated session
+archives total2.76GB logical, but only146.6MB of old files remain uncompressed;
+VS Code extensions total1.94GB logical. These totals cannot supply the requested
+7GiB even under impossible complete compression. No external archive/extension
+file was changed. Host readback shows C6615117824B/D4252684288B free, no service
+restart. Existing PG18688/API8108/worker11880/dashboard28420/crawler26784 are present
+with original sampled starts; PG start is now readable via privileged CIM only
+at millisecond precision (previous unreadability was not absence). Crawler still
+advances,9800 ingestions at the sample, stderr0. Full11GiB D: recovery admission
+remains unmet; the compressed backup is already local, and the test requires a
+separate expanded database alongside the live one and backup plus reserves.
+
+
 ## 30 October definition and paired-name comparisons; fresh validation prepared
 
 A normal Source-only private AI request generated24 public-node definitions from

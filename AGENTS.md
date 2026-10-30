@@ -8,6 +8,31 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct fresh9cached-topic validation PROGRESS; Root-only. cae75d11 cards/
+gold/v2linker committedBEFOREinference. Actual53293 CLOSEDexit0; oneE5/WASMthread1,
+18newtitle/bodyvectors,24bankvectorsREUSED, no provider/SQL/livechange.22SOURCE/
+2input/9asset endpinsPASS, encoderclosedTRUE. Known6:4exact(PythonW3/KDEGerman/
+GTAVInews/XboxGTAV),2unresolved(Queenslandkoala/Raclettekapsalon),0broader. Unknown3:
+Snake->validNature; DolphinBrowser/EmulatorREFUSEDnotKDE.0wrong. Declared4of6/0wrong
+smallmanualtitle/excerpt criterion PASS, NOTfullpage/corpus/publisher/independent/
+liveacceptance.288repeat p50.1047ms/p95.1620/max14.8502; first9p952.65ms. TitleE5
+p5015.9376/p9542.1465ms/body22.8391/39.5376ms; init1098.8453/session3814.2398ms.
+Result1ec0ff6d...16ee5/audita34875dd...e44d. Pre-sandboxD4254380032<floor, actualhost
+sampled/enforced originalfloorsALLPASS/minD4316827648; countercontext/timingcause
+UNKNOWN/no waiver. Freshchecksrequired. Allconsumed source/resultsIMMUTABLE.
+Nextsemanticstep commonclass-vspropername metadata/qualifiedclassmembership, not
+blanket nonfocalname merges; NEWholdoutrequired afterchanges. Automaticdiscovery/
+stablecanonicalIDs/owner/capture/ANN/UI/full18recovery/cutover stillOPEN.
+Readonly externalstorageinventory: sessions2.76GBlogical mostlyalreadycompressed,
+olduncompressed146.6MB; VSCodeextensions1.94GB. Cannotrecover7GiB fromthese; noexternal
+fileschanged. OnlyC,D fixedlocal drives; hostC6615117824/D4252684288B free. FullD11GiB
+restore gateUNMET; backupalreadylocal, separateexpandedtestDB+reserves needed.
+PG18688/API8108/worker11880/dashboard28420/crawler26784 preserved; privilegedCIMnow
+returnsPGcreationMS1791893526444(previousunreadabilitynotabsence). Crawler advancing
+9800/stderr0. GoalACTIVE; currentturn substantialsource/model/provider/validation/
+storageprogress, NOTcomplete orblocked. Earlier current checkpoints scopedhistory.
+
+
 LATEST30Oct actual publicdefinitions+paired-name DEV PROGRESS; Root-only.
 One normalprivate Source-only request64765 CLOSEDexit0/24definitions/ownconvremoved/
 logout/0publicposts; onlypublicgraph, noholdout/gold. ExactanswerSHA5e65ac4a...0e3e8,
