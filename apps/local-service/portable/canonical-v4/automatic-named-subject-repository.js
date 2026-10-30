@@ -4,8 +4,8 @@
 // port grants canonical posting authority or provider/network/model capability.
 import {types} from 'node:util';
 import {createHash} from 'node:crypto';
-import {planAutomaticNamedSubjectsV2} from '../../src/application/automatic-named-subject-plan.js';
-import {planPublishedTopicRecovery} from '../../src/application/published-topic-recovery-plan.js';
+import {planAutomaticNamedSubjectsV2,planAutomaticNamedSubjectsV3} from '../../src/application/automatic-named-subject-plan.js';
+import {planPublishedTopicRecovery,planPublishedTopicRecoveryV3} from '../../src/application/published-topic-recovery-plan.js';
 import {ServiceError} from '../../src/domain/errors.js';
 const bad=()=>{throw new TypeError('Invalid automatic subject request');};
 const corrupt=()=>{throw new ServiceError('storage-corrupt','Invalid automatic subject result');};
@@ -29,17 +29,19 @@ function storage(error){if(error instanceof ServiceError)return error;
  if(error?.code==='P1283')return new ServiceError('invalid','Invalid automatic subject publication');
  return new ServiceError('storage-failure','Automatic subject storage unavailable');}
 
-export function createAutomaticNamedSubjectRepository({database,publicEvidence=null}={}){
- if(!database||typeof database.query!=='function'||publicEvidence!==null&&typeof publicEvidence?.candidates!=='function')bad();
+export function createAutomaticNamedSubjectRepository({database,publicEvidence=null,namePolicyVersion=2}={}){
+ if(!database||typeof database.query!=='function'||publicEvidence!==null&&typeof publicEvidence?.candidates!=='function'||![2,3].includes(namePolicyVersion))bad();
+ const planSubjects=namePolicyVersion===3?planAutomaticNamedSubjectsV3:planAutomaticNamedSubjectsV2;
+ const recover=namePolicyVersion===3?planPublishedTopicRecoveryV3:planPublishedTopicRecovery;
  return Object.freeze({
   async publish(rawJson){
-   let plan=planAutomaticNamedSubjectsV2(rawJson);const input=JSON.parse(rawJson);
+   let plan=planSubjects(rawJson);const input=JSON.parse(rawJson);
    if(plan.proposalStatus==='capacity')return freeze({status:'capacity',subjects:[],selections:[]});
    if(!plan.commitWitnesses.length)return freeze({status:'no-material',subjects:[],selections:[]});
    if(publicEvidence&&plan.updates.length){
     const publicCandidates=await publicEvidence.candidates(JSON.stringify({generation:plan.generation,representationHash:plan.representationHash,
      focusKeys:[...new Set(plan.updates.map(u=>u.focusKey))].sort()}));
-    plan=planPublishedTopicRecovery(JSON.stringify({input,publicCandidates}));
+    plan=recover(JSON.stringify({input,publicCandidates}));
    }
    if(plan.updates.some(u=>/[\u0000-\u001f\u007f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u.test(u.label)))bad();
    for(const w of plan.commitWitnesses){

@@ -2,6 +2,8 @@ import test from 'node:test';import assert from 'node:assert/strict';import {cre
 import {automaticSubjectTitleTerms as terms,buildAutomaticSubjectCohort as build,AUTOMATIC_COHORT_LIMITS as limits} from '../src/application/automatic-subject-cohort.js';
 import {compilePairedE5Input,describePairedE5Input} from '../src/domain/hierarchical-e5-paired-input.js';
 import {automaticCohortFixture as input,automaticVectorWire as wire} from './fixtures/automatic-subject-cohort.js';
+import {buildAutomaticSubjectCohortV3} from '../src/application/automatic-subject-cohort.js';
+import {GENERAL_SUBJECT_POLICY_V3_HASH} from '../src/application/automatic-named-subject-plan.js';
 const sha=v=>createHash('sha256').update(v).digest('hex'),axis=Array.from({length:384},(_,i)=>i===0?1:0);
 
 test('title keys are bounded Unicode hints without publisher/instruction words or model work',()=>{
@@ -15,6 +17,11 @@ test('actual binary64 body/title wires build a general publication input with ca
  assert.equal(r.input.observations[0].publisherKey,'general.example.org');assert.deepEqual(r.input.observations[0].acceptedPath,['cooking']);
  const w=r.input.sourceWitnesses[0];assert.equal(r.input.observations[0].inputHash,sha(JSON.stringify(Object.values(w))));
  assert.equal(r.input.observations[1].vector[0],.96);assert(Object.isFrozen(r.input.observations));assert.equal(r.assignmentAuthority,false);
+});
+test('explicit V3 cohort changes only its policy identity, retaining exact material and bounded work',()=>{
+ const raw=JSON.stringify(input()),old=build(raw),next=buildAutomaticSubjectCohortV3(raw);assert.equal(next.input.policyHash,GENERAL_SUBJECT_POLICY_V3_HASH);
+ const copy=structuredClone(next);copy.input.policyHash=old.input.policyHash;assert.deepEqual(copy,old);
+ assert.throws(()=>buildAutomaticSubjectCohortV3(raw,{}));
 });
 test('up to128 approximate candidates produce at most64 exact-ranked observations with an explicit lexical reserve',()=>{
  const a=input(128),row=a.rows[120],values=axis.map((_,j)=>j===0?.83:j===120?Math.sqrt(1-.83**2):0),w=wire(values);

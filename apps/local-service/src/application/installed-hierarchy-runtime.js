@@ -60,10 +60,11 @@ async function open(options,openResources,testComposition){
    const evidence=createPublishedTopicEvidenceRepository({database:a.database}),identity=installed.descriptor.matcherIdentity;
    publicEvidence=createPublishedTopicMaintenance({repository:evidence,resources});
    automatic=createAutomaticSubjectCoordinator({
+    namePolicyVersion:3,
     descriptorJson:JSON.stringify({matcherHash:installed.descriptor.matcherIdentityHash,representationHash:identity.representationHash,
      inputDefinition:{bodyWeight:identity.inputDefinition.bodyWeight,titleWeight:identity.inputDefinition.titleWeight,encoderHash:identity.inputDefinition.encoderHash}}),
     readGeneration:()=>generation(a.database),retrieval:createAutomaticSubjectRetrievalRepository({database:a.database}),
-    subjects:createAutomaticNamedSubjectRepository({database:a.database,publicEvidence:evidence}),
+    subjects:createAutomaticNamedSubjectRepository({database:a.database,publicEvidence:evidence,namePolicyVersion:3}),
     feeds:createAutomaticTopicFeedRepository({database:a.database}),publicEvidence,
     singleSourceTopics:createSingleSourceTopicRepository({database:a.database}),topicSearch:createUnifiedTopicSearchMaintenance({database:a.database}),
    });

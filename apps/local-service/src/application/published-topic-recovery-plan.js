@@ -2,7 +2,7 @@
 // Source retention or authority: SQL must recheck this entire public snapshot,
 // current protected Source vectors and the identity revision in its transaction.
 import {createHash} from 'node:crypto';
-import {planAutomaticNamedSubjectsV2} from './automatic-named-subject-plan.js';
+import {planAutomaticNamedSubjectsV2,planAutomaticNamedSubjectsV3} from './automatic-named-subject-plan.js';
 import {publishedTopicInput,PUBLISHED_TOPIC_INPUT_HASH} from './published-topic-evidence.js';
 const bad=()=>{throw new TypeError('Invalid public topic recovery publication');};
 const shape=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).sort().join(',')===[...keys].sort().join(',');
@@ -22,10 +22,16 @@ export const publicRecoveryWitness=c=>({rootId:c.rootId,topicId:c.topicId,rootVe
  publicDigest:c.publicDigest,identityRevision:c.identityRevision,focusKey:c.focusKey,headPresent:c.headPresent});
 
 export function planPublishedTopicRecovery(raw){
- if(arguments.length!==1||typeof raw!=='string'||Buffer.byteLength(raw)>6291456)bad();let a;
+ if(arguments.length!==1)bad();return planRecovery(raw,planAutomaticNamedSubjectsV2);
+}
+export function planPublishedTopicRecoveryV3(raw){
+ if(arguments.length!==1)bad();return planRecovery(raw,planAutomaticNamedSubjectsV3);
+}
+function planRecovery(raw,planSubjects){
+ if(typeof raw!=='string'||Buffer.byteLength(raw)>6291456)bad();let a;
  try{a=JSON.parse(raw);}catch{bad();}
  if(!shape(a,['input','publicCandidates'])||!Array.isArray(a.publicCandidates)||a.publicCandidates.length>64)bad();
- const original=planAutomaticNamedSubjectsV2(JSON.stringify(a.input)),plan=structuredClone(original),seen=new Set();
+ const original=planSubjects(JSON.stringify(a.input)),plan=structuredClone(original),seen=new Set();
  const focusKeys=[...new Set(plan.updates.map(u=>u.focusKey))].sort();
  const candidates=a.publicCandidates.map(c=>{
   if(!shape(c,['rootId','topicId','caption','body','rootVersion','publicDigest','representationHash','focusKey','inputHash','vector','identityRevision','headPresent'])||

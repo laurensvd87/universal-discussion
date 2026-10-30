@@ -7,6 +7,7 @@ export const AUTOMATIC_TOPICS_COMPONENTS=Object.freeze([
  'automatic-topic-feeds.sql','automatic-topic-public-reads.sql','automatic-topic-replies.sql',
  'automatic-page-topic-membership.sql','published-topic-evidence.sql','published-topic-recovery.sql',
  'single-source-topic-match.sql','named-owner-grouping.sql','unified-topic-search.sql','combined-author-hierarchy.sql','automatic-topic-dashboard.sql','combined-topic-breadcrumbs.sql',
+ 'named-subject-label-quality.sql',
 ]);
 export async function buildAutomaticTopicsMigrationSource(){
  if(arguments.length)throw new TypeError('Automatic topic migration has fixed inputs');

@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {compilePairedE5Input,describePairedE5Input,applyPairedE5Input} from '../domain/hierarchical-e5-paired-input.js';
 import {readLearnedUrl} from '../domain/learned-sources.js';
 import {decodeEmbeddingBase64Array} from '../../portable/canonical-v4/embedding-binary-wire.js';
-import {GENERAL_SUBJECT_POLICY_V2_HASH as policyHash} from './automatic-named-subject-plan.js';
+import {GENERAL_SUBJECT_POLICY_V2_HASH,GENERAL_SUBJECT_POLICY_V3_HASH} from './automatic-named-subject-plan.js';
 const LIMITS=Object.freeze({rawCandidates:128,cohort:64,lexicalReserve:16,titleTerms:8,minimumSimilarity:.8,inputBytes:4194304});
 export const AUTOMATIC_COHORT_LIMITS=LIMITS;
 const bad=()=>{throw new TypeError('Invalid automatic subject neighbourhood');};
@@ -37,7 +37,13 @@ function vector(base64,expected){
 }
 
 export function buildAutomaticSubjectCohort(rawJson){
- if(arguments.length!==1||typeof rawJson!=='string'||Buffer.byteLength(rawJson)>LIMITS.inputBytes)bad();let a;
+ if(arguments.length!==1)bad();return build(rawJson,GENERAL_SUBJECT_POLICY_V2_HASH);
+}
+export function buildAutomaticSubjectCohortV3(rawJson){
+ if(arguments.length!==1)bad();return build(rawJson,GENERAL_SUBJECT_POLICY_V3_HASH);
+}
+function build(rawJson,policyHash){
+ if(typeof rawJson!=='string'||Buffer.byteLength(rawJson)>LIMITS.inputBytes)bad();let a;
  try{a=JSON.parse(rawJson);}catch{bad();}
  if(!shape(a,['generation','matcherHash','representationHash','inputDefinition','seedSourceId','rows'])||!id(a.generation)||!hash(a.matcherHash)||
     !hash(a.representationHash)||!id(a.seedSourceId)||!Array.isArray(a.rows)||a.rows.length>LIMITS.rawCandidates)bad();

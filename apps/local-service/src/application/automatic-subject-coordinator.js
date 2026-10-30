@@ -3,8 +3,8 @@
 // jobs, captures pages, opens a model or changes canonical discussion routes.
 import {types} from 'node:util';
 import {compilePairedE5Input,describePairedE5Input} from '../domain/hierarchical-e5-paired-input.js';
-import {buildAutomaticSubjectCohort} from './automatic-subject-cohort.js';
-import {planAutomaticNamedSubjectsV2} from './automatic-named-subject-plan.js';
+import {buildAutomaticSubjectCohort,buildAutomaticSubjectCohortV3} from './automatic-subject-cohort.js';
+import {planAutomaticNamedSubjectsV2,planAutomaticNamedSubjectsV3} from './automatic-named-subject-plan.js';
 const bad=()=>{throw new TypeError('Invalid automatic topic coordinator');};
 const unavailable=()=>Object.assign(Error('Automatic topic coordinator unavailable'),{code:'unavailable'});
 const MAX=Number.MAX_SAFE_INTEGER;
@@ -18,7 +18,11 @@ function create(options,pause,testComposition){
  const hasPublic=Object.hasOwn(options,'publicEvidence');
  const hasSingle=Object.hasOwn(options,'singleSourceTopics');
  const hasSearch=Object.hasOwn(options,'topicSearch');
- const {retrieval,subjects,readGeneration,descriptorJson,feeds=null,publicEvidence=null,singleSourceTopics=null,topicSearch=null}=fields(options,['retrieval','subjects','readGeneration','descriptorJson',...(hasFeeds?['feeds']:[]),...(hasPublic?['publicEvidence']:[]),...(hasSingle?['singleSourceTopics']:[]),...(hasSearch?['topicSearch']:[])]);
+ const hasPolicy=Object.hasOwn(options,'namePolicyVersion');
+ const {retrieval,subjects,readGeneration,descriptorJson,feeds=null,publicEvidence=null,singleSourceTopics=null,topicSearch=null,namePolicyVersion=2}=fields(options,['retrieval','subjects','readGeneration','descriptorJson',...(hasFeeds?['feeds']:[]),...(hasPublic?['publicEvidence']:[]),...(hasSingle?['singleSourceTopics']:[]),...(hasSearch?['topicSearch']:[]),...(hasPolicy?['namePolicyVersion']:[])]);
+ if(![2,3].includes(namePolicyVersion))bad();
+ const buildCohort=namePolicyVersion===3?buildAutomaticSubjectCohortV3:buildAutomaticSubjectCohort;
+ const planSubjects=namePolicyVersion===3?planAutomaticNamedSubjectsV3:planAutomaticNamedSubjectsV2;
  if(typeof readGeneration!=='function'||typeof descriptorJson!=='string'||Buffer.byteLength(descriptorJson)>2048)bad();let descriptor;
  try{descriptor=fields(JSON.parse(descriptorJson),['matcherHash','representationHash','inputDefinition']);}catch{bad();}
  if(typeof descriptor.matcherHash!=='string'||typeof descriptor.representationHash!=='string'||!/^[a-f0-9]{64}$/u.test(descriptor.matcherHash)||!/^[a-f0-9]{64}$/u.test(descriptor.representationHash)||
@@ -83,8 +87,8 @@ function create(options,pause,testComposition){
   for(const seed of seeds){if(closed)return work;work=true;phase='neighbours';try{
    const request=JSON.stringify({...scope,...fields(seed,['sourceId','indexOrdinal'])}),rows=await retrieval.neighbours(request);if(closed)return work;
    if(rows===null){await retrieval.complete(request);continue;}
-   phase='cohort';const cohort=buildAutomaticSubjectCohort(JSON.stringify({...descriptor,generation,seedSourceId:seed.sourceId,rows})),input=cohort.input;
-   const first=planAutomaticNamedSubjectsV2(JSON.stringify(input));if(first.proposalStatus==='capacity'){
+   phase='cohort';const cohort=buildCohort(JSON.stringify({...descriptor,generation,seedSourceId:seed.sourceId,rows})),input=cohort.input;
+   const first=planSubjects(JSON.stringify(input));if(first.proposalStatus==='capacity'){
     await retrieval.complete(request);if(closed)return work;bump('capacity');lastOutcome='cohort-capacity-page-context';continue;
    }
    const scopes=[...new Map(first.updates.map(u=>[JSON.stringify([u.focusKey,u.contextRootId]),{focusKey:u.focusKey,contextRootId:u.contextRootId}])).values()];
@@ -107,7 +111,7 @@ function create(options,pause,testComposition){
    if(closed)break;phase='waiting';await pause(worked&&before===counts.failures+counts.conflicts?100:1000,abort.signal);
   }phase='closed';}
  const api=Object.freeze({start(){if(started||closed)throw unavailable();started=true;running=run();return api;},
-  describe:()=>Object.freeze({schema:'automatic-topic-coordinator/v1',phase,lastOutcome,counts:Object.freeze({...counts}),testComposition,
+  describe:()=>Object.freeze({schema:'automatic-topic-coordinator/v1',phase,lastOutcome,counts:Object.freeze({...counts}),testComposition,...(hasPolicy?{namePolicyVersion}:{}),
    limits:Object.freeze({indexTasks:8,discoveryTasks:4,feedTasks:feeds?8:0,...(hasPublic?{publicEvidenceTasks:2}:{}),...(hasSingle?{singleSourceMatches:12}:{}),...(hasSearch?{searchTasks:8}:{}),rawNeighbours:128,cohort:64}),assignmentAuthority:false,nativeObservation:false}),
   close(){if(!closing){closed=true;abort.abort();closing=(async()=>{if(running)await running;phase='closed';})();}return closing;}
  });return api;

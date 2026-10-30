@@ -16,7 +16,8 @@ test('the short invented fixture token fails before dispatch while its corrected
 test('registered18 contains the exact reviewed component bytes in a fixed order',async()=>{
  const actual=await readFile(new URL('../canonical-v4/migrations/018-automatic-topics.sql',import.meta.url)),built=await buildAutomaticTopicsMigrationSource();assert.deepEqual(actual,built);
  assert.equal(createHash('sha256').update(actual.subarray(0,378431)).digest('hex'),'7ac32a90c8f904bf8f970704ebdf78cae88662e00ca0033d447a060c2ec0e725','the fifteen consumed components remain an exact byte prefix');
- assert.equal(AUTOMATIC_TOPICS_COMPONENTS.length,16);assert(Object.isFrozen(AUTOMATIC_TOPICS_COMPONENTS));await assert.rejects(buildAutomaticTopicsMigrationSource('arbitrary.sql'),TypeError);
+ assert.equal(createHash('sha256').update(actual.subarray(0,382386)).digest('hex'),'36e9400e216c77e77f383ba5bc4878098469bedff69b86a70896a63b8db84e1c','all sixteen consumed components remain an exact byte prefix');
+ assert.equal(AUTOMATIC_TOPICS_COMPONENTS.length,17);assert(Object.isFrozen(AUTOMATIC_TOPICS_COMPONENTS));await assert.rejects(buildAutomaticTopicsMigrationSource('arbitrary.sql'),TypeError);
 });
 test('schema18 appends one migration without changing any existing migration or default profile',async()=>{
  const old=await readCanonicalV4MigrationManifest('hierarchy17'),now=await readCanonicalV4MigrationManifest('hierarchy18');assert.equal(canonicalV4SchemaVersion(),9);assert.equal(canonicalV4SchemaVersion('hierarchy18'),18);

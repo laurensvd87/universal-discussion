@@ -438,3 +438,52 @@ genuine18 browser/provider/model/load/cold-URL checks, a fresh final backup pair
 and verified cutover are still required. The saved29October archive is not that
 fresh final snapshot, and future backup space is additional to the unchanged
 11GiB free-D restore admission floor.
+
+A new read-only development screen sampled up to8 current Sources for each of
+six declared title probes (Koalas, GTA, Kapsalon, pandas, Switch, Steam Deck).
+Eleven current prepared pages were available. The original and current paired
+policies, body-only and title-only variants each assigned8 pages. This is a
+deliberately selected development cohort, not representative accuracy or global
+retrieval recall. The actual read-only capture closed its transaction/connection
+and all13 source/input pins passed. Result SHA256 is
+`5011ea1799632f0d6c9c60c14160274f1eb26095a460e68d00b9ff6ecb49ef39`;
+raw titles/vectors remain under the owner/System-protected backup directory.
+
+The screen exposed a real naming defect: two GTA6 headlines also proposed the
+generic topic **Alle**. Their document similarity is high, so raising the E5
+threshold would not distinguish useful names from generic words. New separately
+versioned V3 excludes content-free labels and prefers a natural-case captured
+witness (Kapsalon rather than KAPSALON), retaining exact title offsets. Concrete
+compounds such as All Saints and New York remain allowed. V1/V2 algorithm bytes
+are unchanged. Offline DEV refinement removes Alle, keeps all8 assignments under
+GTA6/Kapsalon, and retains8 assignments/four subjects on all9 earlier usable
+general-site examples. Pure V3 median1.36ms excludes SQL, encoding, capture and
+UI. All23 retained source/input pins passed. Root refinement audit SHA256 is
+`748c23a5febd2b6eaf285c26b429a287a9b40772e69ee9c62ea29fc66b665451`.
+This reused development material; prospective language/domain validation remains.
+
+Explicit application V3 planning, cohort, coordinator, repository and public
+identity recovery now share policy hash
+`82d238016f5c766d6048186c6d381f8d3596d74803577cbef973cfb8a3c62ca1`.
+Original V1/V2 entries keep their identities and behavior; policy mismatch cannot
+downgrade or acknowledge a discovery. Current schema18 worker composition selects
+V3. Public recovery thresholds remain0.88/0.03, all Source/candidate/ID/ancestor
+fences and work limits remain. This Source is not a live worker switch.
+
+Unactivated migration018 now appends a17th label-quality component. All16 old
+components remain an exact382386-byte prefix (SHA25636e9400e...db84e1c), and all
+migrations1..17 are unchanged. New018 is417569 bytes, SHA256
+`c133151d037a512f646a1df392cdf011827c6cf336f60710dff74df9ad7a7441`.
+The publisher/single-source function copies have exact mechanical inverses except
+the explicit two-policy predicates and V3 generic-label guard. The helper shares
+all177 function words with JS, normalizes Unicode, and grants no new execute
+capability. Mandatory registered18 B checks add direct generic-label refusal,
+stale Source refusal, actual V3 publication retaining IDs, V3 single-source
+matching and role denial before all old later feed/erasure checks. All190 old
+reports remain required. New SQL is still unexecuted at this Source checkpoint.
+Joined962 guarded Node and75 pure Python tests pass.
+
+The previously prepared C492 runtime contains V2 naming and the older018 bytes.
+It is retained **ON HOLD** and must not be activated as the corrected version.
+A reviewed replacement package/namespace must include the new policy and SQL.
+Full-data restore, fresh validation and all live gates remain open.

@@ -4,6 +4,8 @@ import {planAutomaticNamedSubjectsV2} from '../src/application/automatic-named-s
 import {planPublishedTopicRecovery as plan,PUBLIC_IDENTITY_RECOVERY_POLICY as policy,PUBLIC_IDENTITY_RECOVERY_POLICY_HASH as policyHash} from '../src/application/published-topic-recovery-plan.js';
 import {publishedTopicInput,PUBLISHED_TOPIC_INPUT_HASH} from '../src/application/published-topic-evidence.js';
 import {createAutomaticNamedSubjectRepository} from '../portable/canonical-v4/automatic-named-subject-repository.js';
+import {planPublishedTopicRecoveryV3} from '../src/application/published-topic-recovery-plan.js';
+import {GENERAL_SUBJECT_POLICY_V3_HASH} from '../src/application/automatic-named-subject-plan.js';
 import {automaticCohortFixture} from './fixtures/automatic-subject-cohort.js';
 const oldId='a0000000-0000-4000-8000-000000000001',otherId='a0000000-0000-4000-8000-000000000002';
 const vector=(x=1)=>[x,Math.sqrt(1-x*x),...Array(382).fill(0)];
@@ -19,6 +21,12 @@ test('independent current public meaning restores a withdrawn opaque ID with rev
  assert(r.selections.every(s=>s.subjectId===oldId));assert.equal(r.decisions[0].status,'recover-published-subject');assert.equal(r.publicRecovery.proofs[0].rootVersion,'8');
  assert.equal(r.publicRecovery.policyHash,policyHash);assert(Object.isFrozen(r.publicRecovery.proofs));assert.equal(r.assignmentAuthority,false);
  assert(!JSON.stringify(r.publicRecovery).includes(a.publicCandidates[0].body));assert(!JSON.stringify(r.publicRecovery).includes('sourceId'));
+});
+test('explicit V3 naming retains the same public recovery thresholds and opaque revision proof',()=>{
+ const a=fixture();a.input.policyHash=GENERAL_SUBJECT_POLICY_V3_HASH;const r=planPublishedTopicRecoveryV3(JSON.stringify(a));
+ assert.equal(r.schema,'general-named-subject-publication-plan/v3');assert.equal(r.policyHash,GENERAL_SUBJECT_POLICY_V3_HASH);assert.equal(r.updates[0].subjectId,oldId);
+ assert.equal(r.updates[0].expectedRevision,'12');assert.equal(r.publicRecovery.policyHash,policyHash);assert.equal(policy.minimumSimilarity,.88);assert.equal(policy.minimumMargin,.03);
+ assert.throws(()=>plan(JSON.stringify(a)));assert.throws(()=>planPublishedTopicRecoveryV3(JSON.stringify(fixture())));
 });
 test('every current member must meet the public threshold, not merely the centroid',()=>{
  const a=fixture();a.input.observations[1].vector=vector(.87);const r=result(a);assert.notEqual(r.updates[0].subjectId,oldId);assert.equal(r.publicRecovery.proofs.length,0);

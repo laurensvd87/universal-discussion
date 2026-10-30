@@ -2,13 +2,15 @@ import test from 'node:test';import assert from 'node:assert/strict';
 import {createAutomaticSubjectCoordinatorForTest as create} from '../src/application/automatic-subject-coordinator.js';
 import {createAutomaticNamedSubjectRepository} from '../portable/canonical-v4/automatic-named-subject-repository.js';
 import {automaticCohortFixture as fixture} from './fixtures/automatic-subject-cohort.js';
+import {GENERAL_SUBJECT_POLICY_V3_HASH} from '../src/application/automatic-named-subject-plan.js';
 const defer=()=>{let resolve;const promise=new Promise(done=>{resolve=done;});return {promise,resolve};};
-function setup(){
+function setup({namePolicyVersion}={}){
  const a=fixture(),events=[],waiting=defer();let published=null;
  const options={descriptorJson:JSON.stringify({matcherHash:a.matcherHash,representationHash:a.representationHash,inputDefinition:a.inputDefinition}),readGeneration:async()=>a.generation,
+  ...(namePolicyVersion===undefined?{}:{namePolicyVersion}),
   retrieval:{indexTasks:async()=>[],index:async()=>{events.push('index');return 'indexed';},discoveryTasks:async()=>[{sourceId:a.seedSourceId,indexOrdinal:'1'}],
    neighbours:async()=>a.rows,complete:async()=>{events.push('complete');return true;}},
-  subjects:createAutomaticNamedSubjectRepository({database:{async query(sql,args){
+  subjects:createAutomaticNamedSubjectRepository({...(namePolicyVersion===undefined?{}:{namePolicyVersion}),database:{async query(sql,args){
    if(sql.includes('named_candidates')){events.push('candidates');return {rows:[{result:[]}]};}
    events.push('publish');published=JSON.parse(args[0]);return {rows:[{result:{generation:published.generation,policyHash:published.policyHash,
     subjects:published.updates.map(u=>({subjectId:u.subjectId,revision:'1'})),selections:published.selections}}]};
@@ -49,6 +51,16 @@ test('bounded discovery uses the real cohort and general publisher without model
  const s=setup(),loop=create(s.options,{wait:s.pause});assert.deepEqual(s.events,[]);loop.start();assert.equal(await s.waiting.promise,100);
  assert.deepEqual(s.events,['candidates','publish','complete']);assert.equal(s.published().updates[0].label,'Kapsalon');
  assert.equal(loop.describe().counts.discoveries,1);assert.equal(loop.describe().testComposition,true);await loop.close();assert.equal(loop.describe().phase,'closed');
+});
+test('explicit V3 coordinator and repository agree on policy and exclude generic headline subjects',async()=>{
+ const s=setup({namePolicyVersion:3});s.a.rows[0].title='Alle reden über GTA 6';s.a.rows[1].title='GTA 6: Alle neuen Screenshots';s.a.rows.forEach(r=>{r.supportedPath=['games'];});
+ const loop=create(s.options,{wait:s.pause}).start();await s.waiting.promise;const sent=s.published();assert(sent);assert.equal(sent.policyHash,GENERAL_SUBJECT_POLICY_V3_HASH);
+ assert.deepEqual(sent.updates.map(u=>u.label),['GTA 6']);assert.equal(loop.describe().namePolicyVersion,3);assert.equal(loop.describe().counts.failures,0);await loop.close();
+});
+test('policy mismatch never downgrades or acknowledges the unprocessed discovery',async()=>{
+ const s=setup({namePolicyVersion:3});s.options.namePolicyVersion=2;const loop=create(s.options,{wait:s.pause}).start();assert.equal(await s.waiting.promise,1000);
+ assert.equal(s.published(),null);assert.equal(s.events.includes('complete'),false);assert.equal(loop.describe().counts.failures,1);await loop.close();
+ assert.throws(()=>create({...s.options,namePolicyVersion:true},{wait:s.pause}));
 });
 test('index tasks precede discovery and do not start another encoder or ingestion worker',async()=>{
  const s=setup();s.options.retrieval.indexTasks=async()=>[{sourceId:'source-a',queueOrdinal:'1',snapshot:null}];

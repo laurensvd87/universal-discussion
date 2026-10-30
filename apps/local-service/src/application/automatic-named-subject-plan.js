@@ -5,6 +5,7 @@
 import {randomUUID,createHash} from 'node:crypto';
 import {proposeFocusedSubjects} from '../../experiments/automatic-topic-discovery-v1/focus-subjects.js';
 import {proposeFocusedSubjects as proposeGeneralSubjects} from '../../experiments/automatic-topic-discovery-v2/focus-subjects.js';
+import {proposeFocusedSubjects as proposeQualitySubjects} from '../../experiments/automatic-topic-discovery-v3/focus-subjects.js';
 const fail=()=>{throw new TypeError('Invalid general named subject publication');};
 const shape=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).sort().join(',')===[...keys].sort().join(',');
 const sha=v=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
@@ -24,6 +25,13 @@ export const GENERAL_SUBJECT_POLICY_V2=freeze({schema:'general-named-subject-pol
  minimumSimilarity:.8,minimumDistinctMaterials:2,independentPublishersRequired:false,
  maximumObservations:64,maximumCandidates:64,kind:'subject',eventIdentityAsserted:false});
 export const GENERAL_SUBJECT_POLICY_V2_HASH=sha(GENERAL_SUBJECT_POLICY_V2);
+// Explicit new identity; the V2 algorithm and all V1/V2 calls stay unchanged.
+// SQL publication must separately allow and verify this policy before use.
+export const GENERAL_SUBJECT_POLICY_V3=freeze({...GENERAL_SUBJECT_POLICY_V2,
+ schema:'general-named-subject-policy/v3',algorithmSchema:'automatic-focus-subjects/v3',
+ algorithmSha256:'cfe889f1ebf9db8d9d40e2f9bc1495a8ac7865c792c23cd56163a9d112a642c6',
+ labelEvidence:'exclude-content-free-phrases-and-prefer-natural-case-captured-witness/v1'});
+export const GENERAL_SUBJECT_POLICY_V3_HASH=sha(GENERAL_SUBJECT_POLICY_V3);
 
 export function planAutomaticNamedSubjects(rawJson){
  if(arguments.length!==1)fail();
@@ -34,14 +42,19 @@ export function planAutomaticNamedSubjectsV2(rawJson){
  if(arguments.length!==1)fail();
  return plan(rawJson,proposeGeneralSubjects,true);
 }
+export function planAutomaticNamedSubjectsV3(rawJson){
+ if(arguments.length!==1)fail();
+ return plan(rawJson,proposeQualitySubjects,true,true);
+}
 
-function plan(rawJson,propose,v2){
+function plan(rawJson,propose,v2,v3=false){
  if(typeof rawJson!=='string'||Buffer.byteLength(rawJson)>1048576)fail();let input;
  try{input=JSON.parse(rawJson);}catch{fail();}
  if(!shape(input,['generation','policyHash','representationHash','matcherHash','minimumSimilarity','observations','sourceWitnesses','candidates'])||
     !id(input.generation)||!HASH.test(input.policyHash)||!Array.isArray(input.candidates)||input.candidates.length>64||
     !Array.isArray(input.sourceWitnesses)||input.sourceWitnesses.length>64)fail();
- if(v2&&(input.policyHash!==GENERAL_SUBJECT_POLICY_V2_HASH||input.minimumSimilarity!==GENERAL_SUBJECT_POLICY_V2.minimumSimilarity))fail();
+ const policy=v3?GENERAL_SUBJECT_POLICY_V3:GENERAL_SUBJECT_POLICY_V2,policyHash=v3?GENERAL_SUBJECT_POLICY_V3_HASH:GENERAL_SUBJECT_POLICY_V2_HASH;
+ if(v2&&(input.policyHash!==policyHash||input.minimumSimilarity!==policy.minimumSimilarity))fail();
  const proposal=propose(JSON.stringify({representationHash:input.representationHash,matcherHash:input.matcherHash,
   minimumSimilarity:input.minimumSimilarity,observations:input.observations}));
  const sourceMap=new Map(input.observations.map(row=>[row.sourceId,row])),witnessMap=new Map();
@@ -99,7 +112,7 @@ function plan(rawJson,propose,v2){
    reason:preferred?'most-specific-resolved-subject':'page-context-only'};
  });
  const usedSources=new Set(updates.flatMap(u=>u.members.map(m=>m.sourceId)));
- return freeze({schema:v2?'general-named-subject-publication-plan/v2':'general-named-subject-publication-plan/v1',generation:input.generation,policyHash:input.policyHash,
+ return freeze({schema:v3?'general-named-subject-publication-plan/v3':v2?'general-named-subject-publication-plan/v2':'general-named-subject-publication-plan/v1',generation:input.generation,policyHash:input.policyHash,
   representationHash:input.representationHash,matcherHash:input.matcherHash,updates,selections,decisions,
   // A v2 publication also clears page-only selections. Their Source fences
   // must be checked even when they support no new shared subject.

@@ -18,6 +18,7 @@ import {createLocalServiceClient} from '../../../../spikes/topic-resolution/brow
 import {readQuiescedCanonicalState} from '../../src/ops/automatic-topics-quiesced-backup.js';
 import {runCombinedAuthorHierarchyNativeAssertions} from './combined-author-hierarchy-native-assertions.js';
 import {automaticTopicsFixtureInput} from './automatic-topics-fixture-input.js';
+import {verifyRegisteredNameQualityV3} from './named-label-quality-native-assertions.js';
 import {numericMatcher} from './semantic-native-assertions.js';
 const code=c=>e=>e?.code===c,actor={id:'demo-alex',type:'human',demo:true};
 export const AUTOMATIC_TOPICS_NATIVE_CAPABILITY='invented-automatic18-pairing-capability';
@@ -134,6 +135,7 @@ export function createAutomaticTopicsMigrationNativeAssertions({check}){
   });
   await runCombinedAuthorHierarchyNativeAssertions({owner,worker,app,generation,matcher:numeric,schemaProfile:'hierarchy18',alreadyInstalled:true,retireSchema:false,
    publicationInput:sourceIds=>automaticTopicsFixtureInput({database:owner,generation,matcher:numeric,sourceIds}),check:(index,body)=>check(49+index,body),
+   verifyNameQuality:async sourceIds=>verifyRegisteredNameQualityV3({owner,worker,generation,input:await automaticTopicsFixtureInput({database:owner,generation,matcher:numeric,sourceIds})}),
    afterRetirement:async()=>{await createCanonicalV4SemanticRepository({database:owner}).activateMatcher({matcherIdentityHash:installed.descriptor.matcherIdentityHash,expectedRevision:(await head()).revision});
     assert.equal((await head()).matcher_hash,installed.descriptor.matcherIdentityHash);assert.equal((await ingestion({database:worker,schemaProfile:'hierarchy18'}).health()).schemaVersion,18);},
   });
