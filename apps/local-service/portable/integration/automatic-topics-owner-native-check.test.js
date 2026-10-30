@@ -1,7 +1,12 @@
 // Invented bounded ports only. No owner data, native, DB or credentials opened.
 import test from 'node:test';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';
-import {createAutomatic18OwnerCheckForTest,projectAutomatic18OwnerResult,AUTOMATIC18_OWNER_INPUTS,AUTOMATIC18_OWNER_PHASES,main} from './automatic-topics-owner-native-check.js';
+import {createAutomatic18OwnerCheckForTest,projectAutomatic18OwnerResult,AUTOMATIC18_OWNER_INPUTS,AUTOMATIC18_OWNER_PHASES,main,runAutomatic18BrowserOwnerNativeCheck} from './automatic-topics-owner-native-check.js';
 const hash=b=>createHash('sha256').update(b).digest('hex');
+
+test('browser owner entry rejects selectors before any native, archive or database work',async()=>{
+ await assert.rejects(runAutomatic18BrowserOwnerNativeCheck({database:'other'}),{code:'AUTOMATIC18_OWNER_ONESHOT'});
+ for(const args of [['--with-browser','other'],['--with-browser=other'],['--with-model']])assert.equal(await main(args),2);
+});
 const names=['murmingle_hierarchy_fixture_20261026_a','murmingle_hierarchy_fixture_20261026_b'];
 function fixture(fault={}){
  const events=[],phases=[],version={generation:'invented',revision:7},header={version,migrations:Array.from({length:17},(_,i)=>hash('migration'+i)),counts:{sources:7},dumpBytes:16,dumpSha256:hash('dump')};

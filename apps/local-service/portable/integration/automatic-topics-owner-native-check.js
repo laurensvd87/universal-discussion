@@ -6,7 +6,7 @@ import {createFixtureController} from './native-hierarchy-postgres-v2/context.js
 import {getOwnedIdentity} from './hierarchy-native-cluster.js';
 import {readOwnedPrivateRunBinding} from './hierarchy-native-run.js';
 import {verifyAndUpgradeRestoredAutomaticTopics} from './automatic-topics-owner-upgrade.js';
-import {runPrivateAutomatic18ApplicationRehearsal} from './private-application-rehearsal.js';
+import {runPrivateAutomatic18ApplicationRehearsal,runPrivateAutomatic18BrowserApplicationRehearsal} from './private-application-rehearsal.js';
 export const AUTOMATIC18_OWNER_INPUTS=Object.freeze({
  receipt:'hierarchy-nature-backup-final-20261029-result.json',receiptBytes:7445,receiptSha256:'e3401fc4a8a2ee6815362fddc82c019b279b9dc34f8a7f2019a4a03a607ba6e4',
  filename:'postgres-canonical-2026-10-29T02-06-29-777Z-0c3c99b5-781a-46bb-bb85-ed6b516feda7.murmingle-pgbackup',archiveBytes:1354426025,archiveSha256:'88600b8b3c31b3a3327611b0abe0730b1cf63bc2915d34c3f126d4f74ee8393c',
@@ -102,9 +102,11 @@ async function phaseWriter(){const binding=await readOwnedPrivateRunBinding(),ou
   need(raw.length<=1024,'AUTOMATIC18_OWNER_PHASE');const fd=await open(pending,'wx',0o600);try{await fd.writeFile(raw);await fd.sync();}finally{await fd.close();}await link(pending,final);index++;
  };}
 let used=false;
-export async function runAutomatic18OwnerNativeCheck(){need(arguments.length===0&&!used,'AUTOMATIC18_OWNER_ONESHOT');used=true;
+async function runAutomatic18Owner(withBrowser){need(!used,'AUTOMATIC18_OWNER_ONESHOT');used=true;
  const [{runWithPrivateOwnedScopedPostgres},{restorePostgresBackupToOwnedFixture}]=await Promise.all([import('./hierarchy-native-cluster.js'),import('../../src/ops/automatic-topics-backup-operator.js')]);
  const phase=await phaseWriter();return projectAutomatic18OwnerResult(await build({lifecycle:runWithPrivateOwnedScopedPostgres,controller:createFixtureController,identity:getOwnedIdentity,readData:readFixedData,
-  restore:restorePostgresBackupToOwnedFixture,upgrade:verifyAndUpgradeRestoredAutomaticTopics,application:runPrivateAutomatic18ApplicationRehearsal,directories:realDirectories,phase,testComposition:false},AUTOMATIC18_OWNER_INPUTS)());}
-export async function main(args=process.argv.slice(2)){if(!Array.isArray(args)||args.length!==0)return 2;try{const r=await runAutomatic18OwnerNativeCheck();process.stdout.write(JSON.stringify(r)+'\n');return r.accepted?0:1;}catch{process.stdout.write('{"schema":"owner-automatic18-postgres-result/v1","accepted":false,"failure":"private-automatic18-incomplete"}\n');return 1;}}
+  restore:restorePostgresBackupToOwnedFixture,upgrade:verifyAndUpgradeRestoredAutomaticTopics,application:withBrowser?runPrivateAutomatic18BrowserApplicationRehearsal:runPrivateAutomatic18ApplicationRehearsal,directories:realDirectories,phase,testComposition:false},AUTOMATIC18_OWNER_INPUTS)());}
+export async function runAutomatic18OwnerNativeCheck(){need(arguments.length===0,'AUTOMATIC18_OWNER_ONESHOT');return runAutomatic18Owner(false);}
+export async function runAutomatic18BrowserOwnerNativeCheck(){need(arguments.length===0,'AUTOMATIC18_OWNER_ONESHOT');return runAutomatic18Owner(true);}
+export async function main(args=process.argv.slice(2)){if(!Array.isArray(args)||!(args.length===0||args.length===1&&args[0]==='--with-browser'))return 2;try{const r=await(args.length?runAutomatic18BrowserOwnerNativeCheck():runAutomatic18OwnerNativeCheck());process.stdout.write(JSON.stringify(r)+'\n');return r.accepted?0:1;}catch{process.stdout.write('{"schema":"owner-automatic18-postgres-result/v1","accepted":false,"failure":"private-automatic18-incomplete"}\n');return 1;}}
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))void main().then(exitCode=>{process.exitCode=exitCode;});

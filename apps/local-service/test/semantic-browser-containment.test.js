@@ -4,10 +4,36 @@ import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
 import {createRequestHandler} from '../src/http/request-handler.js';
 import {validateStartupConfig} from '../src/http/startup-config.js';
+import {createLocalServiceClient} from '../../../spikes/topic-resolution/browser/core/local-service-client.js';
 import {AUTO_ATTACH,installSemanticBrowserContainment,createPrivateBrowserRequestProxy,readPrivateBrowserCredentials,createOneShotBrowserExercise} from '../harness/semantic-browser-containment.js';
 const origin='chrome-extension://'+'a'.repeat(32),other='chrome-extension://'+'b'.repeat(32),token='p'.repeat(43),session='s'.repeat(43);
 const gate=()=>{let resolve;const promise=new Promise(yes=>{resolve=yes;});return {promise,resolve};};
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
+
+test('normal v2 negotiation and global search traverse the fixed private bridge and actual HTTP handler',async()=>{
+ const config=validateStartupConfig({host:'127.0.0.1',port:4174,origin,capability:token}),seen=[];
+ const handle=createRequestHandler({config,service:{semanticProtocolVersion:2,coherentSnapshotReads:true,
+  semanticTopics:async()=>assert.fail('v2 search does not load the full directory'),authorContext:async()=>assert.fail('global search has no Source'),
+  semanticSearch:async value=>{assert.deepEqual(value,{query:'Koalas',limit:20,cursor:null});return {version:{generation:'private-v2',revision:1},topics:[],nextCursor:null};}}});
+ const proxy=createPrivateBrowserRequestProxy({origin,checkDeadline:()=>{},isOpen:()=>true,request:async input=>{
+  seen.push(input);const actual=await handle({...input,body:input.body?.toString('utf8')??null});return {...actual,body:Buffer.from(actual.body)};
+ }});
+ const client=createLocalServiceClient({getToken:()=>token,fetchImpl:async(url,options)=>{
+  const response=await proxy.forward({url,method:options.method,headers:{...options.headers,Origin:origin},postData:options.body});
+  return new Response(response.body,{status:response.status,headers:response.headers});
+ }});
+ assert.equal((await client.semanticCapabilities()).protocol,'semantic-topics/v2');
+ assert.deepEqual(await client.semanticSearch({query:'Koalas',limit:20,cursor:null}),{version:{generation:'private-v2',revision:1},topics:[],nextCursor:null});
+ assert.deepEqual(seen.map(r=>r.url),['/v1/semantic/capabilities/v2','/v1/semantic/search']);
+ assert.equal(seen[1].headers['X-Murmingle-Semantic'],'2');assert.equal(proxy.describe().firstFailure,null);await proxy.close();
+});
+
+test('private search requires the negotiated v2 header and cannot authorize an adjacent route',async()=>{
+ let dispatched=0;const proxy=createPrivateBrowserRequestProxy({origin,checkDeadline:()=>{},isOpen:()=>true,request:async()=>{dispatched++;return {status:200,headers:{'access-control-allow-origin':origin},body:Buffer.from('{}')};}});
+ for(const version of [undefined,'1','3'])await assert.rejects(proxy.forward(request({url:'http://127.0.0.1:4174/v1/semantic/search',headers:{Origin:origin,Authorization:'Bearer '+token,...(version?{'X-Murmingle-Semantic':version}:{})},postData:'{}'})));
+ await assert.rejects(proxy.forward(request({url:'http://127.0.0.1:4174/v1/semantic/search/unreviewed'})));
+ assert.equal(dispatched,0);await proxy.close();
+});
 function boundary(){
  const browser=new EventEmitter(),commands=[],tasks=new Set(),targets=new Map(),groups=new Map(),failures=[],infos=new Map();let closing=false;
  browser.close=async()=>{commands.push(['close']);};

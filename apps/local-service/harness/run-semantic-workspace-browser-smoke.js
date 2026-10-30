@@ -261,14 +261,19 @@ async function bootstrapPrivateApplication(credentials){
    return ()=>{chrome.tabs.onUpdated.removeListener(changed);chrome.tabs.onRemoved.removeListener(changed);};},
   lookupByNormalizedUrl:async()=>{throw new Error('Private manual context only');},onStateChange:value=>panel.render(value)});
  controller.setSemanticTopicsAvailable(true);panel.bind(controller);await controller.open();
- const topics=mountSemanticTopicPanel(document,directory,{client:transport,idPrefix:'private-topics-'});topics.setConnection(true);topics.setActive(true);
+ const capabilities=await transport.semanticCapabilities(),remoteSearch=capabilities.protocol==='semantic-topics/v2'&&capabilities.topicSearch==='named-topics/v2';
+ const topics=mountSemanticTopicPanel(document,directory,{client:transport,idPrefix:'private-topics-'});topics.setSearchAvailable(remoteSearch);topics.setConnection(true);topics.setActive(true);
+ let directoryTarget=null;
  let rootId=null,replyId=null,history=null,historyRoot=null,directoryPages=0,messagePages=0,directoryPaginationObserved=false,messagePaginationObserved=false;
  const seenHistory=new Set();
  const historyReady=()=>historyRoot?.getAttribute('aria-busy')==='false'&&historyRoot.querySelector('#canonical-history-retry')?.hidden===true;
 
  return {
   ready:()=>Boolean(directory.querySelector('button[id^="private-topics-open-"]')),
-  directoryFound:()=>directory.querySelector('#private-topics-search')?.value==='Games'&&Boolean(directory.querySelector('#private-topics-open-games'))&&!directory.querySelector('#private-topics-open-music'),
+  directoryProtocol:capabilities.protocol,
+  directoryQuery(){const first=directory.querySelector('button[id^="private-topics-open-"]');if(!first)throw Error('Private directory unavailable');
+   directoryTarget=remoteSearch?{id:first.id,query:first.textContent}:{id:'private-topics-open-games',query:'Games'};return directoryTarget.query;},
+  directoryFound:()=>directoryTarget&&directory.querySelector('#private-topics-search')?.value===directoryTarget.query&&Boolean(document.getElementById(directoryTarget.id))&&(remoteSearch||!directory.querySelector('#private-topics-open-music')),
   async selectManual(){topics.setActive(false);directory.hidden=true;await controller.selectTopic(topicId);if(controller.currentState().phase!=='ready')throw new Error('Private Topic unavailable');},
   rootAccepted(body){const value=controller.currentState(),root=value.discussion?.roots.find(row=>row.body===body&&row.authorId===actor);
    if(!root||root.origin?.sourceId||value.sourceId!==null||value.topicId!==topicId)return false;rootId=root.id;return true;},
@@ -317,7 +322,7 @@ export async function openPrivateApplicationBrowser(value){
  assert.ok(Number.isFinite(a.deadline)&&typeof a.checkDeadline==='function'&&typeof a.request==='function');assert.equal(process.platform,'win32');
  privateDirectories(path.dirname(a.profileDirectory));privateDirectories(a.outputDirectory);mkdirSync(a.profileDirectory);privateDirectories(a.profileDirectory);
  const profileIdentity=realpathSync(a.profileDirectory),started=performance.now(),cutoff=Math.min(a.deadline,started+120000),targets=new Map(),targetGroups=new Map(),pendingTasks=new Set();
- let browser=null,origin=null,sessionId=null,extensionLoadStarted=false,closing=false,exercising=false,boundaryFailed=false,stage='opening',failure=null,final=null,remote=null,canonical=null,proxy=null,history=null,transportFailure=null,transportOrdinal=0;
+ let browser=null,origin=null,sessionId=null,extensionLoadStarted=false,closing=false,exercising=false,boundaryFailed=false,stage='opening',failure=null,final=null,remote=null,canonical=null,proxy=null,history=null,transportFailure=null,transportOrdinal=0,directoryProtocol=null;
  const cases=PRIVATE_BROWSER_CASES.map(name=>({name,status:'not-started'})),forwardedNetwork=new Map();let observedResponses=0,publishOrigin;const originKnown=new Promise(resolve=>{publishOrigin=resolve;});
  const remember=code=>{failure??={stage,code};};
  const check=()=>{a.checkDeadline();if(closing||boundaryFailed||performance.now()>=cutoff)throw new Error('Private browser unavailable');};
@@ -337,8 +342,10 @@ export async function openPrivateApplicationBrowser(value){
    const boot=await protocol('Runtime.callFunctionOn',{objectId:environment.result.objectId,functionDeclaration:bootstrapPrivateApplication.toString(),arguments:[{value:credentials}],awaitPromise:true,returnByValue:false},sessionId);
    check();assert.ok(!boot.exceptionDetails&&boot.result?.objectId);remote=boot.result.objectId;
    stage=cases[0].name;cases[0].status='running';await wait(()=>call('function(){return this.ready();}'));
+   directoryProtocol=await call('function(){return this.directoryProtocol;}');assert.ok(['semantic-topics/v1','semantic-topics/v2'].includes(directoryProtocol));
+   const directoryQuery=await call('function(){return this.directoryQuery();}');assert.ok(typeof directoryQuery==='string'&&directoryQuery.length>0&&directoryQuery.length<=200);
    await click('#private-topics-search');
-   await protocol('Input.insertText',{text:'Games'},sessionId);await wait(()=>call('function(){return this.directoryFound();}'));cases[0].status='passed';
+   await protocol('Input.insertText',{text:directoryQuery},sessionId);await wait(()=>call('function(){return this.directoryFound();}'));cases[0].status='passed';
    await call('function(){return this.selectManual();}');stage=cases[1].name;cases[1].status='running';
    await click('#discussion-body');await protocol('Input.insertText',{text:PRIVATE_BROWSER_ROOT_BODY},sessionId);
    await click('#discussion-submit');await wait(()=>call('function(body){return this.rootAccepted(body);}',[PRIVATE_BROWSER_ROOT_BODY]));cases[1].status='passed';
@@ -375,7 +382,7 @@ export async function openPrivateApplicationBrowser(value){
   if(!contained||!ownedRootExited||!observedResponses)remember('private-browser-boundary');const network=proxy?.describe()??{requests:0,maximumPending:0,pending:0};
   if(cases.some(row=>row.status!=='passed'))remember('private-browser-exercise');
   final=freezePrivate({schema:'private-application-browser-proof/v1',status:!failure&&cases.every(row=>row.status==='passed')?'passed':'failed',cases:cases.map(row=>({...row})),pendingCases:cases.filter(row=>row.status==='running').length,
-   origin,canonical,history,transportFailure,requests:network.requests,maxConcurrentRequests:network.maximumPending,cleanup:{browserClosed,ownedRootExited,pendingRequests:network.pending,pendingTasks:pendingTasks.size,profileRemoved},
+   origin,canonical,history,transportFailure,...(directoryProtocol==='semantic-topics/v2'?{directoryProtocol}:{}),requests:network.requests,maxConcurrentRequests:network.maximumPending,cleanup:{browserClosed,ownedRootExited,pendingRequests:network.pending,pendingTasks:pendingTasks.size,profileRemoved},
    scope:{realBrowser:true,realHttpProxy:true,sqlVerifiedByThisHelper:false,nativeCapture:false,nativeSidePanel:false,provider:false,externalIdentity:false,productionCapacity:false},failure,elapsedMs:Math.round(performance.now()-started)});
   return final;
  }});

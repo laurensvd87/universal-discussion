@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {EventEmitter} from 'node:events';
 import {createPrivateSerialDatabase,createPrivateHttpRequestForTest,createPrivateRawHttpRequestForTest,runPrivateApplicationRehearsalForTest,runPrivateModelApplicationRehearsalForTest,runPrivateProductApplicationRehearsalForTest,privateApplicationStoragePaths,PRIVATE_APPLICATION_CASES} from './private-application-rehearsal.js';
 import {PRIVATE_RUN_ROOT} from './private-owner-storage.js';
-import {runPrivateAutomatic18ApplicationRehearsalForTest,PRIVATE_AUTOMATIC18_APPLICATION_CASES} from './private-application-rehearsal.js';
+import {runPrivateAutomatic18ApplicationRehearsalForTest,runPrivateAutomatic18BrowserApplicationRehearsalForTest,PRIVATE_AUTOMATIC18_APPLICATION_CASES} from './private-application-rehearsal.js';
 const sha=b=>createHash('sha256').update(b).digest('hex'),turn=()=>new Promise(r=>setImmediate(r));
 const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r;});return {promise,resolve};};
 test('fixed real-length SQLite path budgets journal suffix and NUL before storage allocation',()=>{
@@ -119,8 +119,8 @@ test('automatic18 capability and search failures cannot pass using only the pres
  }
 });
 
-function productFixture(){
- const f=fixture(),origin='chrome-extension://'+'b'.repeat(32),ownerQuery=f.value.ownerDatabase.query;let result=null,closing=null,rawRequest;
+function productFixture(settings={}){
+ const f=fixture(settings),origin='chrome-extension://'+'b'.repeat(32),ownerQuery=f.value.ownerDatabase.query;let result=null,closing=null,rawRequest;
  f.value.ownerDatabase.query=async(sql,args)=>{
   if(sql.includes(' AS original_root_high_watermark')){f.events.push('original-root-high-watermark');return {rows:[{original_root_high_watermark:'97'}]};}
   if(sql.includes(' AS manual_snapshots')){f.events.push('browser-owner-join');assert.equal(args.length,7);assert.equal(args[4],'account-private-account-one');
@@ -134,7 +134,7 @@ function productFixture(){
   return {origin,async exercise(input){f.events.push('browser-exercise');assert.ok(f.events.includes('listen'));assert.deepEqual(input.actors.map(row=>row.actorId),['account-private-account-one','account-private-account-two']);
    const response=await rawRequest({method:'OPTIONS',url:'/v1/commands',headers:{Host:'127.0.0.1:4174',Origin:origin,'Access-Control-Request-Method':'POST'},body:null});assert.equal(response.status,204);
    for(const url of ['/v1/health','/v1/version']){const reply=await rawRequest({method:'GET',url,headers:{Host:'127.0.0.1:4174',Authorization:'Bearer '+input.capability},body:null});assert.equal(reply.status,200);assert.equal(Object.hasOwn(reply.headers,'access-control-allow-origin'),false);}
-   result={status:'passed',origin,canonical:{topicId:'topic-empty',discussionId:'browser-discussion',rootId:'browser-root',replyId:'browser-reply'},scope:{realBrowser:false}};
+   result={status:'passed',origin,canonical:{topicId:'topic-empty',discussionId:'browser-discussion',rootId:'browser-root',replyId:'browser-reply'},scope:{realBrowser:false},...(settings.automaticTopics?{directoryProtocol:'semantic-topics/v2'}:{})};
   },close(){if(!closing){f.events.push('browser-close');closing=Promise.resolve(result);}return closing;},get result(){return result;}};
  };
  return {...f,get proof(){return f.proof;},get rawRequest(){return rawRequest;}};
@@ -146,6 +146,28 @@ test('product composition discovers genuine origin before app startup, closes UI
  assert.ok(f.events.indexOf('browser-close')<f.events.indexOf('model-run'));assert.ok(f.events.indexOf('browser-owner-join')<f.events.indexOf('model-run'));
  assert.deepEqual(f.proof.browser.ownerVerification,{roots:1,replies:1,manualSnapshots:0});assert.equal(f.proof.browser.ui.origin,'chrome-extension://'+'b'.repeat(32));assert.equal(f.proof.cleanup.browserClosed,true);assert.equal(f.proof.scope.browser,false);assert.equal(f.proof.scope.testComposition,true);
  assert.ok(f.events.indexOf('original-root-high-watermark')<f.events.indexOf('browser-open'));assert.ok(f.events.indexOf('model-owner-join')<f.events.indexOf('original-legacy-run'));assert.equal(f.proof.legacy.testComposition,true);
+});
+
+test('separate18 browser purpose retains all18 HTTP cases and verifies browser rows without opening encoder roles',async()=>{
+ const f=productFixture({automaticTopics:true}),r=await runPrivateAutomatic18BrowserApplicationRehearsalForTest(f.value,f.ports);
+ assert.equal(r.status,'passed',f.proof?.failure?.stage);assert.deepEqual(f.proof.cases.map(c=>c.name),PRIVATE_AUTOMATIC18_APPLICATION_CASES);
+ assert(f.proof.cases.every(c=>c.status==='passed'));assert.equal(f.proof.browser.ui.directoryProtocol,'semantic-topics/v2');
+ assert.deepEqual(f.proof.browser.ownerVerification,{roots:1,replies:1,manualSnapshots:0});assert.equal(f.proof.cleanup.browserClosed,true);
+ assert.equal(Object.hasOwn(f.proof,'model'),false);assert.equal(Object.hasOwn(f.proof,'legacy'),false);
+ assert(!f.events.includes('training-read')&&!f.events.includes('model-run')&&!f.events.includes('original-legacy-run'));
+ assert.equal(f.proof.scope.encoder,false);assert.equal(f.proof.scope.testComposition,true);
+ assert.equal(f.proof.cleanup.pendingHttp,0);assert.equal(f.proof.cleanup.pendingDatabase,0);
+ assert(!f.events.includes('end-3')&&!f.events.includes('end-4'));
+});
+
+test('18 browser purpose refuses a v1 or missing directory protocol even when all fake browser operations passed',async()=>{
+ for(const protocol of [undefined,'semantic-topics/v1']){
+  const f=productFixture({automaticTopics:true}),open=f.ports.openBrowser;
+  f.ports.openBrowser=async input=>{const browser=await open(input);return {...browser,async close(){return {...await browser.close(),directoryProtocol:protocol};}};};
+  const r=await runPrivateAutomatic18BrowserApplicationRehearsalForTest(f.value,f.ports);assert.equal(r.status,'failed');
+  assert.equal(f.proof.failure.stage,'browser-close');assert.equal(f.proof.cleanup.browserClosed,true);assert(f.events.includes('end-1')&&f.events.includes('end-2'));
+  assert(!f.events.includes('browser-owner-join'));
+ }
 });
 
 test('unavailable original legacy roots remain explicit while failed, unclosed or scan-bound work blocks product acceptance',async()=>{

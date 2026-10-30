@@ -123,7 +123,7 @@ export function installSemanticBrowserContainment({browser,targets,targetGroups,
 
 const PRIVATE_ROUTES=new Map([
  ['GET',new Set(['/v1/health','/v1/version'])],
- ['POST',new Set(['/v1/account/me','/v1/semantic/capabilities','/v1/semantic/topics','/v1/semantic/feed','/v1/semantic/thread','/v1/semantic/target',
+ ['POST',new Set(['/v1/account/me','/v1/semantic/capabilities','/v1/semantic/capabilities/v2','/v1/semantic/search','/v1/semantic/topics','/v1/semantic/feed','/v1/semantic/thread','/v1/semantic/target',
   '/v1/catalog/context','/v1/catalog/selection','/v1/commands','/v1/discover/search','/v1/discussions/page'])],
 ]);
 const privateFailure=()=>new Error('Private browser transport refused');
@@ -160,6 +160,7 @@ export function createPrivateBrowserRequestProxy({origin,request,checkDeadline,i
    if(input.method==='OPTIONS')needPrivate(!lower.has('authorization')&&!lower.has('x-account-session'));
    if(input.method!=='OPTIONS')needPrivate(/^Bearer [A-Za-z0-9_-]{32,512}$/u.test(lower.get('authorization')??''));
    if(lower.has('x-account-session'))needPrivate(/^[A-Za-z0-9_-]{43}$/u.test(lower.get('x-account-session')));
+   if(url.pathname==='/v1/semantic/search'&&input.method!=='OPTIONS')needPrivate(lower.get('x-murmingle-semantic')==='2');
    if(['/v1/discover/search','/v1/discussions/page'].includes(url.pathname))needPrivate(!lower.has('x-account-session'));
    at('request-body');needPrivate(input.postData===undefined||typeof input.postData==='string');body=input.postData===undefined?null:Buffer.from(input.postData,'utf8');
    needPrivate(body===null||body.length<=65536);at('request-capacity');needPrivate(total<64&&pending.size<4);total++;

@@ -587,3 +587,34 @@ Root audit3756214b6b62ce582d86249db3c33e584b85d92e67faa7357e761a668d98e431.
 This uses synthetic HTTP/AI metadata, not full-data18 SQL/browser integration.
 All app/model/SQL/runtime artifact source remains unchanged by these QA changes;
 the new inactive V3 package still needs full recovery and final live gates.
+
+The full-data rehearsal now has an additional closed purpose,
+`private-automatic18-browser <reviewed-sha256>`. It retains the exact29Oct schema17
+archive/receipt, verifies the complete owner upgrade and all18 HTTP cases, then
+requires four real Chrome/HTTP UI operations with matching SQL owner rows. The
+browser negotiates the normal v2 capability and global search rather than forcing
+v1. Its query is chosen from a genuine returned public card, with private title
+and credentials kept in memory. Header, scope and body checks retain their
+original limits; the bridge adds only capabilities/v2 and semantic/search, with
+the latter requiring the negotiated2 header. A v1 or missing directoryProtocol
+cannot pass the browser purpose. Original17 and HTTP-only18 modes remain separate.
+
+The new purpose uses original64MiB Node/1GiB Job/32 processes/eight physical SQL
+clients and unchanged11GiB free-D admission plus4GiB sampled disk floor. It starts
+no encoder or provider; these remain separate full-goal requirements. The original
+17 model/product mode retains its512MiB Node/two-GiB Job and legacy-adoption
+requirements. No memory budget increase, fallback restore, production DB action
+or live-source change is made. Full owner/browser execution remains UNRUN until
+the existing disk admission is met. Source-only validation passes1046 guarded
+Node checks and80 pure Python driver checks, including old75 plus5 new purpose,
+launch/input/proof controls. The changed maintained harness also passes another
+actual synthetic22-case Chrome regression; that does not count as the new full
+data/browser execution.
+
+A metadata-only allocation audit on30Oct found approximately12.7GB unique file
+data within the project and4.2GB for the running canonical database. The initial
+inventory's unique-byte total was invalid because Windows DirEntry.stat supplies
+zero device/inode fields; a separate v2 scan uses explicit os.stat and preserves
+the invalid artifact for comparison. No project, backup, personal file or live
+PostgreSQL data was removed or relocated during this audit. Freeing7-8GiB or a
+suitable additional disk is still needed before the full-data rehearsal.

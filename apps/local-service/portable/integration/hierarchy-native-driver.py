@@ -967,13 +967,15 @@ def open_locked_read(path):
 
 class PrivateInputs:
     """Fixed encrypted data is held separately from the bounded code catalog."""
-    def __init__(self, inventory, opener=open_locked_read, clock=time.monotonic, model=False,product=False,automatic18=False):
+    def __init__(self, inventory, opener=open_locked_read, clock=time.monotonic, model=False,product=False,automatic18=False,browser=False):
         inventory.require(type(model) is bool and type(product) is bool and (not product or model),'private-input-purpose')
         self.i,self.opener,self.clock = inventory,opener,clock
         self.model = model
         self.product = product
         inventory.require(type(automatic18) is bool and (not automatic18 or not model and not product),'private-input-purpose')
         self.automatic18 = automatic18
+        inventory.require(type(browser) is bool and (not browser or automatic18 and not model and not product),'automatic18-browser-purpose')
+        self.browser = browser
         self.files = []
         self.prepared = self.closed = False
         self.verified = False
@@ -1018,7 +1020,7 @@ class PrivateInputs:
         I = self.i
         I.require(not self.prepared and not self.files and not self.closed,'private-input-state')
         try:
-            for path,size,digest in (AUTOMATIC18_OWNER_INPUTS if self.automatic18 else PRIVATE_INPUTS) + (MODEL_INPUTS if self.model else ()) + (BROWSER_INPUTS if self.product else ()):
+            for path,size,digest in (AUTOMATIC18_OWNER_INPUTS if self.automatic18 else PRIVATE_INPUTS) + (MODEL_INPUTS if self.model else ()) + (BROWSER_INPUTS if self.product or self.browser else ()):
                 self._time()
                 directory_info(path.parent,I)
                 before = path.lstat()
@@ -1200,8 +1202,9 @@ def checked_model_proof(I,value):
         operations.add(row['operationId']);sources.add(row['sourceId'])
 
 
-def checked_browser_proof(I,value):
+def checked_browser_proof(I,value,automatic18=False):
     """Four real UI operations through raw local HTTP; no native/provider claim."""
+    I.require(type(automatic18) is bool,'browser-proof-purpose')
     def shape(item,fields):return type(item) is dict and set(item)==set(fields.split())
     def number(item,low,high):return type(item) in (int,float) and type(item) is not bool and low<=item<=high
     I.require(shape(value,'ui ownerVerification runtime'),'browser-proof-owner')
@@ -1215,7 +1218,7 @@ def checked_browser_proof(I,value):
     value=value['ui']
     names=('named-account-and-semantic-directory-search','human-root-in-original-canonical-topic-null-origin',
         'human-reply-and-stored-read-original-destination','second-account-edit-denied-original-body-retained')
-    I.require(shape(value,'schema status cases pendingCases origin canonical requests maxConcurrentRequests cleanup scope failure elapsedMs history transportFailure')
+    I.require(shape(value,'schema status cases pendingCases origin canonical requests maxConcurrentRequests cleanup scope failure elapsedMs history transportFailure'+(' directoryProtocol' if automatic18 else ''))
         and value['schema']=='private-application-browser-proof/v1' and value['status']=='passed'
         and value['cases']==[{'name':name,'status':'passed'} for name in names]
         and type(value['pendingCases']) is int and value['pendingCases']==0 and value['failure'] is None
@@ -1224,6 +1227,8 @@ def checked_browser_proof(I,value):
         and type(value['maxConcurrentRequests']) is int and 1<=value['maxConcurrentRequests']<=4
         and value['maxConcurrentRequests']<=value['requests'] and number(value['elapsedMs'],0,300000)
         and value['transportFailure'] is None,'browser-proof-shape')
+    if automatic18:
+        I.require(value['directoryProtocol']=='semantic-topics/v2','browser-proof-directory-protocol')
     history=value['history']
     I.require(shape(history,'verified anonymous originalIdsRead readOnly noSourceLinks flatReplies layoutWithinBounds viewportWidth directoryPages messagePages directoryPaginationObserved messagePaginationObserved')
         and all(history[key] is True for key in ('verified','anonymous','originalIdsRead','readOnly','noSourceLinks','flatReplies','layoutWithinBounds'))
@@ -1282,13 +1287,15 @@ def checked_legacy_proof(I,value):
 
 class PrivateHttpProof:
     """Additional mandatory HTTP evidence; never aliases the restore ledger."""
-    def __init__(self,inventory,run,model=False,product=False,automatic18=False):
+    def __init__(self,inventory,run,model=False,product=False,automatic18=False,browser=False):
         inventory.require(type(model) is bool and type(product) is bool and (not product or model),'http-proof-purpose')
         self.i,self.root,self.digest = inventory,run.output,None
         self.model = model
         self.product = product
         inventory.require(type(automatic18) is bool and (not automatic18 or not model and not product),'http-proof-purpose')
         self.automatic18 = automatic18
+        inventory.require(type(browser) is bool and (not browser or automatic18 and not model and not product),'automatic18-browser-purpose')
+        self.browser = browser
         self.identity = None
 
     def _read(self):
@@ -1318,7 +1325,7 @@ class PrivateHttpProof:
             return type(item) is dict and set(item) == set(fields.split())
         def bounded(item,low,high):
             return type(item) is int and low <= item <= high
-        I.require(shape(value,'schema status cases pendingCases server counts cleanup scope failure elapsedMs upgrade'+(' model' if self.model else '')+(' browser legacy' if self.product else ''))
+        I.require(shape(value,'schema status cases pendingCases server counts cleanup scope failure elapsedMs upgrade'+(' model' if self.model else '')+(' browser legacy' if self.product else ' browser' if self.browser else ''))
             and value['schema'] == ('private-automatic18-application-http-proof/v1' if self.automatic18 else 'private-application-http-proof/v1') and value['status'] == 'passed'
             and value['failure'] is None and type(value['pendingCases']) is int and value['pendingCases'] == 0
             and bounded(value['elapsedMs'],0,300000),'http-proof-shape')
@@ -1338,20 +1345,21 @@ class PrivateHttpProof:
             and counts['maximumConcurrentHttp'] <= counts['httpRequests']
             and type(counts['fixtureActors']) is int and counts['fixtureActors'] == 2,'http-proof-counts')
         cleanup,scope = value['cleanup'],value['scope']
-        extra=(('workerClientClosed','submitterClientClosed') if self.model else ())+(('browserClosed',) if self.product else ())
-        I.require(shape(cleanup,'serverClosed applicationClosed appClientClosed urlClientClosed pendingHttp pendingDatabase'+(' workerClientClosed submitterClientClosed' if self.model else '')+(' browserClosed' if self.product else ''))
+        extra=(('workerClientClosed','submitterClientClosed') if self.model else ())+(('browserClosed',) if self.product or self.browser else ())
+        I.require(shape(cleanup,'serverClosed applicationClosed appClientClosed urlClientClosed pendingHttp pendingDatabase'+(' workerClientClosed submitterClientClosed' if self.model else '')+(' browserClosed' if self.product or self.browser else ''))
             and all(cleanup[key] is True for key in ('serverClosed','applicationClosed','appClientClosed','urlClientClosed')+extra)
             and all(type(cleanup[key]) is int and cleanup[key] == 0 for key in ('pendingHttp','pendingDatabase')),'http-proof-cleanup')
         I.require(shape(scope,'realHttp realDatabase browser encoder provider externalLoginVerified productionCapacityValidated testComposition')
             and scope['realHttp'] is True and scope['realDatabase'] is True
             and scope['encoder'] is self.model
-            and scope['browser'] is self.product
+            and scope['browser'] is (self.product or self.browser)
             and all(scope[key] is False for key in ('provider','externalLoginVerified',
                 'productionCapacityValidated','testComposition')),'http-proof-scope')
         if self.model:
             checked_model_proof(I,value['model'])
+        if self.product or self.browser:
+            checked_browser_proof(I,value['browser'],automatic18=self.browser)
         if self.product:
-            checked_browser_proof(I,value['browser'])
             checked_legacy_proof(I,value['legacy'])
         if self.digest is not None:
             I.require(self.digest == digest and self.identity == identity,'http-proof-changed')
@@ -1400,10 +1408,12 @@ def native_api_type(windows, run):
     model = getattr(run,'model',False)
     product = getattr(run,'product',False)
     automatic18 = getattr(run,'automatic18',False)
+    browser = getattr(run,'browser',False)
+    require(type(browser) is bool and (not browser or automatic18 and not model and not product),'automatic18-browser-purpose')
     require(type(automatic18) is bool and (not automatic18 or getattr(run,'private',False) is True and getattr(run,'http',False) is True and not model and not product),'run-purpose')
     require(type(model) is bool and type(product) is bool and (not product or model) and (not model or (getattr(run,'private',False) is True and getattr(run,'http',False) is True)), 'run-purpose')
     HEAP = '512' if model else '64'
-    MODEL_ARG = ' --with-product' if product else ' --with-model' if model else ''
+    MODEL_ARG = ' --with-product' if product else ' --with-model' if model else ' --with-browser' if browser else ''
     # A closed mode chooses between reviewed fixed entries and supplies the one
     # fixed private metadata variable. Removing that explicit prefix restores
     # the frozen suspended-launch AST; default environment bytes stay exact.
@@ -1492,7 +1502,7 @@ class OwnedRun:
     Output512KiB and cluster512MiB remain separately bounded. Control metadata
     (one catalog snapshot, marker and permanent child claim) is capped at1MiB.
     """
-    def __init__(self, inventory, private=False, http=False, model=False,product=False,automatic18=False):
+    def __init__(self, inventory, private=False, http=False, model=False,product=False,automatic18=False,browser=False):
         inventory.require(type(private) is bool and type(http) is bool and type(model) is bool and type(product) is bool and (not product or model) and (not http or private) and (not model or (private and http)), 'run-purpose')
         self.i = inventory
         self.private = private
@@ -1501,6 +1511,8 @@ class OwnedRun:
         self.product = product
         inventory.require(type(automatic18) is bool and (not automatic18 or private and http and not model and not product),'run-purpose')
         self.automatic18 = automatic18
+        inventory.require(type(browser) is bool and (not browser or automatic18 and not model and not product),'automatic18-browser-purpose')
+        self.browser = browser
         self.runs_root = PRIVATE_RUNS_ROOT if private else RUNS_ROOT
         self.marker_schema = 'private-hierarchy-native-owned-run' if private else 'hierarchy-native-owned-run'
         self.claim_schema = 'private-hierarchy-native-child-claim' if private else 'hierarchy-native-child-claim'
@@ -1685,7 +1697,7 @@ def cluster_tree_type(supervisor, inventory, run):
     return ClusterTree
 
 
-def execute(external_sha, private=False, http=False, model=False,product=False,automatic18=False):
+def execute(external_sha, private=False, http=False, model=False,product=False,automatic18=False,browser=False):
     S = load_pinned('supervisor')
     I = S.I  # Keep the controller's exact refusal type and authenticated helper.
     I.require(type(private) is bool and type(http) is bool and type(model) is bool and type(product) is bool and (not product or model) and (not http or private) and (not model or (private and http)),'run-purpose')
@@ -1693,13 +1705,13 @@ def execute(external_sha, private=False, http=False, model=False,product=False,a
     I.require(sys.platform == 'win32' and Path(sys.executable).resolve() == I.RUNTIME_PINS['@python'][0].resolve(), 'python-path')
     I.require(str(REPO).replace(chr(92), '/').casefold() == 'd:/gitprojekts/universal-discussion-bootstrap', 'fixed-repo')
     catalog = catalog_type(I)(external_sha)
-    run = OwnedRun(I,private,http,model,product,automatic18)
+    run = OwnedRun(I,private,http,model,product,automatic18,browser)
     publisher = publisher_type(S, I, run)()
     tree = cluster_tree_type(S, I, run)()
     modules, host_native = {'windows':load_pinned('windows')}, []
-    inputs = PrivateInputs(I,model=model,product=product,automatic18=automatic18) if private else None
+    inputs = PrivateInputs(I,model=model,product=product,automatic18=automatic18,browser=browser) if private else None
     phases = PrivatePhases(I,run,http,automatic18=automatic18) if private else None
-    application = PrivateHttpProof(I,run,model=model,product=product,automatic18=automatic18) if http else None
+    application = PrivateHttpProof(I,run,model=model,product=product,automatic18=automatic18,browser=browser) if http else None
 
     def authenticate():
         catalog.authenticate()
@@ -1782,19 +1794,20 @@ def execute(external_sha, private=False, http=False, model=False,product=False,a
 
 def main(argv=None):
     args = sys.argv[1:] if argv is None else argv
-    private = type(args) is list and len(args) == 2 and args[0] in ('private-restore','private-http','private-model','private-product','private-automatic18')
-    automatic18 = private and args[0] == 'private-automatic18'
+    private = type(args) is list and len(args) == 2 and args[0] in ('private-restore','private-http','private-model','private-product','private-automatic18','private-automatic18-browser')
+    automatic18 = private and args[0] in ('private-automatic18','private-automatic18-browser')
+    browser = private and args[0] == 'private-automatic18-browser'
     product = private and args[0] == 'private-product'
     model = private and args[0] in ('private-model','private-product')
-    http = private and args[0] in ('private-http','private-model','private-product','private-automatic18')
+    http = private and args[0] in ('private-http','private-model','private-product','private-automatic18','private-automatic18-browser')
     if private:
         args = args[1:]
     if (type(args) is not list or len(args) != 1 or type(args[0]) is not str
             or len(args[0]) != 64 or any(c not in '0123456789abcdef' for c in args[0])):
-        sys.stderr.write('Expected reviewed catalog SHA256, or private-restore/private-http/private-model/private-product/private-automatic18 followed by that SHA256.\n')
+        sys.stderr.write('Expected reviewed catalog SHA256, or private-restore/private-http/private-model/private-product/private-automatic18/private-automatic18-browser followed by that SHA256.\n')
         return 2
     try:
-        result = execute(args[0],private,http,automatic18=True) if automatic18 else execute(args[0],private,http,True,True) if product else execute(args[0],private,http,True) if model else execute(args[0],private,http)
+        result = execute(args[0],private,http,automatic18=True,browser=True) if browser else execute(args[0],private,http,automatic18=True) if automatic18 else execute(args[0],private,http,True,True) if product else execute(args[0],private,http,True) if model else execute(args[0],private,http)
         sys.stdout.write(json.dumps({'schema':'native-hierarchy-postgres-invocation/v2',
             'accepted':result['accepted']}, sort_keys=True, separators=(',', ':'))+'\n')
         return 0 if result['accepted'] else 1

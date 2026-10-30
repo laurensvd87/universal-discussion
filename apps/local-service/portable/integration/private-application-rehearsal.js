@@ -222,6 +222,7 @@ async function run(value,ports,testComposition,withModel=false,withBrowser=false
    stage='browser-canonical-topic';const selected=await a.ownerDatabase.query("SELECT id FROM canonical_v4.topics t WHERE NOT EXISTS(SELECT 1 FROM canonical_v4.discussions d JOIN canonical_v4.contributions c ON c.discussion_id=d.id WHERE d.topic_id=t.id) ORDER BY id COLLATE \"C\" LIMIT 1");const canonicalTopicId=selected.rows[0]?.id;need(typeof canonicalTopicId==='string','APPLICATION_BROWSER_TOPIC');
    stage='browser-exercise';await browserHandle.exercise({actors:browserActors,capability:token,canonicalTopicId});a.checkDeadline();
    stage='browser-close';await closeBrowser();a.checkDeadline();need(browser?.ui?.status==='passed'&&browser.ui.origin===cfg.origin,'APPLICATION_BROWSER');
+   need(!automaticTopics||browser.ui.directoryProtocol==='semantic-topics/v2','APPLICATION_AUTOMATIC_BROWSER_PROTOCOL');
    stage='browser-owner-verification';browser.ownerVerification=await verifyBrowserOwnerRows(a.ownerDatabase,browser.ui,browserActors[0].actorId,a.checkDeadline);
   }
   await caseRun(automaticTopics?'automatic18-http-health':'hierarchy17-http-health',async()=>{need((await ok('/v1/health')).protocol==='local-service/v1');});
@@ -301,7 +302,7 @@ async function run(value,ports,testComposition,withModel=false,withBrowser=false
   server:{destinationPort:PORT,canonicalHost:HOST,loopbackOnly:true},upgrade:{...a.upgrade},counts:{httpRequests,maximumConcurrentHttp,fixtureActors:2},cleanup,
   scope:{realHttp:!testComposition,realDatabase:!testComposition,browser:withBrowser&&!testComposition,encoder:withModel&&!testComposition,provider:false,externalLoginVerified:false,productionCapacityValidated:false,testComposition},
   ...(withModel?{model}:{}),
-  ...(withBrowser?{browser,legacy}:{}),
+  ...(withBrowser?{browser,...(withModel?{legacy}:{})}:{}),
   failure:failed?{stage,code:'APPLICATION_CASE_OR_CLEANUP_FAILED'}:null,elapsedMs:Math.max(0,Math.round(ports.now()-began))};
  if(failed)void primary;a.checkDeadline();const file=await ports.publishProof(a,proof);a.checkDeadline();return Object.freeze({status:proof.status,proofSha256:file.sha256,proofBytes:file.bytes});
 }
@@ -314,3 +315,6 @@ export async function runPrivateProductApplicationRehearsalForTest(value,ports){
 // Separate closed schema18 composition; the original17 entries reject18.
 export async function runPrivateAutomatic18ApplicationRehearsal(value){need(arguments.length===1,'APPLICATION_CONTEXT');return run(value,REAL,false,false,false,true);}
 export async function runPrivateAutomatic18ApplicationRehearsalForTest(value,ports){need(arguments.length===2&&ports&&Object.keys(REAL).every(k=>typeof ports[k]==='function'),'APPLICATION_TEST_PORTS');return run(value,ports,true,false,false,true);}
+// Separate full-data browser purpose; no encoder/provider is started.
+export async function runPrivateAutomatic18BrowserApplicationRehearsal(value){need(arguments.length===1,'APPLICATION_CONTEXT');return run(value,{...REAL,...PRODUCT},false,false,true,true);}
+export async function runPrivateAutomatic18BrowserApplicationRehearsalForTest(value,ports){need(arguments.length===2&&ports&&[...Object.keys(REAL),...Object.keys(PRODUCT)].every(k=>typeof ports[k]==='function'),'APPLICATION_TEST_PORTS');return run(value,ports,true,false,true,true);}

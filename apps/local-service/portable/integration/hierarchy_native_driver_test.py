@@ -1385,5 +1385,78 @@ class MaintainedDriverTest(unittest.TestCase):
         with self.assertRaises(self.W.BoundaryFailure):D.native_api_type(self.W,run)
 
 
+    def test_automatic18_browser_is_a_separate_closed_purpose_without_encoder_or_budget_changes(self):
+        with patch.object(D,'execute',return_value={'accepted':True}) as invoke,contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(D.main(['private-automatic18-browser','d'*64]),0)
+            invoke.assert_called_once_with('d'*64,True,True,automatic18=True,browser=True)
+        run=D.OwnedRun(self.I,True,True,automatic18=True,browser=True)
+        self.assertTrue(run.browser and run.automatic18);self.assertFalse(run.model or run.product)
+        for args in (['private-automatic18-browser'],['private-automatic18-browser','d'*64,'--db=x']):
+            with contextlib.redirect_stderr(io.StringIO()):self.assertEqual(D.main(args),2)
+        for kwargs in ({'browser':True},{'automatic18':True,'browser':1},{'automatic18':True,'browser':True,'model':True}):
+            with self.assertRaises(self.I.Refusal):D.OwnedRun(self.I,True,True,**kwargs)
+
+    def test_automatic18_browser_launch_is_original64_heap_and_one_fixed_browser_flag(self):
+        root=D.PRIVATE_RUNS_ROOT/('run-'+'d'*48)
+        run=types.SimpleNamespace(output=root/'output',cluster=root/'cluster',private=True,http=True,model=False,product=False,automatic18=True,browser=True)
+        commands=[]
+        def launch(executable,command,process_security,thread_security,inherit,flags,environment,cwd,startup,info):
+            commands.append(command.value)
+            self.assertEqual(command.value,'"'+D.NODE+'" --max-old-space-size=64 "'+str(D.REPO/D.AUTOMATIC18_OWNER_ENTRY)+'" --with-browser')
+            self.assertEqual(flags,0x8040C);self.assertIs(inherit,True)
+            info._obj.process,info._obj.thread,info._obj.pid=111,222,333;return True
+        api=object.__new__(D.native_api_type(self.W,run));api.m=self.B;api.k=types.SimpleNamespace(CreateProcessW=launch)
+        api.create_process((ctypes.create_string_buffer(64),[],None),11,12,13)
+        self.assertEqual(len(commands),1)
+        run.automatic18=False
+        with self.assertRaises(self.W.BoundaryFailure):D.native_api_type(self.W,run)
+
+    def test_automatic18_browser_holds_only_the_two_owner_inputs_and_fixed_chrome_until_finish(self):
+        def check(run):
+            records=[]
+            for index in range(3):
+                name=run.root/('browser-input-'+str(index));raw=('invented-browser-'+str(index)).encode();name.write_bytes(raw)
+                records.append((name,len(raw),hashlib.sha256(raw).hexdigest()))
+            streams=[]
+            def opener(filename):
+                stream=filename.open('rb',buffering=0);streams.append(stream);return stream
+            with patch.object(D,'AUTOMATIC18_OWNER_INPUTS',tuple(records[:2])),patch.object(D,'BROWSER_INPUTS',tuple(records[2:])):
+                guard=D.PrivateInputs(self.I,opener=opener,clock=lambda:D.STARTED+1,automatic18=True,browser=True)
+                try:
+                    guard.prepare();self.assertEqual(len(streams),3);self.assertTrue(all(not x.closed for x in streams))
+                    guard.finish(D.STARTED+20);self.assertTrue(guard.verified and guard.closed);self.assertTrue(all(x.closed for x in streams))
+                finally:guard.close()
+        self._owned_run_test(check)
+
+    def test_automatic18_browser_proof_requires_actual_v2_directory_and_preserves_original_browser_contract(self):
+        old=self.browser_proof()
+        D.checked_browser_proof(self.I,old)
+        with self.assertRaises(self.I.Refusal):D.checked_browser_proof(self.I,old,automatic18=True)
+        modern=self.browser_proof();modern['ui']['directoryProtocol']='semantic-topics/v2'
+        D.checked_browser_proof(self.I,modern,automatic18=True)
+        with self.assertRaises(self.I.Refusal):D.checked_browser_proof(self.I,modern)
+        for protocol in (None,'semantic-topics/v1',True):
+            modern['ui']['directoryProtocol']=protocol
+            with self.assertRaises(self.I.Refusal):D.checked_browser_proof(self.I,modern,automatic18=True)
+
+    def test_automatic18_browser_is_mandatory_additional_http_evidence_not_model_or_legacy_adoption(self):
+        def check(run,old,value,publish):
+            value['schema']='private-automatic18-application-http-proof/v1';value['upgrade'].update(schemaVersion=18,preservedLegacyTables=27)
+            value['cases']=[{'name':name,'status':'passed'} for name in D.AUTOMATIC18_HTTP_CASES]
+            value['scope']['browser']=True;value['cleanup']['browserClosed']=True
+            value['browser']=self.browser_proof();value['browser']['ui']['directoryProtocol']='semantic-topics/v2'
+            publish(value)
+            proof=D.PrivateHttpProof(self.I,run,automatic18=True,browser=True);proof.complete();proof.check()
+            self.assertIsNotNone(proof.digest)
+            with self.assertRaises(self.I.Refusal):D.PrivateHttpProof(self.I,run,automatic18=True).complete()
+        self._http_proof_test(check)
+        def missing(run,old,value,publish):
+            value['schema']='private-automatic18-application-http-proof/v1';value['upgrade'].update(schemaVersion=18,preservedLegacyTables=27)
+            value['cases']=[{'name':name,'status':'passed'} for name in D.AUTOMATIC18_HTTP_CASES]
+            publish(value)
+            with self.assertRaises(self.I.Refusal):D.PrivateHttpProof(self.I,run,automatic18=True,browser=True).complete()
+        self._http_proof_test(missing)
+
+
 if __name__ == '__main__':
     unittest.main()
