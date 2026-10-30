@@ -8,6 +8,20 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct ADR234 NEW plain-owner-recovery-v3 SOURCE Root reviewed;34sources/
+8normalizedchanges/26namespace-only, all consumedv2+component5 unchanged. Actual
+lifecycle SQL/restore/client/normal-stop assertions exact except namespace/latch.
+Owner gate/projector+Python parent now requireupgradev2/29restored/28preserved,
+exactlegacy28receipt/queuePreservedTRUE/receiptCoveredFALSE/boundedrows+hash.
+119NodePASS479.0368ms64MiB/108PythonPASS4.105s; sandboxtemp-accessfail resolved by
+identical escalated puretests. OriginalAST/18HTTP/Chrome/caps unchanged. Source
+review9637B35c44e64...436a9; catalog419688B0041bda9...9ab18/2715files279895100B,
+fullauth/endpins/7runtime/old2710PASS; 3heldinputs closed; fresh3resources PASS
+minimumD4468826112. Readiness1430B05bdecb6...4d5ef. RootpreparerparsePASS,
+namespace-onlynativebody unchanged; newrootABSENT/no actualyet. Source-ready
+latchesTRUE areNOTactualauthority; sourcearchival/freshchecks/separateONEdecision
+required. GoalACTIVE; full18actualmigration/browser and fullsemantic/livegoal OPEN.
+
 LATEST30Oct plain-v2 ONE actual97228 CLOSEDexit1 after FULL authenticated archive
 process/restore-retired, then AUTOMATIC_RESTORE_TABLE_SET beforefingerprints/
 migration/HTTP/browser. Eightphases/185progress; lastJobCPU233.375, sampledallocated

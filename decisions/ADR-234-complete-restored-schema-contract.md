@@ -65,3 +65,36 @@ archive source and obtain a separate Root ONE actual decision before execution.
 
 The complete hierarchical matching/discovery, stable identity, indexed retrieval,
 owner controls, actual UI/load/privacy and live activation goal stays active.
+
+## New plain-v3 source and readiness
+
+Separate source grant e659026b...2d5ea precedes34 new source copies. Root reviews
+the complete normalized differences: only8 files differ beyond namespace;
+26 namespace-only copies retain all original assertions and budgets. The native
+lifecycle itself is exact after namespace replacement and its temporary closed
+source-ready latch. All34 consumed predecessor source pins/catalog and all five
+component pins remain unchanged. Only the two source-ready latches change after
+tests; they are not actual execution permission.
+
+119 Node tests pass64MiB/479.0368ms and108 Python tests pass4.105s. The initial
+sandbox Python invocation fails temporary-directory access; identical tests pass
+with workspace filesystem access. Both owner gate/projector and parent reject
+oldv1/counts, false complete29 coverage, missing/changed queue flags, unsafe queue
+counts and invalid hashes. Original SQL-guard AST,18 HTTP and real Chrome proof
+checks remain. Root preparer parses without errors and its native declarations
+are unchanged under namespace-only comparison; no setup is executed by parsing.
+
+Root-only source review9637 bytes hashes
+`35c44e6448e980ebaba59369000035071b7d3c91cdadb4d9fd4903afc30436a9`.
+New catalog419688 bytes hashes
+`0041bda98a8ed7a49ca061794e8b3dc67d6658dc9937e08f5f2660396159ab18`,
+authenticating2715 files/279895100 bytes including all five component files and
+its explicit package-scope absence. All2710 predecessor pins are freshly checked;
+whole authentication/end pins and all seven runtime pins pass. Three fixed
+backup/receipt/Chrome inputs are held, authenticated and closed. Three fresh
+one-second resource samples meet original memory/C and stronger D admission,
+minimum D4468826112 bytes. New root is absent. Readiness1430 bytes hashes
+`05bdecb6066824062bd1e7195ab548f3c60c540f647689c7948db9157c34d5ef`.
+This is source/readiness evidence, not actual restore/migration/browser acceptance.
+Archive source, check fresh services/port/resources and record a separate ONE
+actual decision before preparing the fixed new root and invoking the driver.

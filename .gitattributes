@@ -30,3 +30,4 @@ apps/local-service/portable/integration/compressed-reservation-probe-v1/** -text
 apps/local-service/portable/integration/plain-owner-recovery-v1/** -text
 apps/local-service/portable/integration/plain-owner-recovery-v2/** -text
 apps/local-service/portable/integration/restored-schema-contract-v1/** -text
+apps/local-service/portable/integration/plain-owner-recovery-v3/** -text
