@@ -1,7 +1,7 @@
 # Registered automatic topic schema18
 
 `hierarchy18` appends one checked-in migration to the unchanged registered1..17
-manifest. Migration018 contains the exact bytes of fifteen reviewed component
+manifest. Migration018 contains the exact bytes of sixteen reviewed component
 SQL files in a fixed dependency order. The build-time helper only returns those
 bytes; it never writes or installs them. Ordinary migration manifests read the
 checked-in file. After live activation both this migration and its incorporated
