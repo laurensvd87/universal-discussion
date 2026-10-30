@@ -8,6 +8,31 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct plain-v5 ONEactual8512 CLOSEDexit1 CPU300.296875 after FULLrestore
+138089ms+22/29originaltablechecks (lastsemantic_installation205966ms);30/73phases.
+No semantic_inputs equality/migration/HTTP/Chrome/normalSQLstop. Rootaudit12964B
+3aad737f...aff67/all2720pins+8controls PASS; parentowned-emergency/emptyJob/handles/
+EOF/endpinsTRUE. Consumedv5allimmutable. ExactstoppedPGDATA2700662791B removed
+after20pureguards/readOnly1457entries1428files/separateRoot075b7769...4c65+double
+hash/ACL/PID/reference/portabsence. Pre75936b07...eade/done1aeca83f...d59b;
+independentpostf4773941...91827 targetabsent/all8controls/all5liveIDs PASS.
+Publicstatic reserve582files/44339257reportedallocatedB; NEW8fixedpublicassets
+4inactiveoldreleases losslessNTFSrecover66702784B/allbytes/times/ACL unchanged.
+No live/backup/private/data/service/host changes; samecatalogpins PASS.
+ADR239 NEW whole-owner-recovery-v1 SOURCE RootonlyACCEPT (noindependentagent).
+ExplicitdeclaredNEWworkload CPU600/active600/normal620/absolute630/private500s,
+sameRAM1GiB/Node64MiB/process32/client8/alloriginaldisk/memoryfloors/assertions.
+Archiveoperatororiginalpromise retires BEFORE unchanged exhaustiveverifier;
+header+physicalidentityproofbefore andagainafterretirement; no app before verifier.
+All29/55tables/original28receipt/27post+queue/73phases/18HTTP/Chrome/normalcleanup.
+36sources:26namespace-only/8revieweddiffs+2supervisorcopies; byte+ASTinversePASS.
+112Nodepurpose+19componentPASS64MiB/119PythonPASS3.868s. Review9837B65758a3b...4b9a;
+catalog420979Bc692594c...ffee3e/2722files279995135B/auth/endpins/7runtime/
+old2720pinsPASS. Readiness989B1b1a543a...7fbe5:3fixedinputsheld/closed/3fresh
+admissions(minD4469518336)/rootabsent/preparerparseONLY. Noactualauthority/run
+yet. Archiveexactsource/freshchecks/separateONEdecision required. Noautomatic
+capraise/retry/adoption. Fullmatching/discovery/quality/control/UI/live GOALACTIVE.
+
 LATEST30Oct ADR238 NEW plain-owner-recovery-v5 SOURCE Root accepted;34files/
 6normalizeddiffs/28namespace-only. NativeSQL/restore/client/stop lifecycle exact
 exceptnamespace/latch. Allold34/catalog+new5component pins unchanged. Explicit
