@@ -8,6 +8,50 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct current goalturn PROGRESS; previous also PROGRESS. Root-only.
+Storage evidence: completed metadata-only workspace inventory126027files,0errors/
+reparse0, approx12735347690B unique file data using explicit os.stat identities.
+Initial v1 unique1466B INVALID: Windows DirEntry.stat gave dev/ino0; retained,
+v2 supersedes (data/workspace-allocation-inventory-v2-20261030.json). Live owner
+READONLY SQL metadata proves canonical DB4223547059B, semantic_inputs1284546560B,
+embeddings855367680B/sources704995328B; transaction/connection closed, no rowsread.
+Only C:/D: volumes found. No cache/backup/personal/DB deletion/relocation or host
+setting action. Safe NTFS helper b123de56...5b712 considered3old inactive logs
+137474632B, but actual skippedALL3/compressed0/recovered0; exact skip reason NOT
+retained, do not claim file locks or verified hashes for skipped files. Dfree
+4344918016B unchanged across helper. Preparatory encoding typo was corrected
+before any helper existed/executed; no actual compression occurred. User asked
+via async to free7-8GiB or name >=12GiB alternate disk; answer still pending.
+
+SOURCE20381219 prepares separate private-automatic18-browser purpose, catalog
+6110ee23/a73bad7e39b8c1d6df338f42e98a742672be5a19588a9f6ef36ceaff1002bdc2
+2678files/279247683B/18absences AUTH+endpinsPASS. This is SOURCE ONLY, no actual
+private run granted/invoked. Same fixed29Oct schema17 archive/receipt and28table
+restore/27preserved tables/CAS upgrade/all18 HTTP cases; additionally requires4
+real Chrome/HTTP browser operations, SQL root/reply owner join and modern v2
+directoryProtocol in BOTH app and parent verifier. Normal client negotiates
+capabilities; v1 retains old Games query, v2 searches an actually returned public
+card using private Input.insertText parameters. No title/credential in proof.
+Original17, model/product and HTTP-only18 entry scopes preserved. New browser
+purpose keeps64MiBNode/1GiBJob/32process/eightSQLclient limits and existing11GiB
+D admission/4GiB sampled floor; no budget raise/fallback. Holds both owner inputs
+and exact fixed Chrome pin. No encoder/provider; these remain later goal work.
+Private transport allows exactly2 additional routes capabilities/v2+search, search
+requires negotiated2 header. Origin/auth/body/response/64request/4pending caps
+unchanged; actual client->bridge->actual handler v2 regressionPASS (in memory).
+Root source review data/automatic18-browser-root-source-review-20261030.json
+SHA6b3993c5ce8fd7b0d5a6e29e5301046147aff2941c0fef33cc25f1c9f65c0157.
+Joined1046 guardedNodePASS6654.2509ms/80purePythonPASS3.787s (old75+5new), no skips.
+One actual SYNTHETIC22 Chrome regression after source changes PASS4825ms/5shots,
+35start/end/current pinsPASS, owned Chrome/profile retired. attempt-9Fcym7/result
+SHA7a8fba342e2eead62adbb634eb72cee1314e1aa4ee75768c2db59e64eb2ca8fb;
+Root audit62fe54faae8c697683339cf728a50eb8e461d7c586ff3a41409f3696fd7a8407.
+This is NOT new full-data18 browser execution; actual private purpose UNRUN.
+No production app/SQL/matcher/sealed-source change. Active a0a2f912 candidate
+remains INACTIVE; be901259 live17/crawler keep original processes. GoalACTIVE:
+full owner restore, real18 model/provider/load/quality/coldURL/final backup pair/
+cutover still OPEN. Do not equate Source+synthetic regression with live readiness.
+
 LATEST30Oct current goalturn PROGRESS; previous goalturn also PROGRESS. Root-only.
 New fixed read harness0ea68fd9 ACTUAL18 normal HTTP requests on3 owner problemURLs,
 all parsed/OK under crawler. URL selections18-124ms/context7-86ms serial,
