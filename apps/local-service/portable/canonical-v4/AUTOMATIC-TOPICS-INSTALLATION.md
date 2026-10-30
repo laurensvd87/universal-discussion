@@ -343,3 +343,25 @@ It must gain a separately reviewed18 path while retaining all old snapshot and
 sequence assertions; its current passing checks cannot authorize an18 cutover.
 The dedicated18 local-state/quiesced backup integration also remains open. No
 new release namespace has been prepared/sealed and the running services remain17.
+
+The separate pre-cutover backup implementation now supports current17 and new18
+local state. `automatic-topics-quiesced-backup.js` uses the dedicated backup
+operator, repeats canonical and semantic revision checks, refuses unsettled jobs
+and other canonical clients, and authenticates the new release plus the active
+17/18 release. Its read-only process census checks current command identities,
+not historical process IDs, and sends no signals. Only its exact capture parent
+is excluded; another capture or an unreadable Node process blocks the backup.
+
+The separate local-state V2 codec (`MURLOC02`) includes both current17 and new18
+manifest slots and requires a non-null semantic revision. Original V1 files and
+live17 helpers remain byte unchanged. File/total/stream/crypto/time bounds remain
+2GiB/4GiB/64KiB and AES-256-GCM with Windows DPAPI. The new codec requires 4GiB
+free after its local archive, stronger than V1's 64MiB; this does not waive the
+private restore's 11GiB admission floor. The PG archive hash uses the existing PG
+backend's 16GiB bound. Authentication does not implement local-state restore.
+
+Joined guarded tests pass872 with no skips; five pure Python process-classifier
+tests also pass. A read-only live observation correctly refused quiescence while
+services were running. No backup, file lease, stop, release seal or migration was
+invoked. New native17/18 metadata-reader assertions are source only until a fresh
+reviewed SQL run; no actual full-data recovery or live readiness follows.

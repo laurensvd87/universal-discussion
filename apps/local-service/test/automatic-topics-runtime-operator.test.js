@@ -189,7 +189,7 @@ test('release namespace is new and both local-state backup data-root helpers are
  const layout=describePostgresRuntimePackaging();assert.equal(layout.snapshotLeaf,'hierarchy-release-20261030-automatic-topics');assert.equal(layout.manifestFilename,'postgres-hierarchy-release-20261030-automatic-topics-manifest.json');assert.ok(Object.isFrozen(layout.externalFiles));
  for(const name of ['animals-detail.json','koalas-detail.json'])assert.ok(layout.requiredFiles.includes('apps/local-service/assets/hierarchy/'+name));
  const source=readFileSync(new URL('../src/ops/automatic-topics-runtime-operator.js',import.meta.url),'utf8');
- for(const relative of ['apps/local-service/src/ops/local-state-backup-operator.js','apps/local-service/src/ops/windows-local-state-read-lease.js']){
+ for(const relative of ['apps/local-service/src/ops/automatic-topics-local-state-backup.js','apps/local-service/src/ops/automatic-topics-local-state-read-lease.js','apps/local-service/src/ops/automatic-topics-quiesced-backup.js','apps/local-service/src/ops/automatic-topics-process-absence.py']){
   assert.equal(layout.externalFiles.filter(name=>name===relative).length,1);assert.equal(layout.requiredFiles.includes(relative),false);assert.equal(source.includes(`loadSnapshot("${relative}")`),false);
  }
  assert.equal(source.includes('path.join(dataDir, "hierarchy-runtime")'),false);assert.equal(source.includes('path.join(dataDir, "postgres-hierarchy-runtime-manifest.json")'),false);

@@ -22,6 +22,7 @@ import {createLocalAiClient} from '../../../../spikes/topic-resolution/browser/c
 import {createPostgresDashboardSource} from '../../../topic-dashboard/src/data/postgres-catalog.js';
 import {semanticLegacyRootPageSql} from '../canonical-v4/semantic-owner-maintenance.js';
 import {describeAutomaticTopicBackupTables,automaticTopicBackupRowQuery} from '../../src/ops/automatic-topics-backup-operator.js';
+import {readQuiescedCanonicalState} from '../../src/ops/automatic-topics-quiesced-backup.js';
 import {authoredFixtureInsightContext} from './automatic-author-insight-native-assertions.js';
 const actor={id:'demo-alex',type:'human',demo:true},code=c=>e=>e?.code===c,MODEL='e5-small-q8-browser-main-prefix-v1',TOPIC='topic-semantic-manual';
 async function one(db,sql,args=[]){const r=await db.query(sql,args);assert.equal(r.rows.length,1);return r.rows[0];}
@@ -157,7 +158,8 @@ export async function runCombinedAuthorHierarchyNativeAssertions(scope){
   assert((await owner.query(semanticLegacyRootPageSql(false),pageArgs)).rows.some(r=>r.id===namedRoot),'the old legacy candidate query sees this expressly authored root');
   assert.equal((await owner.query(semanticLegacyRootPageSql(true),pageArgs)).rows.length,0,'automatic owner maintenance cannot infer a replacement subject for an expressly authored root');
   at('START');await owner.transaction(async tx=>{
-   await tx.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
+   const state=await readQuiescedCanonicalState(tx);assert.equal(state.schema_version,18);assert.equal(state.generation,generation);assert(/^[a-f0-9]{64}$/u.test(state.semantic_revision));
+   assert(state.other_clients>0,'actual SQL observations do not claim quiescence');assert(Number.isInteger(state.unsettled_jobs)&&state.unsettled_jobs>=0);
    for(const table of Object.keys(describeAutomaticTopicBackupTables())){
     await tx.query(automaticTopicBackupRowQuery(table));let failed=false;
     try{for(;;){const {rows}=await tx.query('FETCH FORWARD 128 FROM backup_rows');assert(rows.length<=128);assert(rows.every(r=>/^[a-f0-9]{64}$/u.test(r.row_sha)));if(rows.length<128)break;}}

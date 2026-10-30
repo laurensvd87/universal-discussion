@@ -50,10 +50,12 @@ const EXTERNAL_FILES = Object.freeze([
   "apps/local-service/src/ops/automatic-topics-backup-operator.js",
   // These import.meta-based data roots must run from their tracked original
   // locations, never via loadSnapshot. Authentication does not start a backup.
-  "apps/local-service/src/ops/local-state-backup-operator.js",
-  "apps/local-service/src/ops/windows-local-state-read-lease.js",
-  "apps/local-service/src/ops/quiesced-state-backup.js",
-  "apps/local-service/src/ops/windows-console-drain.py",
+  "apps/local-service/src/ops/automatic-topics-local-state-backup.js",
+  "apps/local-service/src/ops/automatic-topics-local-state-read-lease.js",
+  "apps/local-service/src/ops/automatic-topics-quiesced-backup.js",
+  "apps/local-service/src/ops/automatic-topics-process-absence.py",
+  "apps/local-service/src/ops/postgres-runtime-operator.js",
+  "apps/local-service/src/ops/postgres-backup-operator.js",
   "apps/local-service/data/ridge1-topic-adapter-v1.json",
   "apps/local-service/data/diagonal-adapter-v1.json",
   "apps/local-service/data/body-topic-metric-v1.json",

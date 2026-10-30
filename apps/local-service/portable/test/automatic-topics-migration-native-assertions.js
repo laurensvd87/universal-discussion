@@ -15,6 +15,7 @@ import {openDormantPostgresApplication} from '../../src/startup.js';
 import {openInstalledHierarchyRuntimeForTest} from '../../src/application/installed-hierarchy-runtime.js';
 import {openHierarchyWorkerResourcesForTest} from '../../src/application/hierarchy-worker-resources.js';
 import {createLocalServiceClient} from '../../../../spikes/topic-resolution/browser/core/local-service-client.js';
+import {readQuiescedCanonicalState} from '../../src/ops/automatic-topics-quiesced-backup.js';
 import {runCombinedAuthorHierarchyNativeAssertions} from './combined-author-hierarchy-native-assertions.js';
 import {automaticTopicsFixtureInput} from './automatic-topics-fixture-input.js';
 import {numericMatcher} from './semantic-native-assertions.js';
@@ -51,6 +52,10 @@ export function createAutomaticTopicsMigrationNativeAssertions({check}){
   const policy=()=>one(owner,'SELECT revision::integer revision,default_max_depth,overrides FROM canonical_v4.semantic_owner_policy WHERE singleton');
   await check(41,async()=>{
    installed=await loadInstalledHierarchyMatcher();expectedHead=await head();expectedPolicy=await policy();const before=await canonical(owner),rows=await registered(owner);
+   await owner.transaction(async tx=>{
+    const state=await readQuiescedCanonicalState(tx);assert.equal(state.schema_version,17);assert.equal(state.generation,generation);assert(/^[a-f0-9]{64}$/u.test(state.semantic_revision));
+    assert(state.other_clients>0,'the actual fixture is not quiescent');assert(Number.isInteger(state.unsettled_jobs)&&state.unsettled_jobs>=0);
+   });
    await assert.rejects(upgradeAutomaticTopics({database:owner,expectedHeadRevision:expectedHead.revision+1,expectedPolicyRevision:expectedPolicy.revision}),code('conflict'));
    assert.deepEqual(await canonical(owner),before);assert.deepEqual(await registered(owner),rows);
   });
