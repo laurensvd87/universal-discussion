@@ -742,3 +742,29 @@ candidate indexes and public projections; a stale cache cannot revive content.
 
 The overall goal remains active. The working static hierarchy is preserved while
 this additional owner-required automatic growth mechanism is implemented.
+
+## 30 October: class-aware cached development checkpoint
+
+Committed source28fc2d41 preceded one normal private request containing only eight
+public subject paths. The result distinguishes common classes (koalas, kapsalon,
+dolphins) from named entities (Python, KDE Dolphin, GTA titles). The private
+conversation was removed and session logged out; no public messages were posted.
+The v3 lookup permits qualified common-class names in titles while retaining
+named-entity identity, incidental body mention, score/margin, contradiction,
+peer-type and owner-prefix gates. Its index identity binds kind metadata too.
+
+One saved-vector comparison covers all21 previous queries, with unchanged bank,
+vectors, aliases, thresholds and grouping. All12 known subjects match exactly;
+unknowns yield5 valid ancestors and4 refusals, with0 wrong assignments. All21
+counterfactual all-named controls reproduce v2. The672 repeated local lookups have
+p95 0.1112ms. Resultcf20843f...1fec4/rootaudit4fe79cef...0304c authenticates28
+source and3 input pins. This is posthoc development: all21 queries are now DEV,
+not prospective quality, full capture, production scale or canonical acceptance.
+New unseen validation and real16-root/stable-ID integration remain required.
+
+The original full uncompressed recovery purpose still requires11GiB free on D:.
+ADR229 proposes a separately bounded compressed C: purpose; it does not relax
+that old gate or establish successful full recovery. A causal test also reveals
+that the old generic1GiB restore guard rejects the fixed1.35GB dump. The new
+exact-dump stream primitive is source-tested only, not integrated or executed
+against PostgreSQL. Live matching and crawler storage remain unchanged.

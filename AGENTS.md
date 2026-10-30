@@ -8,6 +8,32 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct class-aware cached-topic DEV PROGRESS; Root-only. Source28fc2d41
+pushed BEFORE one normal private public-path-kind request65017 CLOSEDexit0;
+8kinds exact/cleanup ownconv+logout/0publicposts/18endpinsPASS. Public classes
+Koalas/Kapsalon/Dolphins vs named Python/KDE/GTA, no query/gold supplied. Result
+c578c2d7...1f6b7/audit8bff1ce0...d6b126. Newv3 preserves v2 gates except qualified
+common-class title membership; named identity/body safeguards retained. Distinct
+indexHash binds kind metadata; groupingHash separate. Saved21-query comparison
+CLOSEDexit0/resultcf20843f...1fec4/rootaudit4fe79cef...0304c:12knownexact,
+5validunknownancestors/4refusals/0wrong; all21 all-named counterfactual controls
+matchv2,28source+3inputendpinsPASS.672repeat p95.1112ms. All21 nowDEVELOPMENT,
+NOTfresh/fullpage/corpus/production acceptance; newholdout stillrequired.
+FullDrestore gate remains11GiB; ~4.4GB available. NEW ADR229 Source-only compressed
+C recovery design/primitives, NO testcluster/Cprobe created or DB opened yet.
+Causal test proves old generic1GiB pump rejects actual1,354,423,835B dump before
+spawn/read. NEW exactbytes+SHA-only pump retains streaming/backpressure/wipe/EOF;
+5NodePASS212.4191ms+8PythonpolicyPASS. Old genericcontracts unchanged. Planned
+C6.125GiB admission/4GiB allocated+6GiB logical/128MiB noncluster/originalC2/D4/
+physical1/commit1GiB floors; sampledNOTquota. Small2MiB public filesystem proof
+must precede separate native/full actualreview; no PostgreSQL compatibilityclaim.
+Losslesscompression3inactive Linux-only extensionexecutables recovered167858424B;
+Windows binaries/liveDB untouched; 3sessionlogs exclusiveopenREFUSED/0changed.
+Crawler26784 advances10425/stderr0/API8108/worker11880/dashboard28420 preserved.
+GoalACTIVE; actualfreshquality/discovery/stableIDs/16-root binding/ANN/canonical/
+owner/UI/full18 recovery/provider/coldURL/load/cutover stillOPEN. No autoteacher.
+
+
 LATEST30Oct fresh9cached-topic validation PROGRESS; Root-only. cae75d11 cards/
 gold/v2linker committedBEFOREinference. Actual53293 CLOSEDexit0; oneE5/WASMthread1,
 18newtitle/bodyvectors,24bankvectorsREUSED, no provider/SQL/livechange.22SOURCE/
