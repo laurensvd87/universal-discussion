@@ -398,3 +398,17 @@ actual full-data recovery. The real `private-automatic18` purpose has NOT run.
 It retains64MiB Node heap,1GiB Job, the existing private CPU/time/storage bounds
 and11GiB free-D admission floor. It does not run an encoder, browser or provider;
 those genuine18 exercises and a fresh final snapshot remain additional gates.
+
+The first metadata SQL run failed in registered17's new case41 assertion.
+All2668 consumed pins, both database drops, normal smart stop, empty Job and
+closed handles were audited; stderr was empty and no emergency occurred. The
+exact failing assertion value was not retained. A separate read-only live owner
+probe then demonstrated a source defect: all3 other canonical sessions were
+visible, but their backend types were hidden, so the old client-type filter
+counted0. The new quiescence query conservatively counts all other sessions in
+the canonical database without that filter. No role grant or live service change
+is required. A causal test blocks backup for hidden-type sessions. Joined940
+Node tests pass. Root failure analysis is in
+`data/automatic18-quiesced-metadata-failure-analysis-20261030.json`, SHA256
+`bcd092bee93719e355abae9e67dbc9038a460afb9d80c3e9a8141f5a0fabda51`.
+The failed run remains failed; corrected SQL needs a separate reviewed invocation.

@@ -43,6 +43,17 @@ test('state metadata reads one readonly RR snapshot and selects only the functio
 test('running original services or remaining database clients cannot start either backup',async()=>{
  for(const options of [{busy:true},{otherClients:1}]){const f=fixture(options);await assert.rejects(capture(f.ports));assert.equal(f.calls.includes('postgres-create'),false);assert.equal(f.calls.includes('local-held'),false);if(options.busy)assert.equal(f.calls.includes('open'),false);}
 });
+
+test('other-role sessions with hidden backend types still count against quiescence',async()=>{
+ const f=fixture(),tx={async query(sql){
+  if(sql.startsWith('SET TRANSACTION'))return {rows:[]};
+  if(sql.includes('current_database()'))return {rows:[{...f.state,other_clients:sql.includes("backend_type='client backend'")?0:1}]};
+  return {rows:[{generation:f.state.generation,revision:f.state.semantic_revision}]};
+ }};
+ const state=await readQuiescedCanonicalState(tx);assert.equal(state.other_clients,1);
+ f.ports.openOwner=async()=>({read:async()=>state,close:async()=>{}});
+ await assert.rejects(capture(f.ports));assert.equal(f.calls.includes('postgres-create'),false);assert.equal(f.calls.includes('local-held'),false);
+});
 test('state, archive, local authentication and migration discrepancies never return an accepted pair',async()=>{
  for(const options of [{changed:true},{changedSemantic:true},{changedArchive:true},{badLocal:true}]){const f=fixture(options);await assert.rejects(capture(f.ports));assert.equal(f.calls.filter(v=>v==='close').length,1);assert.equal(f.calls.filter(v=>v==='postgres-create').length,1);}
  const f=fixture();f.pg.migrations[0]='f'.repeat(64);await assert.rejects(capture(f.ports));assert.equal(f.calls.includes('local-published'),false);

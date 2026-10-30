@@ -29,7 +29,7 @@ const STATE_SQL=`SELECT current_database() AS database,current_user AS role,
  (SELECT count(*)::integer FROM canonical_v4.schema_migrations) AS schema_version,
  (SELECT count(*)::integer FROM canonical_v4.ingestion_jobs WHERE state IN('pending','leased')) AS unsettled_jobs,
  (SELECT count(*)::integer FROM pg_stat_activity WHERE datname=current_database()
-  AND backend_type='client backend' AND pid<>pg_backend_pid()) AS other_clients
+  AND pid<>pg_backend_pid()) AS other_clients
  FROM canonical_v4.runtime_state r WHERE r.singleton`;
 
 async function ordinary(filename){
