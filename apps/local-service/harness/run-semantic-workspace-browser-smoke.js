@@ -181,8 +181,9 @@ export function validateSemanticBrowserSmokeSource(){
 // The fixture exercises the released v1 surface. The normal client first asks
 // for v2 and falls back only after the server's exact authenticated 404 bytes.
 // An authentication failure must stop negotiation at its first request.
+export const SEMANTIC_SMOKE_CAPABILITY_DEFAULT='available';
 export function semanticSmokeCapabilityResponse(route,mode){
-  assert.ok(['ok','legacy','unauthorized'].includes(mode));
+  assert.ok([SEMANTIC_SMOKE_CAPABILITY_DEFAULT,'legacy','unauthorized'].includes(mode));
   if(!['/v1/semantic/capabilities/v2','/v1/semantic/capabilities'].includes(route))return null;
   if(mode==='unauthorized')return {status:401,body:{error:'unauthorized'}};
   if(route.endsWith('/v2')||mode==='legacy')return {status:404,body:{error:'not-found'}};
@@ -385,7 +386,7 @@ export async function runSemanticWorkspaceBrowserSmoke(){
   let remoteResponses=0,retiredInterceptions=0,protocolFailure=false,browserVersion=null,initialBlankAccepted=false,extensionLoadStarted=false,firstBoundaryFailure=null;
   let publishOrigin;const originKnown=new Promise(resolve=>{publishOrigin=resolve;});
   const fixtureExpiresAt=Date.now()+120000;
-  const mode={capability:'available',context:'classified',holdTarget:false,command:'ok',aiQuestion:null};
+  const mode={capability:SEMANTIC_SMOKE_CAPABILITY_DEFAULT,context:'classified',holdTarget:false,command:'ok',aiQuestion:null};
   const state={revision:7,replies:[]};
   const version=()=>({generation:'semantic-browser-generation',revision:state.revision});
   const actors=[{id:'demo-alex',displayName:'Alex',type:'human'},{id:'demo-blair',displayName:'Blair',type:'human'}];
