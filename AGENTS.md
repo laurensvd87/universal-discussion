@@ -8,6 +8,28 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct ADR230 ONE full actual91475 CLOSEDexit1 at C free floor2138091520;
+cleanup samecounter2137894912. Owned-emergency/emptyJob/closedhandles/2EOF/endpins
+TRUE, NOT normalSQLstop/fullrestore/migration/HTTP/browser success. Lastvalidated
+aggregateCPU229.609375=user206.140625+kernel23.46875, NOT perprocess/speedup proof.
+194closedprogress samples192COPY+1index; all2709freshendpins PASS. Rootfailureaudit
+741012fd...74716; all bulk-v2 source/catalog/output IMMUTABLE/no retry/capraise.
+Separate exact scratch disposition93072 CLOSEDexit0:2477439099Blogical removed,
+all8controls/progress unchanged/targetabsent. Rootaudit5c8116a4...35bb. Live5
+originalstarts preserved/crawler advancing12250+/stderr0; pagefile3668MiB unchanged.
+C available recovered~6.8GB but per-file allocation2072903680 vslogical2477490774
+cannot explain volume debit; mechanism UNKNOWN. NEW ADR231 public24MiB probe
+SOURCE9guards+compile PASS, separateONEactual CLOSEDexit0/15samples/rootremoved.
+Probe source11282B1fc8ffaa...3a44 immutable; receipt2b3ac7db...db90/audit3e54e813...
+cc4c2. Plain8MiB write availabledebit9371648 vscompressed-random17793024 despite
+both reported8388608; flush alone doesnot remove discrepancy. No fullPGcause or
+quota/reservation mechanism claim. ADR232 NEW uncompressed freshC source design
+selected: formatNONE/readback0 beforeinitdb; all300CPU/Job1GiB/32/64MiBNode/8clients/
+6logical4allocated/6.125Cadmission/originalfloors+fullarchive/assertions preserved.
+NO plain successor copies/catalog/actual grant yet; no new full attempt pending.
+Root only/no independent reviewer. GoalACTIVE; semantic discovery/generalquality/
+stableIDs/16roots/ANN/owner/privacy/UI/coldURL/concurrency/livecutover still OPEN.
+
 LATEST30Oct ADR230 NEW compressed-owner-recovery-bulk-v2 SOURCE Root reviewed.
 33files:28copies+5new;6nonmechanical copies. All28oldsource+2704oldcatalog pins
 unchanged.105NodePASS318.0001ms64MiB/102PythonPASS3.633s; bothPSparse/C#compile

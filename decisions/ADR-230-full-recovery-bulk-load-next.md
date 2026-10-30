@@ -95,3 +95,33 @@ This is one Root review, not independent review or successful recovery evidence.
 Separate fresh resources, exact held private inputs/Chrome, port and live identity
 checks, source archival and Root ONE decision remain required before preparation
 of the new protected root or complete-data execution.
+
+## One full actual attempt: closed failure
+
+After separate Root decision9d0a7482...42c01, source archivalcde853eb/745f4e12,
+all held input/readiness checks and fresh protected-root preparation, the one
+session91475 exits1. Its source/catalog/output are now immutable, without retry,
+adoption or automatic cap increase. It reaches194 complete numeric observations:
+192 COPY samples and one index sample. It does not complete restoration or prove
+migration, HTTP or browser behavior. These sampled observations do not prove all
+other phases absent or all table data complete.
+
+Retained primary is resource-floor/cFree2138091520; cleanup records the same
+counter at2137894912, below the unchanged2GiB floor. Last validated aggregate Job
+CPU229.609375 seconds comprises206.140625 user and23.46875 kernel seconds; this is
+not per-process attribution or proof of speedup relative to a different failed
+attempt. Owned emergency retirement reports empty Job, all handles closed, both
+EOFs and end pins checked. Normal SQL smart-stop remains unproven. Node stdout
+and stderr are empty. Root terminal audit741012fd...74716 rechecks all2709 source/
+runtime end pins, original ownership hardlinks and bounded numeric observations.
+
+A separate exact fixed-path disposition rehashes every PGDATA file twice, checks
+ACLs, identity and eight original control/progress pins, authenticates stale
+PID11412/start1793366509 and proves fresh PID/reference/listener absence. Actual
+session93072 exits0, removing only2477439099 logical bytes of failed PGDATA. Root
+disposition audit5c8116a4...35bb proves target absence and all eight retained pins
+unchanged. Original archive and live services/crawler remain. Free C returns to
+about6.8GB; the unchanged pagefile is3668MiB allocated. Volume deltas do not prove
+a filesystem mechanism. ADR231 measures that discrepancy with public controls;
+ADR232 proposes an uncompressed fresh-cluster successor, without another full
+run grant or weaker limits.
