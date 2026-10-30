@@ -178,6 +178,17 @@ export function validateSemanticBrowserSmokeSource(){
   return {schema:'semantic-workspace-browser-source-check/v1',browserLaunched:false,fixtureCompiles:true};
 }
 
+// The fixture exercises the released v1 surface. The normal client first asks
+// for v2 and falls back only after the server's exact authenticated 404 bytes.
+// An authentication failure must stop negotiation at its first request.
+export function semanticSmokeCapabilityResponse(route,mode){
+  assert.ok(['ok','legacy','unauthorized'].includes(mode));
+  if(!['/v1/semantic/capabilities/v2','/v1/semantic/capabilities'].includes(route))return null;
+  if(mode==='unauthorized')return {status:401,body:{error:'unauthorized'}};
+  if(route.endsWith('/v2')||mode==='legacy')return {status:404,body:{error:'not-found'}};
+  return {status:200,body:{protocol:'semantic-topics/v1'}};
+}
+
 export const PRIVATE_BROWSER_ROOT_BODY='Private browser root: actual canonical storage.';
 export const PRIVATE_BROWSER_REPLY_BODY='Private browser reply: original canonical destination.';
 const PRIVATE_BROWSER_CASES=Object.freeze(['named-account-and-semantic-directory-search','human-root-in-original-canonical-topic-null-origin',
@@ -403,10 +414,8 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     if(request.method==='OPTIONS'){await fulfill(requestId,incoming,204,null);return;}
     if(request.method!=='POST'||(request.postData?.length??0)>16384){fail('unexpected-request-shape');await abortRequest(requestId,incoming);return;}
     const input=JSON.parse(request.postData??'{}');
-    if(route==='/v1/semantic/capabilities'){
-      await fulfill(requestId,incoming,mode.capability==='legacy'?404:mode.capability==='unauthorized'?401:200,
-        mode.capability==='legacy'?{error:'not-found'}:mode.capability==='unauthorized'?{error:'unauthorized'}:{protocol:'semantic-topics/v1'});return;
-    }
+    const capability=semanticSmokeCapabilityResponse(route,mode.capability);
+    if(capability){await fulfill(requestId,incoming,capability.status,capability.body);return;}
     if(route==='/v1/semantic/topics'){assert.deepEqual(input,{});await fulfill(requestId,incoming,200,{version:version(),policyRevision:2,
       topics:[{id:'games',title:'Games',path:['games']},{id:'music',title:'Music',path:['music']}]});return;}
     if(route==='/v1/semantic/context'){
