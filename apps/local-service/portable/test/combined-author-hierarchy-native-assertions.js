@@ -149,11 +149,14 @@ export async function runCombinedAuthorHierarchyNativeAssertions(scope){
   assert.deepEqual(card.breadcrumbs.fixed,[{nodeId:'games',label:'Games'}]);
   assert.deepEqual(card.breadcrumbs.topic.map(t=>t.nodeId),['subject-'+parent,'subject-'+leaf]);
   assert.equal(card.breadcrumbs.topic.at(-1).label,card.label);
-  const position=(await one(owner,'SELECT ordinal::text n FROM canonical_v4.contributions WHERE id=$1',[namedRoot])).n;
+  if(schemaProfile==='hierarchy18'){
+  // Owner tooling targets registered18. The predecessor A fixture deliberately
+  // retains its experimental9 semantic table layout; all its old checks remain.
+  at('PUBLISH');const position=(await one(owner,'SELECT ordinal::text n FROM canonical_v4.contributions WHERE id=$1',[namedRoot])).n;
   const pageArgs=[String(BigInt(position)-1n),position,2,generation,matcherHash];
   assert((await owner.query(semanticLegacyRootPageSql(false),pageArgs)).rows.some(r=>r.id===namedRoot),'the old legacy candidate query sees this expressly authored root');
   assert.equal((await owner.query(semanticLegacyRootPageSql(true),pageArgs)).rows.length,0,'automatic owner maintenance cannot infer a replacement subject for an expressly authored root');
-  await owner.transaction(async tx=>{
+  at('START');await owner.transaction(async tx=>{
    await tx.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
    for(const table of Object.keys(describeAutomaticTopicBackupTables())){
     await tx.query(automaticTopicBackupRowQuery(table));let failed=false;
@@ -161,6 +164,7 @@ export async function runCombinedAuthorHierarchyNativeAssertions(scope){
     catch(error){failed=true;throw error;}finally{try{await tx.query('CLOSE backup_rows');}catch(error){if(!failed)throw error;}}
    }
   });
+  }
  });
  await check(6,async()=>{
   for(const id of [semanticRoot,namedRoot]){const v=await client.semanticTarget({nodeId:'games',rootId:id,targetId:id});

@@ -311,3 +311,13 @@ new SQL assertions remain pending until a separately reviewed actual invocation.
 Local-state/quiesced18 backup integration, private restore/product rehearsal,
 representative real E5, genuine browser/provider/load/cold-URL latency, runtime
 packaging and cutover remain open; these Source tools do not authorize activation.
+
+The first operator-SQL invocation closed at PUBLIC31 THREAD42P01 in the old
+experimental9 A fixture; the missing relation name was not retained. Root failure
+audit `data/automatic18-operator-native-failure-root-audit-20261030.json`, SHA256
+`e4538e9822a3d9a24b8708107f15cf79e4be06e1c41f509fdbf7787ae6dcbf70`,
+authenticated all2655 pins and normal owned cleanup. The new registered18 owner
+and backup SQL checks are now required in the existing registered18 B fixture;
+all original A assertions remain. Production queries, roles, migration and resource
+limits are unchanged. A new separately reviewed invocation is required; the failed
+run remains failed and is not reused.
