@@ -72,3 +72,39 @@ root remains absent. Readiness1082 bytes hashes
 `810069e1ba898f814bc7c3cc383e38830a9ec9234a72ed4b7819d1465110627a`.
 Source-ready flags are true, without actual authority. Source archival, fresh
 service/port/resource checks and a separate Root ONE decision are still required.
+
+## One actual admission failure, no plain PostgreSQL result
+
+Source44491566 is archived/pushed. Separate Root decision09b7fc54...ff32 follows
+all34 raw source/catalog Git blob comparisons, held inputs and fresh complete
+listener/live identity checks. New protected root preparation passes. The one
+actual command exits1 after about8.86seconds (tool chunk566289), before a cluster
+directory or any phase marker exists. It must not be rerun or adopted.
+
+The retained primary code is compressed-d-floor with counter/value unretained;
+cleanup separately observes resource-floor/dFree4292206592, below the unchanged
+4GiB floor. The first value cannot be inferred from that later cleanup sample.
+Last aggregate Job CPU is0.34375seconds. Native retirement reports owned emergency,
+empty Job, all handles closed and both EOFs; stdout/stderr are empty, end pins pass.
+Result1142 bytes hashes
+`dd3bb329c08b918ea1f2f37647082c99363300f25fac45a884ecc42e349c5577`.
+Root audit hashes
+`3dd23a571417c59a01fae7b50c0a00499308331c6b1f677f93c484f93568de51`.
+It independently rechecks all2709 end pins and control hardlinks. No PGDATA
+exists to remove. Source/catalog/output are immutable. Uncompressed full-data
+fit, performance, format0 execution and normal SQL cleanup remain unmeasured.
+
+Safe storage work removes only four individually verified old regenerable pip
+cache bodies (25093839 logical bytes) and losslessly compresses77 old static
+extension program files (161690126 reported allocated bytes recovered). Original
+same-handle before/after hashes, creation/write times and ACL checks pass; Root
+independently rehashes all77 files after close. A separate six-file attempt is
+refused at its first read-only Linux library open before any mutation; the next
+two-file selection excludes libraries and skips denied/read-only files without
+changing permissions. No session, model, project, backup, live data or settings
+change. Root storage audit hashes
+`7847d5d8ab965cd26412bf1b34acd97d6ab56628edfb33b56e2876f1613dd8d9`.
+
+The observed D free counter varies enough that a start just above4GiB is
+insufficient. ADR233 reviews a separate successor with a stronger startup margin
+and truthful first-site resource diagnostics; all runtime floors remain intact.

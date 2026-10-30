@@ -8,6 +8,27 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct plain-v1 ONE actual tool566289 CLOSEDexit1/8.86s beforecluster/phase.
+Primarycompressed-d-floor counter/valueUNRETAINED; cleanup separately dFree4292206592.
+No inference of first value from later sample. Node33808/Job2processes, CPU0.34375;
+ownedemergency/emptyJob/handles/2EOF/endpinsTRUE, noSQL/PGdata/normalstop proof.
+Result1142Bdd3bb329...5577; Rootaudit3dd23a57...de51 all2709freshendpins+controljoins
+PASS. No PGDATA to remove. ALL consumed plain-v1 SOURCE/catalog/output IMMUTABLE/
+no rerun/adoption. Uncompressed fullfit/performance/format0actual UNKNOWN.
+Storage:4oldsinglelink pipcache bodies25093839B removed after exactID/time/hash;
+77oldstaticextension assets losslesslycompressed375071246B/saved161690126B.
+Allsamehandle hashes/times/ACL preserved; independent77postclose hashes PASS.
+ReadonlyLinuxlibrary Open refused before mutation in separate6filepass; preserved,
+new2file selection excludes libs/readonly and skips accessdenied without ACL/attr
+changes. Storageaudit7847d5d8...d8d9. No sessions/models/project/DB/backup/settings
+changed. Available/total native disk counters sampled together equal; no quota
+mechanism established. Original5services/crawler preserved, fresh check required.
+ADR233 NEWsource design: plain-v2 with Dstartup4GiB+128MiB only/runtimeD4 unchanged;
+pure adapter retains same first failing snapshot counter/value without reread.
+Allothercaps/fullassertions unchanged. Need stablefreshsamples/wholeSource/map/
+Git/heldinputs/liveIDs/port and separateRootONE actual decision. NO plain-v2 files/
+catalog/grant yet. GoalACTIVE; fullsemantic/discovery/canonical/owner/UI unfinished.
+
 LATEST30Oct ADR232 NEW plain-owner-recovery-v1 SOURCE Root reviewed.
 33source copies, all33oldsource+2709oldcatalog pins unchanged.106NodePASS64MiB/
 102PythonPASS4.071s; originalclusterAST/allocatedwrapper/lifetime8clients/allfull
