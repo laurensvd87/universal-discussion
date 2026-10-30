@@ -73,3 +73,39 @@ memory/C floors and the stronger D admission; their minimum observed D is
 The new root is absent. This is one Root review, not independent review, actual
 PostgreSQL fit/performance, browser success or live activation evidence. Source
 archival, fresh live/port/resources and a separate Root ONE decision remain.
+
+## One full actual run: archive completes, schema inventory refuses
+
+Source dfd76c1e is committed/pushed before separate Root decision15727eb0...6ee2.
+New protected root preparation passes. Actual session97228 exits1: full archive
+authentication and pg_restore streaming/length/hash/EOF/process-close complete,
+then the check refuses AUTOMATIC_RESTORE_TABLE_SET before original-row equality,
+migration, HTTP or browser checks. Eight phase records end at restore-retired.
+185 closed diagnostic samples observe both COPY and index work. No memory/disk/
+CPU guard selected failure. Last validated aggregate Job CPU is233.375seconds
+(209.546875 user,23.828125 kernel); this does not attribute work to a process or
+establish a controlled speedup. Sampled allocation peaks2637180928 bytes, logical
+2637101055; no production RAM/latency claim follows.
+
+Actual child lifecycle records verified-own-server-smart-stopped, exact retained
+separate PID start1793370466 and SQL start1793370466.706787, all clients/physical
+work settled and the owned copied database dropped. Parent normal retirement,
+empty Job, closed handles, both EOFs and all end pins pass. This time normal child
+SQL stop is proven explicitly. Parent result1419 bytes hashes
+`7a94e9775f60df40dc8037dbbba82883b6f79bf627b6416c2c2dd5226229514f`;
+native report1764 bytes hashes
+`4705ebcde38c351960c5bc3bd2ab886e986c5161a2941fe68d08404dc415e810`.
+Root audit hashes`75caafab54752be6302b6ecdbd68b3e48d5a7e3c7f97e6b6c5479e3664604bf4`,
+independently rechecking all2710 source/runtime end pins and original controls.
+All consumed v2 source/catalog/output are immutable, without rerun/adoption.
+
+Separate exact normal-stop scratch disposition rehashes/joins all files and nine
+retained controls, verifies actual child and parent proofs, PID-file absence and
+fresh PID23884/33872/reference/listener absence. Source-only29 refusal tests and
+compilation pass first. Before real audit, source checks reject an obsolete old
+pendingAssertions field and a Decimal-versus-Double timestamp comparison; both
+are corrected without any deletion before passing. Exact invariant Decimal
+comparison retains SQL fractional startup separately from the PID-file integer.
+Actual disposal exits0, removing only58127845 logical bytes of default stopped
+PGDATA; all nine control/native/progress pins remain. No recovery/migration pass
+is inferred from successful disposal. ADR234 addresses the actual schema gap.

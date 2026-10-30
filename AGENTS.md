@@ -8,6 +8,31 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct plain-v2 ONE actual97228 CLOSEDexit1 after FULL authenticated archive
+process/restore-retired, then AUTOMATIC_RESTORE_TABLE_SET beforefingerprints/
+migration/HTTP/browser. Eightphases/185progress; lastJobCPU233.375, sampledallocated
+2637180928/logical2637101055; originalcaps intact. Actual CHILDsmartstop/settledall/
+ownedDBdrop proven, PIDstart1793370466 vsSQL1793370466.706787 retainedseparately.
+Parentverified-normal/emptyJob/closedhandles/2EOF/endpinsTRUE, emergencyFALSE.
+Result1419B7a94e977...9514f/native1764B4705ebcd...5e810; Rootaudit75caafab...604bf4
+all2710freshendpins/controlsPASS. Source/catalog/output IMMUTABLE/no rerun/adoption.
+Normal exactPGDATA disposal58127845B passed29pureguards+compile/readonlyaudit,
+then actualcca820 exit0/all9controlsunchanged/targetabsent. No migration acceptance.
+SourcefindingsbeforeMain: stale pendingAssertions removed; PS JSON Decimal timestamp
+mustexactInvariantDecimal compare, notDoublecoercion; PIDinteger-as-SQL rejected.
+Independent DDL17=29 +18adds26; old28 list omits semantic_preparation_requests.
+Live17 readonly metadata29/allowners corroborates; historicalrestoredlistUNRETAINED.
+OfficialPG customarchive ignores pg_dump--no-owner, NOowner-rewrite inference.
+NEW5 restored-schema-contract-v1 SOURCE Rootreview482378dc...5f10/30520B accepted;
+12NodePASS156.0841ms64MiB. Strict29/55 inventory+owner/ACL; original28receipt+27post
+comparisons kept PLUSqueuepre/post equality. Oldreceipt covers28only: v2proof states
+queuebaseline-preserved, receiptCoveredFALSE; exactcomplete29future receipt supported.
+No queue deletion/reset/fingerprints fabrication/live activation. Future complete
+backup coverage stillrequired. ADR234 nextNEW plain-v3 source/wiring owner/projector/
+parent/application v2proof29/28 and truthfullegacy28scope, sameallcaps/18HTTP/Chrome.
+NO plain-v3 copies/grant/catalog/actual yet. Rootonly/no independentreview. GoalACTIVE;
+actualmigration+UI and fullsemantic/discovery/stableIDs/ANN/owner/livecutover OPEN.
+
 LATEST30Oct ADR233 NEW plain-owner-recovery-v2 SOURCE Root accepted WITH explicit
 metadata correction.34sources;33oldsource+2709oldcatalog pins unchanged.106NodePASS
 64MiB/108PythonPASS3.823s; originalguardAST/realallocationwrapper/fullassertions
