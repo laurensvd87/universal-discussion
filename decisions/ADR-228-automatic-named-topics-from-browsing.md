@@ -768,3 +768,35 @@ that old gate or establish successful full recovery. A causal test also reveals
 that the old generic1GiB restore guard rejects the fixed1.35GB dump. The new
 exact-dump stream primitive is source-tested only, not integrated or executed
 against PostgreSQL. Live matching and crawler storage remain unchanged.
+
+## 30 October: actual public static-prefix integration
+
+The fixed eight-URL cohort, gold and capture implementation were committed as
+b5c5f664 before network capture or inference. One actual run completes with all
+41 source,3 input and9 model-asset end pins passing and the encoder closed.
+Five pages are captured; three unavailable results remain in the denominator:
+Rockstar has insufficient static text, Nature a policy/document failure whose
+exact predicate was not retained, and Dolphin Emulator returns403. No snippets,
+other URLs or relaxed access policies replace them.
+
+The installed16-root matcher gives the correct root for all five captured pages.
+The cached v3 index matches German KDE Dolphin, AKF Koalas and the user's Kapsalon
+recipe exactly, leaves Python's Windows release listing unresolved and refuses
+the unknown Node.js subject. It makes zero wrong selections on the five. The
+observed Python listing and navigation-heavy Koala capture show why prepared
+short excerpts do not substitute for actual extraction. These remain manual
+integration cases with known publisher overlap, not population acceptance.
+
+The full512-token body encoding costs p50 662.14ms/p95 781.62ms; title encoding
+p50 19.93ms/p95 59.64ms. Initial local cached lookups have p95 3.285ms and the
+independent root matcher2.384ms over five cases. Total72.05s includes public
+network calls and mandatory5s politeness gaps between policy/page requests.
+That crawler capture cost must not become a blocking dependency for reading or
+posting in an already open browser panel. No installed UI timing claim follows.
+Resultb404e4b7...02d5a and Root auditb5ae80e0...7dbd0 retain full evidence.
+
+Keep the actual16-root path available when proposed detail lookup abstains.
+Do not loosen name identity or score cutoffs merely to fit the Python listing.
+Integration still needs stable canonical topic identities, owner projection,
+fresh quality, indexed bounded retrieval, actual browser/concurrent reads and
+posting, and the separate complete recovery rehearsal before live cutover.

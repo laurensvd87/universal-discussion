@@ -8,6 +8,29 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct REAL fixed8 public static-prefix capture/E5 comparison PROGRESS.
+Source+gold b5c5f664 committed BEFORE inference. ONEactual50707 CLOSEDexit0,
+72045.5061ms total incl normal5s politeness gaps per origin; NOT UI latency.
+5of8 captured;3refusals retained: Rockstar insufficient statictext, Nature policy/
+document predicateUNKNOWN, DolphinEmulator403. All5 actual16root decisionsCORRECT,
+0rootwrong/0rootabstain. Cachedv3:3knownexact(KDEGerman/AKFkoala/userkapsalon),
+PythonWindowsDownloadsUNRESOLVED, NodeJSunknownUNRESOLVED,0wrong. No gold/queries
+added tobank and no substitutes after capturefailure. Body-prefix inspection:
+Python release-list versions/downloads; KOALA page nav-heavy. NOT full rendered
+page/publisher-independent/population quality or live activation. Body512tokenE5
+p50662.1448/p95781.6194ms; titlep5019.9257/p9559.6426; localcachedp95first5
+3.2847ms/root2.3839ms, initialization1494.6337ms. Resultb404e4b7...02d5a/audit
+b5ae80e0...7dbd0:41source+3inputs/all9asset endpinsPASS/encoderclosedTRUE.
+Allconsumed source/output nowIMMUTABLE/no rerun or arbitrary looser cutoffs.
+Next: complete compressed native/full-owner recovery integration; preserve16root
+fallback while detail evidence is absent, stable IDs/publication/owner/UI gates.
+Previous boundedC filesystem actualPASS remains onlyfilesystemproof; NO C PG DB
+or fullrestore created/run. OriginalC2/D4/physical1/commit1GiB floors preserved.
+Crawler26784 advancing10550/stderr0; originalAPI8108/worker11880/dashboard28420
+preserved. Sourceb5c5f664pushed toauthorizedremote. GoalACTIVE; quality/discovery/
+ANN/canonical/UI/coldURL/load/recovery/cutover incomplete. No autoteacher.
+
+
 LATEST30Oct compressed C filesystem proof actualPROGRESS. V1 stopped before any
 C directory/file at unresolved PowerShell5.1 [ulong]; exact readonlycausalrepro
 PASS. Separatev2 onlyuint64+namespace inversePASS; actualexit0, two1MiB publicfiles
