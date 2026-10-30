@@ -8,6 +8,22 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct ADR230 NEW compressed-owner-recovery-bulk-v2 SOURCE Root reviewed.
+33files:28copies+5new;6nonmechanical copies. All28oldsource+2704oldcatalog pins
+unchanged.105NodePASS318.0001ms64MiB/102PythonPASS3.633s; bothPSparse/C#compile
+withoutnativecalls. Newfreshcluster only minimalWAL/archiveOFF/senders0/fsyncON/
+fullPageWritesON, all5SQLreadback beforecallback. OneownedROobserver counted in
+8lifetime clients, numericCOPY/index samples300/128KiB; originalquery/write/close
+joins blocksmartstop ifpending; originalrestoreerror preserved. ActualOwnedRun
+allocation wrapper/fulloriginalclusterAST/allfull-data assertions unchanged.
+Retains existing validated aggregateJob user/kernel ticks, no perprocess cause.
+Rootsource9660B8066239e...40888; NEWcatalog2709/279852323B,418924B802587e3...94f3f
+fresh wholeauth/endpins/all7runtime PASS. Oldv1 consumed IMMUTABLE. Source-ready
+flags TRUE isNOTactualauthority. Need heldarchive/Chrome/freshresources/port/
+liveidentity/sourcearchive and separateRootONEdecision before newCroot orrun.
+No newDB/Job/restore/browser/liveconfig/crawlerchange yet. GoalACTIVE; full
+recovery/semanticquality/discovery/stableIDs/ANN/owner/UI/coldURL/cutover unfinished.
+
 LATEST30Oct compressed full-owner ONEactual26495 CLOSEDexit1/FAILED. Catalog2704/
 279829030B,417800B4bdee38c...7de2e; all7runtime+3heldprivateinput readinessPASS.
 Source4a045a36pushed beforeactual. Newprivate C parents prepared owner+SYSTEM2ACL.

@@ -2,8 +2,8 @@
 
 Date: 2026-10-30
 
-Status: proposed source design; no successor copy, implementation or actual run
-authorized by this document. The failed ADR229 attempt remains immutable.
+Status: successor source implemented and Root reviewed; no actual run authorized
+by this document. The failed ADR229 attempt remains immutable.
 
 The one complete-data attempt reaches actual owned PostgreSQL startup, authenticates
 the entire fixed encrypted archive and starts pg_restore. Its original parent
@@ -74,3 +74,24 @@ most-specific confident assignment with a usable broad fallback, stable canonica
 identities, owner-wide/per-topic grouping, indexed retrieval and actual fast UI
 behavior while the crawler runs. Recovery work is one prerequisite for safe
 integration, not a replacement for those remaining requirements.
+
+## Source checkpoint
+
+The separate `compressed-owner-recovery-bulk-v2` contains28 predecessor copies
+and five new diagnostic source/test files. Root reviewed the six nonmechanical
+copy differences plus namespace-only adaptations. All28 predecessor source pins
+and all2704 prior catalog pins are freshly rechecked unchanged. Final source
+tests pass105 Node checks under64MiB and102 Python checks; no SQL/native Job or
+actual browser cases are implied. Both PowerShell storage payloads parse and
+their C# declarations compile without invoking native methods.
+
+The actual-purpose source flags are ready after review; they do not confer
+execution authority. Fresh2709-file catalog418924 bytes hashes
+`802587e33abd099b9beeb2e44a99b613f656206a4177696e73a0c31dfb594f3f` and
+authenticates279852323 bytes including the original seven runtime pins. Root
+source review9660 bytes hashes
+`8066239eb2206a9dc62316e9b064a413d7289c6073a17443fd0e15c6d1940888`.
+This is one Root review, not independent review or successful recovery evidence.
+Separate fresh resources, exact held private inputs/Chrome, port and live identity
+checks, source archival and Root ONE decision remain required before preparation
+of the new protected root or complete-data execution.

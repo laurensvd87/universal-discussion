@@ -25,3 +25,4 @@ spikes/topic-resolution/harness/experimental/** -text
 
 # Consumed recovery source and catalogs retain their exact raw FILE hashes.
 apps/local-service/portable/integration/compressed-owner-recovery-v1/** -text
+apps/local-service/portable/integration/compressed-owner-recovery-bulk-v2/** -text
