@@ -172,6 +172,7 @@ export function validateSemanticBrowserSmokeSource(){
   new Function(`return (${createSemanticSmokeAiPort.toString()});`);
   new Function(`return (${createSemanticFirstPageSmokeState.toString()});`);
   new Function(`return (${bootstrapPrivateApplication.toString()});`);
+  new Function(`return (${bootstrapNamedTopicFixture.toString()});`);
   assert.equal(path.basename(CHROME),'chrome.exe');assert.ok(OUTPUT.startsWith(path.join(REPO,'apps/local-service/data')));
   assert.equal(AUTO_ATTACH.waitForDebuggerOnStart,true);assert.equal(AUTO_ATTACH.flatten,true);
   assert.ok(AUTO_ATTACH.filter.some(row=>row.type==='shared_worker'&&row.exclude===false));
@@ -183,11 +184,40 @@ export function validateSemanticBrowserSmokeSource(){
 // An authentication failure must stop negotiation at its first request.
 export const SEMANTIC_SMOKE_CAPABILITY_DEFAULT='available';
 export function semanticSmokeCapabilityResponse(route,mode){
-  assert.ok([SEMANTIC_SMOKE_CAPABILITY_DEFAULT,'legacy','unauthorized'].includes(mode));
+  assert.ok([SEMANTIC_SMOKE_CAPABILITY_DEFAULT,'legacy','unauthorized','modern'].includes(mode));
   if(!['/v1/semantic/capabilities/v2','/v1/semantic/capabilities'].includes(route))return null;
   if(mode==='unauthorized')return {status:401,body:{error:'unauthorized'}};
+  if(mode==='modern'&&route.endsWith('/v2'))return {status:200,body:{protocol:'semantic-topics/v2',authorContext:'authored-topics/v2',topicSearch:'named-topics/v2'}};
   if(route.endsWith('/v2')||mode==='legacy')return {status:404,body:{error:'not-found'}};
   return {status:200,body:{protocol:'semantic-topics/v1'}};
+}
+
+export function semanticSmokeNamedSearchPage(query,version){
+  assert.equal(typeof query,'string');
+  const key=n=>'subject-'+n+'2345678-1234-4123-8123-123456789abc';
+  const rows=[
+    {nodeId:key(1),label:'Kapsalon',path:[key(2),key(1)],occupied:true,human:true,
+      breadcrumbs:{fixed:[{nodeId:'food',label:'Food'}],topic:[{nodeId:key(2),label:'Recipes'},{nodeId:key(1),label:'Kapsalon'}]}},
+    {nodeId:key(3),label:'Koalas',path:[key(3)],occupied:true,human:true,
+      breadcrumbs:{fixed:[{nodeId:'nature',label:'Nature'},{nodeId:'animals',label:'Animals'}],topic:[{nodeId:key(3),label:'Koalas'}]}},
+    {nodeId:key(4),label:'<New topic>',path:[key(4)],occupied:true,human:true,
+      breadcrumbs:{fixed:[],topic:[{nodeId:key(4),label:'<New topic>'}]}},
+  ];
+  return {version,topics:rows.filter(row=>row.label.toLowerCase().includes(query.toLowerCase())),nextCursor:null};
+}
+
+async function bootstrapNamedTopicFixture(){
+  const old=window.semanticQA.current;old.workspace.dispose();old.insight.dispose();old.controller.dispose();old.panel.dispose();
+  const [{mountSemanticTopicPanel},{createLocalServiceClient}]=await Promise.all([
+    import('./semantic-topic-panel.js'),import('../core/local-service-client.js')]);
+  document.body.replaceChildren();document.body.dataset.uiMode='user';document.body.dataset.uiSurface='sidepanel';
+  const main=document.createElement('main'),host=document.createElement('section');host.id='named-topics';main.append(host);document.body.append(main);
+  const client=createLocalServiceClient({fetchImpl:fetch.bind(globalThis),getToken:()=> 'synthetic-semantic-browser-pairing-only'}),capabilities=await client.semanticCapabilities();
+  if(capabilities.protocol!=='semantic-topics/v2'||capabilities.topicSearch!=='named-topics/v2')throw Error('Named fixture protocol mismatch');
+  const replies=[],panel=mountSemanticTopicPanel(document,host,{client,idPrefix:'named-',onReply:target=>replies.push(target)});
+  panel.observe({actorId:'demo-alex',sessionRevision:1,sourceId:'reserved-example-com'});
+  panel.setSearchAvailable(true);panel.setConnection(true);panel.setActive(true);
+  window.namedTopicQA={panel,replies};return true;
 }
 
 export const PRIVATE_BROWSER_ROOT_BODY='Private browser root: actual canonical storage.';
@@ -386,7 +416,7 @@ export async function runSemanticWorkspaceBrowserSmoke(){
   let remoteResponses=0,retiredInterceptions=0,protocolFailure=false,browserVersion=null,initialBlankAccepted=false,extensionLoadStarted=false,firstBoundaryFailure=null;
   let publishOrigin;const originKnown=new Promise(resolve=>{publishOrigin=resolve;});
   const fixtureExpiresAt=Date.now()+120000;
-  const mode={capability:SEMANTIC_SMOKE_CAPABILITY_DEFAULT,context:'classified',holdTarget:false,command:'ok',aiQuestion:null};
+  const mode={capability:SEMANTIC_SMOKE_CAPABILITY_DEFAULT,context:'classified',holdTarget:false,command:'ok',aiQuestion:null},namedSearchInputs=[];
   const state={revision:7,replies:[]};
   const version=()=>({generation:'semantic-browser-generation',revision:state.revision});
   const actors=[{id:'demo-alex',displayName:'Alex',type:'human'},{id:'demo-blair',displayName:'Blair',type:'human'}];
@@ -403,7 +433,7 @@ export async function runSemanticWorkspaceBrowserSmoke(){
   async function abortRequest(id,session){try{await protocol('Fetch.failRequest',{requestId:id,errorReason:'BlockedByClient'},session);}catch{retiredInterceptions++;}}
   async function fulfill(id,session,status,value){const body=status===204?'':JSON.stringify(value);
     await protocol('Fetch.fulfillRequest',{requestId:id,responseCode:status,responseHeaders:[{name:'Content-Type',value:'application/json; charset=utf-8'},
-      {name:'Access-Control-Allow-Origin',value:origin??'*'},{name:'Access-Control-Allow-Headers',value:'Authorization, Content-Type, X-Demo-Actor, X-Account-Session'},
+      {name:'Access-Control-Allow-Origin',value:origin??'*'},{name:'Access-Control-Allow-Headers',value:'Authorization, Content-Type, X-Demo-Actor, X-Account-Session, X-Murmingle-Semantic'},
       {name:'Access-Control-Allow-Methods',value:'POST, GET, OPTIONS'},{name:'Cache-Control',value:'no-store'},
       {name:'X-Murmingle-QA-Intercepted',value:'1'}],body:Buffer.from(body).toString('base64')},session);
   }
@@ -417,6 +447,11 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     const input=JSON.parse(request.postData??'{}');
     const capability=semanticSmokeCapabilityResponse(route,mode.capability);
     if(capability){await fulfill(requestId,incoming,capability.status,capability.body);return;}
+    if(route==='/v1/semantic/search'){
+      assert.equal(mode.capability,'modern');assert.deepEqual(Object.keys(input).sort(),['cursor','limit','query']);assert.equal(input.limit,20);assert.equal(input.cursor,null);
+      assert.equal(Object.entries(request.headers).find(([key])=>key.toLowerCase()==='x-murmingle-semantic')?.[1],'2');
+      namedSearchInputs.push(structuredClone(input));await fulfill(requestId,incoming,200,semanticSmokeNamedSearchPage(input.query,version()));return;
+    }
     if(route==='/v1/semantic/topics'){assert.deepEqual(input,{});await fulfill(requestId,incoming,200,{version:version(),policyRevision:2,
       topics:[{id:'games',title:'Games',path:['games']},{id:'music',title:'Music',path:['music']}]});return;}
     if(route==='/v1/semantic/context'){
@@ -427,10 +462,12 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     }
     if(route==='/v1/semantic/feed'){
       assert.equal(input.limit,20);assert.equal(input.cursor,null);const value=root();delete value.replies;
-      await fulfill(requestId,incoming,200,{version:version(),policyRevision:2,nodeId:input.nodeId,roots:[{topic,discussionId:'discussion-a',root:value}],nextCursor:null,actors:[actors[1]]});return;
+      await fulfill(requestId,incoming,200,{version:version(),policyRevision:2,nodeId:input.nodeId,roots:[{topic,discussionId:'discussion-a',root:value,
+        ...(mode.capability==='modern'?{scope:{kind:'named',id:input.nodeId.slice(8),caption:'Koalas'}}:{})}],nextCursor:null,actors:[actors[1]]});return;
     }
     if(route==='/v1/semantic/thread'){
-      assert.equal(input.rootId,'root-a');await fulfill(requestId,incoming,200,{version:version(),policyRevision:2,nodeId:input.nodeId,topic,discussionId:'discussion-a',root:root(),nextCursor:null,actors});return;
+      assert.equal(input.rootId,'root-a');await fulfill(requestId,incoming,200,{version:version(),policyRevision:2,nodeId:input.nodeId,topic,discussionId:'discussion-a',root:root(),nextCursor:null,actors,
+        ...(mode.capability==='modern'?{scope:{kind:'named',id:input.nodeId.slice(8),caption:'Koalas'}}:{})});return;
     }
     if(route==='/v1/semantic/target'){
       if(mode.holdTarget){held.push({requestId,incoming});return;}
@@ -438,7 +475,7 @@ export async function runSemanticWorkspaceBrowserSmoke(){
       const needed=new Set(['demo-blair',selected.actorType==='agent'?selected.insight.operatorId:selected.authorId]);
       await fulfill(requestId,incoming,200,{version:version(),policyRevision:2,nodeId:input.nodeId,topic,discussionId:'discussion-a',
         root:{...full,replies:input.targetId==='root-a'?[]:[selected]},targetId:input.targetId,rootRevision:3,targetRevision:input.targetId==='root-a'?3:input.targetId==='reply-a'?2:1,
-        actors:actors.filter(actor=>needed.has(actor.id))});return;
+        actors:actors.filter(actor=>needed.has(actor.id)),...(mode.capability==='modern'?{scope:{kind:'named',id:input.nodeId.slice(8),caption:'Koalas'}}:{})});return;
     }
     if(route==='/v1/commands'){
       const command=input.command;assert.equal(command.discussionId,'discussion-a');assert.equal(command.rootId,'root-a');
@@ -626,7 +663,37 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     assert.deepEqual(await evaluate(`(()=>{const s=semanticQA.current.controller.currentState();return {text:s.draft.body,detached:s.draft.detached,staging:s.localRootDraftReady,
       submit:document.querySelector('#discussion-submit').disabled};})()`),{text:'Keep the original document draft',detached:true,staging:false,submit:true});
     await evaluate(`document.querySelector('#discussion-composer').requestSubmit()`);assert.equal(commands.length,5);cases.push('first-seen-replacement-document-detaches');
-    uiStep='final-guards';assert.equal(cases.length,18);assert.equal(await evaluate(`semanticQA.providerCalls`),2);assert.equal(exceptions.length,0);assert.deepEqual(failures,[]);assert.equal(protocolFailure,false);assert.deepEqual(pins(),startPins);
+    assert.equal(cases.length,18); // All original cases are still mandatory.
+    uiStep='named-v2-directory';mode.capability='modern';mode.holdTarget=false;
+    await evaluate(`(${bootstrapNamedTopicFixture.toString()})()`);
+    await waitFor(`document.querySelectorAll('#named-results .discovery-card').length===3`);
+    assert.deepEqual(await evaluate(`Array.from(document.querySelectorAll('#named-results .topic-breadcrumbs'),n=>n.textContent)`),['Food \u203a Recipes \u203a Kapsalon','Nature \u203a Animals \u203a Koalas']);
+    assert.equal(await evaluate(`document.querySelector('#named-heading').textContent`),'Search Topics');
+    assert.equal(await evaluate(`Array.from(document.querySelectorAll('#named-results button'),n=>n.textContent).includes('<New topic>')&&document.querySelector('#named-results new')===null`),true);
+    cases.push('named-v2-global-breadcrumbs-and-literal-captions');
+    async function namedCapture(name){
+      await protocol('Emulation.setDeviceMetricsOverride',{width:320,height:900,deviceScaleFactor:1,mobile:false},sessionId);
+      const layout=await evaluate(`(()=>{const n=document.querySelector('#named-topics');return {width:innerWidth,scrollWidth:document.documentElement.scrollWidth,bodyWidth:document.body.scrollWidth,overflow:document.documentElement.scrollWidth>innerWidth+1||n.scrollWidth>n.clientWidth+1};})()`);
+      const shot=await browser.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},sessionId);
+      writeFileSync(checkedPath(path.join(attempt,name)),Buffer.from(shot.data,'base64'),{flag:'wx'});screenshots.push({name,...layout,surface:'named-topics'});checkUi(!layout.overflow,'horizontal-overflow');
+    }
+    await namedCapture('named-directory-320.png');
+    uiStep='named-v2-query';await evaluate(`(()=>{const n=document.querySelector('#named-search');n.value='Koalas';n.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+    await waitFor(`document.querySelectorAll('#named-results .discovery-card').length===1&&document.querySelector('#named-results button').textContent==='Koalas'`);
+    const requestsBeforeSourceChange=namedSearchInputs.length;
+    await evaluate(`namedTopicQA.panel.observe({actorId:'demo-alex',sessionRevision:1,sourceId:'reserved-example-org'})`);await pause(80);
+    assert.equal(namedSearchInputs.length,requestsBeforeSourceChange);assert.deepEqual(namedSearchInputs.at(-1),{query:'Koalas',limit:20,cursor:null});
+    assert.equal(await evaluate(`document.querySelector('#named-search').value`),'Koalas');cases.push('named-v2-query-independent-of-foreground-source');
+    const koalas='subject-32345678-1234-4123-8123-123456789abc';
+    uiStep='named-v2-thread';await evaluate(`document.getElementById('named-open-${koalas}').click()`);
+    await waitFor(`Boolean(document.querySelector('#named-thread-root-a'))`);assert.equal(await evaluate(`document.querySelector('#named-thread-root-a').textContent`),'Koalas');
+    await evaluate(`document.querySelector('#named-thread-root-a').click()`);await waitFor(`Boolean(document.querySelector('#named-reply-reply-a'))`);
+    assert.equal(await evaluate(`document.querySelector('#named-heading').textContent`),'Koalas');cases.push('named-v2-thread-keeps-public-caption');
+    uiStep='named-v2-reply';await evaluate(`document.querySelector('#named-reply-reply-a').click()`);await waitFor(`namedTopicQA.replies.length===1`);
+    assert.deepEqual(await evaluate(`namedTopicQA.replies[0]`),{nodeId:koalas,rootId:'root-a',targetId:'reply-a',topicId:'canonical-a',discussionId:'discussion-a'});
+    assert.equal(await evaluate(`document.querySelectorAll('#named-results .semantic-topic-replies').length===1&&document.querySelectorAll('#named-results .semantic-topic-replies .semantic-topic-replies').length===0`),true);
+    await namedCapture('named-thread-320.png');cases.push('named-v2-flat-thread-exact-original-reply-handoff');
+    uiStep='final-guards';assert.equal(cases.length,22);assert.equal(await evaluate(`semanticQA.providerCalls`),2);assert.equal(exceptions.length,0);assert.deepEqual(failures,[]);assert.equal(protocolFailure,false);assert.deepEqual(pins(),startPins);
     outcome='passed';
   }catch(error){firstUiFailure={step:uiStep,...describeSemanticUiFailure(error)};fail('browser-smoke-incomplete');}
   finally{

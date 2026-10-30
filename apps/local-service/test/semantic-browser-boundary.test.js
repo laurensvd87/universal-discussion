@@ -8,23 +8,33 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {describeSemanticBoundaryFailure,validateSemanticBrowserSmokeSource,quarantinePausedSemanticTarget,
   bindContainedSemanticAlias,markSemanticSessionDetached,describeSemanticUiFailure,createSemanticSmokeAiPort,createSemanticFirstPageSmokeState,
-  validatePrivateApplicationBrowserPaths,openPrivateApplicationBrowser,PRIVATE_BROWSER_ROOT_BODY,PRIVATE_BROWSER_REPLY_BODY,semanticSmokeCapabilityResponse,SEMANTIC_SMOKE_CAPABILITY_DEFAULT} from '../harness/run-semantic-workspace-browser-smoke.js';
+  validatePrivateApplicationBrowserPaths,openPrivateApplicationBrowser,PRIVATE_BROWSER_ROOT_BODY,PRIVATE_BROWSER_REPLY_BODY,semanticSmokeCapabilityResponse,SEMANTIC_SMOKE_CAPABILITY_DEFAULT,semanticSmokeNamedSearchPage} from '../harness/run-semantic-workspace-browser-smoke.js';
 import {createLocalDiscussionController} from '../../../spikes/topic-resolution/browser/core/local-discussion-controller.js';
 import {createLocalServiceClient,isMissingSemanticCapabilities} from '../../../spikes/topic-resolution/browser/core/local-service-client.js';
+import {readSemanticSearch} from '../../../spikes/topic-resolution/browser/core/local-service-contract.js';
 
 test('the browser fixture negotiates v2 absence through the actual client and never falls back after authentication failure',async()=>{
  assert.equal(SEMANTIC_SMOKE_CAPABILITY_DEFAULT,'available');
- for(const mode of [SEMANTIC_SMOKE_CAPABILITY_DEFAULT,'legacy','unauthorized']){
+ for(const mode of [SEMANTIC_SMOKE_CAPABILITY_DEFAULT,'legacy','unauthorized','modern']){
   const calls=[],client=createLocalServiceClient({getToken:()=> 'a'.repeat(43),fetchImpl:async url=>{
    const route=new URL(url).pathname;calls.push(route);const response=semanticSmokeCapabilityResponse(route,mode);assert(response);
    return new Response(JSON.stringify(response.body),{status:response.status,headers:{'content-type':'application/json; charset=utf-8'}});
   }});
   if(mode===SEMANTIC_SMOKE_CAPABILITY_DEFAULT)assert.deepEqual(await client.semanticCapabilities(),{protocol:'semantic-topics/v1'});
+  else if(mode==='modern')assert.deepEqual(await client.semanticCapabilities(),{protocol:'semantic-topics/v2',authorContext:'authored-topics/v2',topicSearch:'named-topics/v2'});
   else await assert.rejects(client.semanticCapabilities(),error=>mode==='legacy'?isMissingSemanticCapabilities(error):error.code==='unauthorized'&&!isMissingSemanticCapabilities(error));
-  assert.deepEqual(calls,mode==='unauthorized'?['/v1/semantic/capabilities/v2']:['/v1/semantic/capabilities/v2','/v1/semantic/capabilities']);
+  assert.deepEqual(calls,['unauthorized','modern'].includes(mode)?['/v1/semantic/capabilities/v2']:['/v1/semantic/capabilities/v2','/v1/semantic/capabilities']);
  }
  assert.equal(semanticSmokeCapabilityResponse('/v1/semantic/context',SEMANTIC_SMOKE_CAPABILITY_DEFAULT),null);
  assert.throws(()=>semanticSmokeCapabilityResponse('/v1/semantic/capabilities','unrecognized'));
+});
+
+test('modern browser fixtures pass the exact public search contract with complete independent mixed hierarchy captions',()=>{
+ const version={generation:'synthetic-search',revision:7};
+ const all=readSemanticSearch(semanticSmokeNamedSearchPage('',version),{limit:20});assert.equal(all.topics.length,3);
+ assert.deepEqual(all.topics.slice(0,2).map(t=>[...t.breadcrumbs.fixed,...t.breadcrumbs.topic].map(v=>v.label).join(' / ')),['Food / Recipes / Kapsalon','Nature / Animals / Koalas']);
+ const filtered=readSemanticSearch(semanticSmokeNamedSearchPage('Koalas',version),{limit:20});assert.equal(filtered.topics.length,1);assert.equal(filtered.topics[0].label,'Koalas');
+ assert.equal(all.topics[2].label,'<New topic>');assert.throws(()=>semanticSmokeNamedSearchPage(null,version));
 });
 
 // Evaluate the ACTUAL launcher with an in-memory child and pipes. No subprocess,
