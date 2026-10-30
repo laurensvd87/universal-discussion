@@ -520,3 +520,15 @@ matches are mandatory. Those Sources are retired before the original later
 feed/dashboard/erasure checks. Finite existing diagnostic stages distinguish
 these paths. No SQL/algorithm/role/limit change; all old190 checks remain.
 Joined962 guarded Node tests pass; a new real SQL invocation is required.
+
+The corrected V3 checks ACTUALLY PASS in native run029c24c9... on catalog
+5282ddb49e2638a7cb53fc85ed93a80c0098970fb07d81df2750213d22f3e622.
+All190 original reports plus mandatory V3 assertions pass: founding policy,
+label, prototype and IDs stay stable on reuse; a genuinely new V3 head is
+created from two distinct invented Sources and both single-page matches read
+it. Generic labels and stale Source stamps are refused atomically. Later
+original registered18 feed, reply, AI-proof and erasure assertions also pass.
+All2678 consumed pins reauthenticated at terminal; two DBs dropped, server
+smart-stopped, empty Job/allhandles/bothEOF/stderr0/emergencyFALSE. Root-only
+proof, numeric fixture with provider stub, not representative semantic quality,
+full-data recovery, browser/provider validation or live activation. C492 held.
