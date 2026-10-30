@@ -243,3 +243,14 @@ before expecting its derived cards, and records existing bounded stage tags.
 A separately reviewed corrected invocation is pending; no live activation or
 failed-run adoption is implied. The new SQL and prior15-component prefix are
 unchanged by this correction.
+
+The next invocation passed the named/fixed breadcrumb report but stopped at the
+new role loop (PUBLIC34 CALL ERR_ASSERTION). The owned fixture deliberately creates
+only postgres/app/crawler/worker; it cannot impersonate an absent adapter role.
+Saved failure audit SHA256
+`ac4b80abafe0b40123d7a2b0f40eba93d78fb8eca33eada1dc9882dd73c2caa7`
+authenticated all2651 pins and normal cleanup. The corrected test checks the
+complete function ACL (including PUBLIC and any other non-owner/non-app grantee)
+and retains real worker/crawler execute refusals. It adds no role or connection,
+and changes no production SQL, migration or assertion of canonical behavior.
+A new separately reviewed invocation remains required.

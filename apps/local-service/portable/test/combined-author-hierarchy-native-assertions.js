@@ -177,9 +177,17 @@ export async function runCombinedAuthorHierarchyNativeAssertions(scope){
    }
   }finally{ai.dispose();await Promise.allSettled([...inflight]);handler=createRequestHandler({config,service});}
  });
- await check(8,async()=>{
-  for(const role of ['murmingle_ingest_worker','murmingle_crawler_submitter','murmingle_adapter'])await assert.rejects(owner.transaction(async tx=>{
+ await check(8,async at=>{
+  at('CONTEXT');
+  // The owned cluster has app/crawler/worker roles only. Check every ACL
+  // grantee (including PUBLIC), without inventing or impersonating a fifth role.
+  assert.equal((await one(owner,`SELECT count(*)::integer n FROM pg_proc p
+   CROSS JOIN LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
+   WHERE p.oid='canonical_v4.combined_search_topics(text,text[],jsonb,integer)'::regprocedure
+    AND a.privilege_type='EXECUTE' AND a.grantee NOT IN(p.proowner,(SELECT oid FROM pg_roles WHERE rolname='murmingle_app'))`)).n,0);
+  at('START');for(const role of ['murmingle_ingest_worker','murmingle_crawler_submitter'])await assert.rejects(owner.transaction(async tx=>{
    await tx.exec('SET LOCAL ROLE '+role);await tx.query('SELECT * FROM canonical_v4.combined_search_topics($1,ARRAY[]::text[],NULL,20)',[generation]);}),code('42501'));
+  at('RESULT');
   for(const role of ['murmingle_app','murmingle_ingest_worker','murmingle_crawler_submitter'])for(const sql of ["SELECT * FROM canonical_v4.combined_fixed_edges","SELECT canonical_v4.combined_supported_scopes('g','s')","SELECT canonical_v4.combined_index_fixed_root('r')"])
    await assert.rejects(owner.transaction(async tx=>{await tx.exec('SET LOCAL ROLE '+role);await tx.query(sql);}),code('42501'));
   const before=await one(owner,'SELECT count(*)::integer n FROM canonical_v4.contributions');
