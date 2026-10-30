@@ -2,7 +2,7 @@
 
 Date: 2026-10-30
 
-Status: source design under Root review; no native, archive restore or C: write authorized by this document alone.
+Status: implementation source accepted by Root; fresh whole-catalog readiness and a separate actual execution decision remain required.
 
 The current full17-to18 rehearsal uses a fixed29October archive and preserves all27
 legacy tables while verifying28 restored tables, migration18, generated sequences,
@@ -100,3 +100,31 @@ independent readback. Original resource floors pass. Saved resulta465153b...04d1
 and Root audit376dc5ff...2a17d retain the measurements. No archive or database is
 opened. This establishes bounded filesystem behavior only: actual PostgreSQL
 compatibility, full-data fit, recovery and browser validation remain unproven.
+
+## Source integration checkpoint
+
+Root reviewed28 selected files totaling602,120 bytes. All14 original copy inputs
+remain unchanged. The new purpose retains the complete original logical/identity
+cluster check byte-for-byte and adds a required allocation wrapper. A regression
+binds the real OwnedRun constructor to that wrapper. The parent also measures
+noncluster allocation and records bounded observations through controller retirement;
+original publication checkpoints continue enforcing resource/workspace checks.
+The97-to98-test progression includes one explicit fixed-CLI dispatch regression.
+Final results:95 Node tests pass with64MiB old-space (355.44ms),98 Python tests
+pass (3.595s), including the80 inherited driver checks. These are pure/fake-port
+checks, not98 SQL or semantic-quality cases. Both PowerShell scripts parse and
+compile their C# bindings without invoking those bindings.
+
+One separate read-only native readiness probe observes the already pinned public
+Chrome executable through the new Windows allocation API. It confirms52/16-byte
+ABI structures, NTFS4096 support, logical and reported allocated size4,525,720,
+format0 and the original handle closed. The module remains held at SHA436e03c3
+...242d4. This exercises no private/archive content, C writes, process or SQL.
+Root source receipt7a781310...cbfb9 is a single review, not an independent review.
+
+Source-ready flags enable only the explicit complete browser purpose after exact
+catalog authentication; they do not authorize an actual run by themselves. No
+new C database, private restore or actual browser execution has occurred yet.
+A fresh source/runtime catalog, input/end pins, resource/volume/port readiness
+and a separate Root ONE actual decision are required before the two fixed private
+parent directories are prepared and the protected full rehearsal starts.

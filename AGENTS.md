@@ -8,6 +8,32 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct compressed full-owner recovery SOURCE PROGRESS/RootACCEPTED.
+NEW28files602120B in compressed-owner-recovery-v1:14 selected lifecycle/application/
+browser+tests copies plus bounded helpers. All14 originalsource endpins unchanged.
+Rootreview7a781310...cbfb9;95NodePASS355.4437ms64MiB+98PythonPASS3.595s incl80original
+checks, new actual-OwnedRun->required allocation-wrapper regression and CLI gates.
+Full original cluster guard AST retained; additional4GiB allocated/128MiBnoncluster
+scan required only newcompletebrowserpurpose.6GiBlogical/8clients/Job1GiB32/Node64/
+360-380-390 and originalfloors intact. Both restore admission boundaries admit
+ONLY exact1,354,423,835B+fixedSHA17dump. Oldgeneric1GiB contracts unchanged.
+Real C: metadata API readonlyreadiness PASS on pinned Chrome.exe:logical4525720/
+allocated4525720/format0/handleclosed; ABI52+16, NTFS4096/compression supported.
+windows_storage.py HELD436e03c3...242d4. No Croot/database/nativeJob/privatearchive
+restore/browseractual yet. Both PowerShell payloads parse+C#compilePASS with NO
+native calls. Root-only review, NOT independent; SOURCE-ready flags areNOTactual
+permission. Need fresh wholecatalog/runtime/inputs/resources/port+separateRootONE
+actual decision, then fixedprotectedRootprep + full native rehearsal and audit.
+Source findings closed beforeHOLD: actualpurpose flag initially attached to wrong
+PrivateInputs class nowcorrectOwnedRun/test; baseline initialized before compressed
+admission; privatebrowser Dconstraint copied/retargeted with original containment;
+oldlongD SQLite overflow guard retained plus newshortC budget. No waiver.
+All consumed priorSource/maps/results preserved. Crawler26784 advances10975/stderr0;
+API8108/worker11880/dashboard28420 originalstarts. CurrentC6607466496/D4400226304B;
+fresh checksmandatory. GoalACTIVE; actualrecovery+quality/discovery/canonical/ANN/
+owner/UI/coldURL/load/livecutover unfinished. No autoteacher ornewmatchingactivation.
+
+
 LATEST30Oct REAL fixed8 public static-prefix capture/E5 comparison PROGRESS.
 Source+gold b5c5f664 committed BEFORE inference. ONEactual50707 CLOSEDexit0,
 72045.5061ms total incl normal5s politeness gaps per origin; NOT UI latency.
