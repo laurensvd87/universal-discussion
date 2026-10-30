@@ -22,3 +22,6 @@ spikes/topic-resolution/browser/embedding/embedding-contract.js -text
 # Historical harness inputs are pinned by raw FILE hashes. Preserve their exact
 # bytes in Git; do not rewrite them when archiving or checking out old evidence.
 spikes/topic-resolution/harness/experimental/** -text
+
+# Consumed recovery source and catalogs retain their exact raw FILE hashes.
+apps/local-service/portable/integration/compressed-owner-recovery-v1/** -text

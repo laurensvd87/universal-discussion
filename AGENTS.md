@@ -8,6 +8,38 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct compressed full-owner ONEactual26495 CLOSEDexit1/FAILED. Catalog2704/
+279829030B,417800B4bdee38c...7de2e; all7runtime+3heldprivateinput readinessPASS.
+Source4a045a36pushed beforeactual. Newprivate C parents prepared owner+SYSTEM2ACL.
+ActualPG bootstrap/completearchiveauth/emptytarget PASS reached7phasefiles through
+restore-dispatched. Parentprimary resource-limit/jobCpuSeconds300.046875>300;
+NO fullrestore/migration/HTTP/browser/quality acceptance. Node stdout0/stderr0/
+ownercompletion+native-lifecycle reportABSENT. Owned-emergency/emptyJob/closedall
+handles/2EOF/endpinsTRUE, NOT normalSQLsmartstop. Rootaudit9f84bf62...9cf1b,
+result879Bd3fd07c8...757fa. Independentreadonly all2704 currentendpins PASS;
+postfailurecluster1368files/logical1556437369/allocated1368281088B observed.
+Perprocess/user-vskernel causeUNRETAINED; compression/parser/WALcauseUNKNOWN.
+All consumedv1 SOURCE/catalog/output IMMUTABLE/no retry/adoption/capraise.
+ExactNode9376+PG28236/port55433/referenceabsence verified; original5services
+preserved/crawler11475stderr0. Separatefixed-path disposal:20pureguards+native
+compile/readOnly1394entries1366files/twicehash+ACL+PID/controlsPASS. One42192
+retirement CLOSEDexit0, ONLYownedpgdata1556436787Blogical removed; all7control/
+outputpins unchanged. Rootdispositionaudit92d3cf34...08e32. Explicitownedemergency
+notnormalSQLstop. Firstreadonlydisposalhelper failed missingAdd-Type fromgenerator;
+v1retained, newv2 restoredexactbindings+compiletest, no deletion beforeauditPASS.
+C6796447744/D4434350080B at12:44:57Z; Pagefile3668MiB allocated/114used/449peak,
+settingsUNCHANGED. Volumefreedeltas areNOT per-directory cause/allocation proof.
+36oldunusedlanguage cacheassets losslesslycompressed149747269B/saved83711557B;
+allhash/times/ACLstable/no delete; en/de/nl/exes/credentials/liveDB excluded.
+Inventorylesson: WindowsDirEntry.stat st_nlink=0 placeholder; fullPath.lstat
+singlelink checks mandatory (corrected BEFORE selection/mutation).
+NEW ADR230 SOURCEproposal: reviewednewnamespace minimal-WAL freshcluster hypothesis+
+retaineduser/kernelaccounting; samefullarchive/assertions/300CPU/originalalllimits,
+fsync/fullPageWritesON/liveconfigunchanged. NOv2copies/map/actualgrantyet.
+GoalACTIVE; recovery and semanticdiscovery/stableIDs/ANN/owner/UI/coldURL/load/
+livecutover OPEN. PriorSource-ready checkpoint superseded only inactual status.
+
+
 LATEST30Oct compressed full-owner recovery SOURCE PROGRESS/RootACCEPTED.
 NEW28files602120B in compressed-owner-recovery-v1:14 selected lifecycle/application/
 browser+tests copies plus bounded helpers. All14 originalsource endpins unchanged.

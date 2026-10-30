@@ -128,3 +128,36 @@ new C database, private restore or actual browser execution has occurred yet.
 A fresh source/runtime catalog, input/end pins, resource/volume/port readiness
 and a separate Root ONE actual decision are required before the two fixed private
 parent directories are prepared and the protected full rehearsal starts.
+
+## First full actual attempt: closed failure, retained evidence
+
+The fresh2704-file catalog authenticates279,829,030 bytes with all seven runtime
+pins; its417,800-byte file hashes4bdee38c...7de2e. The complete encrypted archive,
+receipt and fixed Chrome executable pass held-input start/end verification before
+the separate Root ONE actual decision. Source4a045a36 is committed/pushed first.
+The protected C parents are prepared without changing existing ACLs.
+
+Actual26495 exits1. Owned PostgreSQL startup and complete archive authentication
+reach restore-dispatched, but the parent selects aggregate Job CPU300.046875,
+above the original300-second limit. The Job is retired by owned emergency with
+all parent handles closed, empty Job and both EOFs; source/runtime end pins pass.
+Node output is empty and no normal child lifecycle/owner completion exists.
+This proves neither normal SQL smart-stop nor full restoration, migration,
+HTTP/browser behavior or semantic quality. All consumed source/map/output are
+immutable. Root audit9f84bf62...9cf1b independently rechecks all2704 end pins.
+
+A separate fixed-path disposition verifies the exact stale PID/ownership/result
+pins, complete process/listener/reference absence and every file's ACL/hash twice.
+Only failed PGDATA is removed:1,556,436,787 logical bytes across1366 files. All
+original controls/output, the source catalog, original encrypted backup and live
+services remain. Disposition audit92d3cf34...08e32 records that emergency retirement
+is not a normal SQL-stop or recovery-success claim. The initial read-only disposal
+helper lacked its native binding block after generation; it performed no deletion.
+A separate corrected helper and20 pure guards plus compilation/read-only audit
+passed before the one actual disposition.
+
+The actual CPU source and user/kernel split were not retained. Do not infer that
+compression caused the failure from elapsed time or that64MiB retained WAL measures
+WAL work. ADR230 proposes a separately reviewed bulk-load candidate with the same
+full data, assertions, durability and original budgets. It is not an automatic
+retry, a budget increase, a smaller dataset or live activation.
