@@ -8,6 +8,19 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct ADR232 NEW plain-owner-recovery-v1 SOURCE Root reviewed.
+33source copies, all33oldsource+2709oldcatalog pins unchanged.106NodePASS64MiB/
+102PythonPASS4.071s; originalclusterAST/allocatedwrapper/lifetime8clients/allfull
+assertions retained. Real FileOps prepare test joins formatNONE0 readback before
+ownership/PGDATAready; native setup0/readback0 noexisting file decompression.
+BothPSparse+declarationcompile withoutnativecalls PASS. Rootreview8692Bca1b5bf3...
+177f; freshcatalog2709/279853984B,418594B767a49a6...cd5b/all7runtime/auth/endpins
+PASS. Exact3 privateinput held/hash/end/close PASS; readiness1082B810069e1...627a.
+C6820438016/D4370599936/physical11378003968/commit8880123904 atreadiness; rootabsent.
+Source-ready TRUE isNOTactualgrant. Need sourcearchive/freshliveIDs/port/resources/
+separateRootONE decision BEFORE new root/native/fullrestore/browser. No actual
+plain attempt yet. GoalACTIVE/fullsemantic/discovery/canonical/owner/UI unfinished.
+
 LATEST30Oct ADR230 ONE full actual91475 CLOSEDexit1 at C free floor2138091520;
 cleanup samecounter2137894912. Owned-emergency/emptyJob/closedhandles/2EOF/endpins
 TRUE, NOT normalSQLstop/fullrestore/migration/HTTP/browser success. Lastvalidated

@@ -2,8 +2,8 @@
 
 Date: 2026-10-30
 
-Status: Root source design selected for implementation review; no successor
-files/catalog or actual native execution authorized by this document alone.
+Status: separate successor source implemented and Root reviewed; no actual
+native execution authorized by this document alone.
 
 ADR230 reaches actual COPY and index progress but stops at the unchanged C free
 floor. ADR231's public same-size controls reproduce a substantially larger
@@ -50,3 +50,25 @@ Recovery is still a prerequisite to integrating the full matching solution:
 fresh generalizable semantic evidence, automatic public-topic growth, stable
 canonical identities, sixteen-root binding, indexed retrieval, owner-wide/topic
 controls, preserved discussions/privacy, concurrent crawler and actual fast UI.
+
+## Source/readiness checkpoint
+
+The new `plain-owner-recovery-v1` contains33 source files and its own fresh
+catalog. All33 predecessor source pins and all2709 old catalog pins are rechecked
+unchanged.106 Node checks under64MiB and102 Python checks pass, including the
+original cluster guard AST and the actual-purpose allocation wrapper. The real
+filesystem orchestration test proves that pending/refused formatNONE verification
+cannot publish ownership or return PGDATA as ready. Both PowerShell payloads
+parse and their declarations compile without native calls.
+
+Root review8692 bytes hashes
+`ca1b5bf3126c5444cba0ec60e61dc09480ee1716f16d006686bf384fb1f2177f`.
+New2709-file catalog418594 bytes hashes
+`767a49a67c87176deae94a03cd8c1c9c311200b8205a49474f4858845bb7cd5b`,
+authenticating279853984 bytes with all seven runtime pins and full end pins.
+The three fixed archive/receipt/Chrome inputs authenticate through held read-only
+handles, rehash at finish and close. Original admission floors pass, and the new
+root remains absent. Readiness1082 bytes hashes
+`810069e1ba898f814bc7c3cc383e38830a9ec9234a72ed4b7819d1465110627a`.
+Source-ready flags are true, without actual authority. Source archival, fresh
+service/port/resource checks and a separate Root ONE decision are still required.

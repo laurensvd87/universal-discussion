@@ -27,3 +27,4 @@ spikes/topic-resolution/harness/experimental/** -text
 apps/local-service/portable/integration/compressed-owner-recovery-v1/** -text
 apps/local-service/portable/integration/compressed-owner-recovery-bulk-v2/** -text
 apps/local-service/portable/integration/compressed-reservation-probe-v1/** -text
+apps/local-service/portable/integration/plain-owner-recovery-v1/** -text
