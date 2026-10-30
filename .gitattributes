@@ -34,3 +34,5 @@ apps/local-service/portable/integration/plain-owner-recovery-v3/** -text
 apps/local-service/portable/integration/plain-owner-recovery-v4/** -text
 apps/local-service/src/ops/complete-topic-backup-operator.js -text
 apps/local-service/test/complete-topic-backup-operator.test.js -text
+apps/local-service/experiments/restored-fingerprint-v1/** -text
+apps/local-service/portable/integration/restored-fast-schema-contract-v1/** -text

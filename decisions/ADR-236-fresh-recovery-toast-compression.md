@@ -70,3 +70,34 @@ Readiness1430 bytes hashes
 `defa4f1522a93c30ee9f6cb7bc9733ff902bc8178b0347cec0717aa03d250223`.
 Archive exact source, recheck live identities/ports/headroom and record ONE
 separate actual decision before any fixed root setup or invocation.
+
+## One actual LZ4 run
+
+Source3925ba50 is committed/pushed before separate ONE decisioncf59bbf6...d33e6
+and new protected root preparation. Session65294 closes exit1. Full authenticated
+archive process reaches restore-retired at143504ms;123 closed diagnostic samples
+observe COPY/index work. The combined upgrade checkpoint is absent. Parent
+selects resource-limit/jobCpuSeconds300.203125. Last validated aggregate user/
+kernel accounting is269.421875/30.78125 seconds, without process/phase attribution.
+Sampled allocation peaks2702143488 bytes, logical2702063442. Compared with v3,
+the observed restore section is shorter and allocation greater; two runs do not
+isolate causal speedup or establish full-data fit/performance.
+
+Owned-emergency parent retirement proves empty Job, all handles closed, both
+EOFs and all end pins. No child lifecycle report/normal SQL-stop proof exists.
+Do not claim complete fingerprints, migration, HTTP/browser or recovery success.
+Root terminal audit5516 bytes hashes
+`176a52c8398a4b8ca617815907de51cfea6e17618f0e34f9c8bda85c49bb5548`,
+independently reauthenticating all2715 source/runtime pins and eight controls.
+All consumed v4 source/catalog/output now immutable; no rerun/adoption/cap raise.
+ADR237 investigates a measured exact-hash vector-row optimization independently.
+
+Separate fixed scratch disposition passes20 pure refusal cases/native declaration
+compile and readonly1457-entry/1428-file inventory2700662791 bytes. Root decision
+5c92a172...6b746 precedes one removal after twice complete file/ACL/control and
+fresh exact21424/42168/reference/listener absence checks. Retained PID-file start
+1793375361 is cleanup-domain only, not SQL-start evidence. Only exact PGDATA is
+removed. Preflight58fffe93...ad942/completion9a886479...13d25 are outside the run.
+Independent post audit5e77c699...a8f24b verifies target absent/all8 controls
+unchanged and all five original live process creation identities intact. No
+original backup, service, crawler or live setting changes.

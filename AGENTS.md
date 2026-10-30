@@ -8,6 +8,28 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct plain-v4 ONE actual65294 CLOSEDexit1 CPU300.203125 after FULL
+authenticated restore-retired143504ms (v3 212434ms; notcontrolledCPU comparison).
+123progress/COPY+index; allocation2702143488. No upgrade/HTTP/browser checkpoint
+or childlifecycle/normalSQLstop. Parentowned-emergency/emptyJob/closedhandles/
+EOF/endpinsTRUE; Rootaudit5516B176a52c8...b5548/all2715pinsPASS. Allv4 immutable.
+Exact stoppedPGDATA2700662791B removed after20pureguards/compile/readOnly1457/
+1428inventory/Rootdecision5c92a172...6b746+doublehash/ACL/PID+portabsence. Pre
+58fffe93...ad942/done9a886479...13d25; independentpost all8controls unchanged/
+targetabsent/original5identities intact. No originalbackup/live settings touched.
+ADR237 NEW pure vector-row prototype2 +fast-schema-contract3 SOURCE Rootreviewed.
+Actual normal-authREADONLY192prefix rowhashes+3syntheticarrays matchoriginalSQL;
+no privateprojections/hashes persisted. Warmsemantic64row total~14ms vs~30ms;
+other2tables littlebenefit. Newverifier useslocal32-row ONLYsemantic_inputs,
+allotheroriginalSQL/128; ALL28receipt+27post+queue/roles/state/sequences unchanged.
+Bothsnapshots exactcolumn/OID census; binarylowerbound bitdrift/cursorbatch/
+awaitedmarkerpromises tested.19NodePASS395.651ms64MiB. Required60fixedcompleted
+table/sequence/migration markers; next owner+parent73phases. Newupgradev3 adds
+rowFingerprintImplementation semantic-input-binary64-jsonb/v1. Prototypeactual
+consumedbytes immutable. ADR238 nextNEWv5sourceintegration; NOv5copies/catalog/
+actualyet. Fullarchive equality stillmandatory; no universalfloatclaim/fallback/
+capraise. GoalACTIVE fullmatching/quality/owner/UI/livecutover OPEN.
+
 LATEST30Oct ADR236 NEW plain-owner-recovery-v4 SOURCE Root accepted;34files/
 4normalizeddifferences/30namespace-only. Allold34/catalog pins unchanged. ONLY
 freshbulk serverdefault_toast_compression=lz4; actualbootstrapSQL verifiesall6
