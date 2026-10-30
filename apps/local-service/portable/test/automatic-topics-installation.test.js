@@ -3,6 +3,7 @@ import {buildAutomaticTopicsMigrationSource,AUTOMATIC_TOPICS_COMPONENTS} from '.
 import {readCanonicalV4MigrationManifest,canonicalV4SchemaVersion} from '../canonical-v4/index.js';
 import {upgradeAutomaticTopics,installAutomaticTopics} from '../canonical-v4/automatic-topics-installation.js';
 import {loadInstalledHierarchyMatcher} from '../../src/application/installed-hierarchy-matcher.js';
+import {loadSupportedHierarchyMatchers} from '../../src/application/supported-hierarchy-matchers.js';
 import {AUTOMATIC_TOPICS_NATIVE_CAPABILITY} from './automatic-topics-migration-native-assertions.js';
 import {createLocalServiceClient} from '../../../../spikes/topic-resolution/browser/core/local-service-client.js';
 const code=c=>e=>e?.code===c;
@@ -47,4 +48,18 @@ test('malformed owner installation input starts no transaction and never selects
  await assert.rejects(upgradeAutomaticTopics({database,expectedHeadRevision:-1,expectedPolicyRevision:1}),TypeError);
  await assert.rejects(upgradeAutomaticTopics({database,expectedHeadRevision:1,expectedPolicyRevision:1,path:'other.sql'}),code('invalid'));
  await assert.rejects(installAutomaticTopics({database,expectedHeadRevision:0,expectedPolicyRevision:0}),code('invalid'));assert.equal(calls,0);
+});
+
+test('both exact supported heads reach the same migrator while retaining head and policy CAS on the original transaction',async()=>{
+ for(const installed of await loadSupportedHierarchyMatchers()){
+  const f=fake({matcherHash:installed.descriptor.matcherIdentityHash}),transaction=f.database.transaction,sentinel=Error('Invented migrator-entry stop');let policyRead=false,migrationEntered=false;
+  f.database.transaction=work=>transaction(tx=>work({...tx,async query(sql,...args){
+   if(policyRead){migrationEntered=true;throw sentinel;}
+   const result=await tx.query(sql,...args);if(sql.includes('semantic_owner_policy'))policyRead=true;return result;
+  }}));
+  await assert.rejects(upgradeAutomaticTopics({database:f.database,expectedHeadRevision:1,expectedPolicyRevision:1}),error=>error===sentinel);
+  assert.equal(f.count(),1);assert.equal(migrationEntered,true);
+  assert.equal(f.calls.filter(sql=>sql.includes('semantic_installation')).length,1);
+  assert.equal(f.calls.filter(sql=>sql.includes('semantic_owner_policy')).length,1);
+ }
 });

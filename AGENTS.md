@@ -8,6 +8,41 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct ADR239 whole-v1 ONEactual34029 CLOSEDexit1 filesystem-denied,
+site/nativecode/childoriginalcause UNRETAINED. FULLarchive +ALL29originaltable
+fingerprints+sequences PASS (38/73phases,last244569ms); firstfullsemantic_inputs
+exactlocal-hash equality forfixedbackup. NOmigration/post/HTTP/Chrome/normalSQLstop.
+LastCPU365.640625<600; parentowned-emergency/emptyJob/closedhandles/EOF/endpinsTRUE.
+Rootaudit15233Bf8c8b107...4779c/all2722pins BEFORE laterordinarysourceedits. All36
+purpose/catalog/output IMMUTABLE. Same stoppedmetadata sampler accepts489MB;
+2freshpublicWindowscontrols NOTreproduce EACCES5 (oneEOF2,otherallocationworks).
+DoNOTinventcause/ignoreaccesserrors/retry. Needfinitefirstsite+childprecleanup
+failurewitness inNEWsource beforefutureactual. No newactualgrant orsourcecopyyet.
+StoppedPGDATA489117703B removedONLY after20pureguards/1331entries1302files/
+separateRootfb3ab29e...12e7/doublehashACL/PID/reference/portabsence. Prefc5a20bc
+...64fb/done1e2e8c14...4dab; independentpost6e86c6e5...89056 checks8controls/
+38phasepairs/targetabsent/original5identities. No normal-stop/successclaim.
+Live17HTTPstressduringcrawler+ownedtest:28requestsALL200;12URLselection/concur4
+P50=38.33ms/max229.28ms. Version12 P50=9.08/max184.22. NOTUI/manyuser/schema18.
+ADR240 concretebackupcompatibility defect: authenticatedselectedtableSQL-OUTPUT
+extraction(NODB) proves58652jobs=58636complete+16cancelled/0pending/0leased and
+archivedhead exactLEGACY18node/GTA eead1b2d...ed21c, NOTcurrent20node/3detail
+4e9b3d3d...45524. BothfullAES/hash passes +EOFretirement/exit0/rowcounts PASS;
+report7b29a501...26b7. Originalupgraderwoulddeterministicallyrefuseoldknownhead;
+earlieractualchilderrorstillUNKNOWN. Newordinarysupported-hierarchy-matchers.js
+closed2registry reconstructslegacy from4pinnedcurrentassets/exacthash/noencoder,
+leavescurrentloader/defaultunchanged; unknownhash/path refuses. Ownerupgrade
+preservesEITHERknownhead/allowner/READCOMMITTED/idle/CAS/transactionguards.
+Sharedworkerreadiness selectsprotectedexacthash+FULLtopology beforeencoder/claims;
+same4queries; postasyncinit stillsameinitialhead (NOsupportedheadrebase).
+49focusedNodePASS390.4096ms64MiB/0skip; ownerpositive isfakeMIGRATORENTRY ONLY,
+NOTSQLsuccess. Newtestslegacy17/18/mismatch/knownhash+wrongtopology/headrace.
+Ordinary3modules+newregistry evolved AFTER terminalpins; priorbytes Gitb82d5b7f;
+consumedpurpose/component/migrationbytes untouched. Oldsealedlive17/prepared18
+trees unchanged; futureNEWcatalog mustexplicitlyincludeordinarychanges+newmodule.
+Noactivation/crawlerrestart.17:52Z C6798991360 D4437569536 (tight; freshchecks).
+GoalACTIVE/fullSQLpost/UI/provider/quality/discovery/control/backup/live OPEN.
+
 LATEST30Oct plain-v5 ONEactual8512 CLOSEDexit1 CPU300.296875 after FULLrestore
 138089ms+22/29originaltablechecks (lastsemantic_installation205966ms);30/73phases.
 No semantic_inputs equality/migration/HTTP/Chrome/normalSQLstop. Rootaudit12964B

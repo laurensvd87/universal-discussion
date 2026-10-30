@@ -2,14 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {openInstalledHierarchyRuntimeForTest} from '../src/application/installed-hierarchy-runtime.js';
 import {loadInstalledHierarchyMatcher} from '../src/application/installed-hierarchy-matcher.js';
+import {loadSupportedHierarchyMatcher} from '../src/application/supported-hierarchy-matchers.js';
 import {readCanonicalV4MigrationManifest} from '../portable/canonical-v4/index.js';
 
 const generation='runtime-generation',defer=()=>{let resolve;const promise=new Promise(done=>{resolve=done;});return {promise,resolve};};
-async function fixture(profile='hierarchy17'){
- const installed=await loadInstalledHierarchyMatcher(),manifest=await readCanonicalV4MigrationManifest(profile),calls=[];let changed=false,badRights=false,badSchema=false,held=null,derivedHeld=null;
- const nodes=installed.descriptor.matcherIdentity.nodes,byId=new Map(nodes.map(n=>[n.id,n]));
- const topology=()=>({generation,matcherIdentityHash:changed?'b'.repeat(64):installed.descriptor.matcherIdentityHash,
-  nodes:nodes.map(n=>{const path=[];let cursor=n;while(cursor){path.unshift(cursor.id);cursor=byId.get(cursor.parentId);}return {...n,path};})});
+async function fixture(profile='hierarchy17',hash=null){
+ const installed=hash?await loadSupportedHierarchyMatcher(hash):await loadInstalledHierarchyMatcher(),manifest=await readCanonicalV4MigrationManifest(profile),calls=[];let changed=false,badRights=false,badSchema=false,held=null,derivedHeld=null,otherInstalled=null;
+ const topology=()=>{const active=otherInstalled??installed,nodes=active.descriptor.matcherIdentity.nodes,byId=new Map(nodes.map(n=>[n.id,n]));return {generation,matcherIdentityHash:changed?'b'.repeat(64):active.descriptor.matcherIdentityHash,
+  nodes:nodes.map(n=>{const path=[];let cursor=n;while(cursor){path.unshift(cursor.id);cursor=byId.get(cursor.parentId);}return {...n,path};})};};
  const database={async query(sql,args){calls.push(['query',sql,args]);
   if(sql==='SELECT version,hash FROM canonical_v4.schema_migrations ORDER BY version')return {rows:(badSchema?manifest.slice(0,9):manifest).map(({version,hash})=>({version,hash}))};
   if(sql.includes('AS container_installed'))return {rows:[{container_installed:!badRights,semantic_execute:true,container_execute:badRights,legacy_execute:false}]};
@@ -30,8 +30,37 @@ async function fixture(profile='hierarchy17'){
  };
  const options={database,referenceMatcher:{represent:()=>[]},nextId:kind=>'runtime-'+kind,now:()=> '2026-10-27T00:00:00.000Z'};
  const openResources=async value=>{assert.equal(value.database,database);calls.push(['open-resources',value]);return resource;};
- return {calls,resource,options,openResources,setChanged:v=>{changed=v;},setBadRights:v=>{badRights=v;},setBadSchema:v=>{badSchema=v;},holdCandidates:()=>{held=defer();return held;},holdDerived:()=>{derivedHeld=defer();return derivedHeld;}};
+ return {calls,resource,options,openResources,setChanged:v=>{changed=v;},setActiveInstalled:v=>{otherInstalled=v;},setBadRights:v=>{badRights=v;},setBadSchema:v=>{badSchema=v;},holdCandidates:()=>{held=defer();return held;},holdDerived:()=>{derivedHeld=defer();return derivedHeld;}};
 }
+
+const legacyHash='eead1b2dcd6508ebf3d5c45358c71be95e81363da7c0b8325f7466ce487ed21c';
+test('a restored supported historical head starts with its own unchanged topology and shared resources',async()=>{
+ for(const profile of ['hierarchy17','hierarchy18']){
+  const f=await fixture(profile,legacyHash),runtime=await openInstalledHierarchyRuntimeForTest({...f.options,...(profile==='hierarchy18'?{automaticTopics:true}:{})},{openResources:f.openResources});
+  try{assert.equal(runtime.descriptor.installed.matcherIdentityHash,legacyHash);assert.equal(runtime.descriptor.installed.matcherIdentity.nodes.length,18);
+   assert.equal(f.calls.filter(c=>c[0]==='open-resources').length,1);assert.equal(f.calls.filter(c=>c[0]==='start-worker').length,1);
+  }finally{await runtime.close();}
+ }
+});
+test('a change to another supported head during initialization still closes without rebasing or claims',async()=>{
+ const f=await fixture(),legacy=await loadSupportedHierarchyMatcher(legacyHash);
+ await assert.rejects(openInstalledHierarchyRuntimeForTest(f.options,{openResources:async value=>{const resource=await f.openResources(value);f.setActiveInstalled(legacy);return resource;}}),{code:'unavailable'});
+ assert.equal(f.calls.filter(c=>c[0]==='resources-close').length,1);assert.equal(f.calls.some(c=>c[0]==='start-worker'),false);
+});
+test('resources compiled for a different supported head cannot replace the selected active artifact',async()=>{
+ const f=await fixture();f.resource.descriptor.installed=(await loadSupportedHierarchyMatcher(legacyHash)).descriptor;
+ await assert.rejects(openInstalledHierarchyRuntimeForTest(f.options,{openResources:f.openResources}),{code:'unavailable'});
+ assert.equal(f.calls.filter(c=>c[0]==='resources-close').length,1);assert.equal(f.calls.some(c=>c[0]==='start-worker'),false);
+});
+test('a known supported hash cannot bless a different valid topology before resource allocation',async()=>{
+ const f=await fixture(),query=f.options.database.query;
+ f.options.database.query=async(sql,...args)=>{const result=await query(sql,...args);
+  if(sql==='SELECT canonical_v4.semantic_read_topic_nodes($1) AS metadata')result.rows[0].metadata.matcherIdentityHash=legacyHash;
+  return result;
+ };
+ await assert.rejects(openInstalledHierarchyRuntimeForTest(f.options,{openResources:f.openResources}),{code:'unavailable'});
+ assert.equal(f.calls.some(c=>c[0]==='open-resources'||c[0]==='start-worker'),false);
+});
 
 test('automatic18 binds bounded discovery, public evidence, feeds and global search to the same resource and database',async()=>{
  const f=await fixture('hierarchy18'),runtime=await openInstalledHierarchyRuntimeForTest({...f.options,automaticTopics:true},{openResources:f.openResources});

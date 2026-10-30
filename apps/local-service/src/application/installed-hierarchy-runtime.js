@@ -2,8 +2,7 @@
 // background job. Registration/migration/head activation remain owner operations.
 import {ServiceError} from '../domain/errors.js';
 import {readId,readRecord} from '../domain/validation.js';
-import {loadInstalledHierarchyMatcher} from './installed-hierarchy-matcher.js';
-import {openInstalledHierarchyWorkerResources,verifyInstalledHierarchyWorkerReadiness} from './hierarchy-worker-resources.js';
+import {openInstalledHierarchyWorkerResources,verifyInstalledHierarchyWorkerReadiness,selectInstalledHierarchyWorkerReadiness} from './hierarchy-worker-resources.js';
 import {createStoredHierarchyCoordinator} from './stored-hierarchy-coordinator.js';
 import {createAutomaticSubjectCoordinator} from './automatic-subject-coordinator.js';
 import {createAutomaticSubjectRetrievalRepository} from '../../portable/canonical-v4/automatic-subject-retrieval-repository.js';
@@ -28,10 +27,9 @@ async function open(options,openResources,testComposition){
  const automaticTopics=Object.hasOwn(a,'automaticTopics')?a.automaticTopics:false;if(typeof automaticTopics!=='boolean')throw unavailable();
  const schemaProfile=automaticTopics?'hierarchy18':'hierarchy17';
  if(!a.database||typeof a.database.query!=='function'||typeof a.referenceMatcher?.represent!=='function'||typeof a.nextId!=='function'||typeof a.now!=='function')throw unavailable();
- const installed=await loadInstalledHierarchyMatcher();
  // Cheap schema/role/head/topology checks precede encoder allocation and claims.
  // The final SQL apply head fence still guards a later owner model change.
- const initialGeneration=await readiness(a.database,installed,schemaProfile);
+ const {installed,generation:initialGeneration}=await selectInstalledHierarchyWorkerReadiness(a.database,schemaProfile);
  let resources=null,coordinator=null,automatic=null,publicEvidence=null,closing=null;
  async function close(){
   if(!closing)closing=(async()=>{

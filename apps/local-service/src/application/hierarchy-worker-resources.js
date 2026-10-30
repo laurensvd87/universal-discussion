@@ -3,6 +3,7 @@
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {loadInstalledHierarchyMatcher} from './installed-hierarchy-matcher.js';
+import {loadSupportedHierarchyMatcher} from './supported-hierarchy-matchers.js';
 import {createPackagedCrawlerEmbedder} from '../crawler/packaged-e5.js';
 import {createHierarchyIngestionPreparation} from './hierarchy-ingestion-preparation.js';
 import {createStoredSourceHierarchyPreparation} from '../../portable/canonical-v4/semantic-source-preparation.js';
@@ -37,7 +38,7 @@ function freeze(value){if(value&&typeof value==='object'){for(const child of Obj
 
 // Used by both explicit runtime composition and the direct production factory.
 // This is verification only: it cannot migrate, register, activate or claim.
-export async function verifyInstalledHierarchyWorkerReadiness(database,installed,schemaProfile='hierarchy17'){
+async function checkedReadiness(database,expectedInstalled,schemaProfile){
  try{
   if(!['hierarchy17','hierarchy18'].includes(schemaProfile))throw unavailable();
   await createCanonicalV4IngestionRepository({database,schemaProfile}).health();
@@ -55,11 +56,18 @@ export async function verifyInstalledHierarchyWorkerReadiness(database,installed
   if(revisions.length!==1)throw unavailable();const stamp=readRecord(revisions[0],['generation','revision']);
   readId(stamp.generation);if(typeof stamp.revision!=='string'||!/^[a-f0-9]{64}$/u.test(stamp.revision))throw unavailable();
   const topology=await createCanonicalV4SemanticMetadataRepository({database}).topics({generation:stamp.generation});
+  const installed=expectedInstalled??await loadSupportedHierarchyMatcher(topology.matcherIdentityHash);
   const expected=[...installed.descriptor.matcherIdentity.nodes].sort((a,b)=>Buffer.compare(Buffer.from(a.id),Buffer.from(b.id)));
   if(topology.matcherIdentityHash!==installed.descriptor.matcherIdentityHash||
       JSON.stringify(topology.nodes.map(({id,parentId})=>({id,parentId})))!==JSON.stringify(expected))throw unavailable();
-  return stamp.generation;
+  return Object.freeze({generation:stamp.generation,installed});
  }catch{throw unavailable();}
+}
+export async function verifyInstalledHierarchyWorkerReadiness(database,installed,schemaProfile='hierarchy17'){
+ if(!installed)throw unavailable();return (await checkedReadiness(database,installed,schemaProfile)).generation;
+}
+export async function selectInstalledHierarchyWorkerReadiness(database,schemaProfile='hierarchy17'){
+ return checkedReadiness(database,null,schemaProfile);
 }
 
 async function openResources(options,dependencies,productionBinding){
@@ -67,11 +75,10 @@ async function openResources(options,dependencies,productionBinding){
  const schemaProfile=Object.hasOwn(a,'schemaProfile')?a.schemaProfile:'hierarchy17';if(!['hierarchy17','hierarchy18'].includes(schemaProfile))invalid();
  if(!a.database||typeof a.database.query!=='function'||typeof a.referenceMatcher?.represent!=='function'||typeof a.nextId!=='function'||typeof a.now!=='function')invalid();
  const represent=a.referenceMatcher.represent.bind(a.referenceMatcher);
- const installed=await dependencies.loadInstalled();let encoder=null;
+ const installed=productionBinding?(await selectInstalledHierarchyWorkerReadiness(a.database,schemaProfile)).installed:await dependencies.loadInstalled();let encoder=null;
  try{
   const ingest=dependencies.createIngestionRepository({database:a.database,nextId:a.nextId,now:a.now,schemaProfile});
-  if(productionBinding)await verifyInstalledHierarchyWorkerReadiness(a.database,installed,schemaProfile);
-  else await ingest.health(); // Trusted test composition never claims production readiness.
+  if(!productionBinding)await ingest.health(); // Trusted test composition never claims production readiness.
   // Packaged production opener verifies all nine encoder assets and creates
   // its fixed runtime before any loop, claim or externally callable prep exists.
   encoder=await dependencies.openEncoder(installed);

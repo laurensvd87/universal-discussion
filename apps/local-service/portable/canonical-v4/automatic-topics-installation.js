@@ -3,7 +3,7 @@
 import {types} from 'node:util';import {readRecord,frozenClone} from '../../src/domain/validation.js';
 import {ServiceError} from '../../src/domain/errors.js';
 import {migrateCanonicalV4} from './index.js';
-import {loadInstalledHierarchyMatcher} from '../../src/application/installed-hierarchy-matcher.js';
+import {loadSupportedHierarchyMatchers} from '../../src/application/supported-hierarchy-matchers.js';
 import {installInstalledHierarchy} from './hierarchy-installation.js';
 const conflict=()=>new ServiceError('conflict','Automatic topic installation state changed');
 function input(value,fresh){if(types.isProxy(value))throw new TypeError('Invalid automatic topic installation');
@@ -23,26 +23,26 @@ async function owner(tx){
  const pending=await tx.query("SELECT count(*)::integer n FROM canonical_v4.ingestion_jobs WHERE state IN('pending','leased')");
  if(pending.rows.length!==1||pending.rows[0].n!==0)throw conflict();
 }
-async function upgrade(tx,a,installed){
+async function upgrade(tx,a,supported){
  const port=transactionPort(tx);await owner(tx);
  const head=(await tx.query('SELECT revision::text revision,matcher_hash FROM canonical_v4.semantic_installation WHERE singleton FOR UPDATE')).rows;
  const policy=(await tx.query('SELECT revision::text revision,default_max_depth,overrides FROM canonical_v4.semantic_owner_policy WHERE singleton FOR UPDATE')).rows;
  if(head.length!==1||policy.length!==1||head[0].revision!==String(a.expectedHeadRevision)||policy[0].revision!==String(a.expectedPolicyRevision)||
-  head[0].matcher_hash!==installed.descriptor.matcherIdentityHash)throw conflict();
+  !supported.some(installed=>head[0].matcher_hash===installed.descriptor.matcherIdentityHash))throw conflict();
  const migrated=await migrateCanonicalV4(port,'hierarchy18');
  const after=(await tx.query('SELECT revision::text revision,default_max_depth,overrides FROM canonical_v4.semantic_owner_policy WHERE singleton')).rows;
  if(JSON.stringify(after)!==JSON.stringify(policy))throw conflict();
  return frozenClone({schemaVersion:migrated.schemaVersion,matcherIdentityHash:head[0].matcher_hash,headRevision:a.expectedHeadRevision,policyRevision:a.expectedPolicyRevision});
 }
 export async function upgradeAutomaticTopics(value){
- if(arguments.length!==1)throw new TypeError('Invalid automatic topic installation');const a=input(value,false),installed=await loadInstalledHierarchyMatcher();
- return a.database.transaction(tx=>upgrade(tx,a,installed));
+ if(arguments.length!==1)throw new TypeError('Invalid automatic topic installation');const a=input(value,false),supported=await loadSupportedHierarchyMatchers();
+ return a.database.transaction(tx=>upgrade(tx,a,supported));
 }
 export async function installAutomaticTopics(value){
- if(arguments.length!==1)throw new TypeError('Invalid automatic topic installation');const a=input(value,true),installed=await loadInstalledHierarchyMatcher();
+ if(arguments.length!==1)throw new TypeError('Invalid automatic topic installation');const a=input(value,true),supported=await loadSupportedHierarchyMatchers();
  return a.database.transaction(async tx=>{
   const port=transactionPort(tx);await owner(tx);
   const first=await installInstalledHierarchy({...a,database:port});
-  return upgrade(tx,{expectedHeadRevision:first.headRevision,expectedPolicyRevision:first.policy.revision},installed);
+  return upgrade(tx,{expectedHeadRevision:first.headRevision,expectedPolicyRevision:first.policy.revision},supported);
  });
 }
