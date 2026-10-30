@@ -8,6 +8,41 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct current goalturn PROGRESS: protocol v1/v2 compatibility and complete
+public topic breadcrumbs Source+actual native190 ACCEPTED, NOT LIVE. Previous
+status-only goalturn NO PROGRESS; revalidated then executed work. Root-only.
+Compatibility source74e6e4fc/cataloga4cb9c5d mapf8d88244 run69d76688 all190/2650pinsPASS;
+root audit ebb5960989a27892b9145931aab2848aadb8a26a99aecae87bbed3559aece933.
+Legacy views share original app pool; modern protocol2 explicit header/metadata;
+only exact authenticated404 permits old-cap probe; absent-only legacy human/AI
+roots retain canonical IDs, present invalid scope/scoped proof never downgrade.
+Extension0.13.77 source only, permissions unchanged, installed UI not reloaded.
+New16th combined-topic-breadcrumbs.sql app-only bounded same-snapshot wrapper;
+old15 exact378431B prefix SHA7ac32a90...e725. New018382386B SHA36e9400e216c77e7
+7f383ba5bc4878098469bedff69b86a70896a63b8db84e1c. Fixed<=8/topic<=8 display
+steps, oldpath<=8 unchanged. Current named ancestry matched before enrichment;
+retired card retains own caption alone, no Source/vector/model/per-card request.
+Actual whole-workspace browser found missing semanticSearch forwarder, fixed.
+753guardedPASS/12packagePASS/70controllerPASS/4realofflineChrome synthetic UI PASS.
+Controller sandbox permissions failed; unchanged suite normal-tokenPASS, no actual
+DB in puretests. Two new native fixture failures audited/immutable: named card
+assert before real asynchronous maintenance; absent adapter-role impersonation.
+Original immediate fixed aggregation retained; named check drains real worker;
+whole pg_proc ACL+real worker/crawler refusals, no added role/client/assertionwaiver.
+Accepted2638fe08/b35552e6 map9b5e81a53d408a3dd6d255061cadc62d948fbeee6ed355fbf62d15021abc42da
+run-ea97f28a8ee465d5ae1c5eb43c03b5820f275605fe000aec all190/2651pinsPASS,
+2DBdrops/normal smartstop/emptyJob/handles/stderr0/emergencyFALSE. Root audit
+550394a58e711090aff8f7821b265a2f0523244f7b68af9962937ff12084d9eb.
+Content-preserving compression only exact audited stopped scratch clusters; all
+logical hashes/times/ACLs retained, no failure adoption/deletion/settings change.
+Full protected restore11GiB D floor still unmet; owner storage question pending.
+GoalACTIVE: real-data recovery, representative E5, genuine app-browser/provider/
+concurrency/first-ever uncaptured URL latency and verified live cutover unfinished.
+Live schema17/API38860/worker11880/dashboard28420/crawler26784 preserved; fresh
+process/progress/resource checks mandatory. No new actual or live authority from
+these notes; use separately reviewed current-source decisions. Older notes below
+historical where superseded.
+
 LATEST29Oct current goalturn PROGRESS: automatic dashboard18 Source+actualSQL+
 realbrowser metadata UI ACCEPTED, NOT LIVE. Previous goalturnPROGRESS actual190
 migration/runtime. Root-only. Sourceba41fec8 adds15th aggregate dashboard component

@@ -253,4 +253,24 @@ authenticated all2651 pins and normal cleanup. The corrected test checks the
 complete function ACL (including PUBLIC and any other non-owner/non-app grantee)
 and retains real worker/crawler execute refusals. It adds no role or connection,
 and changes no production SQL, migration or assertion of canonical behavior.
-A new separately reviewed invocation remains required.
+The separately reviewed invocation below completed the full proof.
+
+Source `2638fe08`, catalog commit `b35552e6` and execution catalog
+`9b5e81a53d408a3dd6d255061cadc62d948fbeee6ed355fbf62d15021abc42da`
+produced accepted run `run-ea97f28a8ee465d5ae1c5eb43c03b5820f275605fe000aec`.
+All190 reports passed, including all original compatibility/runtime/dashboard
+assertions and the new complete ancestry, whole ACL and retired-caption checks.
+Both databases were dropped; owned-server smart stop, empty Job, closed handles
+and all2651 consumed end pins passed, with empty stderr and no emergency cleanup.
+Root audit `data/automatic18-breadcrumbs-native-root-audit-20261030.json` has SHA256
+`550394a58e711090aff8f7821b265a2f0523244f7b68af9962937ff12084d9eb`.
+Result SHA256 is `e8525e429e20c36d9ef7bfe1be70b5b3795b472403df78f40ca04d7f390e8341`;
+stdout SHA256 is `454738e81363c419336d778b72c9d561b79ba5ed941d5d4e2132264d5217576d`.
+The earlier failed runs remain failed and were not reused or adopted.
+
+This closes isolated sixteen-component installation and public ancestry checks.
+It does not establish full-data recovery, representative E5 quality, a genuine
+app-browser/provider/load exercise, first-ever URL latency or verified live cutover.
+The live sealed services and crawler remain on schema17. The private full-data
+restore still requires its unchanged11GiB D: floor; smaller owned synthetic proofs
+do not waive it. No live activation is implied by these accepted fixtures.
