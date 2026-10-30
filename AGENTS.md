@@ -8,6 +8,73 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct current goalturn PROGRESS; Root-only. LIVE API HOTFIX17 now5dccf68c...
+32b66c7, PID8108/start08:10:20.3478195Z/FILETIME134378214203478195. Old38860 was
+exclusively Ctrl+C drained/exit130; frozen windows-private-ai-api-drain.py target
+38860 is NOW EXPIRED, NEVER reuse for8108 or anyotherrole. Original PG18688present
+(startunreadable), worker11880/dashboard28420/crawler26784 originalstarts retained.
+Crawler advancing8615/stderr0; newAPIstderr0. Manifest e76102c0...0f620,1204files/
+163204201B/707externals authenticated; exactly3privatepatches,1194nonassetcopies
+(incl3patches;1191byte-identical),10encoderONLYhardlinks. Basebe901 retained and
+old/new preflightsPASS; no SQL/schema/model/policy change. Current owner launcher
+src/ops/current-postgres-runtime.js routes API/preflight/status to5dcc, other3
+roles tobase17; old ignored data/postgres-runtime-operator.mjs is schema9HISTORY.
+New launcher/source and source-only-private probe checkpoint/push follow.
+
+Actual new PRIVATE Source-only8case AI probe through8108 produced completed AI
+answer with normal account/HTTP, no appgenerationerror; ownconversation removed/
+sessionlogout/no publicposts. Total17.247s includes10s publiccapture pacing+model
+catalog; provider-start->validation4.539s upperinclpolls. Semantic7of8: samefictional
+bridgeevent descriptions wrongly SEPARATE, so toolExit1/quality-failed is HONEST,
+NOT apptransport failure or fullsemanticpass. No providerretry. Wrong initial
+--run CLI refused before run/no HTTP; corrected declared --run-synthetic-private-
+probe documented separately, sameSource.18listed source pinsPASS (notfullclosure).
+Audit b3eb2ed9...e06b1; result db1b8b7d...8a2eb7. Installedextensionclick/language
+policy NOT proven by thisHTTPprobe. No backgroundteacher enabled/matcherchange.
+
+New pre-provider committed12 MANUAL public-card NONWikipedia diagnostic actual
+normal PUBLIC Source-only provider:12correctroots+subjects/4correctpairs/0false/
+0missed, GTAfamily+KoalaAnimalspathsPASS.25returnednodes allRoot-reviewed.25.130s
+inclpublicfetchpacing/catalog, providerupper12.242s inclpoll+cleanup; own testroot
+withdraw/jobcancel/sessionlogout.21listedendpinsPASS; result4e4c28f5...f15ee,
+audit e92d78b5...1c814. OneYouTubecard is userScreenshot title-only/webunavailable;
+GTAV titleonly/no readablebody. NOT random/population/fullbody/independent/browser/
+E5 proof. Do not turn these path-label hashes into stable canonicalTopicIDs.
+
+Three pure stored45 DEV oracle comparisons now measured; queryvectors heldout,
+nearidenticalbodyexcluded0, goldsemantics/manualparents supplied. RawNN/LCA even
+with knownsemantics over-specific/wrong; support>=2trainingSources coarsens but
+not sufficient. Name/alias gate actual193.5181ms/18settings total, queryselection
+p95<.524ms; all18variants0falsemergedpairs. Paired.8/.005 has15correct/1wrong
+specific/25rootonly/3unresolved;34correctroots/3wrong. Remaining specificerror
+Collegefootball->associationfootball via nonfocal Football despite knownSports.
+Body.8/.015 9correctspecific/0wrong/28rootonly/7unresolved;32rightroots/1wrong.
+Goldaliases INCLUDINGheldoutlanguage are privilegedinputs: NOT automated naming,
+end-to-end/generalization/ANN/SQL/UI proof; no productionpolicy selected. Outputs
+ac0967b7...0f5d4/6449e96a...4a3b0/b14d6378...203d andRootaudits retained. New9pure
+sources+fixedAPIhelper/tests commit537f1a0c; publiccohort8ce94b93. BothV3/C492 HOLD.
+
+Storage: lossless exclusive-handle NTFScompression of15fixed INACTIVEexperiment
+lib/tokenizer/WASM files (470272753Blogical combined<512MiB) recovered201984753B.
+All logical SHA/size/creation/write times/ACLs unchanged; no delete/move/service/
+host setting action. Hardlinked staticmodel with externalalias explicitly excluded.
+Receipts inactive-experiment-dependency-compression{,2}-20261030.json. Enabled
+smallSourcepackage preparation; NOT fullrestore11GiB admission. Freshprepackage
+physical11.20GB/commit8.64GB/C6.62GB/D4.368GB. APIstatus schema17/canonical82783sources/
+52576legacytopics, active20semanticnodes; currenthead37886classified/44711abstain/
+170pending atsample. Related STILLovercapacity45201245>33554432 units: no global
+PageMatching/optionalRelated cure claimed. Full18recovery/browser/coldURL/load/
+actualsemanticprovider+alias+stableidentity integration/quality/finalbackup/cutover
+OPEN. Next independent work: meaningful main-text/typed descriptors and fast indexed
+name/context linking to cached semantic hierarchy, not raw E5 or name-only merges.
+Typed normal URL+primaryDiscussion HTTPburst24of24PASS, p95140.931ms/wall144.721ms
+whilecrawlercontinues; samepairedclient/knownURLs, NOTbrowser/differentusers/coldURL
+proof. Result fcefab1c...fb3e9/audit2873dec1...c6c1. Twoearlier metrics usednonexistent
+discussion.topicId; actualcontract is discussion.topic.id. Invalidmetrics retained,
+not appfailure/acceptedloadproof; corrected typedclient+roots test is solevalid
+readburst. Livecheckpoint private-ai17-live-hotfix-root-checkpoint-20261030.json.
+GoalACTIVE. Earlier checkpoints below historical as scoped.
+
 LATEST30Oct current goalturn PROGRESS; Root-only. Residual/common-name projection
 DEV on same45 retained body vectors/10label vectors,12settings actual15.3812ms;
 26source+3input pinsPASS, no model/SQL/network/files in calculation. Zero-false

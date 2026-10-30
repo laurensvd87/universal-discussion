@@ -2,6 +2,130 @@
 
 Date:2026-10-29
 
+## 30 October current direction: cached semantics, bounded local lookup
+
+The previous turn made progress; this turn adds actual public-page semantic
+teaching, three measured local selectors, and a live private-AI correction.
+The matching goal remains active and neither prepared18 package is activated.
+
+A new fixed12-card diagnostic was committed before provider inference. It covers
+public pages from Python, Monty Python, KDE, WWF, two koala organizations, Rockstar,
+the recipe page and the user's public YouTube screenshot title. None is Wikipedia.
+Cards are manually reviewed titles and short literal excerpts, not full browser
+captures. YouTube could not be fetched; GTA V yielded a title without readable
+body. The separate gold annotations never enter the provider question.
+
+The normal public Source-only AI route returned12 correct subjects and roots,
+4 correct same-subject pairs,0 false or missed pairs, and valid GTA-family and
+Koala/Animals ancestry in this small diagnostic. The25 proposed nodes include
+`Nature > Animals > Mammals > Koalas` and
+`Games > Video games > Grand Theft Auto > Grand Theft Auto V/VI`.
+The complete request took25.130s including10s of required public-page fetch pacing
+and model discovery. The observed provider-phase upper bound12.242s includes
+polling and cleanup. The own temporary question was withdrawn, unused job
+cancelled and new session logged out; no AI answer was published. All21 listed
+source end pins passed, not a full transitive import closure. Result SHA256:
+`4e4c28f5b4acafd469b3057f6cc48b92383f169654327f67051e7f7f74ff15ee`.
+This supports further work on a cached semantic builder, not population-quality
+acceptance or a provider call on every page open.
+
+The next measured component isolates local inference given privileged semantic
+knowledge. On the retained45-page DEV corpus, the query embedding and all
+near-identical body neighbors are excluded from that query's training examples.
+Root manually supplies topic ancestry. A second variant prunes fine nodes with
+fewer than2 other training Sources. A third also uses the complete gold alias
+dictionary and the actual stored17 coarse root. Gold aliases include the held-out
+language: these are explicitly oracle diagnostics, not automatic discovery,
+unknown-alias generalization, publisher holdout or end-to-end validation.
+
+| DEV method, paired view, minimum0.8 | Margin | Correct specific | Wrong specific | Root only | Unresolved | False merged pairs |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Unconditional nearest-topic ancestor | 0.015 | 11 | 13 | 9 | 11 | 1 |
+| Minimum2 training-Source support | 0.015 | 14 | 7 | 18 | 5 | 6 |
+| Name/alias and stored-root gate | 0.005 | 15 | 1 | 25 | 3 | 0 |
+
+The name-gated comparison takes193.5181ms for all18 view/threshold/margin settings;
+per-query selection p95 stays below0.524ms in this45-page calculation. It has0 false
+merged pairs across all18 settings. One specific error remains at the displayed
+point: College football becomes association football via the nonfocal alias
+Football despite a compatible broad Sports root. That point also has3 incorrect
+coarse-root assignments. Speed is demonstrated for this local calculation, not
+HTTP, full corpus retrieval, ANN recall, browser startup or actual user concurrency.
+No production threshold is selected. Result hashes, respectively:
+`ac0967b74de51e1458f2406194a8fa49a9f1a307e2b3931aecead7705dc0f5d4`,
+`6449e96a7cf183382c8eb7d28d271dc1d0127b9449fea71c2a230dca69d4a3b0`,
+`b14d6378bf481e957500e2c78c1e707132205ef6e2b5d71efb60a9c74aad203d`.
+
+The resulting implementation direction is concrete, but still requires evidence:
+
+1. Build semantic subject definitions, explicit parents and grounded aliases in
+   shared background work from eligible public evidence. Separate subject identity
+   from event identity. Cache by Source/material/encoder/builder version, never by
+   a reader's first visit. Current account reply probes remain research; no personal
+   reply-account background teacher or external browsing export is enabled.
+2. Link incoming titles to known, disambiguated subject IDs using focal full names,
+   qualified aliases and semantic context. Compare E5 against meaningful typed
+   definitions and examples; a nearest page, raw word overlap or generic coarse
+   root is insufficient. Inspect main-text quality before another inference trial.
+3. Select the deepest supported semantic path, then apply the owner-wide default
+   and deepest matching topic-specific depth override. Retain a broader subject or
+   page context when specificity is not supported. Do not use a page count alone
+   as a reason to create many discussion rooms.
+4. Freeze the chosen builder/linker before a fresh public, non-Wikipedia holdout
+   with homonyms, unseen topics, title variants and new events. The automatically
+   produced definitions/aliases must be used; the gold dictionary from this DEV
+   diagnostic cannot enter that test.
+5. Integrate only through the canonical publication/version/erasure and historical
+   draft contracts already required below. Provider path-label hashes are proposal
+   keys, not stable canonical Topic IDs; preserve the16 existing roots and history.
+   Then complete full18 restore/browser/model/provider/load/cold-URL checks, a
+   fresh final backup pair and the reviewed coordinated cutover.
+
+## Live private-AI correction and current operations
+
+The API alone now runs the reviewed schema17 private-AI hotfix. It derives the held
+original17 snapshot plus exactly3 private-generation patches. Its manifest covers
+1204 files,163204201 logical bytes and707 external files; only the10 encoder assets
+are hardlinked. Root hash:
+`5dccf68c501a5d65fed09438f2092e29c4fa1e917e4552acc2819d72732b66c7`.
+The old API was verified by exact creation time and an exclusive console, received
+one Ctrl+C and exited gracefully130. New API8108 started08:10:20.3478195UTC. Original
+PostgreSQL, worker, dashboard and crawler remain; the crawler continues ingesting.
+Use the tracked `src/ops/current-postgres-runtime.js` dispatcher for future owner
+operations as documented in the local-service README. Old release/operators stay
+held for recovery; no schema/model/policy or hierarchy activation occurred.
+
+The normal Source-only private route now returns a completed AI answer and removes
+its own temporary private conversation/session. This closes the reproduced optional
+Related-capacity coupling for explicit Source-only generation. Total17.247s includes
+the public capture pacing and model catalogue; provider start to completed-answer
+validation is an observed4.539s upper bound including polling. The semantic probe
+scores7/8: the same fictional bridge closure described by an update and an analysis
+was incorrectly separated. Its exit1/quality-failed result is retained honestly;
+this is a semantic miss, not an application-generation error. No provider retry.
+Result `db1b8b7dbb2e4825f129a21f41d8fa7a54182de837bd1e5ae34d8aee988a2eb7`.
+Installed-extension clicks, language policy and research-enabled replies are not
+proved by this one HTTP check. The full Related index still exceeds its capacity
+(45,201,245 versus33,554,432 units at the status sample); no global Page Matching or
+Related-capacity cure is claimed.
+
+A normal paired read burst on the two known public example URLs delivered all24
+primary discussions, p95140.931ms,144.721ms burst wall time. The typed client parses
+and verifies the atomic catalog+discussion response. This is one paired client on
+known pages, not different accounts, a browser click, a first-ever URL, write-load
+or whole-corpus acceptance test. Two earlier harness metrics incorrectly checked
+`discussion.topicId`; the actual contract is `discussion.topic.id`. Their outputs
+remain invalid measurements, not evidence of application failure or successful
+load. Only the corrected, nonvacuous typed assertion supports this read result:
+`fcefab1cae1bc5a217f352c20065920011b33984d32b20ef0f9761a94d6fb3e9`.
+
+Lossless NTFS compression of15 fixed inactive experiment dependencies recovered
+201984753 allocated bytes. Exclusive-handle hashes, sizes, creation/write times and
+ACLs remained identical. Nothing was deleted or moved; a large model with a second
+hardlink outside the workspace was excluded. This made the small15.47MB source
+package admission possible while preserving4GiB free. It does not satisfy the full
+restore's unchanged11GiB admission. C492 and V3 remain inactive under the hold below.
+
 ## 30 October follow-up: sense separation and the private AI failure
 
 A third actual DEV comparison projected common cohort and shared-name directions

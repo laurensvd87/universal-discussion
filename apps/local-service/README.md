@@ -1,5 +1,31 @@
 # Local service
 
+## Current installed owner-host runtime (30 October 2026)
+
+The local PostgreSQL installation currently runs schema17. The API uses the
+private-AI hotfix release; the worker, dashboard and crawler retain the compatible
+original17 release. Use the tracked dispatcher from the repository root:
+
+```powershell
+node .\apps\local-service\src\ops\current-postgres-runtime.js preflight
+node .\apps\local-service\src\ops\current-postgres-runtime.js status
+```
+
+For a future start, select exactly one role: `service`, `worker`, `dashboard` or
+`crawler`. The role processes are already running on this host; start a role only
+after its previous instance has ended. The dispatcher preserves the API hotfix
+on normal restarts without changing the other roles or upgrading the database.
+
+The older ignored `data/postgres-runtime-operator.mjs` is retained schema9 recovery
+code. Current owner operations use the tracked dispatcher above. The new
+hierarchical named-topic packages remain inactive under the semantic quality hold
+in [ADR228](../../decisions/ADR-228-automatic-named-topics-from-browsing.md).
+Private Source-only generation has been exercised through the live HTTP service;
+installed-extension click/reload behavior still needs its own browser check.
+
+The dated sections below describe earlier experiments and their original scopes.
+
+
 ## Hierarchical assignment reference (2026-10-19, ADR131)
 
 The offline exact E5 exemplar matcher, development fitter and grouped evaluator
