@@ -8,6 +8,22 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct ADR233 NEW plain-owner-recovery-v2 SOURCE Root accepted WITH explicit
+metadata correction.34sources;33oldsource+2709oldcatalog pins unchanged.106NodePASS
+64MiB/108PythonPASS3.823s; originalguardAST/realallocationwrapper/fullassertions
+unchanged. Dstartup4GiB+128MiB at BOTH admission sites; runtimeD4GiB/othercaps same.
+Pure trusted first-site snapshot refusal retains counter/value without resampling;
+unknownsubclasses/accessors not executed, shape/volume finite. Rootreview8917B
+4d08422a...88c4 mustjoin correction14a1e87d...13c76: initial helper wronglyasserted
+entireNONE0helper byteidentical and failed AFTER flags changed; noactual/root.
+Correct wholehelper/rootpreparer namespace-only inverse PASS, native decl+NONE0
+unchanged. Original inaccurate receipt preserved; flags TRUE notactualauthority.
+Newcatalog2710/279860658B,418785B3b526f73...6888; all7runtime/auth/endpins PASS.
+3heldinputs/hash/end/close PASS;3freshsamples minD4451028992>=4429185024, C/memory
+originalfloorsPASS; rootabsent. Readiness1430B3769267d...bd83. Need sourcearchive/
+freshliveIDs/port/resources/separateRootONE decision before newroot/fullactual.
+No plain-v2 native/DB/browser execution yet; goalACTIVE/fullsemantic unfinished.
+
 LATEST30Oct plain-v1 ONE actual tool566289 CLOSEDexit1/8.86s beforecluster/phase.
 Primarycompressed-d-floor counter/valueUNRETAINED; cleanup separately dFree4292206592.
 No inference of first value from later sample. Node33808/Job2processes, CPU0.34375;
