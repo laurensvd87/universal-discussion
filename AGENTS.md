@@ -8,6 +8,52 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct current goalturn PROGRESS; previous status-only turn NO PROGRESS.
+Root-only, no delegation. New naming SQL issue closed without changing publisher
+contract: existing heads retain founding policy/label/prototype and stable IDs;
+corrected native test also creates two NEW invented Sources, protected-prepares,
+V3-publishes their new head and checks both ordinary single-page matches, then
+retires material before all original later feed/reply/AI/erasure assertions.
+Prior 3333652d... exact failed assertion UNRETAINED; deterministic SOURCE mismatch
+corrected in385d39fe, not a fabricated retained runtime diagnosis. All old190
+assertions retained, SQL/algorithm/role/limits unchanged. Joined962NodePASS.
+Catalog5282ddb49e2638a7cb53fc85ed93a80c0098970fb07d81df2750213d22f3e622
+ONE native run029c24c95d22a31ba18b8cd5a3aace9e54370d5a85d40dc9 ACTUALLY PASS:
+all190 reports + mandatory V3 checks, all2678 consumed pins reauthenticated,
+normal smartstop/twoDBdrops/bothEOF/emptyJob/allhandles/stderr0/emergencyFALSE.
+Terminal audit data/name-quality-v3-preservation-native-root-terminal-audit-
+20261030.json SHAd06e19f517439fb1afd481e83a0970724cd1fe54b13c874502af3b5dbcec8587.
+Saved older failures/maps/output retained; no failed-run adoption.
+
+Separate replacement V3 runtime/5-helper Source98ed851a now committed, actual
+PREPARE/SEAL/PREFLIGHT PASS (no DB/service/crawler action): fixed namespace
+hierarchy-release-20261030-named-v3, manifest postgres-hierarchy-release-
+20261030-named-v3-manifest.json. Roota0a2f91286e497137cc50d8e87cf4825a9d5eb4d3d44ab00475b8fd0b59736de;
+1299files/164766501B +760external. All64 overlapping copied/external bindings
+byte-identical. Full external canonical-index relative module closure + all18
+migrations now hashed, not only backup top-level helper. Ten exact checked encoder
+assets149832250B hardlinked from fixed29Oct live release (same dev/inode/nlink2+),
+source files copied. Old C492 and all5 original automatic18 helpers BYTEUNCHANGED;
+C492 remains HOLD, do not activate. New local-state fixed slots capture both
+manifests; MURLOC03/V3 schemas explicitly distinct, no legacy archive adoption.
+Joined1001 guardedNodePASS/5 new purePython censusPASS. Actual readonly Windows
+census correctly refuses writersAbsentFALSE/signalSentFALSE with services alive.
+Root package receipt data/named-v3-inactive-package-root-receipt-20261030.json
+SHAa81ab92ac6575c3522fab50ec7143d10810a8b65f55dc571768e56001757e8e8;
+manifest SHAad653a9f48d227fa813e02c83c1f1b29625ae79e2e4196efeda4b7420d7f1d60.
+Do not silently reseal this namespace or edit its external closure after sealing.
+
+Live still17/be901259...3d83f: preflight PASS before/after asset links. Original
+PG18688/worker11880/API38860/dashboard28420/crawler26784 process starts unchanged;
+crawler now5050 ingested/stderr0, no second crawler/reset/discard or restart.
+03:41:25Z C6630723584/D4402880512/physical11593068544/commitfree9121054720B,
+test55433 absent. GoalACTIVE; full owner17-to18 restore still UNRUN: unchanged
+11GiB D admission floor unmet, storage question unanswered. Current private-
+automatic18 purpose covers full upgrade +18 HTTP cases, NOT real model/browser;
+need genuine18 browser/provider/model/quality/load/coldURL checks, fresh final
+backup pair and verified cutover. Do not equate 190 numeric/provider-stub cases
+with representative E5 quality or completed live product. No host changes.
+
 LATEST30Oct current goalturn PROGRESS (prior status-only turn NO PROGRESS).
 Root-only. Separate current17/new18 quiesced+V2 local-state backup committed
 5d9b7af0; all8 legacy source baselines unchanged. New full owner snapshot17-to18
