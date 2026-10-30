@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {EventEmitter} from 'node:events';
 import {createPrivateSerialDatabase,createPrivateHttpRequestForTest,createPrivateRawHttpRequestForTest,runPrivateApplicationRehearsalForTest,runPrivateModelApplicationRehearsalForTest,runPrivateProductApplicationRehearsalForTest,privateApplicationStoragePaths,PRIVATE_APPLICATION_CASES} from './private-application-rehearsal.js';
 import {PRIVATE_RUN_ROOT} from './private-owner-storage.js';
+import {runPrivateAutomatic18ApplicationRehearsalForTest,PRIVATE_AUTOMATIC18_APPLICATION_CASES} from './private-application-rehearsal.js';
 const sha=b=>createHash('sha256').update(b).digest('hex'),turn=()=>new Promise(r=>setImmediate(r));
 const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r;});return {promise,resolve};};
 test('fixed real-length SQLite path budgets journal suffix and NUL before storage allocation',()=>{
@@ -48,13 +49,13 @@ test('same-connection transaction preserves falsy failure, rolls back before nex
  let caught='missing';try{await db.transaction(async tx=>{await tx.query('SELECT inside');throw false;});}catch(e){caught=e;}assert.equal(caught,false);await db.query('SELECT after');await db.close();assert.deepEqual(events,['BEGIN','SELECT inside','ROLLBACK','SELECT after','END']);
 });
 
-function fixture({failAt=null,closeFails=false}={}){
- const identities=new WeakMap(),events=[],tokens=['one-private-test-token-'.padEnd(43,'1'),'two-private-test-token-'.padEnd(43,'2')];let config,policy=1,edited=false,withdrawn=false,revoked=false,proof=null,serial=0;
+function fixture({failAt=null,closeFails=false,automaticTopics=false}={}){
+ const identities=new WeakMap(),events=[],tokens=['one-private-test-token-'.padEnd(43,'1'),'two-private-test-token-'.padEnd(43,'2')];let config,policy=automaticTopics?5:1,edited=false,withdrawn=false,revoked=false,proof=null,serial=0;
  const run=PRIVATE_RUN_ROOT+'\\run-'+'a'.repeat(48),cluster=run+'\\cluster\\nhpg-TEST01';
   const value={clusterDirectory:cluster,outputDirectory:run+'\\output',ownerDatabase:{async query(sql,args){events.push('owner-query');if(sql.startsWith('SELECT id FROM'))return {rows:[{id:'topic-empty'}]};if(sql.startsWith('SELECT l.source_id')){assert.match(sql,/s.provenance='owner-local-page-embedding\/v1'/u);assert.match(sql,/NOT EXISTS/u);return {rows:[{source_id:'source-saved',topic_id:'topic-saved'}]};}if(sql.includes('semantic_set_owner_policy'))return {rows:[{revision:String(++policy)}]};if(sql.includes(' AS operations,')){events.push('model-owner-join');assert.equal(args.length,10);assert.match(sql,/array_send\(e.values_double\)=pg_catalog.array_send\(i.body_values\)/u);assert.match(sql,/o.operation_id=\$1/u);return {rows:[{operations:1,sources:1,observations:1}]};}if(sql.includes('FOR UPDATE')){events.push('isolation-lane');return {rows:[{active_operation_id:null,active_lease_token:null,active_lease_until:null}]};}if(sql.includes('LIMIT 17')){events.push('isolation-jobs');return {rows:[]};}if(sql.includes(' AS live_jobs,')){events.push('isolation-empty');return {rows:[{live_jobs:0,lane_empty:true}]};}throw Error('Unexpected fake query');},
    async transaction(work){events.push('isolation-begin');try{const result=await work({query:(...args)=>value.ownerDatabase.query(...args)});events.push('isolation-commit');return result;}catch(error){events.push('isolation-rollback');throw error;}}},
   async connectFixedRole(request,guard){guard();assert.equal(request.role,serial<2?'murmingle_app':serial===2?'murmingle_ingest_worker':'murmingle_crawler_submitter');assert.equal(request.database,'murmingle_hierarchy_fixture_20261026_a');const number=++serial;events.push('connect-'+number);const client={query:async sql=>{events.push('query-'+number);return {command:sql==='COMMIT'?'COMMIT':'SELECT',rows:[]};},end:async()=>{events.push('end-'+number);}};identities.set(client,{database:request.database,role:request.role,address:'127.0.0.1',port:55433,started:1000});return client;},
-  getOwnedIdentity:client=>identities.get(client),checkDeadline:()=>{},deadline:300000,upgrade:Object.freeze({schemaVersion:17,preservedLegacyTables:18,legacyRowsUnchanged:true})};
+  getOwnedIdentity:client=>identities.get(client),checkDeadline:()=>{},deadline:300000,upgrade:Object.freeze({schemaVersion:automaticTopics?18:17,preservedLegacyTables:automaticTopics?27:18,legacyRowsUnchanged:true})};
  const training=[{id:'real-train-01',sourceInputHash:'a'.repeat(64),url:'https://en.wikipedia.org/wiki/Tetris',title:'Tetris - Wikipedia',extractorVersion:'crawler-static-html-prefix/v1'},
   {id:'real-train-04',sourceInputHash:'b'.repeat(64),url:'https://fr.wikipedia.org/wiki/Octopoda',title:'Octopoda',extractorVersion:'crawler-static-html-prefix/v1'}];
  const ports={now:()=>1,randomBytes:n=>Buffer.alloc(n,3),randomUUID:()=> 'invented-id',
@@ -65,18 +66,21 @@ function fixture({failAt=null,closeFails=false}={}){
   async prepareStorage(a){events.push('prepare');assert.equal(a.privateAppDirectory,cluster+'\\app');return {databasePath:'invented-application.sqlite',accountDatabasePath:'invented-accounts.sqlite'};},
   async seedAccounts(filename,key){events.push('seed-close');assert.equal(key.length,32);return [{token:tokens[0],username:'RehearsalOne'},{token:tokens[1],username:'RehearsalTwo'}];},
   async openApplication(options){events.push('app-open');assert.equal(Object.hasOwn(options,'ai'),false);assert.equal(Object.hasOwn(options,'chatgptFetchImpl'),false);assert.equal(options.hierarchicalTopics,true);assert.notEqual(options.canonicalDatabase,options.urlSelectionDatabase);config=options.config;
+   assert.equal(options.automaticTopics,automaticTopics?true:undefined);
    await options.canonicalDatabase.transaction(tx=>tx.query('SELECT startup'));return {handle:()=>{},close:async()=>{events.push('app-close');if(closeFails)throw Error('PRIVATE SECONDARY MUST NOT LEAK');}};},
   async listen(){events.push('listen');return {close:async()=>events.push('server-close')};},
   async request({method,url,headers,body}){events.push('http');await Promise.resolve();if(url===failAt)throw false;const input=body===null?null:JSON.parse(body);const response=(status,value)=>({status,value});
    if(headers.host!=='127.0.0.1:4174'||headers.origin!==config.origin)return response(403,{});if(headers.authorization!=='Bearer '+config.capability)return response(401,{});
    const session=headers['x-account-session'];if(Object.hasOwn(headers,'x-demo-actor'))return response(403,{});if(session&&(session!==tokens[0]&&session!==tokens[1]||session===tokens[1]&&revoked))return response(401,{});
    if(url==='/v1/health')return response(200,{protocol:'local-service/v1'});
+   if(url==='/v1/semantic/capabilities/v2'){assert.equal(method,'POST');assert.deepEqual(input,{});return response(200,{protocol:'semantic-topics/v2',authorContext:'authored-topics/v2',topicSearch:'named-topics/v2'});}
+   if(url==='/v1/semantic/search'){assert.equal(headers['x-murmingle-semantic'],'2');assert.deepEqual(input,{query:'',limit:10,cursor:null});events.push('modern-search');return response(200,{topics:[],nextCursor:null});}
    if(url==='/v1/version')return response(200,{version:{generation:'generation-private',revision:1}});
    if(url==='/v1/semantic/topics')return response(200,{policyRevision:policy,topics:Array.from({length:16},(_,i)=>({id:'node-'+i}))});
    if(url==='/v1/catalog/context'){assert.deepEqual(input,{sourceId:'source-saved',topicId:'topic-saved'});return response(200,{version:{generation:'generation-private',revision:1},sources:[{id:'source-saved',topicId:'topic-saved',provenance:'owner-local-page-embedding/v1',url:'https://example.test/actual-saved'}]});}
    if(url==='/v1/catalog/url-selection'){events.push('url-reader-used');assert.deepEqual(input,{url:'https://example.test/actual-saved'});return response(200,{catalog:{version:{generation:'generation-private',revision:1},sources:[{id:'source-saved',topicId:'topic-saved',provenance:'owner-local-page-embedding/v1',url:input.url}]},discussion:{version:{generation:'generation-private',revision:1},topic:{id:'topic-saved'},roots:[]}});}
    if(url==='/v1/discussions/page'){assert.deepEqual(input,{topicId:'topic-saved',limit:1,cursor:null});return response(200,{version:{generation:'generation-private',revision:1},topic:{id:'topic-saved'},items:[]});}
-   if(url==='/v1/semantic/context')return response(200,{status:'pending',selectedPath:[]});
+   if(url==='/v1/semantic/context')return response(200,automaticTopics?{status:'classified',selectedPath:['games']}:{status:'pending',selectedPath:[]});
    if(url==='/v1/account/capabilities')return response(200,{emailCode:false,chatGPTIdentity:false});
    if(url==='/v1/account/email/request')return response(409,{});
    if(url==='/v1/account/me')return response(200,{id:session===tokens[0]?'private-account-one':'private-account-two',username:session===tokens[0]?'RehearsalOne':'RehearsalTwo'});
@@ -95,6 +99,24 @@ test('full fake-port orchestration keeps normal app composition and separate fin
  const f=fixture(),result=await runPrivateApplicationRehearsalForTest(f.value,f.ports);assert.equal(result.status,'passed');assert.match(result.proofSha256,/^[a-f0-9]{64}$/);assert.equal(f.proof.cases.length,16);assert.deepEqual(f.proof.cases.map(x=>x.name),PRIVATE_APPLICATION_CASES);assert.ok(f.proof.cases.every(x=>x.status==='passed'));assert.equal(f.proof.pendingCases,0);assert.equal(f.proof.scope.testComposition,true);assert.equal(f.proof.scope.realHttp,false);assert.equal(f.proof.scope.provider,false);assert.equal(f.proof.upgrade.legacyRowsUnchanged,true);assert.equal(f.proof.counts.fixtureActors,2);assert.equal(f.proof.counts.maximumConcurrentHttp,4);
  assert.equal(f.events.filter(x=>x==='url-reader-used').length,1);assert.ok(f.events.indexOf('seed-close')<f.events.indexOf('app-open'));for(const event of ['server-close','app-close','end-1','end-2'])assert.ok(f.events.indexOf(event)<f.events.indexOf('proof'));assert.deepEqual(f.proof.cleanup,{serverClosed:true,applicationClosed:true,appClientClosed:true,urlClientClosed:true,pendingHttp:0,pendingDatabase:0});
  assert.equal(f.events.includes('training-read'),false);assert.equal(f.events.includes('model-run'),false);assert.equal(Object.hasOwn(f.proof,'model'),false);
+});
+
+test('separate automatic18 composition requires18/27, retains all16 HTTP checks and proves modern search',async()=>{
+ const f=fixture({automaticTopics:true});assert.equal((await runPrivateAutomatic18ApplicationRehearsalForTest(f.value,f.ports)).status,'passed');
+ assert.equal(f.proof.schema,'private-automatic18-application-http-proof/v1');assert.deepEqual(f.proof.cases.map(x=>x.name),PRIVATE_AUTOMATIC18_APPLICATION_CASES);
+ assert.equal(f.proof.cases.length,18);assert.ok(f.proof.cases.every(x=>x.status==='passed'));assert.equal(f.proof.pendingCases,0);
+ assert.deepEqual(f.proof.upgrade,{schemaVersion:18,preservedLegacyTables:27,legacyRowsUnchanged:true});assert.equal(f.events.filter(x=>x==='modern-search').length,1);
+ assert.equal(f.proof.scope.realHttp,false);assert.equal(f.proof.cleanup.pendingDatabase,0);
+ await assert.rejects(runPrivateApplicationRehearsalForTest(f.value,f.ports),{code:'APPLICATION_UPGRADE'});
+ const old=fixture();await assert.rejects(runPrivateAutomatic18ApplicationRehearsalForTest(old.value,old.ports),{code:'APPLICATION_UPGRADE'});assert.equal(old.events.length,0);
+});
+
+test('automatic18 capability and search failures cannot pass using only the preserved legacy HTTP cases',async()=>{
+ for(const failAt of ['/v1/semantic/capabilities/v2','/v1/semantic/search']){
+  const f=fixture({automaticTopics:true,failAt});assert.equal((await runPrivateAutomatic18ApplicationRehearsalForTest(f.value,f.ports)).status,'failed');
+  assert.ok(f.proof.cases.slice(0,16).every(x=>x.status==='passed'));assert.ok(f.proof.cases.slice(16).some(x=>x.status!=='passed'));
+  assert.equal(f.proof.cleanup.serverClosed,true);assert.equal(f.proof.cleanup.appClientClosed,true);assert.equal(f.proof.cleanup.pendingHttp,0);
+ }
 });
 
 function productFixture(){

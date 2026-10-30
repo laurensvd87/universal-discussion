@@ -35,6 +35,7 @@ PUBLISHED_TOPIC_EVIDENCE_LEDGER = 'apps/local-service/portable/test/published-to
 RUNS_ROOT = REPO / 'apps/local-service/portable/data/hierarchy-native-runs'
 PRIVATE_ENTRY = OWN + 'owner-restore-native-check.js'
 HTTP_ENTRY = OWN + 'owner-http-native-check.js'
+AUTOMATIC18_OWNER_ENTRY = OWN + 'automatic-topics-owner-native-check.js'
 BACKUP_ROOT = REPO / 'apps/local-service/data/canonical-migration-backups'
 PRIVATE_RUNS_ROOT = BACKUP_ROOT / 'hierarchy-private-restore-runs'
 PRIVATE_RECEIPT = REPO / 'apps/local-service/data/postgres-hierarchy-backup-receipt-20261027.json'
@@ -42,6 +43,12 @@ PRIVATE_ARCHIVE = BACKUP_ROOT / 'postgres-canonical-2026-10-27T05-31-32-647Z-627
 PRIVATE_INPUTS = (
     (PRIVATE_RECEIPT,6249,'7783f57371f1284c39892bcafae89b22c1976e4136897cecca65d4a6a211933e'),
     (PRIVATE_ARCHIVE,779153511,'e8026bc09c4ad53049d44bb5870cc28928ea0427ebd0d14a647a8bb1128ad831'),
+)
+AUTOMATIC18_OWNER_INPUTS = (
+    (REPO/'apps/local-service/data/hierarchy-nature-backup-final-20261029-result.json',7445,
+        'e3401fc4a8a2ee6815362fddc82c019b279b9dc34f8a7f2019a4a03a607ba6e4'),
+    (BACKUP_ROOT/'postgres-canonical-2026-10-29T02-06-29-777Z-0c3c99b5-781a-46bb-bb85-ed6b516feda7.murmingle-pgbackup',1354426025,
+        '88600b8b3c31b3a3327611b0abe0730b1cf63bc2915d34c3f126d4f74ee8393c'),
 )
 # Explicit additional execution/data closure, independently locked and hashed.
 # These bytes are NOT hidden in, or charged to, the 320MiB code catalog.
@@ -92,6 +99,9 @@ HTTP_CASES = ('hierarchy17-http-health','independent-semantic-directory','saved-
     'cross-actor-edit-withdraw-denied','human-edit-and-withdraw','forged-session-denied',
     'demo-actor-denied','reserved-ai-names-denied','host-origin-pairing-denied',
     'owner-policy-refresh','bounded-concurrent-public-reads','revoked-session-denied','provider-unavailable')
+AUTOMATIC18_OWNER_PHASES = PRIVATE_PHASES[:8] + ('automatic18-upgrade-verified','application-verified',
+    'scratch-a-retired','scratch-b-retired','inputs-closed')
+AUTOMATIC18_HTTP_CASES = ('automatic18-http-health',) + HTTP_CASES[1:] + ('automatic18-capabilities','automatic18-global-search')
 MAP_KEY = OWN + 'hierarchy-native-reviewed-sources.json'
 NORMAL_SCOPE_ABSENCES = frozenset([
     'apps/local-service/experiments/automatic-topic-discovery-v1/package.json',
@@ -197,6 +207,7 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/portable/canonical-v4/drafts/automatic-topic-dashboard.sql',
     'apps/local-service/portable/canonical-v4/drafts/combined-topic-breadcrumbs.sql',
     'apps/local-service/src/ops/automatic-topics-runtime-operator.js',
+    'apps/local-service/src/ops/postgres-runtime-operator.js',
     'apps/local-service/src/ops/automatic-topics-backup-operator.js',
     'apps/local-service/test/automatic-topics-runtime-operator.test.js',
     'apps/local-service/test/automatic-topics-backup-operator.test.js',
@@ -208,6 +219,8 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/test/automatic-topics-local-state-read-lease.test.js',
     'apps/local-service/test/automatic-topics-quiesced-backup.test.js',
     'apps/local-service/test/automatic_topics_process_absence_test.py',
+    AUTOMATIC18_OWNER_ENTRY, OWN+'automatic-topics-owner-native-check.test.js',
+    OWN+'automatic-topics-owner-upgrade.js', OWN+'automatic-topics-owner-upgrade.test.js',
     'apps/local-service/portable/canonical-v4/automatic-topics-installation.js',
     'apps/local-service/portable/canonical-v4/automatic-topics-migration-source.js',
     'apps/local-service/portable/canonical-v4/migrations/018-automatic-topics.sql',
@@ -869,6 +882,50 @@ def private_completion(stdout, stderr, exit_code, upgrade=False):
     return result
 
 
+def automatic18_owner_completion(stdout,stderr,exit_code):
+    """Distinct fixed17 full-data proof; old restore assertions stay unchanged.
+
+    As for semantic_completion, the frozen supervisor's25/3 fields are a
+    transport ABI, not the table/HTTP case count of this separate purpose.
+    """
+    result={'schema':'native-hierarchy-postgres-json-report/v2','accepted':False,'code':'json-proof',
+        'stdoutBytes':len(stdout) if type(stdout) is bytes else 0,'stderrBytes':len(stderr) if type(stderr) is bytes else 0,
+        'stdoutSha256':None,'stderrSha256':None,'testPoints':0,'outerTests':0}
+    def shape(value,fields):return type(value) is dict and set(value)==set(fields.split())
+    def integer(value,expected):return type(value) is int and value==expected
+    def unique(items):
+        value={}
+        for key,item in items:
+            if key in value:raise ValueError('duplicate')
+            value[key]=item
+        return value
+    if type(stdout) is not bytes or type(stderr) is not bytes:return result
+    result.update(stdoutSha256=hashlib.sha256(stdout).hexdigest(),stderrSha256=hashlib.sha256(stderr).hexdigest())
+    if type(exit_code) is not int or exit_code!=0 or len(stdout)>262144 or len(stderr)>65536:return result
+    try:
+        if not stdout.endswith(b'\n') or stdout.count(b'\n')!=1:return result
+        v=json.loads(stdout.decode('utf8'),object_pairs_hook=unique,parse_constant=lambda _: (_ for _ in ()).throw(ValueError('constant')))
+        if not shape(v,'schema accepted primary server cleanup proof') or v['schema']!='owner-automatic18-postgres-result/v1' or v['accepted'] is not True or v['primary'] is not None:return result
+        s,c,p=v['server'],v['cleanup'],v['proof']
+        if not shape(s,'port version ownershipVerified') or not integer(s['port'],55433) or not integer(s['version'],170011) or s['ownershipVerified'] is not True:return result
+        if not shape(c,'reason stopped childExited clientsClosed physicalSettled directoryRetained') or c['reason']!='verified-own-server-smart-stopped' or not all(c[k] is True for k in c if k!='reason'):return result
+        if not shape(p,'status archiveAuthenticated completeInput ownerData syntheticOnly upgrade application databases databaseCleanupPassed') or p['status']!='passed' or p['syntheticOnly'] is not False or not all(p[k] is True for k in ('archiveAuthenticated','completeInput','ownerData','databaseCleanupPassed')):return result
+        u=p['upgrade']
+        if not shape(u,'schema status schemaVersion restoredTables preservedLegacyTables legacyRowsUnchanged matcherUnchanged policyUnchanged runtimeVersionUnchanged generatedSequencesSafe testComposition') or u['schema']!='private-restored-automatic18-upgrade/v1' or u['status']!='passed' or u['testComposition'] is not False:return result
+        if not integer(u['schemaVersion'],18) or not integer(u['restoredTables'],28) or not integer(u['preservedLegacyTables'],27) or not all(u[k] is True for k in ('legacyRowsUnchanged','matcherUnchanged','policyUnchanged','runtimeVersionUnchanged','generatedSequencesSafe')):return result
+        a=p['application']
+        if not shape(a,'status proofSha256 proofBytes') or a['status']!='passed' or type(a['proofSha256']) is not str or re.fullmatch('[a-f0-9]{64}',a['proofSha256']) is None or type(a['proofBytes']) is not int or not 0<a['proofBytes']<=32768:return result
+        rows=p['databases']
+        if type(rows) is not list or len(rows)!=2:return result
+        for i,r in enumerate(rows):
+            if not shape(r,'name oid created closed dropped pending cleanupFailures') or r['name']!='murmingle_hierarchy_fixture_20261026_'+('a' if i==0 else 'b') or type(r['oid']) is not str or re.fullmatch('[1-9][0-9]{0,9}',r['oid']) is None or int(r['oid'])>4294967295:return result
+            if not all(r[k] is True for k in ('created','closed','dropped')) or not integer(r['pending'],0) or not integer(r['cleanupFailures'],0):return result
+        if rows[0]['oid']==rows[1]['oid']:return result
+    except (ValueError,UnicodeError,RecursionError,KeyError,TypeError):return result
+    result.update(accepted=True,code='complete',testPoints=25,outerTests=3)
+    return result
+
+
 def open_locked_read(path):
     """Read-only Windows handle denies concurrent write/delete while held.
 
@@ -899,11 +956,13 @@ def open_locked_read(path):
 
 class PrivateInputs:
     """Fixed encrypted data is held separately from the bounded code catalog."""
-    def __init__(self, inventory, opener=open_locked_read, clock=time.monotonic, model=False,product=False):
+    def __init__(self, inventory, opener=open_locked_read, clock=time.monotonic, model=False,product=False,automatic18=False):
         inventory.require(type(model) is bool and type(product) is bool and (not product or model),'private-input-purpose')
         self.i,self.opener,self.clock = inventory,opener,clock
         self.model = model
         self.product = product
+        inventory.require(type(automatic18) is bool and (not automatic18 or not model and not product),'private-input-purpose')
+        self.automatic18 = automatic18
         self.files = []
         self.prepared = self.closed = False
         self.verified = False
@@ -948,7 +1007,7 @@ class PrivateInputs:
         I = self.i
         I.require(not self.prepared and not self.files and not self.closed,'private-input-state')
         try:
-            for path,size,digest in PRIVATE_INPUTS + (MODEL_INPUTS if self.model else ()) + (BROWSER_INPUTS if self.product else ()):
+            for path,size,digest in (AUTOMATIC18_OWNER_INPUTS if self.automatic18 else PRIVATE_INPUTS) + (MODEL_INPUTS if self.model else ()) + (BROWSER_INPUTS if self.product else ()):
                 self._time()
                 directory_info(path.parent,I)
                 before = path.lstat()
@@ -1002,11 +1061,12 @@ class PrivateInputs:
 
 class PrivatePhases:
     """Sample closed checkpoint prefixes; a checkpoint is never SQL authority."""
-    def __init__(self, inventory, run, upgrade=False):
+    def __init__(self, inventory, run, upgrade=False,automatic18=False):
         inventory.require(type(upgrade) is bool,'private-phase-purpose')
         self.i,self.run = inventory,run
-        self.phases = UPGRADE_PHASES if upgrade else PRIVATE_PHASES
-        self.schema = 'private-owner-upgrade-phase/v1' if upgrade else 'private-owner-restore-phase/v1'
+        inventory.require(type(automatic18) is bool and (not automatic18 or upgrade),'private-phase-purpose')
+        self.phases = AUTOMATIC18_OWNER_PHASES if automatic18 else UPGRADE_PHASES if upgrade else PRIVATE_PHASES
+        self.schema = 'private-owner-automatic18-phase/v1' if automatic18 else 'private-owner-upgrade-phase/v1' if upgrade else 'private-owner-restore-phase/v1'
         self.pending_ids,self.closed = {},[]
 
     def check(self):
@@ -1211,11 +1271,13 @@ def checked_legacy_proof(I,value):
 
 class PrivateHttpProof:
     """Additional mandatory HTTP evidence; never aliases the restore ledger."""
-    def __init__(self,inventory,run,model=False,product=False):
+    def __init__(self,inventory,run,model=False,product=False,automatic18=False):
         inventory.require(type(model) is bool and type(product) is bool and (not product or model),'http-proof-purpose')
         self.i,self.root,self.digest = inventory,run.output,None
         self.model = model
         self.product = product
+        inventory.require(type(automatic18) is bool and (not automatic18 or not model and not product),'http-proof-purpose')
+        self.automatic18 = automatic18
         self.identity = None
 
     def _read(self):
@@ -1246,18 +1308,19 @@ class PrivateHttpProof:
         def bounded(item,low,high):
             return type(item) is int and low <= item <= high
         I.require(shape(value,'schema status cases pendingCases server counts cleanup scope failure elapsedMs upgrade'+(' model' if self.model else '')+(' browser legacy' if self.product else ''))
-            and value['schema'] == 'private-application-http-proof/v1' and value['status'] == 'passed'
+            and value['schema'] == ('private-automatic18-application-http-proof/v1' if self.automatic18 else 'private-application-http-proof/v1') and value['status'] == 'passed'
             and value['failure'] is None and type(value['pendingCases']) is int and value['pendingCases'] == 0
             and bounded(value['elapsedMs'],0,300000),'http-proof-shape')
-        I.require(type(value['cases']) is list and len(value['cases']) == len(HTTP_CASES)
-            and value['cases'] == [{'name':name,'status':'passed'} for name in HTTP_CASES],'http-proof-cases')
+        cases = AUTOMATIC18_HTTP_CASES if self.automatic18 else HTTP_CASES
+        I.require(type(value['cases']) is list and len(value['cases']) == len(cases)
+            and value['cases'] == [{'name':name,'status':'passed'} for name in cases],'http-proof-cases')
         server,counts,upgrade = value['server'],value['counts'],value['upgrade']
         I.require(shape(server,'destinationPort canonicalHost loopbackOnly')
             and type(server['destinationPort']) is int and server['destinationPort'] == 4185
             and server['canonicalHost'] == '127.0.0.1:4174' and server['loopbackOnly'] is True,'http-proof-server')
         I.require(shape(upgrade,'schemaVersion preservedLegacyTables legacyRowsUnchanged')
-            and type(upgrade['schemaVersion']) is int and upgrade['schemaVersion'] == 17
-            and type(upgrade['preservedLegacyTables']) is int and upgrade['preservedLegacyTables'] == 18
+            and type(upgrade['schemaVersion']) is int and upgrade['schemaVersion'] == (18 if self.automatic18 else 17)
+            and type(upgrade['preservedLegacyTables']) is int and upgrade['preservedLegacyTables'] == (27 if self.automatic18 else 18)
             and upgrade['legacyRowsUnchanged'] is True,'http-proof-upgrade')
         I.require(shape(counts,'httpRequests maximumConcurrentHttp fixtureActors')
             and bounded(counts['httpRequests'],1,512) and bounded(counts['maximumConcurrentHttp'],1,4)
@@ -1325,13 +1388,15 @@ def native_api_type(windows, run):
     TEMP = run.output / 'temp'
     model = getattr(run,'model',False)
     product = getattr(run,'product',False)
+    automatic18 = getattr(run,'automatic18',False)
+    require(type(automatic18) is bool and (not automatic18 or getattr(run,'private',False) is True and getattr(run,'http',False) is True and not model and not product),'run-purpose')
     require(type(model) is bool and type(product) is bool and (not product or model) and (not model or (getattr(run,'private',False) is True and getattr(run,'http',False) is True)), 'run-purpose')
     HEAP = '512' if model else '64'
     MODEL_ARG = ' --with-product' if product else ' --with-model' if model else ''
     # A closed mode chooses between reviewed fixed entries and supplies the one
     # fixed private metadata variable. Removing that explicit prefix restores
     # the frozen suspended-launch AST; default environment bytes stay exact.
-    ENTRY = HTTP_ENTRY if getattr(run,'http',False) else PRIVATE_ENTRY if getattr(run, 'private', False) else globals()['ENTRY']
+    ENTRY = AUTOMATIC18_OWNER_ENTRY if automatic18 else HTTP_ENTRY if getattr(run,'http',False) else PRIVATE_ENTRY if getattr(run, 'private', False) else globals()['ENTRY']
     ENV_PREFIX = 'LOCALAPPDATA=C:\\Users\\Laurens\\AppData\\Local\0' if getattr(run, 'private', False) else ''
 
     class NativeAPI(windows._WinAPI):
@@ -1416,13 +1481,15 @@ class OwnedRun:
     Output512KiB and cluster512MiB remain separately bounded. Control metadata
     (one catalog snapshot, marker and permanent child claim) is capped at1MiB.
     """
-    def __init__(self, inventory, private=False, http=False, model=False,product=False):
+    def __init__(self, inventory, private=False, http=False, model=False,product=False,automatic18=False):
         inventory.require(type(private) is bool and type(http) is bool and type(model) is bool and type(product) is bool and (not product or model) and (not http or private) and (not model or (private and http)), 'run-purpose')
         self.i = inventory
         self.private = private
         self.http = http
         self.model = model
         self.product = product
+        inventory.require(type(automatic18) is bool and (not automatic18 or private and http and not model and not product),'run-purpose')
+        self.automatic18 = automatic18
         self.runs_root = PRIVATE_RUNS_ROOT if private else RUNS_ROOT
         self.marker_schema = 'private-hierarchy-native-owned-run' if private else 'hierarchy-native-owned-run'
         self.claim_schema = 'private-hierarchy-native-child-claim' if private else 'hierarchy-native-child-claim'
@@ -1607,7 +1674,7 @@ def cluster_tree_type(supervisor, inventory, run):
     return ClusterTree
 
 
-def execute(external_sha, private=False, http=False, model=False,product=False):
+def execute(external_sha, private=False, http=False, model=False,product=False,automatic18=False):
     S = load_pinned('supervisor')
     I = S.I  # Keep the controller's exact refusal type and authenticated helper.
     I.require(type(private) is bool and type(http) is bool and type(model) is bool and type(product) is bool and (not product or model) and (not http or private) and (not model or (private and http)),'run-purpose')
@@ -1615,13 +1682,13 @@ def execute(external_sha, private=False, http=False, model=False,product=False):
     I.require(sys.platform == 'win32' and Path(sys.executable).resolve() == I.RUNTIME_PINS['@python'][0].resolve(), 'python-path')
     I.require(str(REPO).replace(chr(92), '/').casefold() == 'd:/gitprojekts/universal-discussion-bootstrap', 'fixed-repo')
     catalog = catalog_type(I)(external_sha)
-    run = OwnedRun(I,private,http,model,product)
+    run = OwnedRun(I,private,http,model,product,automatic18)
     publisher = publisher_type(S, I, run)()
     tree = cluster_tree_type(S, I, run)()
     modules, host_native = {'windows':load_pinned('windows')}, []
-    inputs = PrivateInputs(I,model=model,product=product) if private else None
-    phases = PrivatePhases(I,run,http) if private else None
-    application = PrivateHttpProof(I,run,model=model,product=product) if http else None
+    inputs = PrivateInputs(I,model=model,product=product,automatic18=automatic18) if private else None
+    phases = PrivatePhases(I,run,http,automatic18=automatic18) if private else None
+    application = PrivateHttpProof(I,run,model=model,product=product,automatic18=automatic18) if http else None
 
     def authenticate():
         catalog.authenticate()
@@ -1668,7 +1735,7 @@ def execute(external_sha, private=False, http=False, model=False,product=False):
             I.require(inputs.verified and inputs.closed,'private-input-retirement')
 
     def validate(stdout,stderr,exit_code):
-        value = private_completion(stdout,stderr,exit_code,http) if private else semantic_completion(stdout,stderr,exit_code)
+        value = automatic18_owner_completion(stdout,stderr,exit_code) if automatic18 else private_completion(stdout,stderr,exit_code,http) if private else semantic_completion(stdout,stderr,exit_code)
         if private and value['accepted']:
             phases.complete()
             if http:
@@ -1704,18 +1771,19 @@ def execute(external_sha, private=False, http=False, model=False,product=False):
 
 def main(argv=None):
     args = sys.argv[1:] if argv is None else argv
-    private = type(args) is list and len(args) == 2 and args[0] in ('private-restore','private-http','private-model','private-product')
+    private = type(args) is list and len(args) == 2 and args[0] in ('private-restore','private-http','private-model','private-product','private-automatic18')
+    automatic18 = private and args[0] == 'private-automatic18'
     product = private and args[0] == 'private-product'
     model = private and args[0] in ('private-model','private-product')
-    http = private and args[0] in ('private-http','private-model','private-product')
+    http = private and args[0] in ('private-http','private-model','private-product','private-automatic18')
     if private:
         args = args[1:]
     if (type(args) is not list or len(args) != 1 or type(args[0]) is not str
             or len(args[0]) != 64 or any(c not in '0123456789abcdef' for c in args[0])):
-        sys.stderr.write('Expected reviewed catalog SHA256, or private-restore/private-http/private-model/private-product followed by that SHA256.\n')
+        sys.stderr.write('Expected reviewed catalog SHA256, or private-restore/private-http/private-model/private-product/private-automatic18 followed by that SHA256.\n')
         return 2
     try:
-        result = execute(args[0],private,http,True,True) if product else execute(args[0],private,http,True) if model else execute(args[0],private,http)
+        result = execute(args[0],private,http,automatic18=True) if automatic18 else execute(args[0],private,http,True,True) if product else execute(args[0],private,http,True) if model else execute(args[0],private,http)
         sys.stdout.write(json.dumps({'schema':'native-hierarchy-postgres-invocation/v2',
             'accepted':result['accepted']}, sort_keys=True, separators=(',', ':'))+'\n')
         return 0 if result['accepted'] else 1

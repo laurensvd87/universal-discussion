@@ -137,7 +137,7 @@ class MaintainedDriverTest(unittest.TestCase):
             r'''(?m)^\s*import\s*['"]([^'"]+)['"]''',
             r'''\bimport\(\s*['"]([^'"]+)['"]\s*\)''',
         )
-        pending, seen = [D.ENTRY,D.PRIVATE_ENTRY,D.HTTP_ENTRY], set()
+        pending, seen = [D.ENTRY,D.PRIVATE_ENTRY,D.HTTP_ENTRY,D.AUTOMATIC18_OWNER_ENTRY], set()
         while pending:
             key = pending.pop()
             if key in seen:
@@ -884,7 +884,7 @@ class MaintainedDriverTest(unittest.TestCase):
             def prepare(self):pass
             def check(self):pass
         class FakePhases:
-            def __init__(self,*args):pass
+            def __init__(self,*args,**kwargs):pass
             def check(self):pass
             def complete(self):pass
         class FakeController:
@@ -1295,6 +1295,94 @@ class MaintainedDriverTest(unittest.TestCase):
                 with self.assertRaises(self.I.Refusal):proof.complete()
             proof=D.PrivateHttpProof(self.I,run,True,True);proof.complete();proof.check();self.assertIsNotNone(proof.digest)
         self._http_proof_test(check)
+
+
+    def automatic18_result(self):
+        return {'schema':'owner-automatic18-postgres-result/v1','accepted':True,'primary':None,
+            'server':{'port':55433,'version':170011,'ownershipVerified':True},
+            'cleanup':{'reason':'verified-own-server-smart-stopped','stopped':True,'childExited':True,'clientsClosed':True,'physicalSettled':True,'directoryRetained':True},
+            'proof':{'status':'passed','archiveAuthenticated':True,'completeInput':True,'ownerData':True,'syntheticOnly':False,'databaseCleanupPassed':True,
+                'upgrade':{'schema':'private-restored-automatic18-upgrade/v1','status':'passed','schemaVersion':18,'restoredTables':28,'preservedLegacyTables':27,
+                    'legacyRowsUnchanged':True,'matcherUnchanged':True,'policyUnchanged':True,'runtimeVersionUnchanged':True,'generatedSequencesSafe':True,'testComposition':False},
+                'application':{'status':'passed','proofSha256':'a'*64,'proofBytes':1500},
+                'databases':[{'name':'murmingle_hierarchy_fixture_20261026_'+suffix,'oid':str(17001+i),'created':True,'closed':True,'dropped':True,'pending':0,'cleanupFailures':0} for i,suffix in enumerate(('a','b'))]}}
+
+    def test_automatic18_closed_purpose_and_inputs_do_not_raise_old_private_limits(self):
+        with patch.object(D,'execute',return_value={'accepted':True}) as invoke,contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(D.main(['private-automatic18','c'*64]),0)
+            invoke.assert_called_once_with('c'*64,True,True,automatic18=True)
+        for args in (['private-automatic18'],['private-automatic18','c'*64,'--archive=x'],['private-automatic18','C'*64]):
+            with contextlib.redirect_stderr(io.StringIO()):self.assertEqual(D.main(args),2)
+        self.assertEqual([row[1] for row in D.PRIVATE_INPUTS],[6249,779153511])
+        self.assertEqual([row[1] for row in D.AUTOMATIC18_OWNER_INPUTS],[7445,1354426025])
+        text=(D.REPO/D.AUTOMATIC18_OWNER_ENTRY).read_text(encoding='utf8')
+        for path,size,digest in D.AUTOMATIC18_OWNER_INPUTS:
+            self.assertIn(path.name,text);self.assertIn(str(size),text);self.assertIn(digest,text)
+        run=D.OwnedRun(self.I,True,True,automatic18=True)
+        self.assertIs(run.automatic18,True);self.assertIs(run.model,False);self.assertIs(run.product,False)
+        for args in ((False,True,False,False,True),(True,False,False,False,True),(True,True,True,False,True),(True,True,False,False,1)):
+            with self.assertRaises(self.I.Refusal):D.OwnedRun(self.I,*args)
+
+    def test_automatic18_projection_is_distinct_from_old25_and_requires_all_preservation_flags(self):
+        raw=self.I.canonical_json(self.automatic18_result())
+        self.assertTrue(D.automatic18_owner_completion(raw,b'',0)['accepted'])
+        report=D.automatic18_owner_completion(raw,b'',0)
+        self.assertEqual(self.S.checked_completion(report),report)
+        refused=D.automatic18_owner_completion(b'{}\n',b'',1)
+        self.assertEqual(self.S.checked_completion(refused),refused)
+        self.assertFalse(D.private_completion(raw,b'',0,True)['accepted'])
+        def clone():return json.loads(raw)
+        mutations=[lambda v:v.update(schema='owner-upgrade-postgres-result/v1'),lambda v:v['proof']['upgrade'].update(schemaVersion=17),
+            lambda v:v['proof']['upgrade'].update(restoredTables=True),lambda v:v['proof']['upgrade'].update(preservedLegacyTables=18),
+            lambda v:v['proof']['upgrade'].update(testComposition=True),lambda v:v['proof']['application'].update(proofBytes=True),
+            lambda v:v['proof']['databases'][1].update(oid='17001'),lambda v:v['proof']['databases'][1].update(pending=False)]
+        mutations += [lambda v,key=k:v['proof']['upgrade'].update({key:False}) for k in ('legacyRowsUnchanged','matcherUnchanged','policyUnchanged','runtimeVersionUnchanged','generatedSequencesSafe')]
+        mutations += [lambda v,key=k:v['cleanup'].update({key:False}) for k in ('stopped','childExited','clientsClosed','physicalSettled','directoryRetained')]
+        for mutate in mutations:
+            v=clone();mutate(v);self.assertFalse(D.automatic18_owner_completion(self.I.canonical_json(v),b'',0)['accepted'])
+        for bad in (raw+b'\n',raw.replace(b'"accepted":true',b'"accepted":true,"accepted":true'),b'{"x":NaN}\n'):
+            self.assertFalse(D.automatic18_owner_completion(bad,b'',0)['accepted'])
+
+    def test_automatic18_http_proof_requires_modern_capability_search_and_correct27_table_upgrade(self):
+        def check(run,old,value,publish):
+            value['schema']='private-automatic18-application-http-proof/v1'
+            value['upgrade'].update(schemaVersion=18,preservedLegacyTables=27)
+            value['cases']=[{'name':name,'status':'passed'} for name in D.AUTOMATIC18_HTTP_CASES]
+            publish(value)
+            with self.assertRaises(self.I.Refusal):old.complete()
+            proof=D.PrivateHttpProof(self.I,run,automatic18=True);proof.complete();proof.check();self.assertIsNotNone(proof.digest)
+        self._http_proof_test(check)
+        def missing(run,old,value,publish):
+            value['schema']='private-automatic18-application-http-proof/v1';value['upgrade'].update(schemaVersion=18,preservedLegacyTables=27)
+            value['cases']=[{'name':name,'status':'passed'} for name in D.AUTOMATIC18_HTTP_CASES[:-1]];publish(value)
+            with self.assertRaises(self.I.Refusal):D.PrivateHttpProof(self.I,run,automatic18=True).complete()
+        self._http_proof_test(missing)
+
+    def test_automatic18_phases_have_their_own_schema_and_keep_originals_exact(self):
+        run=types.SimpleNamespace(output=Path('D:/invented/output'))
+        phases=D.PrivatePhases(self.I,run,True,automatic18=True)
+        self.assertEqual(phases.phases,D.AUTOMATIC18_OWNER_PHASES)
+        self.assertEqual(phases.schema,'private-owner-automatic18-phase/v1')
+        self.assertEqual(len(phases.phases),13)
+        self.assertEqual(len(D.PrivatePhases(self.I,run).phases),33)
+        self.assertEqual(D.PrivatePhases(self.I,run,True).phases,D.UPGRADE_PHASES)
+        with self.assertRaises(self.I.Refusal):D.PrivatePhases(self.I,run,False,automatic18=True)
+
+    def test_automatic18_launch_uses_its_fixed_entry_original64_heap_and_no_model_flags(self):
+        root=D.PRIVATE_RUNS_ROOT/('run-'+'a'*48)
+        run=types.SimpleNamespace(output=root/'output',cluster=root/'cluster',private=True,http=True,model=False,product=False,automatic18=True)
+        calls=[]
+        def launch(executable,command,process_security,thread_security,inherit,flags,environment,cwd,startup,info):
+            calls.append(command.value)
+            self.assertEqual(command.value,'"'+D.NODE+'" --max-old-space-size=64 "'+str(D.REPO/D.AUTOMATIC18_OWNER_ENTRY)+'"')
+            self.assertEqual(flags,0x8040C);self.assertIs(inherit,True)
+            self.assertIn('LOCALAPPDATA=C:\\Users\\Laurens\\AppData\\Local\0',environment[:])
+            info._obj.process,info._obj.thread,info._obj.pid=111,222,333;return True
+        api=object.__new__(D.native_api_type(self.W,run));api.m=self.B;api.k=types.SimpleNamespace(CreateProcessW=launch)
+        api.create_process((ctypes.create_string_buffer(64),[],None),11,12,13)
+        self.assertEqual(len(calls),1)
+        run.model=True
+        with self.assertRaises(self.W.BoundaryFailure):D.native_api_type(self.W,run)
 
 
 if __name__ == '__main__':

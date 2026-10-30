@@ -25,6 +25,10 @@ export const PRIVATE_APPLICATION_CASES=Object.freeze([
  'human-root-and-reply','cross-actor-edit-withdraw-denied','human-edit-and-withdraw','forged-session-denied','demo-actor-denied',
  'reserved-ai-names-denied','host-origin-pairing-denied','owner-policy-refresh','bounded-concurrent-public-reads','revoked-session-denied','provider-unavailable',
 ]);
+export const PRIVATE_AUTOMATIC18_APPLICATION_CASES=Object.freeze([
+ 'automatic18-http-health',...PRIVATE_APPLICATION_CASES.slice(1),
+ 'automatic18-capabilities','automatic18-global-search',
+]);
 const requestRole=role=>({role,database:DATABASE,applicationName:'murmingle-native-hierarchy-http',statementTimeoutMs:5000,lockTimeoutMs:3000});
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 
@@ -41,7 +45,7 @@ export function createPrivateSerialDatabase(client,guard){
   snapshot:()=>({admitted,closed:session.snapshot().closed,pending:session.snapshot().pending}),
  });
 }
-function context(value){
+function context(value,automaticTopics=false){
  need(value&&typeof value==='object'&&!types.isProxy(value),'APPLICATION_CONTEXT');
  const keys=['connectFixedRole','ownerDatabase','getOwnedIdentity','clusterDirectory','outputDirectory','checkDeadline','deadline','upgrade'];need(Reflect.ownKeys(value).length===keys.length,'APPLICATION_CONTEXT');const out={};
  for(const key of keys){const d=Object.getOwnPropertyDescriptor(value,key);need(d?.enumerable&&Object.hasOwn(d,'value'),'APPLICATION_CONTEXT');out[key]=d.value;}
@@ -49,7 +53,7 @@ function context(value){
  const prefix=PRIVATE_RUN_ROOT+'\\run-',p=out.clusterDirectory;need(typeof p==='string'&&p.startsWith(prefix)&&p===path.win32.normalize(p),'APPLICATION_PATH');
  const remainder=p.slice(prefix.length);need(/^[a-f0-9]{48}\\cluster\\nhpg-[A-Za-z0-9]{6}$/u.test(remainder),'APPLICATION_PATH');
  need(out.outputDirectory===PRIVATE_RUN_ROOT+'\\run-'+remainder.slice(0,48)+'\\output','APPLICATION_PATH');
- need(out.upgrade?.schemaVersion===17&&out.upgrade?.preservedLegacyTables===18&&out.upgrade?.legacyRowsUnchanged===true&&Object.keys(out.upgrade).length===3,'APPLICATION_UPGRADE');
+ need(out.upgrade?.schemaVersion===(automaticTopics?18:17)&&out.upgrade?.preservedLegacyTables===(automaticTopics?27:18)&&out.upgrade?.legacyRowsUnchanged===true&&Object.keys(out.upgrade).length===3,'APPLICATION_UPGRADE');
  const privateAppDirectory=path.win32.join(out.clusterDirectory,'app');
  privateApplicationStoragePaths(privateAppDirectory);
  return {...out,privateAppDirectory};
@@ -168,7 +172,7 @@ async function verifyBrowserOwnerRows(database,ui,actorId,check){
  return {roots:1,replies:1,manualSnapshots:0};
 }
 
-async function run(value,ports,testComposition,withModel=false,withBrowser=false){const a=context(value);a.checkDeadline();const began=ports.now(),states=PRIVATE_APPLICATION_CASES.map(name=>({name,status:'not-attempted'}));let stage='setup',failed=false,primary;
+async function run(value,ports,testComposition,withModel=false,withBrowser=false,automaticTopics=false){const a=context(value,automaticTopics);a.checkDeadline();const began=ports.now(),states=(automaticTopics?PRIVATE_AUTOMATIC18_APPLICATION_CASES:PRIVATE_APPLICATION_CASES).map(name=>({name,status:'not-attempted'}));let stage='setup',failed=false,primary;
  let appDatabase=null,urlDatabase=null,application=null,server=null,appClient=null,urlClient=null;const pendingHttp=new Set();let httpRequests=0,maximumConcurrentHttp=0;
  let workerClient=null,submitterClient=null,workerDatabase=null,submitterDatabase=null,model=null;
  let browserHandle=null,browser=null,legacy=null,originalRootHighWatermark=null;
@@ -210,7 +214,7 @@ async function run(value,ports,testComposition,withModel=false,withBrowser=false
   stage='setup-role-identity';
   const appIdentity=a.getOwnedIdentity(appClient),urlIdentity=a.getOwnedIdentity(urlClient);need(appClient!==urlClient&&[appIdentity,urlIdentity].every(x=>x.database===DATABASE&&x.role==='murmingle_app'&&x.address==='127.0.0.1'&&x.port===55433)&&appIdentity.started===urlIdentity.started,'APPLICATION_ROLE');
   stage='setup-adapters';appDatabase=createPrivateSerialDatabase(appClient,a.checkDeadline);urlDatabase=createPrivateSerialDatabase(urlClient,a.checkDeadline);
-  stage='setup-application';application=await ports.openApplication({config:cfg,...storage,nextId:kind=>kind+'-'+ports.randomUUID(),now:()=>new Date().toISOString(),canonicalDatabase:appDatabase,urlSelectionDatabase:urlDatabase,accountsEnabled:true,accountHmacKey:key,hierarchicalTopics:true});a.checkDeadline();
+  stage='setup-application';application=await ports.openApplication({config:cfg,...storage,nextId:kind=>kind+'-'+ports.randomUUID(),now:()=>new Date().toISOString(),canonicalDatabase:appDatabase,urlSelectionDatabase:urlDatabase,accountsEnabled:true,accountHmacKey:key,hierarchicalTopics:true,...(automaticTopics?{automaticTopics:true}:{})});a.checkDeadline();
   stage='setup-listener';server=await ports.listen(application.handle);a.checkDeadline();
   const [one,two]=actors;let topicId,sourceId,discussionId,rootId,replyId;
   if(withBrowser){
@@ -220,8 +224,9 @@ async function run(value,ports,testComposition,withModel=false,withBrowser=false
    stage='browser-close';await closeBrowser();a.checkDeadline();need(browser?.ui?.status==='passed'&&browser.ui.origin===cfg.origin,'APPLICATION_BROWSER');
    stage='browser-owner-verification';browser.ownerVerification=await verifyBrowserOwnerRows(a.ownerDatabase,browser.ui,browserActors[0].actorId,a.checkDeadline);
   }
-  await caseRun('hierarchy17-http-health',async()=>{need((await ok('/v1/health')).protocol==='local-service/v1');});
-  await caseRun('independent-semantic-directory',async()=>{const r=await ok('/v1/semantic/topics',{});need(Array.isArray(r.topics)&&r.topics.length>=16&&r.policyRevision===1);});
+  await caseRun(automaticTopics?'automatic18-http-health':'hierarchy17-http-health',async()=>{need((await ok('/v1/health')).protocol==='local-service/v1');});
+  let startingPolicyRevision=1;
+  await caseRun('independent-semantic-directory',async()=>{const r=await ok('/v1/semantic/topics',{});need(Array.isArray(r.topics)&&r.topics.length>=16&&Number.isSafeInteger(r.policyRevision)&&r.policyRevision>=1);if(!automaticTopics)need(r.policyRevision===1);startingPolicyRevision=r.policyRevision;});
   await caseRun('saved-page-canonical-read',async()=>{
    const selected=await a.ownerDatabase.query("SELECT id FROM canonical_v4.topics t WHERE NOT EXISTS(SELECT 1 FROM canonical_v4.discussions d JOIN canonical_v4.contributions c ON c.discussion_id=d.id WHERE d.topic_id=t.id) ORDER BY id COLLATE \"C\" LIMIT 1");topicId=selected.rows[0]?.id;need(typeof topicId==='string');
    // The URL projection hydrates the whole selected discussion. Pick an actual
@@ -234,7 +239,7 @@ async function run(value,ports,testComposition,withModel=false,withBrowser=false
    const urlSelection=await ok('/v1/catalog/url-selection',{url:source.url}),urlSources=urlSelection.catalog?.sources?.filter(s=>s.url===source.url&&s.provenance==='owner-local-page-embedding/v1');
    need(urlSources?.length===1&&urlSources[0].id===sourceId&&urlSources[0].topicId===savedTopic&&urlSelection.discussion?.topic?.id===savedTopic&&urlSelection.discussion.roots?.length===0&&sameVersion(selection.version,urlSelection.catalog.version)&&sameVersion(urlSelection.catalog.version,urlSelection.discussion.version));
    const page=await ok('/v1/discussions/page',{topicId:savedTopic,limit:1,cursor:null});need(page.topic.id===savedTopic&&Array.isArray(page.items)&&page.items.length===0&&sameVersion(page.version,selection.version));
-   const r=await ok('/v1/semantic/context',{sourceId});need(r.status==='pending'&&r.selectedPath.length===0);
+   const r=await ok('/v1/semantic/context',{sourceId});need(automaticTopics?['pending','classified','excluded'].includes(r.status)&&Array.isArray(r.selectedPath):r.status==='pending'&&r.selectedPath.length===0);
   });
   await caseRun('normal-login-unavailable',async()=>{const r=await ok('/v1/account/capabilities',{});need(r.emailCode===false&&r.chatGPTIdentity===false);need((await call('/v1/account/email/request',{email:'unused@example.test',clientNonce:'private-no-email-xxxxxxxx'})).status===409);});
   await caseRun('named-private-session',async()=>{for(const actor of actors)need((await ok('/v1/account/me',{},actor.token)).username===actor.username);});
@@ -245,10 +250,14 @@ async function run(value,ports,testComposition,withModel=false,withBrowser=false
   await caseRun('demo-actor-denied',async()=>{need((await call('/v1/account/me',{},one.token,{'x-demo-actor':'demo-alex'})).status===403);});
   await caseRun('reserved-ai-names-denied',async()=>{for(const username of ['AI','ai_bot','_aibot'])need((await call('/v1/account/username',{username},one.token)).status===409);});
   await caseRun('host-origin-pairing-denied',async()=>{need((await call('/v1/health',null,null,{host:'127.0.0.1:4185'})).status===403);need((await call('/v1/health',null,null,{origin:'https://example.test'})).status===403);need((await call('/v1/health',null,null,{authorization:'Bearer wrong'})).status===401);});
-  await caseRun('owner-policy-refresh',async()=>{const before=await ok('/v1/semantic/topics',{}),policy=createCanonicalV4SemanticDiscussionRepository({database:a.ownerDatabase});await policy.setOwnerPolicy({expectedRevision:before.policyRevision,defaultMaxDepth:2,overrides:[]});const after=await ok('/v1/semantic/topics',{});need(after.policyRevision===before.policyRevision+1&&after.topics.length>=before.topics.length);});
+  await caseRun('owner-policy-refresh',async()=>{const before=await ok('/v1/semantic/topics',{}),policy=createCanonicalV4SemanticDiscussionRepository({database:a.ownerDatabase});need(before.policyRevision===startingPolicyRevision);await policy.setOwnerPolicy({expectedRevision:before.policyRevision,defaultMaxDepth:2,overrides:[]});const after=await ok('/v1/semantic/topics',{});need(after.policyRevision===before.policyRevision+1&&(!automaticTopics?after.topics.length>=before.topics.length:Array.isArray(after.topics)));});
   await caseRun('bounded-concurrent-public-reads',async()=>{const rows=await Promise.all(Array.from({length:4},()=>ok('/v1/semantic/topics',{})));need(rows.every(r=>r.policyRevision===rows[0].policyRevision));});
   await caseRun('revoked-session-denied',async()=>{need((await ok('/v1/account/session/logout',{},two.token)).loggedOut===true);need((await call('/v1/account/me',{},two.token)).status===401);});
   await caseRun('provider-unavailable',async()=>{need((await call('/v1/ai/status')).status===404);});
+  if(automaticTopics){
+   await caseRun('automatic18-capabilities',async()=>{const r=await ok('/v1/semantic/capabilities/v2',{});need(r.protocol==='semantic-topics/v2'&&r.authorContext==='authored-topics/v2'&&r.topicSearch==='named-topics/v2','APPLICATION_AUTOMATIC_CAPABILITIES');});
+   await caseRun('automatic18-global-search',async()=>{const r=await call('/v1/semantic/search',{query:'',limit:10,cursor:null},null,{'x-murmingle-semantic':'2'});need(r.status===200&&Array.isArray(r.value.topics)&&r.value.topics.length<=10,'APPLICATION_AUTOMATIC_SEARCH');});
+  }
   if(withModel){
    stage='model-training-inputs';const training=await ports.readTraining();a.checkDeadline();
    stage='model-fixture-isolation';const fixtureIsolation=await isolateCopiedQueue(a.ownerDatabase,a.checkDeadline);model={fixtureIsolation};a.checkDeadline();
@@ -288,7 +297,7 @@ async function run(value,ports,testComposition,withModel=false,withBrowser=false
   cleanup.pendingDatabase=[appDatabase,urlDatabase,workerDatabase,submitterDatabase].reduce((total,db)=>total+(db?.snapshot().pending??0)+(db?.snapshot().admitted??0),0);key.fill(0);
  }
  need(cleanup.pendingHttp===0&&cleanup.pendingDatabase===0,'APPLICATION_PENDING');
- const proof={schema:'private-application-http-proof/v1',status:failed?'failed':'passed',cases:states,pendingCases:states.filter(x=>x.status!=='passed').length,
+ const proof={schema:automaticTopics?'private-automatic18-application-http-proof/v1':'private-application-http-proof/v1',status:failed?'failed':'passed',cases:states,pendingCases:states.filter(x=>x.status!=='passed').length,
   server:{destinationPort:PORT,canonicalHost:HOST,loopbackOnly:true},upgrade:{...a.upgrade},counts:{httpRequests,maximumConcurrentHttp,fixtureActors:2},cleanup,
   scope:{realHttp:!testComposition,realDatabase:!testComposition,browser:withBrowser&&!testComposition,encoder:withModel&&!testComposition,provider:false,externalLoginVerified:false,productionCapacityValidated:false,testComposition},
   ...(withModel?{model}:{}),
@@ -302,3 +311,6 @@ export async function runPrivateProductApplicationRehearsal(value){if(arguments.
 export async function runPrivateApplicationRehearsalForTest(value,ports){need(arguments.length===2&&ports&&Object.keys(REAL).every(k=>typeof ports[k]==='function'),'APPLICATION_TEST_PORTS');return run(value,ports,true);}
 export async function runPrivateModelApplicationRehearsalForTest(value,ports){need(arguments.length===2&&ports&&Object.keys(REAL).every(k=>typeof ports[k]==='function'),'APPLICATION_TEST_PORTS');return run(value,ports,true,true);}
 export async function runPrivateProductApplicationRehearsalForTest(value,ports){need(arguments.length===2&&ports&&[...Object.keys(REAL),...Object.keys(PRODUCT)].every(k=>typeof ports[k]==='function'),'APPLICATION_TEST_PORTS');return run(value,ports,true,true,true);}
+// Separate closed schema18 composition; the original17 entries reject18.
+export async function runPrivateAutomatic18ApplicationRehearsal(value){need(arguments.length===1,'APPLICATION_CONTEXT');return run(value,REAL,false,false,false,true);}
+export async function runPrivateAutomatic18ApplicationRehearsalForTest(value,ports){need(arguments.length===2&&ports&&Object.keys(REAL).every(k=>typeof ports[k]==='function'),'APPLICATION_TEST_PORTS');return run(value,ports,true,false,false,true);}

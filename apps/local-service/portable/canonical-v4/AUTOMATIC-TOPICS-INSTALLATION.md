@@ -365,3 +365,36 @@ tests also pass. A read-only live observation correctly refused quiescence while
 services were running. No backup, file lease, stop, release seal or migration was
 invoked. New native17/18 metadata-reader assertions are source only until a fresh
 reviewed SQL run; no actual full-data recovery or live readiness follows.
+
+The private rehearsal now has a separate `private-automatic18` purpose. Its
+closed `automatic-topics-owner-native-check.js` entry pins the complete schema17
+archive from29October (1354426025 encrypted bytes), its7445-byte owner receipt,
+header and dump hashes. Root rehashed that archive read-only before selecting it.
+This is a fixed historical full-data snapshot, not the final current cutover
+snapshot. The historical9 restore/HTTP/model/product purposes and their inputs
+remain unchanged; this is not a retry with a larger old input limit.
+
+The new stage compares all28 restored table fingerprints, including exact
+binary64 semantic input wires, before owner migration. It preserves the existing
+matcher and policy CAS, requires the official idle-queue upgrade, then compares
+all27 original data tables again and checks all13 generated sequences without
+rounding bigint values. The migration table gains only its reviewed18 suffix.
+No copied work is revoked or rewritten to make migration pass. The owner role
+is reset on failure and application startup follows successful equality checks.
+
+Its separate18 application composition retains the original16 HTTP behaviors,
+requires protocol2 capabilities and executes global Search Topics through the
+modern header. A restored classified Source and existing owner policy revisions
+are allowed without pretending they are a fresh17 installation. Original17
+entrypoints still reject18 and the new entry rejects17. Independent parent
+checks require the distinct migration, application and phase schemas, both
+database drops, exact input end pins and normal smart stop. The frozen25/3
+supervisor transport ABI remains unchanged; those fields do not count this
+purpose's table or HTTP cases. No old25 assertion is removed or relabelled.
+
+Joined guarded939 Node tests and75 pure Python controller tests pass. These use
+invented restore/SQL/application ports and temporary test files; they are not
+actual full-data recovery. The real `private-automatic18` purpose has NOT run.
+It retains64MiB Node heap,1GiB Job, the existing private CPU/time/storage bounds
+and11GiB free-D admission floor. It does not run an encoder, browser or provider;
+those genuine18 exercises and a fresh final snapshot remain additional gates.
