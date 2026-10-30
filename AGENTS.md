@@ -8,6 +8,23 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct compressed C filesystem proof actualPROGRESS. V1 stopped before any
+C directory/file at unresolved PowerShell5.1 [ulong]; exact readonlycausalrepro
+PASS. Separatev2 onlyuint64+namespace inversePASS; actualexit0, two1MiB publicfiles
+inheritedLZNT1/write+overwrite/Flush(true)/samehandlehashPASS. Allocated12288Bzeros/
+1048576Brandom;3newdirectoriescreated/3removed, independentparentabsencePASS.
+Resulta465153b...04d11/audit376dc5ff...2a17d; alloriginalfloorsPASS. NO PostgreSQL/
+archive/fullrestore/compatibility authority. Bothconsumedprobes/resultsIMMUTABLE.
+NEWfixed8-publicURL actualcapture+class-awarecached-E5/installed16root comparison
+SOURCEprepared; normalrobots/TDM/noindex/DNS/TLS/bytes/pacing/no redirects enforced.
+Captures/refusals allretainedin8denominator; no excerptsubstitution.4puretestsPASS
+42.3123ms; no actualcapture/modelrun yet. Knownpublisheroverlap/manualstress,
+NOT independentholdout. Newrootdescriptor isdiagnostic, notmixedvectoridentity.
+Source957c5f27pushed; source fornewcapturewillbecommittedbefore actualinference.
+GoalACTIVE; fullcompressednativeintegration/recovery, freshquality andcanonical/
+discovery/owner/UI/ANN/coldURL/load/cutover remainOPEN. Crawler26784 preserved.
+
+
 LATEST30Oct class-aware cached-topic DEV PROGRESS; Root-only. Source28fc2d41
 pushed BEFORE one normal private public-path-kind request65017 CLOSEDexit0;
 8kinds exact/cleanup ownconv+logout/0publicposts/18endpinsPASS. Public classes

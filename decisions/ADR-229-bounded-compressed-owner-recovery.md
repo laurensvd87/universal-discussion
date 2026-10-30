@@ -83,3 +83,20 @@ the private data fits. Those require the actual new owned tests. PostgreSQL's
 an isolated initialized data directory with protected permissions; live storage,
 host services, HBA, pagefile, update settings and existing application roots remain
 unchanged.
+
+## Actual bounded filesystem evidence, 30 October
+
+The first probe stopped before creating any directory: PowerShell5.1 does not
+resolve `[ulong]`. An exact read-only function reproduction identifies that cast;
+it is not an NTFS/PostgreSQL failure. Its source and failed output remain fixed.
+The separate v2 source changes only that cast to `[uint64]` and the versioned
+output/root/schema identities; the exact inverse was checked.
+
+The one actual v2 probe exits0. Two public synthetic1MiB files inherit LZNT1 and
+survive page writes, overwrite, durable flush and same-handle hash readback.
+The mostly-zero file allocates12,288 bytes; the random file1,048,576 bytes.
+All three newly created directories are removed and the C parent is absent on
+independent readback. Original resource floors pass. Saved resulta465153b...04d11
+and Root audit376dc5ff...2a17d retain the measurements. No archive or database is
+opened. This establishes bounded filesystem behavior only: actual PostgreSQL
+compatibility, full-data fit, recovery and browser validation remain unproven.
