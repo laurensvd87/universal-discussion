@@ -51,6 +51,17 @@ before first-failure selection. Do not claim per-process profiling from aggregat
 accounting. Consider a separate public synthetic comparison only if it resolves
 an observed uncertainty; it cannot replace complete-data recovery acceptance.
 
+Also review a bounded restore-progress observer before another expensive full
+attempt. A single additional owned read-only connection, still inside the same
+eight-client lifetime cap, can distinguish COPY progress from index building via
+the official [progress-reporting views](https://www.postgresql.org/docs/17/progress-reporting.html).
+Retain only bounded phases and numeric counters; never query/store statement
+text or page/contribution content. Join the observer's original pending query and
+connection close before lifecycle retirement. An unavailable diagnostic must not
+mask the original restore result or invent completed physical work. Progress can
+test the index-build hypothesis; no such index-stage observation was retained
+from the failed first attempt.
+
 Do not disable durability, filter tables/indexes/constraints, split away required
 checks, change fingerprints or substitute a smaller dataset to make the test pass.
 Parallel restore would conflict with the retained single-transaction contract;
