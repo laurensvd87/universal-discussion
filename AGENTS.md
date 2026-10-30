@@ -8,6 +8,19 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct ADR236 NEW plain-owner-recovery-v4 SOURCE Root accepted;34files/
+4normalizeddifferences/30namespace-only. Allold34/catalog pins unchanged. ONLY
+freshbulk serverdefault_toast_compression=lz4; actualbootstrapSQL verifiesall6
+settings beforearchivecallback/retainsfinitewitness. Ordinarymodeunchanged;
+120NodePASS474.6899ms64MiB/108PythonPASS4.206s; missing/wrong/accessorrefusals.
+ALL29/55tables/original28receipt+queueprepost/roles/sequences/18HTTP/Chrome and
+originalCPU/memory/storage/client/time/retirement assertions unchanged. Review
+9198B1e7815e5...7c6d7; catalog419688B0eb4b2db...3c1f3/2715files279896455B,
+auth/endpins/7runtime/allold2715PASS,3heldinputsclosed,3freshresourcesPASS/
+minimumD4446392320. Readiness1430Bdefa4f15...50223; rootABSENT/preparerparsePASS.
+Source-readyTRUE NOTactualauthority. Sourcearchival/freshchecks/separateONE
+decision next; NOactualv4yet. Fullmatching/discovery/UI/livegoal remainsACTIVE.
+
 LATEST30Oct plain-v3 ONE actual55439 CLOSEDexit1 at CPU300.1875 after full
 authenticated restore-retired212434ms; 192progress/COPY+index. No upgrade/HTTP/UI
 checkpoint or childlifecycle report, NO normalSQLstop. Parentowned-emergency/

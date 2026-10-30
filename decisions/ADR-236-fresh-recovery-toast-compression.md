@@ -2,7 +2,7 @@
 
 Date: 2026-10-30
 
-Status: source design only; no successor files/catalog or actual decision yet.
+Status: new v4 source Root reviewed and readiness passes; no actual decision yet.
 
 The complete v3 archive process reaches restore-retired, then the combined test
 hits300.1875 Job CPU seconds before the upgrade checkpoint. Exact consuming
@@ -41,3 +41,32 @@ inventory, original28 receipt+queuepre/post, all role/sequence/state checks,
 original18 HTTP and genuine Chrome proof. After complete source review/tests,
 new whole catalog/inputs/headroom, archival and separate ONE decision, actual
 evidence must decide fit and correctness. Do not rerun/adopt consumed v3.
+
+## Source and readiness evidence
+
+Separate source grant80f8ad4c...89afb precedes34 new plain-owner-recovery-v4 files.
+Exactly4 files differ beyond root/source namespace: cluster SQL/config/readback,
+its tests, README and driver source-ready latch/two namespace-specific pins.
+The other30 are exact namespace-only copies. All34 consumed predecessor source
+pins and its catalog remain unchanged. No original API/queue/fingerprint/HTTP/
+Chrome proof or budget changes. Source latches close during construction; after
+review/tests only the two latches change to source-ready, not actual authority.
+
+120 Node tests pass64MiB/474.6899ms,108 Python tests pass4.206s. Prior five settings
+remain mandatory; new missing/wrong/pglz/type/accessor cases refuse, getters are
+not called, actual bootstrap configuration is bound, ordinary mode omits LZ4.
+Root preparer parses without errors and is namespace-only relative to v3.
+These source/fake checks do not demonstrate actual PostgreSQL performance.
+
+Root source review9198 bytes hashes
+`1e7815e5c7d5df3bd545307f6e3c3133245267c62fc48f0a2bacdc98b347c6d7`.
+New catalog419688 bytes hashes
+`0eb4b2db5abd2b243eae54c4409974d755897356d05d256cef068f7dc6c3c1f3`,
+authenticating2715 files/279896455 bytes. Whole authentication/end pins, all seven
+runtime pins and all2715 predecessor pins pass. Three fixed backup/receipt/Chrome
+inputs are held, authenticated and closed. Three fresh native samples meet all
+original admission floors; minimum D4446392320 bytes. New root is absent.
+Readiness1430 bytes hashes
+`defa4f1522a93c30ee9f6cb7bc9733ff902bc8178b0347cec0717aa03d250223`.
+Archive exact source, recheck live identities/ports/headroom and record ONE
+separate actual decision before any fixed root setup or invocation.
