@@ -65,6 +65,12 @@ const ROOT_PAGE=`WITH roots AS MATERIALIZED (
  AND o.generation=$4 AND o.operation_id=s.operation_id AND o.operation_digest=r.operation_digest
  LEFT JOIN canonical_v4.semantic_inputs i ON i.source_id=o.source_id AND i.operation_digest=o.operation_digest AND i.matcher_hash=o.matcher_hash
  ORDER BY c.ordinal`;
+const AUTOMATIC_ROOT_PAGE=ROOT_PAGE.replace('c.root_id IS NULL AND ($1::bigint IS NULL OR c.ordinal>$1)',
+ 'c.root_id IS NULL AND NOT EXISTS(SELECT 1 FROM canonical_v4.named_root_contexts authored_ WHERE authored_.root_id=c.id) AND ($1::bigint IS NULL OR c.ordinal>$1)');
+if(AUTOMATIC_ROOT_PAGE===ROOT_PAGE)throw new TypeError('Invalid legacy root query composition');
+// Shared with the owned SQL rehearsal. This exposes fixed query text only;
+// neither caller supplies SQL nor acquires a database or migration capability.
+export function semanticLegacyRootPageSql(automaticTopics=false){if(typeof automaticTopics!=='boolean')invalid();return automaticTopics?AUTOMATIC_ROOT_PAGE:ROOT_PAGE;}
 const REASONS=['eligible','adopted','existing','withdrawn','manual','unpinned','stale-anchor','pending','excluded','abstained','invalid-material'];
 function inspectRow(row){
  if(row.existing_snapshot)return {status:'existing'};
@@ -82,12 +88,12 @@ function inspectRow(row){
   return {status:'eligible',item:{generation:checked.generation,matcherIdentityHash:checked.matcherIdentityHash,sourceId:checked.sourceId,sourceVersion:checked.sourceVersion,operationId:checked.operationId,operationDigest:checked.operationDigest,requestMaterial:checked.requestMaterial,sourceStamp:checked.sourceStamp,bodyWireHash:checked.bodyWireHash,rootId:row.id,rootVersion:row.root_version,topicId:row.topic_id,discussionId:row.discussion_id}};
  }catch{return {status:'invalid-material'};}
 }
-export function createSemanticOwnerMaintenance({database}={}){
- if(database?.dialect!=='pg'||typeof database.query!=='function'||typeof database.transaction!=='function')invalid();
+export function createSemanticOwnerMaintenance({database,automaticTopics=false}={}){
+ if(database?.dialect!=='pg'||typeof database.query!=='function'||typeof database.transaction!=='function'||typeof automaticTopics!=='boolean')invalid();
  async function roots(input,adopt){const a=rootInput(input);return database.transaction(async tx=>{
   await fence(tx,a,!adopt);let high=a.initialHighWatermark;
   if(high===null){const result=await tx.query('SELECT max(ordinal)::text AS high_watermark FROM canonical_v4.contributions WHERE root_id IS NULL');if(result.rows?.length!==1)invalid();high=result.rows[0].high_watermark;if(high!==null)counter(high);}
-  let selected=[];if(high!==null){const result=await tx.query(ROOT_PAGE,[a.cursor,high,a.limit+1,a.expectedGeneration,a.expectedMatcherIdentityHash]);selected=result.rows;if(!Array.isArray(selected)||selected.length>a.limit+1||Buffer.byteLength(JSON.stringify(selected))>BYTES)invalid();}
+  let selected=[];if(high!==null){const result=await tx.query(semanticLegacyRootPageSql(automaticTopics),[a.cursor,high,a.limit+1,a.expectedGeneration,a.expectedMatcherIdentityHash]);selected=result.rows;if(!Array.isArray(selected)||selected.length>a.limit+1||Buffer.byteLength(JSON.stringify(selected))>BYTES)invalid();}
   const more=selected.length>a.limit,rows=selected.slice(0,a.limit),counts=Object.fromEntries(REASONS.map(k=>[k,0]));let prior=a.cursor;
   const seen=new Set();const details=rows.map(row=>{counter(row.ordinal);counter(row.root_version);readId(row.id);readId(row.topic_id);readId(row.discussion_id);if(typeof row.withdrawn!=='boolean'||typeof row.existing_snapshot!=='boolean'||seen.has(row.id)||prior!==null&&BigInt(row.ordinal)<=BigInt(prior)||BigInt(row.ordinal)>BigInt(high))invalid();seen.add(row.id);prior=row.ordinal;const inspected=inspectRow(row);counts[inspected.status]++;return {row,...inspected};});
   let adopted=0;if(adopt){const items=details.filter(d=>d.status==='eligible').map(d=>d.item);if(items.length){const outcomes=await createCanonicalV4SemanticSourceRepository({database:tx}).adoptLegacyRoots({generation:a.expectedGeneration,matcherIdentityHash:a.expectedMatcherIdentityHash,items});for(const outcome of outcomes){const detail=details.find(d=>d.row.id===outcome.rootId);counts.eligible--;counts[outcome.status]++;detail.status=outcome.status;if(outcome.status==='adopted')adopted++;}}}

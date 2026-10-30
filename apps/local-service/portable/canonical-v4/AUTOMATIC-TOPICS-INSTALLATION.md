@@ -274,3 +274,40 @@ app-browser/provider/load exercise, first-ever URL latency or verified live cuto
 The live sealed services and crawler remain on schema17. The private full-data
 restore still requires its unchanged11GiB D: floor; smaller owned synthetic proofs
 do not waive it. No live activation is implied by these accepted fixtures.
+
+Dedicated unactivated runtime and backup operators now live in
+`src/ops/automatic-topics-runtime-operator.js` and
+`src/ops/automatic-topics-backup-operator.js`. The original17 operator/backup bytes
+remain unchanged, and a read-only preflight authenticated the actual running
+nature-heads seal (`be9012599733de4a1abe94626f1d1e010e2ce0839a605ffeff54f5dfead3d83f`,
+1204 files/163203647 bytes). The older ignored bootstrap entry identifies another
+historical seal and must not be used as current-live evidence.
+
+The new operator has a separate fixed `hierarchy-release-20261030-automatic-topics`
+namespace, explicitly enables18 API/worker composition and checks18 for crawler,
+dashboard and status. Pool limits, accounts, pairing, DPAPI and saved crawler paths
+are unchanged. Installation and CAS17-to18 upgrade remain explicit owner commands;
+startup never migrates. No new release directory or manifest has been prepared or
+sealed. The current17 sealer intentionally rejects the modern selected-read-service
+source marker; its existing deployed handler remains sealed and unchanged. Both
+old and new packaging contracts are tested explicitly.
+
+The new backup operator retains encrypted V1 streaming, owned-fixture-only restore,
+original disk/byte/time limits and predecessor9/16/17 support, and recognizes the
+exact18 manifest. It fingerprints all26 additional table primary keys (54 total),
+including binary64 subject/public prototype values. No Source/body/vector is
+returned in those fingerprints. Existing archive format and encryption are
+unchanged. Stream tests cover18 plus the old profiles and reject unknown19 before
+dump dispatch; these use fake dump transport, not a real18 archive.
+
+Owner legacy maintenance has a default-false automaticTopics option. The18 tool
+enables it to exclude explicitly authored contexts before legacy-root pagination;
+Source evidence cannot silently assign those roots a replacement topic. Original
+17 behavior and owner/CAS/material fences remain. The next owned SQL proof adds
+an old-query/new-query comparison on the same real authored root and executes
+the same26 fixed fingerprint cursor queries used by the backup operator.
+Guarded joined830 tests pass, including77 operator/backup/maintenance tests. Those
+new SQL assertions remain pending until a separately reviewed actual invocation.
+Local-state/quiesced18 backup integration, private restore/product rehearsal,
+representative real E5, genuine browser/provider/load/cold-URL latency, runtime
+packaging and cutover remain open; these Source tools do not authorize activation.

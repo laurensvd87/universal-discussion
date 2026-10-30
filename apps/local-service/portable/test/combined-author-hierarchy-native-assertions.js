@@ -20,6 +20,8 @@ import {createHash} from 'node:crypto';
 import {createLocalServiceClient} from '../../../../spikes/topic-resolution/browser/core/local-service-client.js';
 import {createLocalAiClient} from '../../../../spikes/topic-resolution/browser/core/local-ai-client.js';
 import {createPostgresDashboardSource} from '../../../topic-dashboard/src/data/postgres-catalog.js';
+import {semanticLegacyRootPageSql} from '../canonical-v4/semantic-owner-maintenance.js';
+import {describeAutomaticTopicBackupTables,automaticTopicBackupRowQuery} from '../../src/ops/automatic-topics-backup-operator.js';
 import {authoredFixtureInsightContext} from './automatic-author-insight-native-assertions.js';
 const actor={id:'demo-alex',type:'human',demo:true},code=c=>e=>e?.code===c,MODEL='e5-small-q8-browser-main-prefix-v1',TOPIC='topic-semantic-manual';
 async function one(db,sql,args=[]){const r=await db.query(sql,args);assert.equal(r.rows.length,1);return r.rows[0];}
@@ -147,6 +149,18 @@ export async function runCombinedAuthorHierarchyNativeAssertions(scope){
   assert.deepEqual(card.breadcrumbs.fixed,[{nodeId:'games',label:'Games'}]);
   assert.deepEqual(card.breadcrumbs.topic.map(t=>t.nodeId),['subject-'+parent,'subject-'+leaf]);
   assert.equal(card.breadcrumbs.topic.at(-1).label,card.label);
+  const position=(await one(owner,'SELECT ordinal::text n FROM canonical_v4.contributions WHERE id=$1',[namedRoot])).n;
+  const pageArgs=[String(BigInt(position)-1n),position,2,generation,matcherHash];
+  assert((await owner.query(semanticLegacyRootPageSql(false),pageArgs)).rows.some(r=>r.id===namedRoot),'the old legacy candidate query sees this expressly authored root');
+  assert.equal((await owner.query(semanticLegacyRootPageSql(true),pageArgs)).rows.length,0,'automatic owner maintenance cannot infer a replacement subject for an expressly authored root');
+  await owner.transaction(async tx=>{
+   await tx.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
+   for(const table of Object.keys(describeAutomaticTopicBackupTables())){
+    await tx.query(automaticTopicBackupRowQuery(table));let failed=false;
+    try{for(;;){const {rows}=await tx.query('FETCH FORWARD 128 FROM backup_rows');assert(rows.length<=128);assert(rows.every(r=>/^[a-f0-9]{64}$/u.test(r.row_sha)));if(rows.length<128)break;}}
+    catch(error){failed=true;throw error;}finally{try{await tx.query('CLOSE backup_rows');}catch(error){if(!failed)throw error;}}
+   }
+  });
  });
  await check(6,async()=>{
   for(const id of [semanticRoot,namedRoot]){const v=await client.semanticTarget({nodeId:'games',rootId:id,targetId:id});

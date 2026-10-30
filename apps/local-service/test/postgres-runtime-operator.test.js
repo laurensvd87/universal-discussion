@@ -144,7 +144,7 @@ test('preflight and preparation never implicitly install or start services; pool
  const b=POSTGRES_RUNTIME_POOL_BUDGET;assert.equal(b.api+b.exactUrl+b.worker+b.crawler+b.dashboard,b.permanentMaximum);
  assert.equal(b.permanentMaximum,42);assert.ok(b.permanentMaximum+b.statusOwner+b.installationOwner<100);
 });
-test('sealed source layout covers actual startup imports, package scopes and fixed assets within original limits',()=>{
+test('preserved17 packaging stays bounded and refuses the current versioned handler source marker',()=>{
  const layout=describePostgresRuntimePackaging(),root=fileURLToPath(new URL('../../../',import.meta.url));
  const selected=name=>layout.sourceFiles.includes(name)||layout.sourcePrefixes.some(prefix=>name.startsWith(prefix));
  const pending=['apps/local-service/src/startup.js','apps/local-service/src/ops/crawl-cli.js',
@@ -163,9 +163,13 @@ test('sealed source layout covers actual startup imports, package scopes and fix
  assert.ok(seen.size>100);assert.equal(layout.encoderFiles.length,10);
  assert.ok(layout.requiredFiles.includes('apps/local-service/portable/canonical-v4/migrations/017-semantic-dashboard-counts.sql'));
  assert.equal(layout.maximumFiles,5000);assert.equal(layout.maximumBytes,512*1024*1024);assert.equal(layout.maximumManifestBytes,2*1024*1024);
- for(const [name,markers] of Object.entries(layout.sourceMarkers)){
-  const source=readFileSync(path.join(root,name),'utf8');for(const marker of markers)assert.ok(source.includes(marker),`${name}: ${marker}`);
+ const missing=[];for(const [name,markers] of Object.entries(layout.sourceMarkers)){
+  const source=readFileSync(path.join(root,name),'utf8');for(const marker of markers)if(!source.includes(marker))missing.push({name,marker});
  }
+ // The running17 seal retains its original handler and operator. The new
+ // worktree needs the dedicated18 sealer, whose selected-read-service guard
+ // is checked by automatic-topics-runtime-operator.test.js.
+ assert.deepEqual(missing,[{name:'apps/local-service/src/http/request-handler.js',marker:'service.coherentSnapshotReads === true'}]);
  assert.equal(selected('apps/local-service/data/accounts.sqlite'),false);assert.equal(selected('apps/local-service/data/topic-crawler.sqlite'),false);
  for(const name of ['apps/local-service/package.json','apps/local-service/portable/package.json','apps/topic-dashboard/package.json','spikes/topic-resolution/package.json'])assert.ok(selected(name));
 });
