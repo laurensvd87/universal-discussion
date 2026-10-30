@@ -487,3 +487,21 @@ The previously prepared C492 runtime contains V2 naming and the older018 bytes.
 It is retained **ON HOLD** and must not be activated as the corrected version.
 A reviewed replacement package/namespace must include the new policy and SQL.
 Full-data restore, fresh validation and all live gates remain open.
+
+The first V3 native invocation ended at the existing dFree floor, with retained
+counter4287397888 bytes below4294967296. No child stdout or SQL result was saved.
+All2678 consumed pins, both pipe EOFs, empty Job and closed handles passed, but
+cleanup was owned-emergency; there is no normal smart-stop or successful SQL
+claim. Failed run `run-a1162adb3faa1c02e5f7792576da14537f981176cf6c752b` stays
+failed and is never adopted. Root terminal audit SHA256 is
+`bb52ce689fd4911ff76c9d6db2f87ec64e60b01f4b86ee523a7542698a9e9e88`.
+The normal4GiB and private11GiB floors remain unchanged.
+
+A fixed reviewed helper subsequently cleared only the regenerable npm
+`D:\DevStorage\Laurens\npm-cache\_cacache` downloads:181 files/219754053 logical
+bytes, observed free-space increase220241920 bytes. The target was resolved and
+checked for reparse points, and npm activity/opaque Node processes block the
+helper. Installed modules, config, logs, models, credentials and project backups
+were untouched; no service signal was sent. This is a real capacity change, not
+a budget waiver or a Source/SQL change. A fresh separately decided normal SQL
+invocation is still required; the full-data restore remains unrun.
