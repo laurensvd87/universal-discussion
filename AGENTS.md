@@ -8,6 +8,49 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct current goalturn PROGRESS; previous goalturn also PROGRESS. Root-only.
+New fixed read harness0ea68fd9 ACTUAL18 normal HTTP requests on3 owner problemURLs,
+all parsed/OK under crawler. URL selections18-124ms/context7-86ms serial,
+4concurrent context11-230ms. First-observed NOTcold/backend capacity; no raw bodies/
+credentials retained. Result data/known-topic-read-latency-20261030.json SHA
+b49ee49d88ad37e3c26ad99fa873685964883c283d259c519ec73ca14441da63.
+ONE real live17 paired AI reply also PASS (gpt-6-luna, German requested/markers+
+shortanswerheuristics). Normal account, fresh public recipe+question only,
+1provider request/1stored reply; only new unchanged testroot withdrawn and own
+session logoutPASS. Output data/paired-live-ai-reply-current17-actual-20261030.json
+SHA1ba0cebdb8c49a69120b37575562e21822d0ad9291d5094ec372ea01439cb87f;
+entrydd8258cc...46a2 unchanged. No YouTube/native-document/18-provider claim.
+
+Actual Chrome fixture first failed b00Vn6 (missing new capabilities/v2 route),
+then Om0G3A (Root helper accepted ok while actual default available); both retained
+failed, exact35source/end pins authenticated BEFORE edits, owned browser/profile
+retired. Source fixes0a27ba37/6b9f77c8 share actual default and test negotiation via
+actual client incl canonical404 fallback/authfail nofallback. No app change.
+Corrected actual jWpjAD original18 PASS4098ms/3shots; auditf32f5d857f5deaf18d6ad82e910b38ca01b4cf41d7fb2fb51ab175e6abaef73e.
+Then c399d219 adds4 MODERNv2 Chrome cases while retaining original18: global mixed
+Food/Recipes/Kapsalon and Nature/Animals/Koalas breadcrumbs/literal captions,
+search independent of foreground Source, topic caption, exact canonical reply
+handoff/flat nesting. Pure boundary40PASS122ms. ONE actual e5KMrL all22PASS4676ms/
+5shots/nooverflow320-400-520. All35start/end/current pinsPASS, failures0,
+all physical targets offline/intercepted, owned Chrome exited/profile removed.
+Raw offlineAllTargetsFALSE only because one duplicate CDP alias has unused own
+flags; its original owner containment verified, no second resume. Do not call
+that raw flag TRUE. Root audit data/named-v2-ui-browser-root-terminal-audit-
+20261030.json SHA3756214b6b62ce582d86249db3c33e584b85d92e67faa7357e761a668d98e431;
+result data/semantic-workspace-browser-qa-20261027/attempt-e5KMrL/result.json
+SHAd60f1a693286bc359d8d7322a32d6b5709636fb145c7522904233663d34819b8.
+Both320px directory/thread images visually inspected. This is released UI with
+SYNTHETIC transport/AI, NOTreal18 full-data/model/provider/load/coldURL proof.
+Current17 APIstatus available/schema17: Sources79258/contributions115 BEFOREthis
+new two-post AI probe; prepared79080/classified36291/abstained42781/excluded8/
+pending170. Old optional related-scan status reports usedUnits43282293>33554432
+and overCapacityTRUE/integrityFALSE; no global fix/capraise inferred or applied.
+NewV3 sealed source a0a2f912...736de unchanged by harness-only UI fixes.
+GoalACTIVE: full18 owner restore still11GiB D floor UNMET/storage question pending;
+actual18 model/browser/provider/representative quality/load/coldURL/finalpair/
+verifiedcutover OPEN. Do not mark complete, retry old study outputs or touch live
+services/crawler merely because QA completed. Earlier pass190/package notes below.
+
 LATEST30Oct current goalturn PROGRESS; previous status-only turn NO PROGRESS.
 Root-only, no delegation. New naming SQL issue closed without changing publisher
 contract: existing heads retain founding policy/label/prototype and stable IDs;

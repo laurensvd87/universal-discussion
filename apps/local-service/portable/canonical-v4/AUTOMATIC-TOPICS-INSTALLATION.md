@@ -552,3 +552,38 @@ No new restore CLI or automatic rollback is introduced. Root-only tests pass:
 39 new guarded Node checks joined with962 old checks (1001 total, no skips),
 and5 pure process-census Python checks. Actual prepare/seal, full owner-data
 restore and fresh final backup/cutover require their own current observations.
+
+On30Oct a separate normal-live17 probe completed18 authenticated API requests
+under the existing crawler, using the three owner-reported problem URLs. All
+requests passed normal client decoding. Saved-URL selection took18-124ms and
+serial topic context7-86ms; four concurrent context reads completed11-230ms.
+This is a first-observed/repeat read baseline, not server/model cold start or
+many-user/write capacity. No credentials or response bodies are retained. Output
+SHA256b49ee49d88ad37e3c26ad99fa873685964883c283d259c519ec73ca14441da63.
+
+One real normal-service AI request also passed with gpt-6-luna: a German question
+on the fixed public Kapsalon recipe produced a stored short German-marked reply.
+Only fresh public article/question evidence was used, without web/related-page
+research; the new unchanged test root was withdrawn and its issued account
+session logged out. Result SHA2561ba0cebdb8c49a69120b37575562e21822d0ad9291d5094ec372ea01439cb87f.
+Language markers are heuristic; this is not native YouTube-document attestation,
+real18 worker validation or a semantic-quality evaluation.
+
+The maintained isolated Chrome smoke initially exposed a stale test transport:
+the released client now probes capabilities/v2 before authenticated v1 fallback.
+The fixture route and exact default mode are corrected with actual-client tests;
+failed outputs b00Vn6 and Om0G3A remain failed. All original18 browser checks then
+passed, including selected AI actions/mentions, pending/error canonical fallback,
+first-page typing, IME draft promotion and invalidation on navigation/session.
+New cases additionally exercise the released v2 search client/panel in Chrome:
+mixed fixed/learned breadcrumb labels, literal markup-looking captions, a query
+independent of foreground Source, retained topic caption and exact original reply
+handoff with flat nesting. All original18 plus4 new cases ACTUALLY PASS in4676ms,
+with5 retained screenshots, no overflow at320/400/520px,35 start/end pins checked,
+contained physical browser targets, exact owned-browser exit and profile removal.
+Result data/semantic-workspace-browser-qa-20261027/attempt-e5KMrL/result.json
+SHA256d60f1a693286bc359d8d7322a32d6b5709636fb145c7522904233663d34819b8;
+Root audit3756214b6b62ce582d86249db3c33e584b85d92e67faa7357e761a668d98e431.
+This uses synthetic HTTP/AI metadata, not full-data18 SQL/browser integration.
+All app/model/SQL/runtime artifact source remains unchanged by these QA changes;
+the new inactive V3 package still needs full recovery and final live gates.
