@@ -2,6 +2,68 @@
 
 Date:2026-10-29
 
+## 30 October: semantic quality prevents activation of the prepared V3 package
+
+The complete registered18 SQL proof and the inactive package do not establish
+acceptable matching quality. A new predeclared16-probe read-only sample returned
+45 current prepared pages. Root annotated their expected subject senses before
+running V3. All45 happened to be Wikipedia pages; this is a new-topic/language
+diagnostic, not non-Wikipedia, random-population or body-reviewed validation.
+One ambiguous subject and five ambiguous root labels were withheld. The raw
+titles, vectors and annotations remain in the owner-only backup directory.
+
+V3 took12.03ms for the45-page pure proposal computation but produced16 incorrect
+labels among31 reviewed assignments and9 false merged pairs under those title
+annotations. Examples include publisher branding in names and different senses
+of Python, Tesla, Coffee and Dolphin. In particular, a software file manager and
+animal pages shared one subject. This is a real counterexample to the assumption
+that literal name overlap plus raw E5 similarity0.8 establishes subject identity.
+Taking the longest shared phrase also does not prove semantic parenthood.
+
+The first new diagnostic evaluator refused valid canonical Source version0.
+Its source/output remain retained. A separate reader has an exact mechanical
+inverse except for permitting0, as migration002 and ordinary production counters
+already do. The successful capture, all45 rows, annotations, V3/scorer and their
+hashes were unchanged; no recapture, production fix or failed-run adoption.
+The corrected evaluation passed all14 source and4 input end pins; result SHA256
+`4ceeff0a90c0e43837189c42ae60566f3b173306104c89c2fb3b8712df13fb0b`.
+
+Two subsequent approaches were actually tested on the same retained DEV data:
+
+| Approach | Reviewed correct labels | Reviewed wrong labels | False merged pairs | Limit |
+| --- | ---: | ---: | ---: | --- |
+| Unchanged V3 | 15 | 16 | 9 | New title-reviewed diagnostic |
+| Hostname-supported publisher suffix removal | 22 | 6 | 9 | Post-hoc DEV; does not resolve senses |
+| Label-to-body E5,0.85 cutoff,0 margin | 13 | 0 | 1 | Loses most correct coverage |
+| Label-to-paired E5,0.88 cutoff,0.03 margin | 4 | 0 | 0 | Coverage is insufficient as a replacement |
+
+The title helper keeps a literal NFKC prefix and original UTF16 witness offsets.
+It derives publisher evidence from the actual hostname rather than a Wikipedia
+lookup; compounds and substantive title suffixes remain. It does not invent
+accented aliases or translations. This changed40 titles, took12.63ms for proposal
+computation and is an experimental preprocessing candidate, not a live policy.
+Result SHA256 `5be9200cbe31f1e1ef858f85ae3fdcb9253e0c70b83ddcbd285d9d8c8b28509e`.
+
+The grounding run encoded exactly the10 already proposed labels locally with
+the same packaged E5, one serial model and one WASM thread. No gold names or
+sense descriptions entered inference. It tested a predeclared2-view/4-cutoff/
+3-margin grid without selecting a production policy. Initialization took1.16s;
+encoding and comparison completed in1.38s total. The model was closed and its
+process exited0; all23 source,4 input and9 model-asset end hashes passed. Observed
+post-close RSS859070464B is not a peak or a native-memory quota. Result SHA256
+`aad69eda9ad457438fd761741e9776a77239807ba0d133d6b8cf3b3761948048`.
+Raising its cutoff until almost every page abstains is not an acceptable solution.
+
+**Do not activate the sealed V3 package as a completed matching solution.**
+Both older C492 and the corrected V3 package remain inactive. Next work must
+address sense separation and justified ancestry while retaining useful coverage,
+then freeze the selected method before a new prospective cohort. Full18 owner
+restore/browser/model/provider/load/cold-URL checks, a fresh final backup pair
+and coordinated live cutover still follow. The11GiB restore admission is6GiB
+test-tree allowance plus1GiB margin plus4GiB remaining free space, perADR226;
+it is a test budget, not a PostgreSQL minimum or11GiB of measured consumption.
+The live17 app, worker, dashboard and crawler were not switched or signaled.
+
 ## Current priority: general websites, without a Wikipedia dependency
 
 The opt-in author-context browser/HTTP/job bridge now passes the complete owned

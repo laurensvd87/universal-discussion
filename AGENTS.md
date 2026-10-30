@@ -8,6 +8,53 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct current goalturn PROGRESS; previous status-only goalturn NO-PROGRESS,
+revalidated and independent quality work resumed. Root-only/no delegation.
+CRITICAL: prepared named-v3 package is NOT quality-approved; keep it and C492
+INACTIVE. New fixed16-probe readonly current17 capture yielded45 exact prepared
+pages; ALL45 Wikipedia (new-topic/language only, NOT non-Wikipedia/population).
+Root title gold fixed BEFORE actual proposals;44subjects/40roots reviewed.
+Initial diagnostic evaluator exit1/generic; exact exception UNRETAINED. Deterministic
+SOURCE defect: positive-only version predicate contradicts valid canonical0.
+Old3 files/data HOLD; new reader exact function inverse except0 support, same
+successful capture/gold/V3/scorer. Pure11PASS63.1637ms64MiB. Corrected actual
+V3 pure45 result4ceeff0a...13fb0b:12.0278ms,15correct/16wrong labels/13abstain,
+9wrong merged pairs, root17correct/1wrong/22abstain. All14source+4input endpinsPASS.
+Capture2.598s incl DPAPI/connect/query, txn+connection closed; no body text/SQLwrites.
+Capture cohort9c44028a...3d350, goldf5418127...fbeb72; no recapture/replacement.
+
+Post-hoc experimental title evidence derives publisher suffix from hostname,
+keeps literalNFKC prefix/UTF16 offsets, no invented aliases. Pure4PASS; actual
+same45 changed40,22correct/6wrong/9falsepairs;12.6322ms, result5be9200c...8509e;
+all17source+4input endpinsPASS. NOT integrated/new prospective quality/policy.
+Actual label-grounding DEV: ONE local packaged E5/oneWASMthread, exactly10 names
+from proposals (no gold names/descriptions), fixed2x4x3grid. Init1158.7739ms,
+model+compare1383.8463ms; encoderclosed/exec34727 terminalEXIT0. All23source+
+4input+9modelasset endpinsPASS; aad69eda...48048, audit604365e3...27ef2.
+PostcloseRSS859070464B NOTpeak/quota. Body.85/margin0 retains13correct/0wrong
+labels but1wrongpair and31reviewedabstain; paired.88/.03 only4correct/0wrong/
+0falsepair/40abstain. NOT accepted sole fix/no cutoff selected; do not substitute
+near-total abstention for useful matching. Raw.8 E5+literal overlap fails senses
+(Python/Tesla/Coffee/Dolphin) and literal containment doesNOTprove ancestry.
+Critical plan assessment in FRONT of ADR228; quality HOLD decision
+ data/automatic18-v3-quality-hold-root-decision-20261030.json.
+
+Source commits7f56aac4/60cec3dd/6936a048/16265b41 retained in Git; final checkpoint
+and push follow current review. Original17 app/model/SQL/operators/packages
+unchanged. Full18 owner/browser purpose currenta73catalog stays UNRUN; no fixture/
+restore/cutover/host action this turn. User asks why space needed: local1.35GB
+compressed archive -> separate test DB beside liveDB; ADR22611GiB admission is
+6GiB tree allowance+1GiB margin+4GiB free reserve, NOT PostgreSQL requirement or
+measured11GiB usage. Do not waive floors/relocate/delete based on this question.
+05:27:49Z C6628179968/D4302569472/physical10980249600/commit8776245248; D only~8MB
+above4GiB floor and still far below11GiB. Fresh resource checks mandatory; fixed
+55433 absent. Crawler26784 originalstart unchanged observed6400ingested/stderr0,
+other service originals preserved (PGstart unreadable security, PIDexists).
+GoalACTIVE: sense/ancestry/coverage+fresh prospective quality, full18recovery/
+browser/model/provider/load/coldURL/finalbackup/livecutover unfinished. Previous
+30Oct full-browser/source/storage checkpoint below remains historical as scoped.
+
+
 LATEST30Oct current goalturn PROGRESS; previous also PROGRESS. Root-only.
 Storage evidence: completed metadata-only workspace inventory126027files,0errors/
 reparse0, approx12735347690B unique file data using explicit os.stat identities.
