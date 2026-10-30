@@ -531,6 +531,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     },
     async generatePrivate(value, actorId, { signal } = {}) {
       exact(value, ["model", "context", "articleText", "allowWebResearch", "expected", "followup",
+        ...(Object.hasOwn(value ?? {}, "includeRelatedSources") ? ["includeRelatedSources"] : []),
         ...(Object.hasOwn(value ?? {}, "excludedRelatedSourceIds") ? ["excludedRelatedSourceIds"] : []),
         ...(Object.hasOwn(value ?? {}, "preferences") ? ["preferences"] : [])]);
       const actor = service.actor(actorId);

@@ -113,8 +113,11 @@ export function createPrivateDiscussionService({ databasePath, ai, publicService
       try {
         if (!generation || !ai?.generatePrivate || !canGenerate(actorId)) fail("forbidden", "Context unavailable");
         readRecord(generation, ["model", "context", "articleText", "allowWebResearch", "expected",
+          ...(Object.hasOwn(generation, "includeRelatedSources") ? ["includeRelatedSources"] : []),
           ...(Object.hasOwn(generation, "excludedRelatedSourceIds") ? ["excludedRelatedSourceIds"] : []),
           ...(Object.hasOwn(generation, "preferences") ? ["preferences"] : [])]);
+        if (Object.hasOwn(generation, "includeRelatedSources") && typeof generation.includeRelatedSources !== "boolean")
+          fail("invalid", "Invalid related-source selection");
         if (generation.context?.currentSource?.id !== conversation.source_id ||
             generation.context?.currentSource?.url !== conversation.source_url) fail("conflict", "Source changed");
         const anchorValue = publicService.insightAnchor(generation.context?.topic?.id, conversation.source_id);
