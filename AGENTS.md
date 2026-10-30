@@ -8,6 +8,54 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct actual publicdefinitions+paired-name DEV PROGRESS; Root-only.
+One normalprivate Source-only request64765 CLOSEDexit0/24definitions/ownconvremoved/
+logout/0publicposts; onlypublicgraph, noholdout/gold. ExactanswerSHA5e65ac4a...0e3e8,
+derivedretainedrecordf0fceeac...0557c(notfullstdoutcopy).16endSOURCE match pushed
+preinference d7b143bb. Pre-pinreceiptwriter failed nonexistent insight-contract.js;
+orchestration incorrectlycontinued authorizedrequest, explicitlyretained; NOTprepin
+receipt/fullclosure. Readall24defs: Techtoonarrow/Animalsincomplete; diagnosticONLY,
+not canonical16rootreplacement. OneE5definitionablation93543 CLOSEDexit0/24newnode
+vectors/12queriesREUSED;16source+4input+9assets/endpins/encoderclosedPASS. Unknown4
+validancestors/2refused/0wrong; known4exact/2unresolved. Resultbfdba195...1e496.
+NEWv2local linker separatesnamed-titlepaired evidence frombroadcategorybodygate;
+.8/.015unchanged/bodycontradictions+withinroottypefencesretained.9purePASS70.9607ms.
+Pure saved-vector DEV6of6knownexact(Kapsalon/GTAVI nowincluded),4validunknownancestor/
+2refused/0wrong.19joinedsource+1input pinsPASS,36.6937ms;384repeat p50.0479/p95.1079/
+max.2004ms. Resultc2b47793...32199. Initialsandboxpre-outputrefusal causeUNRETAINED,
+samesourcehostPASS; notmodel/live action. ThisisPOSTHOCDEV, NOTindependentacceptance.
+NEWfresh9publiccards fixedBEFOREencoding:6known+3pythonSnake/DolphinBrowser/Emulator;
+German/Dutch/newpages, notfullbody/publisherindependence.18newtitle/bodyembeds planned,
+24bankvectorsREUSED, frozenv2/linker/default8.11purePASS45.4345ms64MiB. NOactualfresh
+result/qualityacceptance/canonicalwrite/liveactivation. Full18restore11GiBstillOPEN;
+crawler26784/API8108/worker11880/dashboard28420 kept. GoalACTIVE, nextfreshvalidation
+then identity/discovery/canonical/UI/coldURL/load/recovery/cutover; noautoteacher.
+
+
+LATEST30Oct cached local index SOURCE+actual transfer PROGRESS/HOLD; Root-only.
+Actual public teacher graph24nodes, NOT25(old narrative counting error). First
+runner refused25assert beforemodel; v2joinsactualcount/sandboxEPERM beforemodel.
+Separatehostv2 actual51221 CLOSEDexit1:24descriptors+4queries retained, resource
+stop D4295147520<4296015872(original4GiB+1MiBoutput), otherfloorsPASS. Encoderclosed/
+endpinsTRUE, result587ed5a6...87741 IMMUTABLE. Separatev3 checkpoint continuation
+reused24+4/encodedonlyremaining8; cards/gold/algorithm/cutoffsUNCHANGED. Actual1484
+CLOSEDexit0/full12;13SOURCE/3input/9asset endpinsPASS, assets149830534B(exclmanifest).
+Resultf516847b...0b5ef/audit45dcf072...c4f37; audit hardcoded pending-exit superseded
+by actual0readback. Known6:4exactPython/Dolphin/Koala/GTAV,1broaderFood(Kapsalon),
+1unresolvedGTAVI. Unknown6:1validancestor/4unresolved/1WRONG Naturejournal->Nature.
+QUALITY HOLD/noactivation.384repeat lookups p50.0844ms/p95.1605/max14.0201; initial12
+mixedprefix/new p953.1242;TitleE5p5010.9953/p9549.1995ms,body21.1456/37.2116ms.
+Notfullbrowser/corpus/ANN/population/publisher-independent proof. Newdefinition
+component ONLYpublic24-nodegraph/noholdout;9pure/lifecyclePASS92.6481ms64MiB,
+providerNOTYET. Noaliasesinvented/tuning/stablecanonicalIDs/backgroundprovider.
+Additional authorized losslesscompression13inactive files394637337Blogical,
+82550015Brecovered;exclusive singlelink SHA/times/ACL identical.2legacydemoSQLite
+lastwritten13Oct included, noengineopened. No delete/move/liveDB/stage/backuptouch.
+Fullrestore11GiB UNMET. Crawler26784 advancing9532/stderr0; API8108/worker11880/
+dashboard28420 preserved. Source+tests b2caa3f1/d7b143bb PUSHED. GoalACTIVE; typed
+semantics/freshholdout/full18restore/UI/coldURL/load/finalbackup/cutover OPEN.
+
+
 LATEST30Oct current goalturn PROGRESS; Root-only. LIVE API HOTFIX17 now5dccf68c...
 32b66c7, PID8108/start08:10:20.3478195Z/FILETIME134378214203478195. Old38860 was
 exclusively Ctrl+C drained/exit130; frozen windows-private-ai-api-drain.py target

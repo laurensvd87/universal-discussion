@@ -2,6 +2,108 @@
 
 Date:2026-10-29
 
+## 30 October definition and paired-name comparisons; fresh validation prepared
+
+A normal Source-only private AI request generated24 public-node definitions from
+only the public graph, no transfer page/gold. It created one private conversation,
+completed, removed that verified own conversation and logged out;0 public posts.
+The exact returned answer is retained by SHA256
+`5e65ac4a6ae4602e23dfbb985e72cd8203799bb6a04a0664d1c7fb92eda0e3e8`.
+The derived retained-answer record is not a byte-for-byte copy of complete stdout.
+All16 selected end sources match the pre-inference pushed d7b143bb blobs. The
+pre-inference receipt writer failed on a nonexistent insight-contract.js reference;
+orchestration incorrectly continued to the already user-authorized request. Do
+not call that a pre-inference pin receipt/full closure. This procedural mistake
+is retained in the terminal audit. Definitions were read in full: Technology is
+narrower than the full canonical domain and Animals wording is incomplete. They
+are diagnostic proposals, not replacements for the canonical16 roots.
+
+A separate one-model ablation encoded only24 new descriptors and reused exactly
+the12 saved queries, tree, aliases and cutoffs. It exited0, encoder closed,
+16 Source+4 input+9 asset pins passed. Unknown pages improved to4 valid ancestors
+and2 refusals,0 wrong, but known pages stayed4 exact/2 unresolved. Result SHA256:
+`bfdba1958be422649ed83aaa7b54bdd6b12dbee554afff3ae56949c40971e496`.
+
+Inspection explains the remaining misses: a short Dutch recipe sentence gives
+Kapsalon paired score.8351 vs the best other-root paired score below.787, while
+the body alone is nearly as close to Koalas (.8241) as Kapsalon (.8278). A generic
+PlayStation paragraph has GTA VI paired.8259 but body.7837. Requiring the body
+alone to repeat the specific identity discards useful explicit-title evidence.
+The new isolated v2 linker uses paired evidence for named subjects, retaining
+minimum.8/margin.015. It still rejects an explicitly contradictory body category;
+broad categories keep the previous independent body gate and within-root type
+checks. Same-name animal/software and category-gate tests pass with all9 tests.
+
+The pure saved-vector comparison, with no model/provider/SQL, yields **6/6 exact
+known subjects**,4 valid unknown ancestors,2 unknown refusals,0 wrong. No aliases,
+tree, query, definitions or owner grouping changed. All19 joined selected source
+pins and the input pin pass. Total calculation36.6937ms;384 repeated lookups
+p50=.0479ms/p95=.1079ms/max=.2004ms. Initial12 p95=3.6099ms. First sandbox attempt
+failed before output creation; same-source host execution completed, but the
+original exact exception is unretained, so its cause is not proven. Result SHA256:
+`c2b47793128604e047852194833830e8b8089d7a91fb3b4ac9fa41cb7d332199`.
+This is **posthoc development**, not a new independent quality pass or live
+assignment acceptance.
+
+A new9-card stress set is fixed before inference:6 known subjects plus3 unknown
+same-name subjects (python snake, Dolphin Browser and Dolphin Emulator). It
+includes German/Dutch pages, two search-reviewed excerpts and changed publishers;
+it remains manual title/excerpt testing, not full captures or a publisher holdout.
+The emulator may legitimately fall under software or gaming ancestors but cannot
+become the KDE file-manager leaf. Target4/6 exact known,0 wrong. No new card enters
+the bank/provider; reuse24 descriptor vectors and encode only18 fresh texts with
+the same packaged E5, fixed v2 linker and owner depth8. No production cutover.
+
+
+## 30 October cached local index: measured speed, quality hold
+
+The cache/linker now builds from the actual public teacher graph and its original
+12 cards, without query gold. A separate fixed12-card public title/short-excerpt
+transfer set has6 known subjects and6 unknown/ambiguous subjects. These are manual
+stress cases, not browser captures, a random sample or publisher-independent proof.
+The graph actually has **24 nodes**; earlier narrative references to25 were wrong.
+The first runner refused that mistaken count before model load. A separate fixed
+entry joined the count to the actual graph. Its sandbox invocation was refused
+before model load because Node could not spawn the read-only counter subprocess.
+
+The separately authorized host invocation encoded24 descriptors and4 queries, then
+stopped at sampled D4295147520B below the original4GiB+1MiB output requirement.
+Physical/commit/C counters passed. That failed result remains immutable. A new
+checkpoint continuation authenticated and reused24 descriptors+4 queries and encoded
+only the8 remaining queries. Cards/gold/algorithm/cutoffs stayed unchanged. It
+completed12 queries and exited0, encoder closed,13 listed Source+3 input+9 asset
+endpins passed. The terminal audit's hardcoded pending-exit flag is superseded by
+the actual exit0 readback. All9 asset files total149830534B, not149832250B including
+the separate manifest.
+
+Known subjects: **4 exact,1 broader,1 unresolved**. Python, KDE Dolphin, Koala and
+GTA V are exact; Kapsalon yields Food; GTA VI is unresolved. Unknown subjects:
+1 valid ancestor,4 unresolved,**1 wrong**: the scientific journal Nature becomes
+the natural-world root Nature. The zero-wrong criterion fails: **HOLD, no live
+assignment acceptance**. The384 repeated lookups have p50=.0844ms/p95=.1605ms/
+max14.0201ms. Initial12 timings combine4 retained and8 new values, p95=3.1242ms.
+Title embedding p50=10.9953ms/p95=49.1995ms; body p50=21.1456ms/p95=37.2116ms.
+The continuation initialized one serial single-threaded E5 session in1250.3924ms
+and completed in3418.3543ms. These are small local measurements, not ANN/full-corpus,
+HTTP or browser latency. Result SHA256:
+`f516847bf6342b19e78bbbfd81f5bd46a853cf256925c03faff63e75ba70b5ef`;
+Root audit `45dcf0721d6a5afdf35a82347d7c75dd0b06df224a7f73119c02f718f1fc4f37`.
+
+Next isolated comparison: generate short distinguishing definitions from only the
+public24-node graph, add them to cached contextual descriptors. No transfer page
+or gold is sent; no provider aliases, tree changes or canonical IDs. The parser,
+builder and normal Source-only private probe pass9 bounded pure/lifecycle tests.
+Definitions remain proposals requiring semantic review. Reusing the12 queries
+is now DEV; a fresh holdout remains necessary. No background provider is enabled.
+
+Additional authorized lossless NTFS compression recovered82,550,015B across13
+fixed inactive files:8 experiment dependencies38,776,742B;3 old model/derived files
+478,553B;2 legacy/demo SQLite files last written13 October43,294,720B. Exclusive
+single-link handles preserved hashes/timestamps/ACLs. No database engine opened
+them, no file was deleted/moved, and live PostgreSQL, active crawler staging and
+backup archives were excluded. This does not satisfy the full11GiB restore gate.
+
+
 ## 30 October current direction: cached semantics, bounded local lookup
 
 The previous turn made progress; this turn adds actual public-page semantic
