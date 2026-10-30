@@ -98,3 +98,43 @@ minimum D4468826112 bytes. New root is absent. Readiness1430 bytes hashes
 This is source/readiness evidence, not actual restore/migration/browser acceptance.
 Archive source, check fresh services/port/resources and record a separate ONE
 actual decision before preparing the fixed new root and invoking the driver.
+
+## One actual v3 run and retained failure
+
+Source c72c7a34 is committed/pushed before separate ONE decision69cfd830...61bd1
+and new root preparation. Session55439 closes exit1. Full archive authentication
+and pg_restore process close reach restore-retired at212434ms. The next closed
+upgrade checkpoint is absent. Parent selects resource-limit/jobCpuSeconds300.1875;
+last validated user/kernel accounting is271.3125/28.875 seconds, not per-process
+or per-phase attribution.192 closed numeric progress records observe COPY and
+index work. Sampled allocation peaks2637185024 bytes, logical2637102912. Memory,
+disk and time limits are not selected as the primary failure.
+
+Parent owned-emergency retirement verifies empty Job, all handles closed, both
+EOFs and all end pins. No child lifecycle report or normal SQL-stop proof exists;
+do not infer migration, fingerprint equality, HTTP/browser or recovery success.
+Terminal root audit5514 bytes hashes
+`d2f08d8cf6f48e5ec63dcfa005f771aa3c5a4b6050ae5a6a8b55bb9df3f78674`.
+All2715 source/runtime pins are reauthenticated. Audit source3b37a3 saves its
+complete report before a final-print None dereference; separate readonly2b1cd7
+authenticates and accurately projects the saved report. No report is rewritten.
+All consumed v3 source/catalog/output are immutable, without rerun or adoption.
+
+New fixed-path scratch-disposition source480aa28f...a7e9a passes20 pure refusal
+checks and native-declaration compilation, then the real readonly audit verifies
+1457 entries/1428 files/2637051827 logical bytes. Exact stale PID37564/start1793373910
+is cleanup-domain evidence only; SQL start is not retained. Node16916/PG37564,
+nonce references and complete55433 listener are absent. Separate decision
+0013654f...08633 precedes one actual retirement2e6ba9. Only exact failed PGDATA is
+removed after twice complete inventory/ACL/hash and control/absence checks.
+Preflight44c78ede...01e3 and completion3df6ace3...e4c are retained outside the run.
+Independent post-read55c1f4 confirms target absent/all8 original controls unchanged;
+receiptbcc3f624...7025e. All five original live process creation identities persist;
+crawler26784 advances to13750 ingested. No live service or settings change occurs.
+
+Nine bounded live READ ONLY64-row prefix EXPLAIN samples execute/rollback/close
+without row-content output. Warm source/embedding/semantic-input samples take
+about4.5/15.4/29.9ms per64 rows. These are selected warm-prefix timings, not full
+table costs, past phase attribution or production latency. Next investigate a
+source-designed fresh-cluster compression change with all original assertions
+and limits; do not raise the CPU cap or retry this consumed run automatically.

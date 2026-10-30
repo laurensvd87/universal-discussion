@@ -8,6 +8,26 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct plain-v3 ONE actual55439 CLOSEDexit1 at CPU300.1875 after full
+authenticated restore-retired212434ms; 192progress/COPY+index. No upgrade/HTTP/UI
+checkpoint or childlifecycle report, NO normalSQLstop. Parentowned-emergency/
+emptyJob/closedhandles/EOF/endpinsTRUE. Last aggregateuser271.3125/kernel28.875s,
+phase attributionUNKNOWN. Rootaudit5514Bd2f08d8c...78674/2715pins PASS; audit saved
+before finalprintNone failure, separate readbackaccurate. Allv3 immutable/norerun.
+Exact scratchPGDATA2637051827B removed after20pureguards/compile/fullreadonly
+1457entries1428files+separatedecision0013654f...8633/doublehash+ACL/PID+portabsence.
+Retirementpre44c78ede...01e3/done3df6ace3...e4c; postbcc3f624...7025e/all8controls
+unchanged/targetabsent. No smartstop/recovery claim. Original5identities persist;
+crawler26784 advancing13750/stderr preserved. NEW2 complete-topic-backup-operator
+SOURCE unactivated: originalwriter/tests unchanged, complete19/29/29/55inventory
++actualsame-snapshot census+queuefp.25NodePASS374.1217ms64MiB/noactualbackup;
+onlytest imports newoperator. ADR235 fullsource acceptedRootonly. LiveREADONLY
+9x64rowhashprefixsamples warm4.5/15.4/29.9ms sources/embeddings/semantic_inputs;
+notfulltable/oldphaseproof. LiveTOASTmetadata supports[pglz,lz4],currentpglz,
+186defaultcolumnattrs; tiny8samplesuncompressed, nogeneralization/settingschanges.
+ADR236 NEWfreshLZ4SOURCEdesign, allcaps/assertions unchanged; NOv4copies/catalog/
+actualgrant yet. GoalACTIVE fullautomaticmatching/quality/stableIDs/UI/live OPEN.
+
 LATEST30Oct ADR234 NEW plain-owner-recovery-v3 SOURCE Root reviewed;34sources/
 8normalizedchanges/26namespace-only, all consumedv2+component5 unchanged. Actual
 lifecycle SQL/restore/client/normal-stop assertions exact except namespace/latch.
