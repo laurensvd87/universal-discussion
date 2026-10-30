@@ -134,12 +134,16 @@ export async function runCombinedAuthorHierarchyNativeAssertions(scope){
   await set(3);semanticRoot=await post(broad);assert(await has('games',semanticRoot));assert.equal(await has('invented-game-branch',semanticRoot),false,'a deliberately broad root cannot inherit the more specific Source path');
   const view=await client.semanticThread({nodeId:'games',rootId:semanticRoot,limit:20,cursor:null});assert.deepEqual(view.scope,{kind:'semantic',id:'games',caption:'Games'});assert.equal(view.topic.id,TOPIC);
  });
- await check(5,async()=>{
+ await check(5,async at=>{
   await set(3);namedRoot=await post(await context());assert(await has('games',namedRoot));assert(await has('subject-'+leaf,namedRoot));
   const stored=await editor.root(JSON.stringify({generation,rootId:namedRoot}));assert.equal(stored.scope.id,leaf);assert.equal(stored.topicId,TOPIC);
   const occupied=(await client.semanticSearch({query:'Games',limit:20,cursor:null})).topics.find(t=>t.nodeId==='games');assert(occupied?.human&&occupied.occupied);
-  assert.deepEqual(occupied.breadcrumbs,{fixed:[{nodeId:'games',label:'Games'}],topic:[]});
-  const results=await client.semanticSearch({query:'Zenith',limit:50,cursor:null}),card=results.topics.find(t=>t.nodeId==='subject-'+leaf);assert(card);
+  at('BUNDLE');assert.deepEqual(occupied.breadcrumbs,{fixed:[{nodeId:'games',label:'Games'}],topic:[]});
+  // Fixed aggregation above remains immediate. Named directory cards are
+  // maintained asynchronously by the real worker; drain before their checks.
+  at('CONTEXT');await drain();
+  at('RESULT');const results=await client.semanticSearch({query:'Zenith',limit:50,cursor:null}),card=results.topics.find(t=>t.nodeId==='subject-'+leaf);assert(card);
+  at('THREAD');
   assert.deepEqual(card.breadcrumbs.fixed,[{nodeId:'games',label:'Games'}]);
   assert.deepEqual(card.breadcrumbs.topic.map(t=>t.nodeId),['subject-'+parent,'subject-'+leaf]);
   assert.equal(card.breadcrumbs.topic.at(-1).label,card.label);

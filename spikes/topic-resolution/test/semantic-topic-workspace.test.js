@@ -36,6 +36,16 @@ test('explicit v2 capabilities enable the same fenced author workflow for a sema
  await ui.answer('authorContext',{version,sourceId:'source-b',context:{topicId:'canonical-b',pageScope,scope}});assert.deepEqual(ui.authorContexts.at(-1).context.scope,scope);ui.workspace.dispose();
 });
 
+test('the actual workspace forwards global v2 search and its complete path through the panel client',async()=>{
+ const ui=harness();ui.start();await ui.answer('semanticCapabilities',{protocol:'semantic-topics/v2',topicSearch:'named-topics/v2'});
+ const request=ui.pending('semanticSearch');assert(request,'the workspace must forward search instead of presenting a local unavailable error');
+ assert.deepEqual(request.args,{query:'',limit:20,cursor:null});const id='subject-12345678-1234-4123-8123-123456789abc';
+ await ui.answer('semanticSearch',{version,topics:[{nodeId:id,label:'Koalas',path:[id],occupied:false,human:false,
+  breadcrumbs:{fixed:[{nodeId:'nature',label:'Nature'}],topic:[{nodeId:id,label:'Koalas'}]}}],nextCursor:null});
+ assert(ui.all(ui.discoverRoot).some(n=>n.textContent==='Nature › Koalas'));assert.equal(ui.calls.filter(c=>c.method==='semanticSearch').length,1);
+ ui.click('semantic-discover-open-'+id);assert.equal(ui.pending('semanticFeed').args.nodeId,id);ui.workspace.dispose();
+});
+
 function harness({selectSemanticTarget,refreshSavedThreads}={}){
   const created=[],calls=[],selections=[],navigation=[],availability=[],modes=[],routing=[],authorModes=[],authorContexts=[];
   const document={createElement(tag){const item={tag,children:[],attributes:{},listeners:new Map(),style:{},hidden:false,textContent:'',value:'',
@@ -43,7 +53,7 @@ function harness({selectSemanticTarget,refreshSavedThreads}={}){
     addEventListener(event,fn){this.listeners.set(event,fn);},removeEventListener(event,fn){if(this.listeners.get(event)===fn)this.listeners.delete(event);},focus(){this.focused=true;}};created.push(item);return item;},
     querySelector(selector){return selector==='#discussion-body'?composer:null;}};
   const discoverRoot=document.createElement('section'),discussionRoot=document.createElement('section'),composer=document.createElement('textarea'),client={};
-  for(const method of ['semanticCapabilities','semanticContext','semanticTopics','semanticFeed','semanticThread','semanticTarget','authorContext'])client[method]=(args,options)=>{
+  for(const method of ['semanticCapabilities','semanticContext','semanticTopics','semanticFeed','semanticThread','semanticTarget','semanticSearch','authorContext'])client[method]=(args,options)=>{
     const wait=deferred(),call={method,args,options,done:false,resolve(value){call.done=true;wait.resolve(value);},reject(error){call.done=true;wait.reject(error);}};calls.push(call);return wait.promise;};
   const historyReads=[];
   let current=page();const controller={currentState:()=>current,setSemanticTopicsAvailable(value){routing.push(value);},

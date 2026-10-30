@@ -221,11 +221,25 @@ Old non-combined read compositions keep their exact DTOs. No model, Source body,
 vector, per-card browser request or foreground-page binding is added.
 
 The panel renders these labels literally and opens the original node ID. Guarded
-752 component/contract tests,12 extension inventory/pairing tests and70 maintained
+753 component/contract tests,12 extension inventory/pairing tests and70 maintained
 controller tests pass. The first controller attempt in the filesystem sandbox
 could not access its temporary directories; the unchanged suite passed with the
-normal user token. Three actual offline Chrome checks pass with isolated profiles:
+normal user token. Four actual offline Chrome checks pass with isolated profiles:
 complete public ancestry and original navigation in a390px panel, literal markup
 labels, retained caption after ancestry retirement, and malformed metadata refusal.
-These browser checks use invented public metadata, not the real app database.
-The new16-component PostgreSQL proof is pending; no live activation is implied.
+The fourth check exercises the whole workspace and caught a missing semanticSearch
+forwarder between the workspace and its panel; that production integration is now
+fixed and covered by a unit regression and actual Chrome. These browser checks use
+invented public metadata, not the real app database.
+
+The first16-component invocation stopped at PUBLIC31 CALL ERR_ASSERTION in the
+new breadcrumb checks. Its exact failed assertion was not retained. All2651 end
+pins and normal cleanup passed; saved failure audit
+`data/automatic18-breadcrumbs-native-failure-root-audit-20261030.json` has SHA256
+`339c3c22830991db8d4cac062640ab46f8ea910d69555e57d56c9dfd4113da15`.
+The original immediate fixed-parent aggregation assertions remain unchanged.
+The subsequent named-directory check now drains the real asynchronous feed worker
+before expecting its derived cards, and records existing bounded stage tags.
+A separately reviewed corrected invocation is pending; no live activation or
+failed-run adoption is implied. The new SQL and prior15-component prefix are
+unchanged by this correction.

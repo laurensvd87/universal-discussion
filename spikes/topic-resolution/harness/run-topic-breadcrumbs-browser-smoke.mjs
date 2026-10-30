@@ -10,11 +10,13 @@ assert(browser,'Local Chrome/Chromium required');
 const parent=realpathSync(fileURLToPath(new URL('../../../apps/local-service/data/',import.meta.url)));
 const temporary=mkdtempSync(path.join(parent,'topic-breadcrumbs-smoke-'));
 const moduleUrl=pathToFileURL(fileURLToPath(new URL('../browser/chromium/semantic-topic-panel.js',import.meta.url))).href;
+const workspaceUrl=pathToFileURL(fileURLToPath(new URL('../browser/chromium/semantic-topic-workspace.js',import.meta.url))).href;
 function run(name,probe){
  const profile=path.join(temporary,name+'-profile'),file=path.join(temporary,name+'.html');
  const style=readFileSync(new URL('../browser/chromium/popup.css',import.meta.url),'utf8');
  const html=`<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' file:; style-src 'unsafe-inline'"><style>${style}\nbody{width:390px;margin:0}#panel{width:100%;box-sizing:border-box}</style><section id="panel"></section><script type="module">
  import {mountSemanticTopicPanel} from ${JSON.stringify(moduleUrl)};
+ import {mountSemanticTopicWorkspace} from ${JSON.stringify(workspaceUrl)};
  const assert=(value,code='condition')=>{if(!value)throw Error(code);};
  const version={generation:'invented-generation',revision:1},id='subject-12345678-1234-4123-8123-123456789abc',parent='subject-22345678-1234-4123-8123-123456789abc';
  const row={nodeId:id,label:'<Kapsalon>',path:[parent,id],occupied:true,human:true,breadcrumbs:{fixed:[{nodeId:'food',label:'Food'}],topic:[{nodeId:parent,label:'Recipes'},{nodeId:id,label:'<Kapsalon>'}]}};
@@ -47,6 +49,15 @@ try{
   row.breadcrumbs.topic[0].sourceId='private';const client={async semanticSearch(){return response;}};
   const panel=mountSemanticTopicPanel(document,document.getElementById('panel'),{client});panel.setSearchAvailable(true);panel.setActive(true);panel.setConnection(true);await settle();
   assert(document.querySelectorAll('.discovery-card').length===0);assert(!document.getElementById('semantic-topic-retry').hidden);panel.dispose();
+ `);
+ run('complete-workspace-forwards-global-search',`
+  const discussionRoot=document.createElement('section');document.body.append(discussionRoot);
+  const client={async semanticCapabilities(){return {protocol:'semantic-topics/v2',topicSearch:'named-topics/v2'};},
+   async semanticSearch(args){calls.push(['search',args]);return response;},async semanticFeed(args){calls.push(['feed',args]);return {version,policyRevision:0,nodeId:id,roots:[],nextCursor:null,actors:[]};}};
+  const workspace=mountSemanticTopicWorkspace(document,{discoverRoot:document.getElementById('panel'),discussionRoot,client,controller:{setSemanticTopicsAvailable(){}},discussionPanel:{setSemanticFeedMode(){}}});
+  workspace.observePage({phase:'ready',actorId:'demo-alex'});workspace.setActive(true);workspace.setConnection(true);await settle();
+  assert(calls.length===1&&calls[0][0]==='search','workspace-forwards-search');assert(document.querySelector('.topic-breadcrumbs')?.textContent==='Food › Recipes › <Kapsalon>','workspace-public-path');
+  document.getElementById('semantic-discover-open-'+id).click();await settle();assert(calls[1][0]==='feed'&&calls[1][1].nodeId===id,'workspace-original-destination');workspace.dispose();
  `);
 }finally{
  const resolved=realpathSync(temporary);assert.equal(path.dirname(resolved),parent);assert(path.basename(resolved).startsWith('topic-breadcrumbs-smoke-'));

@@ -52,7 +52,7 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
     refreshedPostId=null;
     suppressSelection=true;main.setTopicContext(null,{force:true});suppressSelection=false;updateMain();}
   const panelClient={};
-  for(const method of ['semanticTopics','semanticFeed','semanticThread'])panelClient[method]=(...args)=>client[method](...args);
+  for(const method of ['semanticTopics','semanticFeed','semanticThread','semanticSearch'])panelClient[method]=(...args)=>client[method](...args);
   panelClient.semanticTarget=async(value,options={})=>{
     const ownEpoch=epoch,ownIntent=intentAbort,abort=new AbortController(),signals=[options.signal,ownIntent.signal].filter(Boolean);
     const cancel=()=>abort.abort();for(const signal of signals){signal.addEventListener('abort',cancel,{once:true});if(signal.aborted)abort.abort();}
