@@ -8,6 +8,24 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct ADR238 NEW plain-owner-recovery-v5 SOURCE Root accepted;34files/
+6normalizeddiffs/28namespace-only. NativeSQL/restore/client/stop lifecycle exact
+exceptnamespace/latch. Allold34/catalog+new5component pins unchanged. Explicit
+fastsemantic-input-only32-row verifier, originalALL28receipt+27post+queue; all
+otherSQL/128 unchanged. Owner/projector+parent requireupgradev3/exactimplementation
+semantic-input-binary64-jsonb/v1.60awaited completedcheck markers joinoriginal13;
+realinertJS/Python73plans match/allold13inorder.130NodePASS820.202ms64MiB/
+108PythonPASS4.055s/originalAST/allbounds; preparerparsePASS. Review9528Bc1c0079b
+...6d6344; catalog420584B64373244...a1859/2720files279943803B, wholeauth/endpins/
+7runtime/old2715PASS.3fixedheldinputsclosed/3freshresourcesPASS minD4433162240.
+Readiness1430B696d78d1...a7a80; newrootABSENT/sourceReadyNOTactualauthority.
+Physicalreserveonly: 2fixedpublicencoderassets+578oldGittrackedfixture source
+NTFS compressed losslessly;27663561reportedallocatedB recovered. Independent
+post580files/55672009logicalB/allSHA+creation/write/ACL identical. NoCodebyte/
+private/backup/DB/service/host change; wholecatalogstillPASS. Separate decisions
+6a3fa788...d44ff/cf4741cb...d9dac; no deletions/moves. GoalACTIVE, sourcearchival/
+freshchecks/ONEactual next; no v5run yet. Fullmatching/discovery/quality/UI/live OPEN.
+
 LATEST30Oct plain-v4 ONE actual65294 CLOSEDexit1 CPU300.203125 after FULL
 authenticated restore-retired143504ms (v3 212434ms; notcontrolledCPU comparison).
 123progress/COPY+index; allocation2702143488. No upgrade/HTTP/browser checkpoint
