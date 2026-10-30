@@ -505,3 +505,18 @@ helper. Installed modules, config, logs, models, credentials and project backups
 were untouched; no service signal was sent. This is a real capacity change, not
 a budget waiver or a Source/SQL change. A fresh separately decided normal SQL
 invocation is still required; the full-data restore remains unrun.
+
+The second V3 native run (3333652d...) reached registered18 and failed
+PUBLIC_54_START_ERR_ASSERTION after the expected stale Source rejection.
+Both scratch DBs were dropped and the owned server smart-stopped normally;
+all2678 consumed pins/handles/EOFs passed, stderr0/emergencyFALSE. Its exact
+failed assertion was not retained. Root found a deterministic Source mismatch:
+named_publish preserves the founding policy/label/prototype on reuse, whereas
+the added check incorrectly expected the founding policy to become V3.
+The corrected check now verifies that preservation plus the incremented revision,
+and additionally creates two new invented Sources through actual protected
+preparation/publication. Their genuinely new V3 head and both single-page
+matches are mandatory. Those Sources are retired before the original later
+feed/dashboard/erasure checks. Finite existing diagnostic stages distinguish
+these paths. No SQL/algorithm/role/limit change; all old190 checks remain.
+Joined962 guarded Node tests pass; a new real SQL invocation is required.

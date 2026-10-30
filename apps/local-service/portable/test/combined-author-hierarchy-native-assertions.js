@@ -166,7 +166,7 @@ export async function runCombinedAuthorHierarchyNativeAssertions(scope){
     catch(error){failed=true;throw error;}finally{try{await tx.query('CLOSE backup_rows');}catch(error){if(!failed)throw error;}}
    }
   });
-  if(scope.verifyNameQuality)await scope.verifyNameQuality(ids);
+  if(scope.verifyNameQuality)await scope.verifyNameQuality(ids,at);
   }
  });
  await check(6,async()=>{

@@ -135,7 +135,7 @@ export function createAutomaticTopicsMigrationNativeAssertions({check}){
   });
   await runCombinedAuthorHierarchyNativeAssertions({owner,worker,app,generation,matcher:numeric,schemaProfile:'hierarchy18',alreadyInstalled:true,retireSchema:false,
    publicationInput:sourceIds=>automaticTopicsFixtureInput({database:owner,generation,matcher:numeric,sourceIds}),check:(index,body)=>check(49+index,body),
-   verifyNameQuality:async sourceIds=>verifyRegisteredNameQualityV3({owner,worker,generation,input:await automaticTopicsFixtureInput({database:owner,generation,matcher:numeric,sourceIds})}),
+   verifyNameQuality:async(sourceIds,at)=>verifyRegisteredNameQualityV3({owner,worker,generation,matcher:numeric,at,input:await automaticTopicsFixtureInput({database:owner,generation,matcher:numeric,sourceIds})}),
    afterRetirement:async()=>{await createCanonicalV4SemanticRepository({database:owner}).activateMatcher({matcherIdentityHash:installed.descriptor.matcherIdentityHash,expectedRevision:(await head()).revision});
     assert.equal((await head()).matcher_hash,installed.descriptor.matcherIdentityHash);assert.equal((await ingestion({database:worker,schemaProfile:'hierarchy18'}).health()).schemaVersion,18);},
   });
