@@ -2,6 +2,48 @@
 
 Date:2026-10-29
 
+## 30 October follow-up: sense separation and the private AI failure
+
+A third actual DEV comparison projected common cohort and shared-name directions
+out of the retained body vectors before complete-link grouping. Twelve fixed
+settings took15.38ms for45 pages and10 labels, without another model or any SQL.
+Every setting with zero false merged pairs retained at most8 correct pages out
+of44 reviewed. It is not accepted as the sole matcher. The retained result is
+`64390c0309b27bd70311f39072f21650915a9d71eb22a42824dd873869567956`.
+
+A strict synthetic semantic-relation prototype distinguishes aliases, narrower
+subjects, different senses and insufficient evidence. It refuses unknown codes,
+duplicate keys, cycles and contradictory relations. A real request through the
+ordinary public Source-only AI route returned all8 fictional cases correctly
+with gpt-6-luna. The complete probe took20.63s including10s of required public-page
+fetch pacing; the observed provider-phase upper bound8.14s also includes polling
+and cleanup. The owned question was withdrawn, its unused job cancelled and the
+new session logged out; no AI answer was published. Result SHA256
+`44c3d38dc3d02bcdcb172feabec04f98084c4282df5ec6259831a539247a40f2`.
+This is evidence that the provider can express the required relations, not real
+webpage quality, useful coverage, cold-URL latency or background-provider consent.
+No production background AI or automatic topic publication is enabled.
+
+The first attempt through a temporary private conversation failed with
+`context-unavailable`; its exact underlying live exception was not retained.
+Source tests independently reproduce a concrete coupling: the optional Related
+lookup can fail before a private provider request. Commit77ab12d1 permits the
+existing explicit Source-only selection through private validation and lets a
+ready Source prepare private context without optional Related metadata. Existing
+context proofs, actor ownership, article/settings fences, exclusions and erasure
+remain enforced. The85 relevant guarded tests pass; this fix is not live yet.
+
+A small API-only schema17 derivative now has reviewed preparation source and
+7 additional operator/patch tests. It derives the held original17 release plus
+exactly3 private-generation patches, not the current18-aware runtime. Read-only
+inspection authenticated the original snapshot and checked all patched syntax.
+It needs at most15,469,103 new allocated bytes while preserving4GiB free, but
+D: was short by87,587,375 bytes at inspection. Admission refused before creating
+any new package or manifest. No live service was signaled. This small preparation
+is separate from the full restore's unchanged11GiB admission; it does not require
+a duplicate database. Both matching packages remain inactive under the semantic
+quality hold below.
+
 ## 30 October: semantic quality prevents activation of the prepared V3 package
 
 The complete registered18 SQL proof and the inactive package do not establish

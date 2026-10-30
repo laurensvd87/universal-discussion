@@ -8,6 +8,39 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct current goalturn PROGRESS; Root-only. Residual/common-name projection
+DEV on same45 retained body vectors/10label vectors,12settings actual15.3812ms;
+26source+3input pinsPASS, no model/SQL/network/files in calculation. Zero-false
+settings retain at most8correct/44reviewed: NOT selected sole solution. Normal
+private synthetic8case AI request failed context-unavailable before retained
+provider completion; own conversation deleted/session logout. Exact underlying
+live exception UNRETAINED. Production SOURCE coupling reproduced: optional
+Related capacity failure blocks private generation before provider; source77ab12d1
+allows explicit Source-only flag and ready Source UI with truthful related=null,
+keeps proof/account/article/settings/erasure fences.85guarded testsPASS1467.3589ms.
+Normal PUBLIC Source-only actual synthetic probe exit0/gpt-6-luna8of8,20.633s
+incl10s robots/TDM pacing;1providerstart/5polls. Own testroot withdrawn/jobcancel/
+sessionlogout,0AIanswers published. Synthetic cases are NOT representative web
+quality; no automatic background provider or topic publication enabled.
+
+Separate API-only17 derivative SOURCE now prepared, NOT package/live: new5files,
+exact old operator inverse exceptnamespace/selfhash/only preflight,status,service;
+7testsPASS26.9512ms64MiB inclunchanged32+4API pools/drain/forbiddenworker+ownerops.
+Readonly actual inspect authenticates original17 be901 fullmanifest/source/externals
+and syntax-checks exact3patches; service/UI outputs match committedprivatefix,
+old runtime gains ONLYprivate flag (not18-aware main runtime).15,469,103B allocation
+budget includes2MiB metadata,10encoder hardlinks only; no sourcehardlinks.
+D4,222,849,024B <4GiBreserve+budget by87,587,375B, so admittedFALSE. Newnamespace/
+manifestABSENT; no preparation/signal/restart/SQL/model action. Audit
+ data/private-ai17-hotfix-root-source-review-20261030.json. Sandbox inspectEPERM
+was child-spawn boundary; same normal-user outside-sandbox readonly inspectPASS.
+Full restore still11GiB admission; user asked why more disk despite localbackup:
+separate expanded testcopy beside liveDB, not production requirement. No deletion,
+relocation/host change or reserve waiver. Original17 services unchanged; crawler
+26784 originalstart advancing7375/stderr0. PreparedV3/C492 both INACTIVE; sense/
+ancestry/fresh quality + full18restore/browser/load/coldURL/finalbackup/cutover OPEN.
+Earlier checkpoints below remain historical as scoped.
+
 LATEST30Oct current goalturn PROGRESS; previous status-only goalturn NO-PROGRESS,
 revalidated and independent quality work resumed. Root-only/no delegation.
 CRITICAL: prepared named-v3 package is NOT quality-approved; keep it and C492
