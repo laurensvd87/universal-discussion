@@ -532,3 +532,23 @@ All2678 consumed pins reauthenticated at terminal; two DBs dropped, server
 smart-stopped, empty Job/allhandles/bothEOF/stderr0/emergencyFALSE. Root-only
 proof, numeric fixture with provider stub, not representative semantic quality,
 full-data recovery, browser/provider validation or live activation. C492 held.
+
+A separate V3 release operator now uses fixed namespace
+hierarchy-release-20261030-named-v3 and its matching manifest. The old C492
+package and five original automatic18 helpers remain byte-identical. The new
+operator hashes the entire relative canonical-manifest module closure plus
+all18 original-location migrations used by the external backup helper. Copied
+and external files must have identical byte hashes; V3 planner/SQL markers are
+mandatory. All existing pool caps, operation boundaries and installation CAS
+remain. Preparation links only the10 exact hashed encoder assets from the
+fixed live29Oct package; it copies source files, verifies regular-file identities
+and retains both old releases. No mutable-worktree model link or copy fallback.
+
+New fixed local-state slots retain both C492 and V3 manifests; the changed
+archive contract is explicitly MURLOC03 with V3 schemas, leaving old verifiers
+and archives unchanged. The new quiesced producer uses the new operator/census
+and keeps exact17/18 SQL metadata, writer absence and held-file requirements.
+No new restore CLI or automatic rollback is introduced. Root-only tests pass:
+39 new guarded Node checks joined with962 old checks (1001 total, no skips),
+and5 pure process-census Python checks. Actual prepare/seal, full owner-data
+restore and fresh final backup/cutover require their own current observations.
