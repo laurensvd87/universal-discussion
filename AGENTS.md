@@ -8,6 +8,45 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct current goalturn PROGRESS (prior status-only turn NO PROGRESS).
+Root-only. Separate current17/new18 quiesced+V2 local-state backup committed
+5d9b7af0; all8 legacy source baselines unchanged. New full owner snapshot17-to18
+rehearsal committed a8f01b6e, catalog52fcd026: closed private-automatic18 purpose,
+fixed29Oct schema17 archive1354426025B SHA88600b8b...393c/receipt7445B e3401fc4...ba6e4
+read-only rehashed, not a fresh final cutover snapshot. Verify28 restored table
+fingerprints, official idle-queue/CAS upgrade, preserve27 old data tables+runtime/
+matcher/policy, bigint-safe7/13 sequences, separate18 app with original16 HTTP
+behaviors+modern capabilities/global search. Old9/private17 purposes and25
+assertions unchanged. No encoder/browser/provider in this new purpose yet.
+Joined940 guardedNodePASS/75 purePythonPASS; no full owner restore invoked.
+First new metadata native run9e71ee... failed PUBLIC41_CALL_ERR_ASSERTION;
+all2668pins/twoDBdrops/normalstop/emptyJob/handles PASS, stderr0/noemergency.
+Exact failed assertion value UNRETAINED. Separate readonly live owner probe
+proved backend_type hidden for all3 other sessions, filtered client count0.
+Fix83603efe removes only backend_type filter; no privilege/live/host changes.
+Corrected catalog1b2a2c6c2c30d97009f03df8e80aa09d16a7fe7b6a8e2b51a31a27cbf445fb95
+ONE run40dd199ed04b81a16ca97ca9aad9336d039a9773d0342826 all190/2668pinsPASS;
+actual registered17/18 metadata reads/nonzero otherclients, normal smartstop,
+twoDBdrops/bothEOF/emptyJob/allhandles/stderr0/emergencyFALSE. Root audit
+e5d3a36a8505b5b87457fa393f6f3d534375847eb140192246b6ea7fe60b85b3 saved in
+data/automatic18-corrected-quiesced-metadata-native-root-audit-20261030.json.
+Separate inactive18 runtime ACTUALLY prepared/sealed/preflightPASS1291files/
+164567021B+709external, root c4922d7021fe59b1f1da67cd1c48282e682bd07d72ea0f00616e7a44bf217a42.
+Receipt0e68ff5fb4344119a7f502d0c2b0f218c818dd0d7d91e2351c438625c25c9a05.
+Fixed namespace hierarchy-release-20261030-automatic-topics+manifest now EXIST;
+retain, no silent reseal/external-helper edit. No DB/migration/service/crawler
+action by prepare/seal/preflight. Original live17 preflight be901259...3d83f PASS.
+Only audited stopped40dd fixture NTFS-compressed;977 logical hashes/times/ACLs
+unchanged, observed Dfree+32727040B, no deletion/move/activeDB action.
+Live status17: prepared78030/classified35820/abstained42202/excluded8/pending170;
+20active nodes/20configured/18occupied groups. Crawler26784 same start advancing
+4050/stderr0; PG18688/worker11880/API38860/dashboard28420 same original starts.
+02:17:32Z C6628524032/D4379934720/commitfree9293824000/physical11748212736B.
+GoalACTIVE: private-automatic18 actual11GiB D floor UNMET; storage question still
+pending. Full-data recovery/genuine18 browser/provider/model/quality/load/first-ever
+URL latency/fresh final pair/verified live cutover OPEN. Do not mark complete or
+substitute this normal190 proof for full-data recovery. Original floors intact.
+
 LATEST30Oct SAME goalturn further PROGRESS: dedicated unactivated18 runtime and
 backup Source + registered18 owner/backup SQL checks ACCEPTED, NOT LIVE. Root-only.
 Source73fe7fb3 new automatic-topics-{runtime,backup}-operator.js + tests; separate

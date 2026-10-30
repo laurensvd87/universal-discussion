@@ -412,3 +412,29 @@ Node tests pass. Root failure analysis is in
 `data/automatic18-quiesced-metadata-failure-analysis-20261030.json`, SHA256
 `bcd092bee93719e355abae9e67dbc9038a460afb9d80c3e9a8141f5a0fabda51`.
 The failed run remains failed; corrected SQL needs a separate reviewed invocation.
+
+The corrected normal invocation passed all190 reports against catalog
+`1b2a2c6c2c30d97009f03df8e80aa09d16a7fe7b6a8e2b51a31a27cbf445fb95`
+and all2668 consumed pins. Run
+`run-40dd199ed04b81a16ca97ca9aad9336d039a9773d0342826` executed the registered17
+and18 metadata readers and required nonzero other-client counts. Both database
+drops, normal smart stop, both pipe EOFs, empty Job and all closed handles passed;
+stderr was empty and no emergency cleanup occurred. Root audit SHA256 is
+`e5d3a36a8505b5b87457fa393f6f3d534375847eb140192246b6ea7fe60b85b3` in
+`data/automatic18-corrected-quiesced-metadata-native-root-audit-20261030.json`.
+This does not execute the separate full-data private purpose.
+
+The new inactive runtime has now actually been prepared, sealed and verified:
+1291 copied files/164567021 bytes,709 authenticated external files, root
+`c4922d7021fe59b1f1da67cd1c48282e682bd07d72ea0f00616e7a44bf217a42`.
+The original17 preflight still passes its original root and its operator/backup
+bytes remain unchanged. No database connection, migration, service launch or
+crawler interruption occurred during preparation. Root receipt
+`data/automatic18-inactive-runtime-root-receipt-20261030.json` has SHA256
+`0e68ff5fb4344119a7f502d0c2b0f218c818dd0d7d91e2351c438625c25c9a05`.
+The namespace and its manifest must now be retained; sealed external helpers may
+not silently change. The prepared runtime is NOT live. Full owner-data restore,
+genuine18 browser/provider/model/load/cold-URL checks, a fresh final backup pair
+and verified cutover are still required. The saved29October archive is not that
+fresh final snapshot, and future backup space is additional to the unchanged
+11GiB free-D restore admission floor.
