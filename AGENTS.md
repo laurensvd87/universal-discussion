@@ -8,6 +8,45 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST30Oct SAME goalturn further PROGRESS: dedicated unactivated18 runtime and
+backup Source + registered18 owner/backup SQL checks ACCEPTED, NOT LIVE. Root-only.
+Source73fe7fb3 new automatic-topics-{runtime,backup}-operator.js + tests; separate
+fixed hierarchy-release-20261030-automatic-topics namespace NOT prepared/sealed.
+Explicit18 API/worker flags and crawler/dashboard/status health; pools remain42;
+owner CAS upgrade only, no startup migration/process-quiescence/rollback claim.
+Original sealed17 operator aa66de6838632c6e9545adb57aad0f8f22f654389541c843327e97b07b1682fb
+and backup d87654b151c28965dc1085f1daf39e78d88f188862950ebcc6b5fe962dc67745
+BYTEUNCHANGED. Actual tracked17 preflight be901259...3d83f/1204files/163203647B PASS.
+Ignored data/postgres-runtime-operator.mjs preflight is HISTORICAL a1d301... seal,
+NOT current live evidence; live API/worker/crawler use tracked src/ops operator.
+New encrypted V1 backup supports9/16/17/18 exact manifests, all26 new PK-ordered
+fingerprints + binary64 prototypes (54tables total), old crypto/limits retained;
+only fixed map SQL shared with rehearsal, no caller SQL/table/order or live restore.
+Owner maintenance new explicit automaticTopics defaultfalse;18 opts in, excludes
+all authored contexts BEFORE legacy pagination; old owner/CAS/material fences hold.
+830guarded joinedPASS includes77operator/backup/maintenance, 70purecontrollerPASS.
+Old packaging test explicitly expects old service guard marker to refuse v2 source;
+18 sealer requires actual readService guard. No old operator edit/assertion waiver.
+First new SQL run failed PUBLIC31_THREAD42P01 in experimental9 A; exact missing
+relation UNRETAINED. All2655pins/normal cleanup audited e4538e98...dcbf70, immutable.
+Correction c9838f73/catalog36c50d53 maps aa4de81e647f5d37e708ac1e748d61179272ff846f0bb7c882d53cdad67b4de3
+requires new checks on existing registered18 B, ALL old A assertions retained.
+Actual run-b03046ca1a683b5083adbdb91b18cc0bcb3537c7112b9d2b all190/2655pinsPASS:
+same old-query authored root excluded by18; actual26 backup cursor SQLs in readonly
+RR incl binary64 prototype expressions. 2DBdrops/normal smartstop/emptyJob/handles/
+stderr0/emergencyFALSE. Audit07781789e7230bb8f9b37b154db947ca23acd55133147df6779c55326841fc6f.
+Closed wire same e8525e42/454738e8 as earlier190; distinct source/map/run audit.
+Lossless compression only audited stopped scratch clusters and one inactive>2day
+508784679B log under EXCLUSIVE handle; exact158576679B allocation recovered,
+all logical hashes/times/ACLs retained; no deletion/move/host settings/service stop.
+Crawler26784 same original start advancing3025/stderr0; other services preserved.
+GoalACTIVE: private restore/product rehearsal STILL EXPLICIT17, needs separate18
+path retaining old equality/sequence gates; dedicated18 local-state/quiesced backup
+integration, real18 archive, runtime packaging, real E5 quality/browser/provider/
+concurrency/first-ever URL latency and verified cutover OPEN. Private11GiB D floor
+still unmet, storage question pending. No new actual/private/model/live authority
+from this checkpoint. Continue independent Source work, do not claim completion.
+
 LATEST30Oct current goalturn PROGRESS: protocol v1/v2 compatibility and complete
 public topic breadcrumbs Source+actual native190 ACCEPTED, NOT LIVE. Previous
 status-only goalturn NO PROGRESS; revalidated then executed work. Root-only.

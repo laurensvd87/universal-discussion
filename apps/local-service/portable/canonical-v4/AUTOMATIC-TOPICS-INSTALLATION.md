@@ -321,3 +321,25 @@ and backup SQL checks are now required in the existing registered18 B fixture;
 all original A assertions remain. Production queries, roles, migration and resource
 limits are unchanged. A new separately reviewed invocation is required; the failed
 run remains failed and is not reused.
+
+The corrected registered18 invocation passed all190 reports. Source `c9838f73`,
+catalog commit `36c50d53` and execution catalog
+`aa4de81e647f5d37e708ac1e748d61179272ff846f0bb7c882d53cdad67b4de3`
+produced run `run-b03046ca1a683b5083adbdb91b18cc0bcb3537c7112b9d2b`.
+The actual registered18 database executed the same26 backup cursor queries,
+including both binary64 prototype expressions, and excluded the same expressly
+authored root that the old legacy query returned. All predecessor assertions,
+both database drops, normal smart stop, empty Job, closed handles and all2655
+consumed end pins passed, with empty stderr and no emergency cleanup. Root audit
+`data/automatic18-operator-native-root-audit-20261030.json` has SHA256
+`07781789e7230bb8f9b37b154db947ca23acd55133147df6779c55326841fc6f`.
+The closed wire hashes equal the prior190 success; this separate source/catalog/
+invocation audit establishes execution of the added checks. This is actual SQL
+evidence for those queries, not a real18 archive restore, prepared runtime release,
+operator service launch or live readiness.
+
+The remaining private restore/application rehearsal still explicitly installs17.
+It must gain a separately reviewed18 path while retaining all old snapshot and
+sequence assertions; its current passing checks cannot authorize an18 cutover.
+The dedicated18 local-state/quiesced backup integration also remains open. No
+new release namespace has been prepared/sealed and the running services remain17.
