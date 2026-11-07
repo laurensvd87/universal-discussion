@@ -15,7 +15,13 @@ all consumed v4 source/tests/harness/result remain immutable. Do not retune on i
 New v5 uses actual opaque rooted membership classification, matching roots and
 existing ancestry for both named and common-class parents. No head means keep
 the broad v3 decision. The24-node retained bank has no calibrated intermediate
-heads, so the prepared21-query v5 control is a no-head regression only.
+heads. Committed02ff142c before one21-query v5 no-head control; all21 baseline/core
+projections equal,12 known exact/5 valid broad ancestors/4 unresolved/0wrong.
+Selected14source+4input end pins pass; result38662B SHA256
+`3637e8f22c2bb5dfce74edef45eb7249b50aeaf8df3e7605e2cc0a561ffc5993`.
+V5 source/tests/harness/result now consumed immutable. Final guarded64MiB141tests
+PASS/0skipped, secret scan2010/0. This is baseline preservation, not fresh/deeper
+quality evidence. Generic named-parent refinement is tested with invented heads.
 Read [ADR242](../decisions/ADR-242-general-supported-topic-ancestor-fallback.md)
 and top [status](./STATUS.md). No backup/model/provider/SQL/service operation;
 live schema17 remains unchanged. Dynamic registry/live validation is still open.

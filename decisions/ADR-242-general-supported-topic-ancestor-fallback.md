@@ -109,10 +109,22 @@ Owner grouping still follows evidence and does not change it. The membership
 identity and order-independent descriptor-vector hash bind the new index.
 
 The retained 24-node bank has no calibrated intermediate membership models.
-The prepared v5 retained-data control therefore checks all 21 broad v3 decisions
-without supplying a model; it cannot claim new classification quality. Separate
+The v5 retained-data control checks all 21 broad v3 decisions without supplying
+a membership model; it cannot claim new classification quality. Separate
 invented numeric models test genuine named/common ancestor refinement. Real
 membership quality still depends on evidence and validation for those models.
+
+V5 source was committed as `02ff142c` before one retained control. Actual replay
+completed with all 21 original baseline outputs and all 21 no-head projections
+equal: 12 known exact, 5 valid broad unknown ancestors, 4 unresolved and 0 wrong.
+This preserves the baseline; it does not demonstrate deeper classification on
+real new pages. All 14 selected source pins and 4 retained input pins passed.
+The 38,662-byte result has SHA256
+`3637e8f22c2bb5dfce74edef45eb7249b50aeaf8df3e7605e2cc0a561ffc5993` at
+`apps/local-service/data/topic-supported-ancestor-development-20261107/evaluation-result.json`.
+V5 source/tests/harness/result are now consumed evidence. Final guarded suite:
+141 passed, 0 failed/skipped, 64 MiB heap. Final secret scan: 2,010 files,
+0 findings. No backup, encoder, provider, SQL or live operation was performed.
 
 Next product integration requires bounded semantic candidate retrieval and
 protected meaning/relationship evidence for dynamic registered topics, including

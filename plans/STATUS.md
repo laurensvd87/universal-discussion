@@ -32,8 +32,15 @@ conflicting/shorter member paths cannot replace an accepted name. The new index
 binds member identity, policy and order-independent descriptor-vector hash.
 Multiple lexical matches preserve their prior path because their accepted
 branches are not exposed by v3. A common ancestor must not lose a named branch.
-The retained24-node bank has no such heads, so its prepared v5 comparison is a
-full21 no-head regression control, not improved/fresh quality evidence.
+The retained24-node bank has no such heads. V5 source02ff142c was committed before
+one full21 no-head regression control: all21 v3/no-head projections equal,
+12 known exact/5 valid broad unknown ancestors/4 unresolved/0 wrong. All14 selected
+source and4 retained input end pins pass. This preserves broad baseline behavior;
+it does not prove new/deeper/fresh classification quality. V5 source/tests/harness/
+result are now consumed immutable. Result38662B SHA256
+`3637e8f22c2bb5dfce74edef45eb7249b50aeaf8df3e7605e2cc0a561ffc5993`
+is local under service data/topic-supported-ancestor-development-20261107.
+Final guarded Node64MiB suite141 PASS/0failed/0skipped; secret scan2010/0findings.
 See [ADR242](../decisions/ADR-242-general-supported-topic-ancestor-fallback.md).
 Live schema17/services are unchanged; dynamic registry integration and live quality
 remain open. No new backup was created in this continuation.

@@ -20,6 +20,10 @@ but yielded2 over-specific wrong paths. V4/source/tests/harness/result now
 consumed immutable and REJECTED for routing; no cutoff retune. New v5 requires
 actual opaque rooted membership classification/same root/existing ancestry,
 including named parents; no head means broad v3 result. Experimental, not live.
+V5 source02ff142c retained21 no-head control PASS/all21baseline projections equal,
+12known exact/5broad valid/4unresolved/0wrong;14source+4input pinsPASS. Result38662B
+SHA3637e8f2...ffc5993; v5source/tests/harness/result now consumed immutable.
+Final141guarded64MiB testsPASS/0skip; secret2010/0. No new deeper quality claim.
 Follow ADR242 and top STATUS; dynamic registry membership evidence still open.
 Preserve consumed source/results. Live schema17 and services are unchanged.
 
