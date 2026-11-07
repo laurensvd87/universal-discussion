@@ -39,3 +39,9 @@ apps/local-service/src/ops/complete-topic-backup-operator.js -text
 apps/local-service/test/complete-topic-backup-operator.test.js -text
 apps/local-service/experiments/restored-fingerprint-v1/** -text
 apps/local-service/portable/integration/restored-fast-schema-contract-v1/** -text
+
+# Keep the new cached-ancestor study sources stable before numerical replay.
+apps/local-service/experiments/automatic-topic-discovery-v4/cached-semantic-topic-index-v4*.js text eol=lf
+apps/local-service/experiments/automatic-topic-discovery-v4/public-semantic-category-kinds*.js text eol=lf
+apps/local-service/harness/run-category-ancestor-cached-topic-development.js text eol=lf
+apps/local-service/test/hierarchy-ancestor-fallback.integration.test.js text eol=lf

@@ -8,6 +8,18 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST 7 Nov: user explicitly says continue WITHOUT creating a backup; then
+clarifies hierarchical fallback is general, e.g. GTA VI -> Rockstar -> Games,
+not animal-specific. This supersedes older backup-first next-step instructions
+for this feature continuation. Do not resume backup/recovery optimization.
+General ordinary matcher -> ingestion -> public projection now has 11 acceptance
+tests covering exact/missing/rejected named topics, publisher conflicts, arbitrary
+Technology/Acme/Tool X and animals; topology/vectors invented except pinned Komodo
+DEV replay. New cached-index-v4 adds intermediate common-class semantic fallback
+with explicit bank-bound meanings and named-family guards. It is experimental,
+not a live registry/type/relationship authority. Follow ADR242 and top STATUS.
+Preserve consumed source/results. Live schema17 and services are unchanged.
+
 LATEST7Nov USERexplicitALL44 deletion authorized and actual59992EXIT0:36passed
 syntheticPGDATA+4oldidenticalmodels+4oldrealbackups removed.6puretests/38negative
 guards+PSparse/CSharpcompile+doublefullhash/ID/ACL+freshPID/port/reference/native

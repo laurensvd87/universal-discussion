@@ -1,5 +1,29 @@
 # Project status
 
+7 November latest owner direction: continue hierarchical topic matching WITHOUT
+creating a backup. The owner clarified this is a general feature, e.g.
+`GTA VI -> Rockstar -> Games`, with snakes only an example. Earlier backup-first
+next steps below are historical and are superseded for this continuation. Do not
+resume backup/recovery optimization as a prerequisite for direct feature work.
+
+The ordinary numeric pipeline already resolves supported named and common-class
+hierarchies by IDs/ancestry. Eleven new acceptance tests compose actual rooted
+classification, ingestion preparation and public context projection: deepest
+supported exact topic or ancestor, missing/rejected Rockstar/GTA VI, publisher
+conflicts, arbitrary Technology/Acme/Tool X, animals and owner grouping. Invented
+topologies/vectors are DEV composition evidence; one fixed retained real Komodo
+pair also confirms the installed Animals path without an encoder or SQL.
+
+A new explicit cached-index-v4 successor closes the root-only semantic fallback
+gap for intermediate common classes. Explicit bank-bound meanings prevent a
+structural named family such as GTA from acquiring unrelated pages by similarity.
+Named parent matching still requires independent membership/relationship evidence;
+do not turn every parent into a generic category. Consumed v3/source/results and
+ordinary runtime defaults remain unchanged. A pinned full21 retained-vector DEV
+comparison is prepared. See [ADR242](../decisions/ADR-242-general-supported-topic-ancestor-fallback.md).
+Live schema17/services are unchanged; dynamic registry integration and live quality
+remain open. No new backup was created in this continuation.
+
 7November explicit user deletion completed: "also alles das du gefunden hast
 loeschen" authorized all44 previously listed targets:36 passed synthetic test
 PGDATA leaves,4 identical inactive model copies and4 old real backup files.
