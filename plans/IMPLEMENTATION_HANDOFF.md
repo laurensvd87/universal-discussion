@@ -9,12 +9,14 @@ New ordinary integration test composes the real rooted matcher, ingestion and
 public projection for11 cases including named parents/publisher conflicts and
 arbitrary unrelated hierarchies. Invented evidence proves composition only;
 one pinned retained Komodo numeric pair also reaches installed Animals.
-New experimental cached-index-v4 refines alias-free roots to intermediate
-common classes with exact bank-bound category meanings/full ancestry guards;
-GTA-like named families are protected. Named parents require independently
-supported membership or relationship evidence, not a cosine-only class shortcut.
-A fixed21-query retained DEV replay is prepared, with baseline reproduction and
-complete denominator. Read [ADR242](../decisions/ADR-242-general-supported-topic-ancestor-fallback.md)
+V4 was committed e2651456 before its full21 retained DEV replay: baseline21 and
+lexical12 unchanged, but2 wrong over-specific paths. V4 is REJECTED for routing;
+all consumed v4 source/tests/harness/result remain immutable. Do not retune on it.
+New v5 uses actual opaque rooted membership classification, matching roots and
+existing ancestry for both named and common-class parents. No head means keep
+the broad v3 decision. The24-node retained bank has no calibrated intermediate
+heads, so the prepared21-query v5 control is a no-head regression only.
+Read [ADR242](../decisions/ADR-242-general-supported-topic-ancestor-fallback.md)
 and top [status](./STATUS.md). No backup/model/provider/SQL/service operation;
 live schema17 remains unchanged. Dynamic registry/live validation is still open.
 

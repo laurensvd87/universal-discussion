@@ -14,13 +14,27 @@ conflicts, arbitrary Technology/Acme/Tool X, animals and owner grouping. Invente
 topologies/vectors are DEV composition evidence; one fixed retained real Komodo
 pair also confirms the installed Animals path without an encoder or SQL.
 
-A new explicit cached-index-v4 successor closes the root-only semantic fallback
-gap for intermediate common classes. Explicit bank-bound meanings prevent a
-structural named family such as GTA from acquiring unrelated pages by similarity.
-Named parent matching still requires independent membership/relationship evidence;
-do not turn every parent into a generic category. Consumed v3/source/results and
-ordinary runtime defaults remain unchanged. A pinned full21 retained-vector DEV
-comparison is prepared. See [ADR242](../decisions/ADR-242-general-supported-topic-ancestor-fallback.md).
+The new cached-index-v4 successor was committed e2651456 before one retained21
+comparison. All21 baseline results and12 accepted lexical decisions reproduced.
+Three unknown paths narrowed: H7 correctly to Programming languages, H10 wrongly
+to Fast food instead of Dishes, F7 wrongly to Mammals instead of Animals.
+Full result:12 known exact/3 valid unknown ancestors/4 unresolved/2 wrong. V4 is
+REJECTED for routing; its source/tests/harness/result are consumed immutable.
+Result39176B SHA256 `8011622eda10a00382f8d68b547abfc85cdfe87d6455ecd331015385860597a2`
+is local under service data/topic-ancestor-fallback-development-20261107.
+
+New v5 requires actual independently supported rooted membership with matching
+root and exact existing ancestry before refining a broad result. Named
+parents and common classes follow the same mechanism. Prototype similarity alone
+cannot provide that evidence. With no calibrated head, preserve the broad result.
+Accepted broad lexical paths refine only to their own supported descendants;
+conflicting/shorter member paths cannot replace an accepted name. The new index
+binds member identity, policy and order-independent descriptor-vector hash.
+Multiple lexical matches preserve their prior path because their accepted
+branches are not exposed by v3. A common ancestor must not lose a named branch.
+The retained24-node bank has no such heads, so its prepared v5 comparison is a
+full21 no-head regression control, not improved/fresh quality evidence.
+See [ADR242](../decisions/ADR-242-general-supported-topic-ancestor-fallback.md).
 Live schema17/services are unchanged; dynamic registry integration and live quality
 remain open. No new backup was created in this continuation.
 

@@ -45,3 +45,5 @@ apps/local-service/experiments/automatic-topic-discovery-v4/cached-semantic-topi
 apps/local-service/experiments/automatic-topic-discovery-v4/public-semantic-category-kinds*.js text eol=lf
 apps/local-service/harness/run-category-ancestor-cached-topic-development.js text eol=lf
 apps/local-service/test/hierarchy-ancestor-fallback.integration.test.js text eol=lf
+apps/local-service/experiments/automatic-topic-discovery-v4/cached-semantic-topic-index-v5*.js text eol=lf
+apps/local-service/harness/run-supported-ancestor-cached-topic-development.js text eol=lf

@@ -15,9 +15,12 @@ for this feature continuation. Do not resume backup/recovery optimization.
 General ordinary matcher -> ingestion -> public projection now has 11 acceptance
 tests covering exact/missing/rejected named topics, publisher conflicts, arbitrary
 Technology/Acme/Tool X and animals; topology/vectors invented except pinned Komodo
-DEV replay. New cached-index-v4 adds intermediate common-class semantic fallback
-with explicit bank-bound meanings and named-family guards. It is experimental,
-not a live registry/type/relationship authority. Follow ADR242 and top STATUS.
+DEV replay. Committed e2651456 v4 retained21 comparison reproduced all baselines
+but yielded2 over-specific wrong paths. V4/source/tests/harness/result now
+consumed immutable and REJECTED for routing; no cutoff retune. New v5 requires
+actual opaque rooted membership classification/same root/existing ancestry,
+including named parents; no head means broad v3 result. Experimental, not live.
+Follow ADR242 and top STATUS; dynamic registry membership evidence still open.
 Preserve consumed source/results. Live schema17 and services are unchanged.
 
 LATEST7Nov USERexplicitALL44 deletion authorized and actual59992EXIT0:36passed

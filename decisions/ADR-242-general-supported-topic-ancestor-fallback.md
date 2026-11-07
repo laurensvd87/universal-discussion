@@ -1,7 +1,7 @@
 # ADR 242: Resolve the most specific supported topic across general hierarchies
 
-Status: ordinary pipeline acceptance checked; new cached-index successor prepared
-for retained-vector DEV comparison. No live activation.
+Status: ordinary pipeline acceptance checked; cosine-only v4 rejected after DEV
+comparison; v5 requires independently supported membership. No live activation.
 
 The owner resumed the October hierarchy session and explicitly instructed on
 7 November to continue without creating a backup. Do not resume backup creation
@@ -33,7 +33,7 @@ tests use invented artifacts and a simulated database envelope. A separate
 retained Komodo vector pair exercises the real installed Animals matcher, but
 replays transport text without an encoder and does not attest text/vector binding.
 
-## Cached semantic candidate improvement
+## Rejected v4 cached semantic candidate proposal
 
 The consumed v3 cached index accepts lexical topic evidence but considers only
 root categories when no accepted alias exists. The new explicit v4 successor
@@ -75,6 +75,44 @@ All 128 focused ordinary/experimental tests passed under the external-capability
 guard with a 64 MiB Node heap and no skipped tests. The secret scanner checked
 2,007 files with zero findings. Review also caught and closed a named structural
 family being mistaken for a common class before any v4 vector replay.
+
+## Retained comparison rejects v4 for routing
+
+Source was committed as `e2651456` before one retained-vector replay. All 21 v3
+results reproduced exactly; all 12 accepted lexical results stayed unchanged.
+V4 narrowed three unknown queries. H7 correctly reached Programming languages,
+but H10 incorrectly reached Fast food instead of Dishes and F7 reached Mammals
+instead of Animals. Full denominator: 12 known exact, 3 valid unknown ancestors,
+4 unresolved, 2 wrong. No model or provider ran and every selected source/input
+end pin passed. The 39,176-byte result has SHA256
+`8011622eda10a00382f8d68b547abfc85cdfe87d6455ecd331015385860597a2` at
+`apps/local-service/data/topic-ancestor-fallback-development-20261107/evaluation-result.json`.
+V4 source/tests/harness/result are now consumed evidence and remain unchanged.
+Do not activate it or tune cutoffs against these already consumed queries.
+
+## General independently supported membership successor
+
+V5 reuses v3 lexical decisions and accepts an optional opaque compiled rooted
+matcher. A deeper result requires actual numeric classification by
+that matcher, a matching independently accepted root, and exact existing bank
+IDs/parent links. A forged matcher or mismatched topology refuses compilation.
+Named and common-class membership use the same path operation. No intermediate
+membership model means the existing broad result remains; prototype similarity
+alone cannot establish a narrower relationship. A lexical broad path may refine
+only to its independently supported descendant; a conflicting or shorter member
+path cannot replace an accepted name. Exact lexical leaves remain unchanged.
+Multiple accepted lexical matches remain at v3's selected common ancestry because
+that interface exposes a count rather than the accepted branch IDs. Refining
+such a path could silently discard another explicit name. The conservative gate
+also retains multiple compatible lexical matches until branch evidence is exposed.
+Owner grouping still follows evidence and does not change it. The membership
+identity and order-independent descriptor-vector hash bind the new index.
+
+The retained 24-node bank has no calibrated intermediate membership models.
+The prepared v5 retained-data control therefore checks all 21 broad v3 decisions
+without supplying a model; it cannot claim new classification quality. Separate
+invented numeric models test genuine named/common ancestor refinement. Real
+membership quality still depends on evidence and validation for those models.
 
 Next product integration requires bounded semantic candidate retrieval and
 protected meaning/relationship evidence for dynamic registered topics, including
