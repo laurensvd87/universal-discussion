@@ -1,5 +1,31 @@
 # Implementation handoff: local-service discussion MVP
 
+7 November2026 continuation: the user's earlier hierarchical matching session is
+`01a1347d-7641-7501-a988-94c781df679a`, title "why cant it match this page…";
+the hierarchy request was19October and the last work30October. Everything is on
+`main`, no other branch/worktree. Preserve supported-ancestor fallback; the
+archived20-node model supports Animals/Koalas but has no Reptiles/Snakes head.
+The newer automatic named-topic implementation still needs complete recovery,
+browser and quality validation before live activation.
+
+The unfinished ADR241 whole-owner-recovery-v2 source is now reviewed and checked:
+first original application/browser errors are awaited through the owner's
+finite witness before application cleanup, first/falsy errors survive witness
+and cleanup failures, later success cannot clear the owner latch, and arbitrary
+uppercase codes cannot enter the owner proof. Legacy17 contexts remain strict.
+184 guarded Node and125 isolated Python tests pass. Catalog2727/421881B SHA256
+`407cfc979d880dc4d1ed34e2a2dec7b472bf8a4bc1fc700eba45f4cc8a852bd3`
+authenticates/end-pins; old whole-v1 and the30October v2 review/catalog evidence
+remain preserved. Only source-ready flags changed after executable source checks.
+
+Do not start an actual run from those flags. Fresh three-sample admission at
+08:07UTC fails C:3008253952B <6576668672B (2.80GiB <6.125GiB); D passes.
+Scratch root remains absent, and no native Job/SQL/Chrome/private restore/live
+service or storage cleanup was performed. Full held-input/process/port readiness
+and a separate ONE actual decision are still required once admission passes.
+See [current status](./STATUS.md), [ADR241](../decisions/ADR-241-funded-recovery-checkpoints-and-failure-evidence.md)
+and [recovery source](../apps/local-service/portable/integration/whole-owner-recovery-v2/README.md).
+
 LATEST29Oct normal browser/HTTP/app/realAIjob bridge ACTUALPASS: source50822a35/
 catalog7dcce43f/mapae22ca88...11b56/2579files/277477561B. Ownedrun156db538...
 61aa59 EXIT0/acceptedTRUE/all82reportsPASS (25inclwrappers+8metadata+10Source+

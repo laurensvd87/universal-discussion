@@ -8,6 +8,24 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST7Nov recovered hierarchy session01a1347d-7641-7501-a988-94c781df679a,
+title"why cant it match this page…", hierarchyrequest19Oct/lastwork30Oct, mainonly.
+Useraskscontinue supported-most-specific/ancestorfallback. Archived20node has
+Animals/Koalas, NOReptiles/Snakeshead. ResumedunconsumedADR241whole-v2: firstoriginal
+app/browsererror nowawaited throughownerfinitewitness BEFOREappcleanup; witness/
+cleanupfailure cannotreplacefirst/falsyerror orclearfailurelatch. Laterpassed
+appresultcannotpassfailedowner. Bothprimary/witnesscodes allowlisted; legacy17
+strictcontextunchanged.184guardedNodePASS64MiB+125isolatedPythonPASS14.553s;
+sourceONLY, NOnewactualSQL/Chrome/quality. New2727catalog421881B407cfc97...852bd3
+auth/endpins/7runtimePASS; old36v1+catalog+10components/ordinaryADR240pins unchanged.
+Priorv2review/catalog preserved. SourceReadyTRUE NOTactualauthority. Threefresh
+08:07Z samples C3008253952<6576668672B refuse; D6310125568>=4429185024PASS.
+NewrootABSENT; noactual/privateinput/live/storagecleanup. Needfreshfullreadiness/
+heldinputs/liveIDs/port/separateONEdecision afteradmissionPASS. Receiptsdata/
+whole-owner-v2-continuation-source-review-20261107.json,catalog-review and
+readonly-admission. Fullrecovery/migration/HTTP/Chrome/normalcleanup+automatic
+quality/discovery/UI/provider/load/live remainOPEN. ReadSTATUS/HANDOFFfirst.
+
 LATEST30Oct ADR239 whole-v1 ONEactual34029 CLOSEDexit1 filesystem-denied,
 site/nativecode/childoriginalcause UNRETAINED. FULLarchive +ALL29originaltable
 fingerprints+sequences PASS (38/73phases,last244569ms); firstfullsemantic_inputs

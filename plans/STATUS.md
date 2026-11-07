@@ -1,5 +1,40 @@
 # Project status
 
+7 November 2026: recovered and resumed the hierarchical topic-matching session
+`01a1347d-7641-7501-a988-94c781df679a` (created13October, hierarchy request19October,
+last worked30October; title starts "why cant it match this page"). Its work is on
+`main`, with no separate branch/worktree. The requirement remains the most specific
+supported topic, falling back to a supported ancestor when detail is absent or
+uncertain. The archived20-node model includes Nature/Animals/Koalas; Reptiles and
+Snakes do not have installed heads. Do not invent those nodes or infer new quality
+acceptance from this continuation.
+
+Resumed ADR241's unconsumed whole-owner-recovery-v2 source. Automatic18 application
+and browser failures now reach the owner's finite publisher before application
+cleanup; publication failure cannot replace the original or clear the failure
+latch. Both witness and primary codes are allowlisted. Legacy17 context, all73
+checkpoints and original resource/data/browser/retirement requirements remain.
+184 guarded Node tests pass at64MiB and125 isolated Python tests pass. These are
+offline/source checks, not a new database, Chrome or matching-quality result.
+Updated2727-file catalog SHA256
+`407cfc979d880dc4d1ed34e2a2dec7b472bf8a4bc1fc700eba45f4cc8a852bd3`
+authenticates/end-pins; prior source/catalog receipts and consumed whole-v1 remain
+preserved. See [source](../apps/local-service/portable/integration/whole-owner-recovery-v2/README.md)
+and [decision](../decisions/ADR-241-funded-recovery-checkpoints-and-failure-evidence.md).
+
+Full recovery/browser execution did not start. Three fresh readonly samples at
+08:07UTC refuse C admission:3008253952B available versus6576668672B required
+(about2.80GiB versus6.125GiB). D6310125568B passes its4429185024B admission.
+New scratch root remains absent; no storage cleanup or live-service change was
+performed. Source-ready is not actual authority. Next: fresh full readiness,
+held-input/process/port checks and a separate ONE actual decision after disk
+admission passes; then full restoration/migration/HTTP/Chrome/normal retirement.
+General automatic-topic quality, UI/provider/load and live activation remain open.
+Local evidence: `apps/local-service/data/whole-owner-v2-continuation-source-review-20261107.json`,
+`whole-owner-v2-continuation-catalog-review-20261107.json` and
+`whole-owner-v2-readonly-admission-20261107.json`. The earlier smaller C observation
+was superseded by these fresh samples; no cause of the counter change is claimed.
+
 LATEST29Oct normal browser/HTTP/app/realAIjob bridge ACTUALPASS: source50822a35/
 catalog7dcce43f/mapae22ca88...11b56/2579files/277477561B. Ownedrun156db538...
 61aa59 EXIT0/acceptedTRUE/all82reportsPASS (25inclwrappers+8metadata+10Source+
