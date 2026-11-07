@@ -8,6 +8,16 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST7Nov readonly redundancy audit:4 realbackupfiles1253621986B (localstate
+1141015823B+3oldudl).36 passed normallyretired syntheticnative testPGDATA candidates
+923885568B reportedallocated/2093634412Blogical;35062files/no reparse/multilink/
+sharedIDs. Allprivate/failed/unprovenruns excluded. Exactlistdata/readonly-native-
+pgdata-cleanup-candidates-20261107.json SHA9d2e870a...6c9758.8release modelpaths
+sameSHA;4extrasinglelink copies473232740B. Somealreadyshared:never count8copies
+as8physicalfiles. NOdelete/dedup/compression performed. Candidateaudit NOTdisposal
+authority; needuserauthorization+freshboundeddisposalchecks, preserveallproofs/
+realbackups/live data. Prefer36syntheticPGDATA beforetouchingrealbackups.
+
 LATEST7Nov after owner freed space: C7356411904>=6576668672 admissionPASS.
 d1ef0771 pushed/origin synced.2727catalog auth/endpinsPASS; fullreadiness then
 FileNotFoundError/WinError2 fixed29Oct PGarchiveABSENT. Receipt expires5Nov02:06Z,

@@ -1,5 +1,15 @@
 # Implementation handoff: local-service discussion MVP
 
+7Nov redundancy audit supplies a storage option:36 passed, normally retired,
+synthetic native test PGDATA directories report923885568B allocated;35062 files,
+no reparse/multiple links/shared file IDs. Exact candidates and proof hashes are
+in `apps/local-service/data/readonly-native-pgdata-cleanup-candidates-20261107.json`.
+Do not delete failed/private runs, outputs or the four real backup files
+(1253621986B total). Four extra singlelink model copies are hash-identical and
+add473232740B of duplicate content; other release copies already share links.
+Read-only audit only; no disposal or deduplication performed. Seek authorization
+for the exact36 test PGDATA targets, then complete fresh bounded disposal checks.
+
 7November after-space continuation supersedes the C-space blocker below: C now
 passes6.125GiB admission, and `d1ef0771` is pushed/synchronized. Full readiness
 authenticates the2727-file catalog, then refuses the missing fixed29October PG

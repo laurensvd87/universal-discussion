@@ -1,5 +1,22 @@
 # Project status
 
+7November readonly redundancy audit: four actual backup files total1253621986B,
+including the1141015823B local-state archive and three older udlbackup files.
+Do not assume they are redundant. Separately,36 successful synthetic native test
+runs have complete parent/normal-child retirement proofs and no postmaster.pid;
+their PGDATA reports923885568B allocated (2093634412B logical). All35062 files
+were checked: no reparse entries, multiple links or identities shared across
+these targets. Failed/unproven runs and private restored runs were excluded.
+Candidate list: `apps/local-service/data/readonly-native-pgdata-cleanup-candidates-20261107.json`
+(SHA256 `9d2e870ab1622fe7a592e9801426b5c82b87daa92a2739cc1c31bd860f6c9758`).
+Eight release model paths have identical SHA256, but already share some files;
+four remaining singlelink copies represent473232740B of additional duplicate
+content. Allocation totals are metadata observations, not a guaranteed volume
+credit. Nothing was deleted, linked, compressed or changed. Prefer the36 passed
+synthetic test PGDATA candidates first; retain all original run/ownership/catalog/
+output proofs and real backups. Actual disposal still needs authorization,
+fresh process/port/reference/identity checks and the existing bounded safeguards.
+
 7 November2026, after the owner freed space: C admission now passes (latest
 7356411904B available, original6576668672B required). Source commit `d1ef0771`
 is pushed to origin/main, clean and synchronized. The2727-file catalog passes
