@@ -1,5 +1,26 @@
 # Implementation handoff: local-service discussion MVP
 
+7November after-space continuation supersedes the C-space blocker below: C now
+passes6.125GiB admission, and `d1ef0771` is pushed/synchronized. Full readiness
+authenticates the2727-file catalog, then refuses the missing fixed29October PG
+archive (WinError2). Its receipt expired5November; expiry maintenance exists,
+but actual deletion cause is unproven. Exact-name and recycle metadata searches
+found no copy. Do not replay the unchanged full-readiness helper or issue an
+actual recovery decision against the absent/expired input.
+
+Prepare a fresh complete backup instead; its existing reviewed successor passes
+25 offline checks and has not run. D currently6305562624B free admits only
+996892644B dump under its unchanged two-encrypted-copy/4GiB-reserve formula,
+below the1GiB minimum. Old dump size needs D7020625006B (another715062382B);
+fresh size is unknown. Need additional D capacity, a separate backup actual
+decision, full verification, then new exact fixture pins/source review/catalog
+and fresh recovery readiness/ONE decision. No lower floor, expired archive,
+smaller dataset or partial adoption. No root/Job/DB/browser/backup was created.
+Original PG18688/API8108/worker11880 are present; earlier dashboard28420 and
+crawler26784 were already absent; preserve observed Node21588 as well.
+See current [status](./STATUS.md) and local
+`apps/local-service/data/whole-owner-v2-readiness-missing-fixed-backup-20261107.json`.
+
 7 November2026 continuation: the user's earlier hierarchical matching session is
 `01a1347d-7641-7501-a988-94c781df679a`, title "why cant it match this page…";
 the hierarchy request was19October and the last work30October. Everything is on

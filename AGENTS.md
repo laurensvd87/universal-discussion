@@ -8,6 +8,21 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST7Nov after owner freed space: C7356411904>=6576668672 admissionPASS.
+d1ef0771 pushed/origin synced.2727catalog auth/endpinsPASS; fullreadiness then
+FileNotFoundError/WinError2 fixed29Oct PGarchiveABSENT. Receipt expires5Nov02:06Z,
+directorymtime5Nov02:43Z; automaticexpirycleanup exists, deletioncauseUNPROVEN.
+No exactcopy inproject/dev/usualownerfolders/currentownerC+Drecyclemetadata.
+NO actualgrant/rootprep/Job/SQL/Chrome/backup. NeedFRESHcompletebackup, notexpiry
+waiver. Existingcompleteoperator25offlinePASS/sourcepinsunchanged/unactivated.
+D6305562624B admits996892644dumpB<1GiBminimum underoriginal2copy+4GiBreserve.
+Olddump requiresD7020625006B (deficit715062382B); freshdump sizeUNKNOWN. NeedD
+capacity/separatebackupactual/verify/newfixturepins+source/catalog/freshONErun.
+PG18688/API8108/worker11880 originalIDs stillpresent; historicaldashboard28420/
+crawler26784 ABSENT beforeattempt; preexistingNode21588 observed. No service
+changes/restarts. Failure9c56af81...a73bff indata/whole-owner-v2-readiness-missing-
+fixed-backup-20261107.json. PreviousCblockerbelow superseded; fullgoalOPEN.
+
 LATEST7Nov recovered hierarchy session01a1347d-7641-7501-a988-94c781df679a,
 title"why cant it match this page…", hierarchyrequest19Oct/lastwork30Oct, mainonly.
 Useraskscontinue supported-most-specific/ancestorfallback. Archived20node has

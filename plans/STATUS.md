@@ -1,5 +1,33 @@
 # Project status
 
+7 November2026, after the owner freed space: C admission now passes (latest
+7356411904B available, original6576668672B required). Source commit `d1ef0771`
+is pushed to origin/main, clean and synchronized. The2727-file catalog passes
+authentication/end-pins; full readiness then fails with FileNotFoundError /
+WinError2 at the fixed29October encrypted PostgreSQL archive. No actual decision,
+root preparation, backup, native Job, SQL migration or browser run was started.
+
+That archive's retained receipt expires5November02:06UTC; its directory's last
+write is5November02:43UTC. Automatic PostgreSQL expiry cleanup exists, but the
+deletion cause is not proven. No exact copy was found in the project/dev storage,
+usual owner download/document folders or current-owner C/D recycle metadata.
+The original PostgreSQL/API/worker identities remain present; historical
+dashboard28420 and crawler26784 are absent before this continuation. Another
+pre-existing Node21588 was observed; no live services were changed or restarted.
+
+A fresh complete backup is required rather than an expiry waiver. The reviewed
+complete-topic-backup operator remains unactivated and passes25 offline tests.
+Its unchanged two-copy/4GiB-reserve formula currently admits996892644B of dump,
+below its1GiB minimum, on D with6305562624B free. The old dump size would require
+7020625006B free on D:715062382B more than the sample. Current dump size remains
+unknown, so this is a reference calculation, not a fresh-size guarantee.
+Next: obtain enough D capacity, create/verify a fresh complete backup through its
+separately reviewed actual decision, then bind/review the fresh recovery fixture
+and run the full migration/HTTP/Chrome test. Preserve all original bounds and
+historical evidence. Local refusal/space evidence is
+`apps/local-service/data/whole-owner-v2-readiness-missing-fixed-backup-20261107.json`
+(SHA256 `9c56af8126b482cbc93b271be838a48e1e822fcbd9ab9e0733a105fd05a73bff`).
+
 7 November 2026: recovered and resumed the hierarchical topic-matching session
 `01a1347d-7641-7501-a988-94c781df679a` (created13October, hierarchy request19October,
 last worked30October; title starts "why cant it match this page"). Its work is on
