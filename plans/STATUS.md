@@ -1,5 +1,42 @@
 # Project status
 
+7November explicit user deletion completed: "also alles das du gefunden hast
+loeschen" authorized all44 previously listed targets:36 passed synthetic test
+PGDATA leaves,4 identical inactive model copies and4 old real backup files.
+One fixed PowerShell invocation59992 exited0 after6 pure tests/38 negative guard
+scenarios, source parse/native-binding compile, two equal full hash/identity/ACL
+snapshots and fresh PID/port/reference checks. LiteralPath removal used no force,
+ACL changes, service stops or retries. Independent post-audit confirms all44
+absent,6324 controls preserved, and all2727 source/runtime catalog pins still pass.
+Receipt SHA256 `2b7529896529c68c6797bcd343c30bd21d114891071a5683933eef6a5dc4d724`;
+independent post `89af101b688cf7acb6805e5691519fa66dc553ec867df0c9fd19449b3de3bfcd`.
+D free increased from6295773184B to8907169792B:2611396608B observed volume credit,
+not a per-file allocation or quota inference. Four older release model seals
+(28October,28October-final,29October-http-priority,30October-automatic-topics)
+are intentionally incomplete now; retained active/other models and original
+proofs are unchanged. Earlier "retain four real backups" notes are superseded
+only for those four expressly authorized files. No source, live database or
+service restart was performed by deletion.
+
+The next necessary fresh complete backup was separately authorized by Root and
+attempted once with the unchanged reviewed operator, Node64MiB and original
+330active/360absolute seconds/two-copy/4GiB reserve. Actual56808 exited1 after
+330.231s with `child-deadline`, reporting1883758592 partial dump bytes against
+2297507812 admitted bytes. No complete archive was verified/published. Temp
+ciphertexts and pg_dump are absent; a separate readonly check finds0 leftover
+owner sessions and live schema17. Protected process starts remain exact.
+Operator/test/helper/decision/result bytes are now consumed evidence; no retry
+or automatic cap increase. Per-table timings and fingerprint receipt values
+were not retained on failure, so do not assign a table/CPU cause. Space admission
+now passes; the remaining backup issue is the observed time bound, not a proven
+disk failure. Diagnose/optimize in new source before another separately reviewed
+attempt, then bind a fresh complete29 fixture for recovery/migration/UI work.
+Local evidence: `approved-storage-cleanup-independent-post-20261107.json`,
+`fresh-complete-backup-terminal-audit-20261107.json` (SHA256
+`8f5a14f0593f4f45392e7075aa5055975c274319b521bc431c0427c1b009cd41`)
+and `fresh-complete-backup-owner-session-post-20261107.json` under service data.
+Full hierarchy/automatic-topic/recovery/browser/quality/live goal remains open.
+
 7November readonly redundancy audit: four actual backup files total1253621986B,
 including the1141015823B local-state archive and three older udlbackup files.
 Do not assume they are redundant. Separately,36 successful synthetic native test

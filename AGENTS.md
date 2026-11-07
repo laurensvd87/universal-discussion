@@ -8,6 +8,24 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST7Nov USERexplicitALL44 deletion authorized and actual59992EXIT0:36passed
+syntheticPGDATA+4oldidenticalmodels+4oldrealbackups removed.6puretests/38negative
+guards+PSparse/CSharpcompile+doublefullhash/ID/ACL+freshPID/port/reference/native
+boundaryPASS.44absent;6324controls+2727source/runtimepins preserved. Dfree
+6295773184->8907169792B (observedcredit2611396608B, notperfile/quota proof).
+Completion2b752989...c4d724; independent89af101b...3bfcd. Old4release modelseals
+intentionallyINCOMPLETE; remainingmodels/proofs retained. Previousretain4backups
+supersededONLYforthese4userauthorizedfiles. No live/source/service mutation.
+ONEfreshcompletebackup separatelyRootdecided actual56808EXIT1/330.231s,
+child-deadline/1883758592partialdumpB(limit2297507812). NOverified/published
+backup. Tempciphertexts/pg_dump ABSENT;0leftoverownersessions/liveSchema17;
+protectedstartsunchanged. Completeoperator+test/helper/decision/result NOW
+CONSUMEDIMMUTABLE/no retry/capraise. Per-tabletiming/receiptvalues UNRETAINED;
+no table/CPU causeinference. NeedNEWsource finiteprogress/optimization preserving
+complete29/readOnlysnapshot/crypto/330-360/twocopy/4GiB beforefutureseparateONE.
+Terminalaudit8f5a14f0...cd41 indata/fresh-complete-backup-terminal-audit-20261107.json.
+Cleanup goalDONE; originalhierarchy/recovery/UI/quality/livegoalOPEN. ReadSTATUS.
+
 LATEST7Nov readonly redundancy audit:4 realbackupfiles1253621986B (localstate
 1141015823B+3oldudl).36 passed normallyretired syntheticnative testPGDATA candidates
 923885568B reportedallocated/2093634412Blogical;35062files/no reparse/multilink/

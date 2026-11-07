@@ -1,5 +1,27 @@
 # Implementation handoff: local-service discussion MVP
 
+7Nov user explicitly authorized ALL44 listed deletions; actual59992 completed
+exit0:36 passed synthetic PGDATA,4 literal old duplicate models,4 literal old
+backup files. Two complete hash/identity/ACL passes,6 guard tests/38 negative
+cases, fresh process/port/reference and native-boundary checks passed. All44
+independently absent;6324 controls plus2727 source/runtime pins preserved.
+Observed D free credit2611396608B, ending8907169792B. Four old release model
+seals are intentionally incomplete, with manifests/proofs retained; do not claim
+those four trees still pass seals. Actual helper/source/receipts remain evidence.
+See `apps/local-service/data/approved-storage-cleanup-independent-post-20261107.json`.
+
+Space is sufficient now. ONE separately decided fresh complete backup actual
+56808 failed at330.231s (`child-deadline`),1883758592 partial dump bytes; no
+verified/published archive. No temp ciphertext, pg_dump or owner session remains;
+live schema17 and original protected starts unchanged. Do not retry or mutate
+consumed `complete-topic-backup-operator.js`, its test or actual helper/receipts.
+Need new source to retain finite per-table/export timing and improve the bounded
+path while preserving complete29/snapshot/crypto/330-360/two-copy/4GiB guards.
+Then separate actual decision and full verification before fresh fixture binding.
+Timing cause and full dump size remain unknown; no restore/migration/browser or
+live activation occurred. Evidence: `fresh-complete-backup-terminal-audit-20261107.json`
+and `fresh-complete-backup-owner-session-post-20261107.json` in service data.
+
 7Nov redundancy audit supplies a storage option:36 passed, normally retired,
 synthetic native test PGDATA directories report923885568B allocated;35062 files,
 no reparse/multiple links/shared file IDs. Exact candidates and proof hashes are
